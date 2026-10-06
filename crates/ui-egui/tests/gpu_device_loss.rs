@@ -158,7 +158,7 @@ fn system_info_lists_the_graphics_state() {
     app.perf.gpu_info.fallback = Some("the previous start didn't finish on vulkan; using dx12".into());
     let lines = gpu_status::system_info(&app);
     let text = lines.join("\n");
-    for want in ["Graphics adapter: Test GPU", "Backend: dx12", "Selected at launch: dx12", "Fallback: the previous start", "Canvas renderer: CPU"] {
+    for want in ["Graphics adapter: Test GPU", "Backend: dx12", "Selected at launch: dx12", "Fallback: the previous start", "Image compositor: CPU"] {
         assert!(text.contains(want), "{want} missing from\n{text}");
     }
     let v = gpu_status::system_info_json(&app);

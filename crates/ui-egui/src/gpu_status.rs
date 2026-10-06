@@ -93,6 +93,10 @@ fn choose_recovery(app: &mut PhotocraftApp, retry: bool) -> Result<(), String> {
             "performance.gpuBackend": "auto"
         }}),
     )?;
+    let text = app.session.prefs_to_json();
+    if let Some(save) = app.services.save_prefs.as_mut() {
+        save(&text)?;
+    }
     app.ui.gpu_fallback_notice = None;
     if retry {
         crate::notices::post(
@@ -115,6 +119,7 @@ pub fn show_fallback(app: &mut PhotocraftApp, ctx: &egui::Context) {
         .collapsible(false)
         .resizable(false)
         .default_width(440.0)
+        .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
         .show(ctx, |ui| {
             ui.label(egui::RichText::new(tl!("GPU acceleration could not continue. Your documents are unchanged.")).color(t.warning));
             ui.label(tl!("PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter."));
@@ -149,6 +154,17 @@ mod tests {
         queue_fallback_notice(&mut app, "device unavailable");
         let state = serde_json::to_value(&app.ui).unwrap();
         assert_eq!(state["gpu_fallback_notice"], "device unavailable");
+        assert_eq!(crate::control::inspect(&app, &egui::Context::default())["gpuFallbackNotice"], "device unavailable");
+    }
+
+    #[test]
+    fn failed_preference_save_keeps_recovery_warning_open() {
+        let services = crate::Services { save_prefs: Some(Box::new(|_| Err("disk full".into()))), ..Default::default() };
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), services);
+        queue_fallback_notice(&mut app, "GPU fault");
+        assert!(choose_recovery(&mut app, true).is_err());
+        assert_eq!(app.ui.gpu_fallback_notice.as_deref(), Some("GPU fault"));
+        assert!(app.ui.notices.is_empty());
     }
 
     #[test]

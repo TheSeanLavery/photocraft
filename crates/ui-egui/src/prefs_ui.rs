@@ -725,7 +725,10 @@ pub fn open_mismatch(app: &mut PhotocraftApp, report: &Value) -> u64 {
 /// Render one of our dialogs' bodies.
 pub fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     match f.get("__prefsui").and_then(Value::as_str).unwrap_or("") {
-        "prefs" => prefs_body(ui, f),
+        "prefs" => {
+            f.insert("__gpuInfo".into(), json!(app.perf.gpu_info.lines()));
+            prefs_body(ui, f);
+        }
         "shortcuts" => shortcuts_body(app, ui, f),
         "presets" => presets_body(app, ui, f),
         "presetsIO" => presets_io_body(ui, f),

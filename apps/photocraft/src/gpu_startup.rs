@@ -162,6 +162,8 @@ pub fn plan_with_mode(pref: GpuBackend, mode: RenderingMode, crashed: Option<&Ma
         RenderingMode::Auto | RenderingMode::Gpu if pref == GpuBackend::Cpu => GpuBackend::Auto,
         _ => pref,
     };
+    let env = if safe_gpu || mode == RenderingMode::Cpu { None } else { env };
+    let crashed = if mode == RenderingMode::Cpu { None } else { crashed };
     plan(backend, crashed, env, safe_gpu, os)
 }
 
@@ -397,6 +399,17 @@ mod tests {
 
     fn crashed(backend: &str, adapter_backend: &str) -> Marker {
         Marker { backend: backend.into(), adapter: "Intel(R) UHD Graphics".into(), adapter_backend: adapter_backend.into(), ..Default::default() }
+    }
+
+    #[test]
+    fn cpu_policy_ignores_hardware_backend_override() {
+        let p = plan_with_mode(Vulkan, RenderingMode::Cpu, None, Some("vulkan"), false, Os::Windows);
+        assert_eq!(p.backend, Cpu);
+        assert!(p.env.is_none());
+        assert_eq!(plan_with_mode(Vulkan, RenderingMode::Cpu, Some(&crashed("vulkan", "vulkan")), None, false, Os::Windows).backend, Cpu);
+        let p = plan_with_mode(Auto, RenderingMode::Gpu, None, Some("vulkan"), true, Os::Windows);
+        assert_eq!(p.backend, Cpu);
+        assert!(p.env.is_none());
     }
 
     #[test]
