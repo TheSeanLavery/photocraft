@@ -1,0 +1,48 @@
+name: Windows input validation
+on:
+  push:
+    branches: [validation/cross-platform-brush-input]
+  workflow_dispatch:
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Alignment and UI replay tests
+        shell: pwsh
+        run: |
+          $inputTestConfig = Join-Path $env:RUNNER_TEMP "input-test-profile.toml"
+          @'
+          [profile.dev]
+          opt-level = 0
+          debug = 0
+          [profile.test]
+          opt-level = 0
+          debug = 0
+          [profile.dev.package."*"]
+          opt-level = 0
+          '@ | Set-Content $inputTestConfig
+          cargo test -j4 --config $inputTestConfig -p photocraft-tablet --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test -j4 --config $inputTestConfig -p photocraft-ui-egui --lib window_motion_tests --locked
+      - name: Native application compile
+        shell: pwsh
+        run: |
+          $inputTestConfig = Join-Path $env:RUNNER_TEMP "input-test-profile.toml"
+          cargo check -j4 --config $inputTestConfig -p photocraft --locked
+      - name: Input lint checks
+        shell: pwsh
+        run: |
+          $inputTestConfig = Join-Path $env:RUNNER_TEMP "input-test-profile.toml"
+          cargo clippy -j4 --config $inputTestConfig -p photocraft-tablet --all-targets --locked -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo clippy -j4 --config $inputTestConfig -p photocraft-ui-egui -p photocraft --all-targets --locked -- -D warnings -A clippy::collapsible_match -A clippy::nonminimal_bool
