@@ -1,6 +1,6 @@
 //! GPU health in the shell (#243, #4): when the wgpu device is lost or reports an error, the
 //! GPU canvas is dropped and every document keeps drawing through the CPU compositor and egui
-//! textures for the rest of the session, with a non-modal notice. Also runs the desktop app's
+//! textures for the rest of the session, with a recovery warning. Also runs the desktop app's
 //! "started" hook once the first frames have rendered (the crash-safe startup marker), and
 //! provides the Help › System Info text.
 
@@ -53,13 +53,8 @@ pub fn fall_back(app: &mut PhotocraftApp, fault: &photocraft_gpu::Fault) {
     app.perf.gpu_info.canvas = "cpu".into();
     app.perf.gpu_info.lost = Some(fault.to_string());
     let title = if fault.is_lost() { LOST_MESSAGE } else { ERROR_MESSAGE };
-    let detail = fault.detail().trim();
-    let mut lines = Vec::new();
-    if !detail.is_empty() {
-        lines.push(detail.to_string());
-    }
-    lines.push("Your documents are unchanged. Save your work; the GPU is used again after a restart.".into());
-    crate::notices::post(app, title, lines, true);
+    queue_fallback_notice(app, fault.to_string());
+    crate::notices::post(app, title, vec![fault.to_string()], true);
     app.ui.status = title.to_string();
     app.ui.status_error = true;
 }
@@ -81,4 +76,92 @@ pub fn system_info_json(app: &PhotocraftApp) -> serde_json::Value {
         "gpu": app.perf.gpu_info,
         "lines": system_info(app),
     })
+}
+
+/// Queue the same recovery warning for startup and runtime failures.
+pub fn queue_fallback_notice(app: &mut PhotocraftApp, reason: impl Into<String>) {
+    app.ui.gpu_fallback_notice = Some(reason.into());
+}
+
+/// Store the next-launch choice without restarting or risking unsaved documents.
+fn choose_recovery(app: &mut PhotocraftApp, retry: bool) -> Result<(), String> {
+    app.run(
+        "prefs.set",
+        json!({"values": {
+            "performance.renderingMode": if retry { "gpu" } else { "cpu" },
+            "performance.useGpu": retry,
+            "performance.gpuBackend": "auto"
+        }}),
+    )?;
+    app.ui.gpu_fallback_notice = None;
+    if retry {
+        crate::notices::post(
+            app,
+            "GPU retry scheduled",
+            vec!["Save your work and restart PhotoCraft to retry GPU acceleration. CPU rendering remains active for this session.".into()],
+            false,
+        );
+    }
+    Ok(())
+}
+
+/// Recovery is an explicit choice; the CPU document renderer stays active while the user works.
+pub fn show_fallback(app: &mut PhotocraftApp, ctx: &egui::Context) {
+    let Some(reason) = app.ui.gpu_fallback_notice.clone() else { return };
+    let t = crate::theme::Tokens::get(ctx);
+    let mut choice = None;
+    egui::Window::new(tl!("Switched to CPU rendering"))
+        .id(egui::Id::new("gpu-fallback-warning"))
+        .collapsible(false)
+        .resizable(false)
+        .default_width(440.0)
+        .show(ctx, |ui| {
+            ui.label(egui::RichText::new(tl!("GPU acceleration could not continue. Your documents are unchanged.")).color(t.warning));
+            ui.label(tl!("PhotoCraft is using the CPU image compositor. The window may still use your graphics adapter."));
+            ui.collapsing(tl!("Details"), |ui| {
+                ui.label(&reason);
+            });
+            ui.label(tl!("Retry GPU requires a restart. Save your work first."));
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                if crate::widgets::primary_button(ui, tl!("Keep Using CPU"), 150.0).clicked() {
+                    choice = Some(false);
+                }
+                if crate::widgets::secondary_button(ui, tl!("Retry GPU"), 120.0).clicked() {
+                    choice = Some(true);
+                }
+            });
+        });
+    if let Some(retry) = choice
+        && let Err(error) = choose_recovery(app, retry)
+    {
+        crate::notices::error(app, error);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fallback_warning_keeps_reason_in_inspectable_state() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        queue_fallback_notice(&mut app, "device unavailable");
+        let state = serde_json::to_value(&app.ui).unwrap();
+        assert_eq!(state["gpu_fallback_notice"], "device unavailable");
+    }
+
+    #[test]
+    fn recovery_choices_save_next_launch_mode_without_restarting() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        queue_fallback_notice(&mut app, "device unavailable");
+        choose_recovery(&mut app, false).unwrap();
+        assert!(!app.session.prefs().performance.use_gpu);
+        assert_eq!(app.session.prefs().get("performance.renderingMode"), Some(json!("cpu")));
+        assert!(app.ui.gpu_fallback_notice.is_none());
+        choose_recovery(&mut app, true).unwrap();
+        assert!(app.session.prefs().performance.use_gpu);
+        assert_eq!(app.session.prefs().get("performance.renderingMode"), Some(json!("gpu")));
+        assert!(app.gpu.is_none());
+    }
 }
