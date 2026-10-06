@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use eframe::{egui_wgpu, wgpu};
-use photocraft_engine::prefs::GpuBackend;
+use photocraft_engine::prefs::{GpuBackend, RenderingMode};
 use serde_json::{Value, json};
 
 /// The marker's file name in the config directory.
@@ -154,6 +154,17 @@ pub fn plan(pref: GpuBackend, crashed: Option<&Marker>, env: Option<&str>, safe_
     Plan { backend: pref, env: None, reason: None, remember: false }
 }
 
+/// Resolve the rendering policy before the window exists. Explicit GPU/Automatic selections
+/// reset a legacy CPU backend to automatic; CPU keeps software-preferred window presentation.
+pub fn plan_with_mode(pref: GpuBackend, mode: RenderingMode, crashed: Option<&Marker>, env: Option<&str>, safe_gpu: bool, os: Os) -> Plan {
+    let backend = match mode {
+        RenderingMode::Cpu => GpuBackend::Cpu,
+        RenderingMode::Auto | RenderingMode::Gpu if pref == GpuBackend::Cpu => GpuBackend::Auto,
+        _ => pref,
+    };
+    plan(backend, crashed, env, safe_gpu, os)
+}
+
 /// Instance backends for `plan` (`None`: egui's default, which honours `WGPU_BACKEND`).
 pub fn backends(plan: &Plan, os: Os) -> Option<wgpu::Backends> {
     if plan.env.is_some() {
@@ -211,8 +222,7 @@ fn rank(a: &Candidate, backend: GpuBackend, os: Os) -> (u8, u8) {
 
 /// The adapter to use among `adapters` (`None` when there is none).
 pub fn pick(adapters: &[Candidate], backend: GpuBackend, os: Os) -> Option<usize> {
-    let any_ok = adapters.iter().any(|a| a.surface_ok);
-    adapters.iter().enumerate().filter(|(_, a)| a.surface_ok || !any_ok).min_by_key(|(i, a)| (rank(a, backend, os), *i)).map(|(i, _)| i)
+    adapters.iter().enumerate().filter(|(_, a)| a.surface_ok).min_by_key(|(i, a)| (rank(a, backend, os), *i)).map(|(i, _)| i)
 }
 
 /// Whether picking `chosen` applied the Intel-on-Windows DX12 default (a Vulkan adapter of the
@@ -250,6 +260,10 @@ pub fn configure(setup: &mut egui_wgpu::WgpuSetup, plan: &Plan, os: Os, sentinel
                     })
                     .collect();
                 let i = pick(&cands, backend, os).ok_or_else(|| "no graphics adapter found".to_string())?;
+                if backend == GpuBackend::Cpu && cands.get(i).is_some_and(|c| c.device_type != wgpu::DeviceType::Cpu) {
+                    *note.lock().unwrap_or_else(PoisonError::into_inner) =
+                        Some("CPU image rendering; no software graphics adapter is available, so the window uses hardware graphics".into());
+                }
                 if backend == GpuBackend::Auto && intel_dx12_applied(&cands, i, os) {
                     *note.lock().unwrap_or_else(PoisonError::into_inner) =
                         Some("Intel graphics on Windows: using DirectX 12 (the Intel Vulkan driver is known to crash)".into());
@@ -367,6 +381,15 @@ pub fn read_prefs(path: Option<&Path>) -> (GpuBackend, bool) {
     (backend, use_gpu)
 }
 
+/// Read the policy leniently at startup, including old settings without renderingMode.
+pub fn read_rendering_prefs(path: Option<&Path>) -> (GpuBackend, RenderingMode) {
+    let (backend, use_gpu) = read_prefs(path);
+    let v: Value = path.and_then(|p| std::fs::read_to_string(p).ok()).and_then(|t| serde_json::from_str(&t).ok()).unwrap_or(Value::Null);
+    let explicit = v.get("performance").and_then(|p| p.get("renderingMode")).and_then(Value::as_str).and_then(RenderingMode::parse);
+    let mode = explicit.unwrap_or(if !use_gpu || backend == GpuBackend::Cpu { RenderingMode::Cpu } else { RenderingMode::Auto });
+    (backend, mode)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -472,6 +495,21 @@ mod tests {
         assert_eq!(pick(&a, Cpu, Os::Windows), Some(1));
         // No software adapter: still something.
         assert_eq!(pick(&a[..1], Cpu, Os::Windows), Some(0));
+    }
+
+    #[test]
+    fn adapters_must_present_even_when_none_support_the_surface() {
+        let mut a = cand(INTEL, wgpu::DeviceType::IntegratedGpu, wgpu::Backend::Dx12);
+        a.surface_ok = false;
+        assert_eq!(pick(&[a], Auto, Os::Windows), None);
+        assert_eq!(pick(&[a], Cpu, Os::Windows), None);
+    }
+
+    #[test]
+    fn explicit_policy_overrides_legacy_cpu_backend() {
+        assert_eq!(plan_with_mode(Cpu, RenderingMode::Gpu, None, None, false, Os::Mac).backend, Auto);
+        assert_eq!(plan_with_mode(Metal, RenderingMode::Cpu, None, None, false, Os::Mac).backend, Cpu);
+        assert_eq!(plan_with_mode(Auto, RenderingMode::Gpu, None, None, true, Os::Mac).backend, Cpu);
     }
 
     #[test]
