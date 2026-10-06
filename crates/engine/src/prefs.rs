@@ -402,13 +402,7 @@ pub struct Performance {
 impl Performance {
     /// Resolve old preferences without allowing legacy flags to override an explicit mode.
     pub fn effective_rendering_mode(&self) -> RenderingMode {
-        self.rendering_mode.unwrap_or_else(|| {
-            if !self.use_gpu || self.gpu_backend == GpuBackend::Cpu {
-                RenderingMode::Cpu
-            } else {
-                RenderingMode::Auto
-            }
-        })
+        self.rendering_mode.unwrap_or_else(|| if !self.use_gpu || self.gpu_backend == GpuBackend::Cpu { RenderingMode::Cpu } else { RenderingMode::Auto })
     }
 
     /// Pixel memory a document and its History may hold (Memory Usage), in bytes: beyond it
