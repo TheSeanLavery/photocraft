@@ -2071,7 +2071,6 @@
 
 # Command-id override: under Edit > Purge a bare "Deshacer" reads as an action, not the history.
 @id	edit.purge.undo	Historial de deshacer
-||||||| parent of 267fffa (Add rendering mode preferences and GPU fallback recovery warning)
 # Rendering mode and recovery
 	Rendering Mode	Modo de renderizado
 	Automatic (recommended)	Automático (recomendado)
