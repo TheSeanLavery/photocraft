@@ -2425,3 +2425,5 @@ cameraRaw	Roughness	Неровность
 	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Версия для браузера хранит историю отмены в памяти. Настройки рабочих дисков применяются к настольному приложению.
 
 	HDR Output	Вывод HDR
+	HDR Workbench	Панель HDR
+	Export SDR Preview…	Экспортировать предпросмотр SDR…

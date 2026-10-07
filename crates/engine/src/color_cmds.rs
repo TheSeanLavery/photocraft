@@ -213,6 +213,7 @@ pub struct ColorState {
     pub(crate) display: crate::display_color::DisplayCaches,
     /// View › 32-bit Preview Options per document.
     pub hdr: HashMap<DocId, crate::proof_sim::HdrPreview>,
+    pub workbench: HashMap<DocId, photocraft_color::hdr::HdrWorkbench>,
 }
 
 impl ColorState {

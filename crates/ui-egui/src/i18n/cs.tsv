@@ -2152,3 +2152,5 @@ cameraRaw	Color	Barvy
 	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Tato verze pro prohlížeč uchovává historii změn v paměti. Nastavení odkládacích disků platí pro aplikaci pro počítač.
 
 	HDR Output	Výstup HDR
+	HDR Workbench	Pracovní panel HDR
+	Export SDR Preview…	Exportovat náhled SDR…

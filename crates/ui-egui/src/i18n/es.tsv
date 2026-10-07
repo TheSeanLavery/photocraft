@@ -2223,3 +2223,5 @@ cameraRaw	Amount	Cantidad
 	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Esta versión del navegador conserva el historial de deshacer en memoria. Los ajustes de disco temporal se aplican a la aplicación de escritorio.
 
 	HDR Output	Salida HDR
+	HDR Workbench	Banco de trabajo HDR
+	Export SDR Preview…	Exportar vista previa SDR…

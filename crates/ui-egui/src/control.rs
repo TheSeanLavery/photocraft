@@ -687,6 +687,13 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             }
             None => err("missing `path`"),
         },
+        "app.exportSdr" => wrap((|| {
+            let path = s("path").filter(|p| p.to_ascii_lowercase().ends_with(".png")).ok_or("SDR export needs a relative .png path")?;
+            let bytes = photocraft_engine::hdr_cmds::sdr_png(&app.session).map_err(|e| e.to_string())?;
+            let write = app.services.automation_write.as_mut().ok_or("automation write authority is not configured")?;
+            write(path, &bytes)?;
+            Ok(json!({"path": path, "bytes": bytes.len(), "colorSpace": "sRGB"}))
+        })()),
         "app.save" => wrap(app.save_automation(s("path").map(str::to_string)).map(|(p, w)| json!({"path": p, "warnings": w}))),
         "app.quit" => {
             app.allow_close = true;
@@ -834,6 +841,24 @@ mod tests {
         assert!(app.session.active().unwrap().doc.selection.is_some());
     }
 
+    #[test]
+    fn sdr_export_uses_only_the_granted_writer() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        let ctx = egui::Context::default();
+        app.session.execute("file.new", json!({"width":8,"height":8,"depth":32})).unwrap();
+        app.services.write = Some(Box::new(|_, _| panic!("ambient writer must never run")));
+        assert_eq!(call(&mut app, &ctx, "app.exportSdr", json!({"path":"out.png"}))["ok"], false);
+        let saved = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+        let copy = saved.clone();
+        app.services.automation_write = Some(Box::new(move |path, bytes| {
+            copy.borrow_mut().push((path.to_string(), bytes.to_vec()));
+            Ok(())
+        }));
+        assert_eq!(call(&mut app, &ctx, "app.exportSdr", json!({"path":"out.png"}))["ok"], true);
+        assert_eq!(saved.borrow()[0].0, "out.png");
+        assert!(saved.borrow()[0].1.starts_with(b"\x89PNG"));
+        assert_eq!(call(&mut app, &ctx, "app.exportSdr", json!({"path":"out.exr"}))["ok"], false);
+    }
     #[test]
     fn engine_execute_runs_with_defaults_but_menu_invoke_opens_the_dialog() {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());

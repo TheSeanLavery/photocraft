@@ -87,3 +87,4 @@ next to the files:
 
 Files copied into `corpus/` by hand (tiff, exr, raw) must be MIT, BSD or CC0.
 
+| `docs/evidence/hdr-workbench/` | Original synthetic HDR chart and PhotoCraft validation captures | PhotoCraft contributors | Generated locally with `hdr_fixture` and `hdr_snapshot`; native control screenshots | MIT (see adjacent `LICENSE`) |

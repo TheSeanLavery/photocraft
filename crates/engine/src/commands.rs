@@ -158,6 +158,26 @@ pub(crate) fn color_param(p: &Value, key: &str, default: [f32; 4]) -> [f32; 4] {
         _ => default,
     }
 }
+fn validated_color_param(p: &Value, key: &str, default: [f32; 4]) -> Result<[f32; 4]> {
+    let bad = || EngineError::BadParams { cmd: "tools.setColors".into(), msg: format!("{key}: expected hex or 3/4 finite numbers, RGB 0..65504, alpha 0..1") };
+    match p.get(key) {
+        None => Ok(default),
+        Some(Value::String(s)) => parse_hex(s).ok_or_else(bad),
+        Some(Value::Array(a)) if (3..=4).contains(&a.len()) => {
+            let mut out = [0.0, 0.0, 0.0, 1.0];
+            for (i, (dst, value)) in out.iter_mut().zip(a).enumerate() {
+                let x = value.as_f64().ok_or_else(bad)?;
+                let ceiling = if i == 3 { 1.0 } else { 65504.0 };
+                if !x.is_finite() || !(0.0..=ceiling).contains(&x) {
+                    return Err(bad());
+                }
+                *dst = x as f32;
+            }
+            Ok(out)
+        }
+        _ => Err(bad()),
+    }
+}
 fn parse_hex(s: &str) -> Option<[f32; 4]> {
     let s = s.trim_start_matches('#');
     let b = |i: usize| u8::from_str_radix(s.get(i..i + 2)?, 16).ok().map(|v| v as f32 / 255.0);
@@ -782,11 +802,21 @@ fn build() -> Vec<CommandSpec> {
             has_paintable,
             crate::brush_cmds::paint_stroke
         ),
-        cmd!("tools.setColors", "Set Colors", [], None, r##"{"foreground":"#rrggbb"?,"background":"#rrggbb"?}"##, always, |s, p| {
-            s.tools.foreground = color_param(p, "foreground", s.tools.foreground);
-            s.tools.background = color_param(p, "background", s.tools.background);
-            Ok(Value::Null)
-        }),
+        cmd!(
+            "tools.setColors",
+            "Set Colors",
+            [],
+            None,
+            r##"{"foreground":"#rrggbb"|[r,g,b,a?],"background":"#rrggbb"|[r,g,b,a?]} (optional; float RGB in document composite space; 0..65504, alpha 0..1)"##,
+            always,
+            |s, p| {
+                let foreground = validated_color_param(p, "foreground", s.tools.foreground)?;
+                let background = validated_color_param(p, "background", s.tools.background)?;
+                s.tools.foreground = foreground;
+                s.tools.background = background;
+                Ok(Value::Null)
+            }
+        ),
         cmd!("tools.swapColors", "Switch Foreground and Background Colors", [], Some("X"), "{}", always, |s, _| {
             std::mem::swap(&mut s.tools.foreground, &mut s.tools.background);
             Ok(Value::Null)
@@ -1050,6 +1080,7 @@ fn build() -> Vec<CommandSpec> {
     v.extend(crate::analysis_cmds::specs());
     v.extend(crate::notes_cmds::specs());
     v.extend(crate::proof_sim::specs());
+    v.extend(crate::hdr_cmds::specs());
     v.extend(crate::presets::specs());
     v.extend(crate::render_cmds::specs());
     v.extend(crate::slice_cmds::specs());

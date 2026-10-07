@@ -2160,3 +2160,5 @@ cameraRaw	Blending	混合
 	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	浏览器版将撤销历史保存在内存中。暂存盘设置适用于桌面应用。
 
 	HDR Output	HDR 输出
+	HDR Workbench	HDR 工作台
+	Export SDR Preview…	导出 SDR 预览…

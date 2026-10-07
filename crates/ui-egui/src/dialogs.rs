@@ -172,7 +172,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 DialogKind::Command if crate::rasterize_prompt::owns(&fields) => crate::rasterize_prompt::body(ui, &fields),
                 DialogKind::Command if crate::variables_ui::owns(&fields) => crate::variables_ui::body(app, ui, &mut fields),
                 DialogKind::Command if crate::file_ui::owns(&fields) => crate::file_ui::body(app, ui, &mut fields),
-                DialogKind::Command if crate::color_picker_ui::owns(&fields) => crate::color_picker_ui::body(ui, &mut fields),
+                DialogKind::Command if crate::color_picker_ui::owns(&fields) => crate::color_picker_ui::body(app, ui, &mut fields),
                 DialogKind::Command if crate::color_range_ui::owns(&fields) => crate::color_range_ui::body(app, ui, &mut fields),
                 DialogKind::Command if crate::prefs_ui::owns(&fields) => crate::prefs_ui::body(app, ui, &mut fields),
                 DialogKind::Command if fields.contains_key("__export") => crate::export_dialog::body(app, ui, &mut fields),

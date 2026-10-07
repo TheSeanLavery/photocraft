@@ -2135,3 +2135,5 @@ cameraRaw	Color	カラー
 	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	ブラウザー版では取り消し履歴をメモリに保持します。スクラッチディスク設定はデスクトップ版に適用されます。
 
 	HDR Output	HDR 出力
+	HDR Workbench	HDR ワークベンチ
+	Export SDR Preview…	SDR プレビューを書き出し…

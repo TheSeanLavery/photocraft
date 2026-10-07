@@ -719,6 +719,7 @@ pub struct UiState {
     /// Disable HDR highlights while retaining the colour-managed presentation surface.
     #[serde(default)]
     pub sdr_output: bool,
+    pub hdr_workbench_open: bool,
     pub tool: Tool,
     /// Recently opened file paths, most-recent first (File › Open Recent). Capped; de-duplicated.
     #[serde(default)]
@@ -863,6 +864,7 @@ impl Default for UiState {
     fn default() -> Self {
         Self {
             sdr_output: false,
+            hdr_workbench_open: false,
             tool: Tool::Brush,
             recent_files: Vec::new(),
             text_edit: None,
