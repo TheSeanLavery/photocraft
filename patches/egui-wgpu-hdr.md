@@ -2,7 +2,7 @@
 
 Base: crates.io egui-wgpu 0.36.2, MIT OR Apache-2.0. The source and licenses remain in the dependency fork, not in the PhotoCraft workspace.
 
-Source: https://github.com/TheSeanLavery/egui/tree/66e2e61609af7b1239ac8524851790769dcea51f
+Source: https://github.com/TheSeanLavery/egui/tree/24fd06138d67cda864f81824ec05282c2f8e4188
 
 Only egui-wgpu is patched; egui and epaint keep their crates.io 0.36.2 identities to avoid duplicate incompatible UI types.
 

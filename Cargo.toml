@@ -55,7 +55,7 @@ getrandom = "0.3"
 
 [patch.crates-io]
 # Narrow safe-API HDR patch; see patches/egui-wgpu-hdr.md.
-egui-wgpu = { git = "https://github.com/TheSeanLavery/egui.git", rev = "66e2e61609af7b1239ac8524851790769dcea51f" }
+egui-wgpu = { git = "https://github.com/TheSeanLavery/egui.git", rev = "24fd06138d67cda864f81824ec05282c2f8e4188" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
