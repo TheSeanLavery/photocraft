@@ -82,12 +82,15 @@ pub fn intercept(app: &mut PhotocraftApp, id: &str, params: &Value) -> bool {
 
 /// Called once per frame: holds back a window close request while there is unsaved work.
 pub fn guard_window_close(app: &mut PhotocraftApp, ctx: &egui::Context) {
-    if app.allow_close || !ctx.input(|i| i.viewport().close_requested()) {
+    if !ctx.input(|i| i.viewport().close_requested()) {
         return;
     }
-    if intercept(app, EXIT, &Value::Null) {
+    if !app.allow_close && intercept(app, EXIT, &Value::Null) {
         ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
         ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+    } else {
+        crate::prefs_ui::retire_all(app);
+        app.allow_close = true;
     }
 }
 
@@ -102,6 +105,7 @@ fn advance(app: &mut PhotocraftApp, ctx: &egui::Context) {
     }
     let Some(Prompt { id, mut params, target, .. }) = app.discard.take() else { return };
     if id == EXIT {
+        crate::prefs_ui::retire_all(app);
         app.allow_close = true;
         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
         return;

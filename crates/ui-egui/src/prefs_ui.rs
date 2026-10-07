@@ -451,7 +451,45 @@ pub(crate) fn save_preferences(app: &mut PhotocraftApp) -> Result<(), String> {
 }
 
 /// Checkpoint every open document, including its history after a normal Save.
+/// Retire checkpoints only after the user has accepted the entire quit action.
+pub(crate) fn retire_all(app: &mut PhotocraftApp) {
+    retire_checkpoints(app, true);
+}
+
+fn retire_checkpoints(app: &mut PhotocraftApp, quitting: bool) {
+    let now = crate::gpu_canvas::now_ms();
+    let live: HashSet<DocId> = if quitting { HashSet::new() } else { app.session.documents().iter().map(|d| d.doc.id).collect() };
+    let owned: HashSet<DocId> = app
+        .prefs_rt
+        .recovery_keys
+        .keys()
+        .chain(app.prefs_rt.autosaved.keys())
+        .chain(app.prefs_rt.pending_autosaves.keys())
+        .chain(app.prefs_rt.autosave_errors.keys())
+        .copied()
+        .collect();
+    for id in owned {
+        if live.contains(&id) || app.prefs_rt.retiring.contains(&id) || (!quitting && app.prefs_rt.retry_after.get(&id).is_some_and(|time| now < *time)) {
+            continue;
+        }
+        if let Some(discard) = app.services.discard_autosave.as_mut() {
+            match discard(id.0, app.prefs_rt.recovery_keys.get(&id).map(String::as_str)) {
+                Ok(()) => {
+                    app.prefs_rt.retiring.insert(id);
+                }
+                Err(e) => {
+                    app.prefs_rt.retry_after.insert(id, now + 30_000.0);
+                    app.prefs_rt.autosave_errors.insert(id, format!("Could not remove recovery checkpoint: {e}"));
+                }
+            }
+        }
+    }
+}
+
 fn autosave(app: &mut PhotocraftApp) {
+    if app.allow_close {
+        return;
+    }
     let now = crate::gpu_canvas::now_ms();
     if let Some(poll) = app.services.poll_autosave.as_mut() {
         for completion in poll() {
@@ -500,25 +538,7 @@ fn autosave(app: &mut PhotocraftApp) {
             }
         }
     }
-    let live: HashSet<DocId> = app.session.documents().iter().map(|d| d.doc.id).collect();
-    let owned: HashSet<DocId> =
-        app.prefs_rt.recovery_keys.keys().chain(app.prefs_rt.autosaved.keys()).chain(app.prefs_rt.pending_autosaves.keys()).copied().collect();
-    for id in owned {
-        if live.contains(&id) || app.prefs_rt.retiring.contains(&id) || app.prefs_rt.retry_after.get(&id).is_some_and(|time| now < *time) {
-            continue;
-        }
-        if let Some(discard) = app.services.discard_autosave.as_mut() {
-            match discard(id.0, app.prefs_rt.recovery_keys.get(&id).map(String::as_str)) {
-                Ok(()) => {
-                    app.prefs_rt.retiring.insert(id);
-                }
-                Err(e) => {
-                    app.prefs_rt.retry_after.insert(id, now + 30_000.0);
-                    app.prefs_rt.autosave_errors.insert(id, format!("Could not remove recovery checkpoint: {e}"));
-                }
-            }
-        }
-    }
+    retire_checkpoints(app, false);
     let fh = &app.session.prefs().file_handling;
     if !fh.autosave || app.services.autosave.is_none() {
         return;
@@ -1610,6 +1630,34 @@ mod tests {
             h.run_steps(1);
         }
         assert_eq!(*h.state(), [0x80, 0x80, 0x80]);
+    }
+
+    #[test]
+    fn confirmed_quit_retires_checkpoints_but_cancel_keeps_them() {
+        let (mut app, _, _) = checkpoint_app();
+        app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
+        let id = app.session.documents()[0].doc.id;
+        let retired = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let recorded = retired.clone();
+        app.services.discard_autosave = Some(Box::new(move |id, key| {
+            recorded.lock().unwrap().push((id, key.map(str::to_owned)));
+            Ok(())
+        }));
+        app.prefs_rt.recovery_keys.insert(id, "restored-key".into());
+        app.run("layer.new.layer", json!({})).unwrap();
+        let ctx = egui::Context::default();
+        crate::menus::invoke(&mut app, &ctx, "file.exit", Value::Null).unwrap();
+        assert!(retired.lock().unwrap().is_empty());
+        app.discard = None; // Cancel the prompt.
+        assert!(retired.lock().unwrap().is_empty());
+        crate::menus::invoke(&mut app, &ctx, "file.exit", Value::Null).unwrap();
+        app.discard = None;
+        let st = app.session.active_mut().unwrap();
+        st.saved_revision = st.revision;
+        crate::menus::invoke(&mut app, &ctx, "file.exit", Value::Null).unwrap();
+        assert_eq!(*retired.lock().unwrap(), vec![(id.0, Some("restored-key".into()))]);
+        crate::prefs_ui::retire_all(&mut app);
+        assert_eq!(retired.lock().unwrap().len(), 1);
     }
 
     #[test]

@@ -4,8 +4,8 @@ PhotoCraft's desktop app checkpoints every open document in the background at
 Preferences → File Handling → Autosave minutes (10 minutes by default). Autosave
 and recovery on launch are enabled by default. A normal Save keeps the recovery
 checkpoint while the tab is open, preserving undo even for a saved document.
-Closing the tab explicitly retires its checkpoint; disabling autosave does not
-consume existing checkpoints.
+Closing the tab or confirming a normal quit explicitly retires its checkpoint;
+cancelling quit or disabling autosave does not consume existing checkpoints.
 
 Each checkpoint contains the complete native document, undo and redo stacks,
 labels and cursor, original path, active/selected layers, tab order and active tab,
