@@ -316,8 +316,8 @@ fn live_stroke_matches_the_committed_stroke() {
 fn live_pencil_matches_the_committed_pencil_and_auto_erases() {
     let mut s = session(80, 40);
     s.execute("tools.setColors", json!({"foreground": "#000000", "background": "#ffffff"})).unwrap();
-    // A soft, low-flow session brush: the Pencil is still hard, aliased and full flow.
-    s.execute("tools.setBrush", json!({"brush": {"size": 3, "hardness": 0.0, "flow": 0.3}})).unwrap();
+    // A soft session brush: the Pencil is still hard and aliased at full flow.
+    s.execute("tools.setBrush", json!({"brush": {"size": 3, "hardness": 0.0, "flow": 1.0}})).unwrap();
     let pts = [[5.0, 5.0, 1.0], [30.2, 17.7, 0.6], [70.0, 33.0, 1.0]];
     for (auto, start) in [(false, pts[0]), (true, [30.4, 17.2, 1.0])] {
         let p = json!({"points": [start], "autoErase": auto, "smoothing": 0.0});

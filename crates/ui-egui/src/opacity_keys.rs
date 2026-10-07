@@ -19,10 +19,8 @@ pub type Pending = Option<(u8, bool, f64)>;
 /// What a tool's number keys change.
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Target {
-    /// The shared brush settings' opacity (⇧: flow, when the tool has one).
-    Brush {
-        flow: bool,
-    },
+    /// The shared brush settings' opacity (⇧: flow).
+    Brush,
     /// The Gradient / Paint Bucket opacity option.
     ToolOpacity,
     /// The active layer's opacity (⇧: fill).
@@ -32,8 +30,7 @@ enum Target {
 
 fn target(tool: Tool) -> Target {
     match tool {
-        Tool::Brush | Tool::Eraser => Target::Brush { flow: true },
-        Tool::Pencil => Target::Brush { flow: false },
+        Tool::Brush | Tool::Eraser | Tool::Pencil => Target::Brush,
         Tool::Gradient | Tool::PaintBucket => Target::ToolOpacity,
         // Their options-bar number is a strength, exposure or tolerance, not this opacity.
         t if t.is_brushlike() || t == Tool::MagicEraser => Target::None,
@@ -97,11 +94,11 @@ pub fn press(app: &mut PhotocraftApp, d: u8, shift: bool, now: f64) {
 fn apply(app: &mut PhotocraftApp, percent: f32, shift: bool) {
     let v = percent / 100.0;
     match (target(app.ui.tool), shift) {
-        (Target::Brush { .. }, false) => {
+        (Target::Brush, false) => {
             let _ = app.run("tools.setBrush", json!({ "brush": { "opacity": v } }));
         }
         // The options bar's Flow field starts at 1%.
-        (Target::Brush { flow: true }, true) => {
+        (Target::Brush, true) => {
             let _ = app.run("tools.setBrush", json!({ "brush": { "flow": v.max(0.01) } }));
         }
         (Target::ToolOpacity, false) => app.ui.tool_options.fill_opacity = percent,
@@ -159,10 +156,10 @@ mod tests {
         press(&mut a, 0, true, 30100.0);
         assert_eq!(a.session.tools.brush.flow, 0.01, "flow keeps its 1% floor");
         assert_eq!(layer(&a), (1.0, 1.0), "the layer is untouched");
-        // The Pencil has no flow.
+        // Pencil uses the same Shift+number Flow shortcut as Brush.
         let mut p = app(Tool::Pencil);
         press(&mut p, 7, true, 0.0);
-        assert_eq!(p.session.tools.brush.flow, 1.0);
+        assert!((p.session.tools.brush.flow - 0.7).abs() < 1e-6);
     }
 
     #[test]

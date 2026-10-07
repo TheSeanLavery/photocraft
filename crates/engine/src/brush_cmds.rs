@@ -239,18 +239,33 @@ fn apply_auto_erase(brush: &mut BrushSettings, surf: &Surface, start: Option<&St
     }
 }
 
-/// The Pencil's brush: the session brush made aliased (every pixel fully painted or untouched,
-/// dabs on the pixel grid), hard and at full flow, with the options-bar mode.
+/// The Pencil's brush: the session brush with a hard, pixel-grid-aligned tip and no
+/// antialiasing, while preserving the selected mode and flow.
 fn pencil_brush(s: &Session, p: &Value) -> Result<BrushSettings> {
     let mut brush = with_blend_mode(resolve_brush(s, p, "paint.pencil")?, p);
     brush.aliased = true;
     if num(p, "hardness").is_none() {
         brush.hardness = 1.0;
     }
-    if num(p, "flow").is_none() {
-        brush.flow = 1.0;
-    }
     Ok(brush)
+}
+
+#[cfg(test)]
+mod pencil_settings_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn pencil_keeps_session_flow_and_accepts_stroke_override() {
+        let mut session = Session::new();
+        session.tools.brush.flow = 0.25;
+        session.tools.brush.hardness = 0.0;
+        let brush = pencil_brush(&session, &json!({})).unwrap();
+        assert_eq!(brush.flow, 0.25);
+        assert_eq!(brush.hardness, 1.0);
+        assert!(brush.aliased);
+        assert_eq!(pencil_brush(&session, &json!({"flow": 0.6})).unwrap().flow, 0.6);
+    }
 }
 
 /// Applies the options-bar blend `mode` to a brush. `"mode"` accepts any blend-mode name
@@ -676,7 +691,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "paint.pencil",
             "Pencil",
-            r##"{"points":[[x,y,pressure?,tiltX?,tiltY?,rotation?,timeMs?,wheel?],…],"brush":{…}?,"preset":name?,"size":px?,"opacity":0..1?,"color":"#rrggbb"?=foreground,"mode":"normal|multiply|screen|…"="normal","erase":bool?,"autoErase":bool=false,"seed":u64?,"target":"pixels"|"mask"|"quickMask"|{"channel":i}=Channels panel target}"##,
+            r##"{"points":[[x,y,pressure?,tiltX?,tiltY?,rotation?,timeMs?,wheel?],…],"brush":{…}?,"preset":name?,"size":px?,"opacity":0..1?,"flow":0..1?,"color":"#rrggbb"?=foreground,"mode":"normal|multiply|screen|…"="normal","erase":bool?,"autoErase":bool=false,"seed":u64?,"target":"pixels"|"mask"|"quickMask"|{"channel":i}=Channels panel target}"##,
             has_paintable,
             pencil,
             true
