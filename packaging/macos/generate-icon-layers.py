@@ -19,7 +19,10 @@ def layer(name: str, shapes: list[ET.Element], fill: str) -> None:
         item.attrib.pop("fill", None)
         group.append(item)
     ET.indent(root, space="  ")
-    ET.ElementTree(root).write(ASSETS / name, encoding="unicode", xml_declaration=True)
+    with (ASSETS / name).open("w", encoding="utf-8") as output:
+        output.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        output.write(ET.tostring(root, encoding="unicode"))
+        output.write("\n")
 
 
 def main() -> None:
