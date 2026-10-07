@@ -303,10 +303,12 @@ struct Collect<'c> {
     tiles: BTreeMap<Hash, (Arc<Tile>, SampleType)>,
     blobs: BTreeMap<Hash, Arc<Vec<u8>>>,
     hash_cache: Option<&'c mut HashMap<usize, (Weak<Tile>, Hash)>>,
+    total_tile_bytes: u64,
 }
 
 impl Sink for Collect<'_> {
     fn tile(&mut self, format: PixelFormat, tile: &Arc<Tile>) -> Hash {
+        self.total_tile_bytes = self.total_tile_bytes.saturating_add(tile.bytes().len() as u64);
         let key = Arc::as_ptr(tile) as usize;
         if let Some(cache) = self.hash_cache.as_deref_mut()
             && let Some((w, h)) = cache.get(&key)
@@ -406,6 +408,7 @@ struct FileSignature {
 pub(crate) struct Prepared {
     pub(crate) manifest: Vec<u8>,
     pub(crate) objects: BTreeMap<String, Object>,
+    pub(crate) decoded_bytes: u64,
     previews: Vec<(&'static str, Vec<u8>)>,
     stats: SaveStats,
 }
@@ -556,6 +559,7 @@ impl PcraftWriter {
         let manifest = serde_json::to_vec_pretty(&manifest)?;
         check_manifest_depth(&manifest)?;
         let stats = SaveStats { tiles_total: c.tiles.len(), blobs_total: c.blobs.len(), manifest_bytes: manifest.len(), ..Default::default() };
+        let decoded_bytes = c.blobs.values().fold(c.total_tile_bytes, |sum, blob| sum.saturating_add(blob.len() as u64));
         let mut objects = BTreeMap::new();
         for (h, (t, s)) in c.tiles {
             objects.insert(tile_path(&h), Object::Tile(t, s));
@@ -563,7 +567,7 @@ impl PcraftWriter {
         for (h, b) in c.blobs {
             objects.insert(blob_path(&h), Object::Blob(b));
         }
-        Ok(Prepared { manifest, objects, previews, stats })
+        Ok(Prepared { manifest, objects, decoded_bytes, previews, stats })
     }
 
     /// Save as a ZIP bundle in memory.
