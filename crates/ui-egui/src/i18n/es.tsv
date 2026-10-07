@@ -2205,3 +2205,4 @@ cameraRaw	Amount	Cantidad
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PR, {commits} commits, +{added} / −{deleted} líneas (Δ {delta}), +{binAdded} / −{binDeleted} archivos binarios, {first} – {last}
 	Shape Operations	Operaciones de forma
 	New Layer	Nueva capa
+	Aspect Ratio	Relación de aspecto

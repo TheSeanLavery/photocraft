@@ -2111,3 +2111,4 @@ cameraRaw	Blending	混合
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}：{prs} 個 PR，{commits} 次提交，行 +{added} / −{deleted}（Δ {delta}），二進位檔 +{binAdded} / −{binDeleted}，{first} – {last}
 	Shape Operations	形狀運算
 	New Layer	新增圖層
+	Aspect Ratio	長寬比

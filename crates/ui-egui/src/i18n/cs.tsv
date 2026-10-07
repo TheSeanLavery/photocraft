@@ -2133,3 +2133,4 @@ cameraRaw	Color	Barvy
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: PR: {prs}, commity: {commits}, řádky +{added} / −{deleted} (Δ {delta}), binární soubory +{binAdded} / −{binDeleted}, {first} – {last}
 	Shape Operations	Operace s tvary
 	New Layer	Nová vrstva
+	Aspect Ratio	Poměr stran
