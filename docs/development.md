@@ -480,7 +480,7 @@ than the 1× patch and the menus. Compare with HDR Output disabled. Brightness, 
 ambient conditions can change available headroom; no fixed physical-nit output is promised.
 
 For float framebuffer captures, set `PHOTOCRAFT_HDR_CAPTURE_DIR` to an explicit developer
-output folder before launching. Every requested `ui.screenshot` then also saves
+output folder before launching. On the float HDR surface, every requested `ui.screenshot` also saves
 `window-<pid>-<sequence>.exr` asynchronously in that folder. These are the actual rendered
 window pixels converted from extended-sRGB encoding to linear sRGB. The ordinary PNG is
 an SDR-clipped preview. HDR EXRs preserve values above 1; screenshot PNGs do not prove
