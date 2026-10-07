@@ -55,7 +55,7 @@ pub fn parse_hex(s: &str) -> Option<[f32; 3]> {
     if h.len() != 6 {
         return None;
     }
-    let c = |i: usize| u8::from_str_radix(&h[i..i + 2], 16).ok().map(|v| f32::from(v) / 255.0);
+    let c = |i: usize| u8::from_str_radix(h.get(i..i + 2)?, 16).ok().map(|v| f32::from(v) / 255.0);
     Some([c(0)?, c(2)?, c(4)?])
 }
 
@@ -342,6 +342,13 @@ pub fn confirm(app: &mut PhotocraftApp, f: &Map<String, Value>) -> Result<Value,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn malformed_unicode_hex_never_panics() {
+        for value in ["0é000", "#0é000", "000é0", "0000é", "💡00", "#12345", "#gggggg"] {
+            assert_eq!(parse_hex(value), None, "{value:?}");
+        }
+    }
 
     #[test]
     fn hsv_round_trips() {
