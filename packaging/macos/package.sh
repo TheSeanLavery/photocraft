@@ -100,9 +100,9 @@ notarize() {
 # ---- PhotoCraft.app ----------------------------------------------------------------------------
 echo "==> assembling $APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-# Executable and icon carry the display name (CFBundleExecutable / CFBundleIconFile).
+# Executable and icon carry the display name (CFBundleExecutable / CFBundleIconName).
 cp "$WORK/bin/photocraft" "$APP/Contents/MacOS/PhotoCraft"
-cp "$ROOT/assets/app-icon/photocraft.icns" "$APP/Contents/Resources/PhotoCraft.icns"
+"$HERE/compile-icon.sh" "$APP/Contents/Resources"
 # Licences of the embedded craft-fonts fonts (only when built with CRAFT_FONTS_DIR).
 if [ -n "${CRAFT_FONTS_DIR:-}" ]; then
   mkdir -p "$APP/Contents/Resources/Licenses"

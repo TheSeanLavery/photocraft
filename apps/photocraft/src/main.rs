@@ -53,18 +53,19 @@ const CUSTOM_TITLEBAR: bool = !cfg!(target_os = "macos");
 /// `centered`, Windows cascades each new window from the top-left corner, so it opened at a
 /// different offset every launch (#419). Wayland compositors place windows themselves.
 fn native_options() -> eframe::NativeOptions {
+    let viewport = egui::ViewportBuilder::default()
+        .with_app_id(APP_ID)
+        .with_title("PhotoCraft")
+        .with_inner_size([1440.0, 900.0])
+        .with_min_inner_size([760.0, 480.0])
+        .with_drag_and_drop(true)
+        .with_decorations(!CUSTOM_TITLEBAR)
+        .with_fullsize_content_view(true)
+        .with_titlebar_shown(false)
+        .with_title_shown(false);
+    let viewport = if app_icon::use_bundle_icon() { viewport } else { viewport.with_icon(app_icon::window_icon()) };
     eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_icon(app_icon::window_icon())
-            .with_app_id(APP_ID)
-            .with_title("PhotoCraft")
-            .with_inner_size([1440.0, 900.0])
-            .with_min_inner_size([760.0, 480.0])
-            .with_drag_and_drop(true)
-            .with_decorations(!CUSTOM_TITLEBAR)
-            .with_fullsize_content_view(true)
-            .with_titlebar_shown(false)
-            .with_title_shown(false),
+        viewport,
         centered: true,
         // eframe saves native window geometry and egui panel/window sizes on exit.
         // Keep that state beside preferences, including config overrides and portable mode.

@@ -68,4 +68,5 @@ if command -v iconutil >/dev/null; then
 else
   echo "warning: iconutil not found (macOS only); photocraft.icns not regenerated" >&2
 fi
+python3 "$ROOT/packaging/macos/generate-icon-layers.py"
 echo "icons written to $DIR"
