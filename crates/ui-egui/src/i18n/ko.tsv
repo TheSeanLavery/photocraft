@@ -2717,3 +2717,10 @@ cameraRaw	Color	색상
 	Lines +/−	줄 +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: PR {prs}개, 커밋 {commits}개, 줄 +{added} / −{deleted} (Δ {delta}), 바이너리 +{binAdded} / −{binDeleted}, {first} – {last}
 	Shape Operations	모양 작업
+	Aspect Ratio	Aspect Ratio
+	Square 1:1	정사각형 1:1
+	Portrait 4:5	세로 4:5
+	Story 9:16	스토리 9:16
+	Full HD Portrait	Full HD 세로
+	QHD 1440p	QHD 1440p
+	UHD 4K Portrait	UHD 4K 세로

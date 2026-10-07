@@ -44,9 +44,6 @@ pub const CATEGORIES: &[(&str, &[Preset])] = &[
     (
         "Web",
         &[
-            ("Square 1:1", 1080, 1080, 72.0),
-            ("Portrait 4:5", 1080, 1350, 72.0),
-            ("Story 9:16", 1080, 1920, 72.0),
             ("Web Most Common", 1366, 768, 72.0),
             ("Web Minimum", 1024, 768, 72.0),
             ("Web Large", 1920, 1080, 72.0),
@@ -62,19 +59,22 @@ pub const CATEGORIES: &[(&str, &[Preset])] = &[
             ("iPad Pro 13\"", 2064, 2752, 72.0),
             ("Android 1080p", 1080, 1920, 72.0),
             ("Apple Watch 45mm", 396, 484, 72.0),
+            ("Square 1:1", 1080, 1080, 72.0),
+            ("Portrait 4:5", 1080, 1350, 72.0),
+            ("Story 9:16", 1080, 1920, 72.0),
         ],
     ),
     (
         "Film & Video",
         &[
-            ("Full HD Portrait", 1080, 1920, 72.0),
-            ("QHD 1440p", 2560, 1440, 72.0),
-            ("UHD 4K Portrait", 2160, 3840, 72.0),
             ("HDTV 1080p", 1920, 1080, 72.0),
             ("HDTV 720p", 1280, 720, 72.0),
             ("UHD 4K", 3840, 2160, 72.0),
             ("DCI 4K", 4096, 2160, 72.0),
             ("UHD 8K", 7680, 4320, 72.0),
+            ("Full HD Portrait", 1080, 1920, 72.0),
+            ("QHD 1440p", 2560, 1440, 72.0),
+            ("UHD 4K Portrait", 2160, 3840, 72.0),
         ],
     ),
 ];
@@ -456,6 +456,40 @@ mod tests {
     }
 
     #[test]
+    fn resolution_preserves_physical_size_in_each_unit() {
+        for unit in ["in", "cm", "mm", "pt", "pica"] {
+            let mut f = crate::state::UiState::new_document_fields();
+            f.insert("__unit".into(), json!(unit));
+            f.insert("width".into(), json!(720));
+            f.insert("height".into(), json!(360));
+            set_resolution(&mut f, 300.0);
+            assert_eq!((f["width"].as_u64(), f["height"].as_u64()), (Some(3000), Some(1500)), "{unit}");
+        }
+    }
+
+    #[test]
+    fn new_presets_follow_category_defaults_and_have_translations() {
+        let mobile = CATEGORIES.iter().find(|c| c.0 == "Mobile").unwrap().1;
+        let film = CATEGORIES.iter().find(|c| c.0 == "Film & Video").unwrap().1;
+        assert_eq!(mobile[0].0, "iPhone 16");
+        assert_eq!(film[0].0, "HDTV 1080p");
+        for name in ["Square 1:1", "Portrait 4:5", "Story 9:16"] {
+            assert!(mobile.iter().any(|p| p.0 == name));
+        }
+        for name in ["Full HD Portrait", "QHD 1440p", "UHD 4K Portrait"] {
+            assert!(film.iter().any(|p| p.0 == name));
+        }
+        for lang in crate::i18n::Lang::all().filter(|lang| lang.code() != "en") {
+            for name in ["Square 1:1", "Portrait 4:5", "Story 9:16", "Full HD Portrait", "QHD 1440p", "UHD 4K Portrait"] {
+                assert!(crate::i18n::has(lang, name), "{}: {name}", lang.code());
+            }
+            for name in ["Square 1:1", "Portrait 4:5", "Story 9:16", "Full HD Portrait", "UHD 4K Portrait"] {
+                assert_ne!(crate::i18n::tr(lang, name), name, "{}: {name}", lang.code());
+            }
+        }
+    }
+
+    #[test]
     fn pixel_size_stays_fixed_when_only_ppi_changes() {
         let mut f = crate::state::UiState::new_document_fields();
         set_resolution(&mut f, 300.0);
@@ -584,6 +618,21 @@ mod tests {
             type_into(&mut h, 1, "1.5");
             enter(&mut h);
             assert_eq!(created(&h), (600, 450, 300.0));
+        }
+
+        #[test]
+        fn changing_resolution_in_inches_preserves_physical_dimensions() {
+            let mut h = harness();
+            let mut f = fields(&h);
+            f.insert("__unit".into(), serde_json::json!("in"));
+            f.insert("width".into(), serde_json::json!(720));
+            f.insert("height".into(), serde_json::json!(360));
+            set_fields(&mut h, f);
+            type_into(&mut h, 2, "300");
+            let f = fields(&h);
+            assert_eq!((f["width"].as_u64(), f["height"].as_u64()), (Some(3000), Some(1500)));
+            enter(&mut h);
+            assert_eq!(created(&h), (3000, 1500, 300.0));
         }
 
         #[test]

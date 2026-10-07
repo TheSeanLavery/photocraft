@@ -2552,3 +2552,9 @@ cameraRaw	Blending	Pembauran
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PR, {commits} commit, +{added} / −{deleted} baris (Δ {delta}), +{binAdded} / −{binDeleted} berkas biner, {first} – {last}
 	Shape Operations	Operasi Bentuk
 	New Layer	Layer Baru
+	Square 1:1	Persegi 1:1
+	Portrait 4:5	Potret 4:5
+	Story 9:16	Cerita 9:16
+	Full HD Portrait	Full HD Potret
+	QHD 1440p	QHD 1440p
+	UHD 4K Portrait	UHD 4K Potret
