@@ -455,7 +455,6 @@ impl PhotocraftApp {
                 return;
             }
         };
-        self.perf.gpu_info.set_adapter(&gpu.adapter_info());
         self.perf.gpu_info.canvas = "gpu".into();
         self.gpu = Some(gpu);
         self.prefs_rt.gpu_style = None;

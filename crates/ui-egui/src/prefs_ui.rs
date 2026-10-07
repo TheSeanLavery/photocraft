@@ -203,14 +203,10 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
     presets_store(app);
     sync_tooltips(app, ctx);
     app.sync_recent();
-    if app.session.prefs.rev() != app.prefs_rt.saved_rev {
-        app.prefs_rt.saved_rev = app.session.prefs.rev();
-        let text = app.session.prefs_to_json();
-        if let Some(save) = app.services.save_prefs.as_mut()
-            && let Err(e) = save(&text)
-        {
-            app.ui.status = format!("Couldn't save preferences: {e}");
-        }
+    if app.session.prefs.rev() != app.prefs_rt.saved_rev
+        && let Err(e) = save_preferences(app)
+    {
+        app.ui.status = format!("Couldn't save preferences: {e}");
     }
     let style = canvas_style(app);
     if let Some(gpu) = app.gpu.as_ref()
@@ -221,6 +217,15 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
     }
     autosave(app);
     history_log(app);
+}
+
+/// Persist one revision, also used by recovery choices that need a save result immediately.
+pub(crate) fn save_preferences(app: &mut PhotocraftApp) -> Result<(), String> {
+    app.prefs_rt.saved_rev = app.session.prefs.rev();
+    if let Some(save) = app.services.save_prefs.as_mut() {
+        save(&app.session.prefs_to_json())?;
+    }
+    Ok(())
 }
 
 /// Background autosave of documents with unsaved changes every N minutes (File Handling).
@@ -537,8 +542,7 @@ pub fn open_preferences(app: &mut PhotocraftApp, section: &str) -> u64 {
     let section = if SECTIONS.iter().any(|(id, _)| *id == section) { section } else { "general" };
     let working = preference_values(app.session.prefs());
     let order = field_order(app.session.prefs(), &working);
-    let gpu = app.perf.gpu_info.lines();
-    open_kind(app, "prefs", "Preferences", json!({"section": section, "values": working, "__order": order, "__gpuInfo": gpu}))
+    open_kind(app, "prefs", "Preferences", json!({"section": section, "values": working, "__order": order}))
 }
 
 /// Each section's keys in declaration order (JSON objects sort their keys; the serialised text

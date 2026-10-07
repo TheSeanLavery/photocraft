@@ -373,21 +373,13 @@ impl Sentinel {
     }
 }
 
-/// `performance.gpuBackend` and `performance.useGpu` from the preferences file, read before the
-/// app (and its full preference load) exists. Unreadable values are the defaults.
-pub fn read_prefs(path: Option<&Path>) -> (GpuBackend, bool) {
+/// Read the policy leniently at startup, including old settings without renderingMode.
+pub fn read_rendering_prefs(path: Option<&Path>) -> (GpuBackend, RenderingMode) {
     let v: Value = path.and_then(|p| std::fs::read_to_string(p).ok()).and_then(|t| serde_json::from_str(&t).ok()).unwrap_or(Value::Null);
     let perf = v.get("performance");
     let backend = perf.and_then(|p| p.get("gpuBackend")).and_then(Value::as_str).and_then(GpuBackend::parse).unwrap_or_default();
     let use_gpu = perf.and_then(|p| p.get("useGpu")).and_then(Value::as_bool).unwrap_or(true);
-    (backend, use_gpu)
-}
-
-/// Read the policy leniently at startup, including old settings without renderingMode.
-pub fn read_rendering_prefs(path: Option<&Path>) -> (GpuBackend, RenderingMode) {
-    let (backend, use_gpu) = read_prefs(path);
-    let v: Value = path.and_then(|p| std::fs::read_to_string(p).ok()).and_then(|t| serde_json::from_str(&t).ok()).unwrap_or(Value::Null);
-    let explicit = v.get("performance").and_then(|p| p.get("renderingMode")).and_then(Value::as_str).and_then(RenderingMode::parse);
+    let explicit = perf.and_then(|p| p.get("renderingMode")).and_then(Value::as_str).and_then(RenderingMode::parse);
     let mode = explicit.unwrap_or(if !use_gpu || backend == GpuBackend::Cpu { RenderingMode::Cpu } else { RenderingMode::Auto });
     (backend, mode)
 }
@@ -602,14 +594,16 @@ mod tests {
         let dir = temp_dir("prefs");
         std::fs::create_dir_all(&dir).unwrap();
         let p = dir.join("preferences.json");
-        assert_eq!(read_prefs(None), (Auto, true));
-        assert_eq!(read_prefs(Some(&p)), (Auto, true));
+        assert_eq!(read_rendering_prefs(None), (Auto, RenderingMode::Auto));
+        assert_eq!(read_rendering_prefs(Some(&p)), (Auto, RenderingMode::Auto));
         std::fs::write(&p, r#"{"performance": {"gpuBackend": "dx12", "useGpu": false}, "interface": {}}"#).unwrap();
-        assert_eq!(read_prefs(Some(&p)), (Dx12, false));
+        assert_eq!(read_rendering_prefs(Some(&p)), (Dx12, RenderingMode::Cpu));
         std::fs::write(&p, r#"{"performance": {"gpuBackend": "quantum"}}"#).unwrap();
-        assert_eq!(read_prefs(Some(&p)), (Auto, true));
+        assert_eq!(read_rendering_prefs(Some(&p)), (Auto, RenderingMode::Auto));
+        std::fs::write(&p, r#"{"performance": {"useGpu": false, "renderingMode": "gpu"}}"#).unwrap();
+        assert_eq!(read_rendering_prefs(Some(&p)), (Auto, RenderingMode::Gpu));
         std::fs::write(&p, "{not json").unwrap();
-        assert_eq!(read_prefs(Some(&p)), (Auto, true));
+        assert_eq!(read_rendering_prefs(Some(&p)), (Auto, RenderingMode::Auto));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
