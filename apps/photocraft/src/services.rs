@@ -3,14 +3,11 @@
 use photocraft_codecs::{ChannelLayout, EncodeOptions, Image, SampleType as CS};
 use photocraft_color::{ColorMode, SampleType};
 use photocraft_doc::{Document, Layer, Size};
-use photocraft_format::Autosaver;
 use photocraft_geom::Rect;
 use photocraft_ui_egui::Services;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::Arc;
 
 /// Everything File › Open reads: PhotoCraft and Photoshop documents, flat images, and Photoshop
 /// brushes (.abr) and gradients (.grd), which go to the preset libraries.
@@ -65,8 +62,10 @@ fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
 }
 
 pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) -> Services {
-    let savers: Rc<RefCell<HashMap<u64, Autosaver>>> = Rc::default();
-    let savers2 = savers.clone();
+    let recovery = Rc::new(RefCell::new(crate::recovery::RecoveryManager::new(recovery_dir())));
+    let recovery_queue = recovery.clone();
+    let recovery_discard = recovery.clone();
+    let recovery_poll = recovery.clone();
     let clip: Rc<RefCell<Option<arboard::Clipboard>>> = Rc::default();
     let automation_read = automation.clone().map(|workspace| {
         Box::new(move |path: &str| {
@@ -146,31 +145,13 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         }),
         load_prefs: Some(Box::new(|| std::fs::read_to_string(prefs_file()?).ok())),
         save_prefs: Some(Box::new(|text: &str| write_atomic(&prefs_file().ok_or("no config directory")?, text.as_bytes()))),
-        // Crash recovery: background incremental .pcraft saves into the recovery directory.
-        autosave: Some(Box::new(move |doc: &Arc<Document>, revision: u64, path: Option<&str>| {
-            let dir = recovery_dir().ok_or("no config directory")?;
-            let mut map = savers.borrow_mut();
-            let saver = map.entry(doc.id.0).or_insert_with(|| Autosaver::new(&dir, &format!("doc-{}", doc.id.0)));
-            saver.request(doc.clone(), revision, path.map(str::to_string), Default::default());
-            Ok(())
+        // The same immutable RAM checkpoint supplies pixels and undo/redo to the background writer.
+        autosave: Some(Box::new(move |doc, history, revision, path, key, context| {
+            recovery_queue.borrow_mut().queue(doc, history, revision, path, key, context)
         })),
-        discard_autosave: Some(Box::new(move |id: u64| {
-            if let Some(s) = savers2.borrow_mut().remove(&id) {
-                let _ = s.discard();
-            }
-        })),
-        recover: Some(Box::new(|| {
-            let Some(dir) = recovery_dir() else { return Vec::new() };
-            let mut out = Vec::new();
-            for entry in photocraft_format::list_recovery(&dir) {
-                if let Ok(doc) = photocraft_format::recover(&entry) {
-                    out.push((entry.info.original_path.clone(), doc));
-                }
-                // Recovered documents autosave again under their new ids.
-                let _ = photocraft_format::discard_recovery(&dir, &entry);
-            }
-            out
-        })),
+        discard_autosave: Some(Box::new(move |id, key| recovery_discard.borrow_mut().discard(id, key))),
+        poll_autosave: Some(Box::new(move || recovery_poll.borrow_mut().poll())),
+        recover: Some(Box::new(move || recovery.borrow_mut().recover())),
         append_text: Some(Box::new(|path: &str, text: &str| {
             use std::io::Write;
             let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path).map_err(|e| e.to_string())?;

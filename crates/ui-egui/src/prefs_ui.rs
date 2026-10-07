@@ -7,7 +7,7 @@
 //! change them with `prefs.get` / `prefs.set`); this module only edits a working copy in a dialog
 //! and commits it with those commands on Apply or OK.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use egui::{Color32, RichText, Sense, vec2};
 use photocraft_doc::DocId;
@@ -26,7 +26,14 @@ pub struct Runtime {
     saved_rev: u64,
     theme_pref: Option<Theme>,
     next_autosave_ms: f64,
-    autosaved: HashMap<DocId, u64>,
+    autosaved: HashMap<DocId, CheckpointStamp>,
+    pending_autosaves: HashMap<DocId, CheckpointStamp>,
+    recovery_keys: HashMap<DocId, String>,
+    retiring: HashSet<DocId>,
+    catch_up: HashSet<DocId>,
+    retry_after: HashMap<DocId, f64>,
+    recovery_error: Option<String>,
+    autosave_errors: HashMap<DocId, String>,
     log_len: usize,
     /// Snapping state of the drag in progress (see `snap_ui`).
     pub(crate) snap: Option<crate::snap_ui::ActiveSnap>,
@@ -36,6 +43,41 @@ pub struct Runtime {
     pub(crate) checker_key: Option<[[u8; 3]; 2]>,
     /// Style last sent to the GPU canvas.
     pub(crate) gpu_style: Option<crate::gpu_canvas::CanvasStyle>,
+}
+
+/// Logical history changes such as Purge can occur without a document revision.
+#[derive(Clone, PartialEq)]
+struct CheckpointStamp {
+    revision: u64,
+    undo: usize,
+    redo: usize,
+    label: String,
+    context: Value,
+    path: Option<String>,
+}
+impl CheckpointStamp {
+    fn of(st: &photocraft_engine::DocState, context: Value) -> Self {
+        let (undo, redo, label) = st.history.checkpoint_signature();
+        Self { revision: st.revision, undo, redo, label: label.to_owned(), context, path: st.path.clone() }
+    }
+}
+
+/// Durable navigation context, excluding unfinished gestures and modal dialogs.
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+struct RecoveryContext {
+    active_layer: Option<photocraft_doc::LayerId>,
+    selected_layers: Vec<photocraft_doc::LayerId>,
+    layer_anchor: Option<photocraft_doc::LayerId>,
+    view: Option<crate::state::View>,
+    tool: Option<crate::state::Tool>,
+    tab_order: usize,
+    active: bool,
+}
+fn recovery_context(app: &PhotocraftApp, index: usize, st: &photocraft_engine::DocState) -> Value {
+    json!({"activeLayer": st.active_layer, "selectedLayers": st.selected_layers,
+        "layerAnchor": st.layer_anchor, "view": app.ui.views.get(index), "tool": app.ui.tool,
+        "tabOrder": index, "active": app.session.active_index() == Some(index)})
 }
 
 /// The GPU canvas colours from Preferences › Transparency & Gamut.
@@ -107,18 +149,65 @@ pub fn load(app: &mut PhotocraftApp) {
     if app.session.prefs().file_handling.recover_on_launch
         && let Some(recover) = app.services.recover.as_mut()
     {
-        let docs = recover();
-        let n = docs.len();
-        for (path, doc) in docs {
-            app.session.add_document(doc, path);
-            // Recovered documents are unsaved.
+        let mut batch = recover();
+        batch.documents.sort_by_key(|r| r.context.get("tabOrder").and_then(Value::as_u64).unwrap_or(u64::MAX));
+        let mut n = 0;
+        let mut active = None;
+        let mut restored_views = Vec::new();
+        let mut errors = batch.errors;
+        for recovered in batch.documents {
+            let history = match recovered.history.map(photocraft_ops::History::from_checkpoint).transpose() {
+                Ok(history) => history,
+                Err(e) => {
+                    errors.push(format!("Could not restore history for {}: {e}", recovered.document.name));
+                    continue;
+                }
+            };
+            let has_layer_context = recovered.context.get("activeLayer").is_some();
+            let context: RecoveryContext = serde_json::from_value(recovered.context).unwrap_or_default();
+            let index = app.session.add_document(recovered.document, recovered.path);
+            n += 1;
+            if context.active {
+                active = Some((index, context.tool));
+            }
+            if let Some(view) = context.view.filter(|v| v.zoom.is_finite() && v.zoom > 0.0 && v.zoom <= 64.0 && v.center.iter().all(|n| n.is_finite())) {
+                restored_views.push((index, view));
+            }
             if let Some(st) = app.session.active_mut() {
                 st.saved_revision = 0;
+                st.coalesce = None;
+                if has_layer_context {
+                    st.active_layer = context.active_layer.filter(|id| st.doc.layer(*id).is_some());
+                    st.selected_layers = context.selected_layers.into_iter().filter(|id| st.doc.layer(*id).is_some()).collect();
+                    if let Some(id) = st.active_layer.filter(|id| !st.selected_layers.contains(id)) {
+                        st.selected_layers.push(id);
+                    }
+                }
+                st.layer_anchor = context.layer_anchor.filter(|id| st.doc.layer(*id).is_some()).or(st.active_layer);
+                if let Some(mut history) = history {
+                    history.remap_document_id(st.doc.id);
+                    st.history = history;
+                }
+                app.prefs_rt.recovery_keys.insert(st.doc.id, recovered.key);
             }
         }
         if n > 0 {
             app.sync_views();
-            app.ui.status = format!("Recovered {n} document{}", if n == 1 { "" } else { "s" });
+            for (index, view) in restored_views {
+                if let Some(target) = app.ui.views.get_mut(index) {
+                    *target = view;
+                }
+            }
+            if let Some((index, tool)) = active {
+                app.session.set_active(index);
+                if let Some(tool) = tool {
+                    app.ui.tool = tool;
+                }
+            }
+            app.ui.status = format!("Recovered {n} document{} with history", if n == 1 { "" } else { "s" });
+        }
+        if !errors.is_empty() {
+            app.prefs_rt.recovery_error = Some(errors.join("; "));
         }
     }
 }
@@ -216,6 +305,16 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
         app.prefs_rt.gpu_style = Some(style);
     }
     autosave(app);
+    if let Some(error) = &app.prefs_rt.recovery_error {
+        app.ui.status.clone_from(error);
+    }
+    if let Some(error) = app.prefs_rt.autosave_errors.values().next() {
+        app.ui.status.clone_from(error);
+    }
+    if app.services.autosave.is_some() {
+        let delay = if app.prefs_rt.pending_autosaves.is_empty() && app.prefs_rt.retiring.is_empty() { 1_000 } else { 100 };
+        ctx.request_repaint_after(std::time::Duration::from_millis(delay));
+    }
     history_log(app);
 }
 
@@ -228,49 +327,118 @@ pub(crate) fn save_preferences(app: &mut PhotocraftApp) -> Result<(), String> {
     Ok(())
 }
 
-/// Background autosave of documents with unsaved changes every N minutes (File Handling).
+/// Checkpoint every open document, including its history after a normal Save.
 fn autosave(app: &mut PhotocraftApp) {
-    let fh = &app.session.prefs().file_handling;
-    let (on, minutes) = (fh.autosave, fh.autosave_minutes.max(1));
-    if app.services.autosave.is_none() {
-        return;
-    }
     let now = crate::gpu_canvas::now_ms();
-    // Saved or closed documents drop their recovery data.
-    let live: HashMap<DocId, bool> = app.session.documents().iter().map(|d| (d.doc.id, d.is_dirty())).collect();
-    let stale: Vec<DocId> = app.prefs_rt.autosaved.keys().filter(|id| live.get(id) != Some(&true)).copied().collect();
-    for id in stale {
-        app.prefs_rt.autosaved.remove(&id);
-        if let Some(d) = app.services.discard_autosave.as_mut() {
-            d(id.0);
+    if let Some(poll) = app.services.poll_autosave.as_mut() {
+        for completion in poll() {
+            let id = DocId(completion.document_id);
+            if completion.retired {
+                app.prefs_rt.retiring.remove(&id);
+                match completion.result {
+                    Ok(()) => {
+                        app.prefs_rt.recovery_keys.remove(&id);
+                        app.prefs_rt.autosaved.remove(&id);
+                        app.prefs_rt.pending_autosaves.remove(&id);
+                        app.prefs_rt.catch_up.remove(&id);
+                        app.prefs_rt.retry_after.remove(&id);
+                        app.prefs_rt.autosave_errors.remove(&id);
+                    }
+                    Err(e) => {
+                        app.prefs_rt.retry_after.insert(id, now + 30_000.0);
+                        app.prefs_rt.autosave_errors.insert(id, format!("Could not remove recovery checkpoint: {e}"));
+                    }
+                }
+                continue;
+            }
+            // A result acknowledges exactly the captured RAM snapshot, never the live revision.
+            let pending = app.prefs_rt.pending_autosaves.get(&id).filter(|stamp| stamp.revision == completion.revision).cloned();
+            if let Some(stamp) = pending {
+                app.prefs_rt.pending_autosaves.remove(&id);
+                match completion.result {
+                    Ok(()) => {
+                        app.prefs_rt.autosaved.insert(id, stamp);
+                        app.prefs_rt.retry_after.remove(&id);
+                        app.prefs_rt.autosave_errors.remove(&id);
+                    }
+                    Err(e) => {
+                        app.prefs_rt.retry_after.insert(id, now + 30_000.0);
+                        app.prefs_rt.autosave_errors.insert(id, format!("Autosave failed: {e}. Your document remains open; save a copy or free disk space."));
+                    }
+                }
+            }
         }
     }
-    if !on {
+    let live: HashSet<DocId> = app.session.documents().iter().map(|d| d.doc.id).collect();
+    let owned: HashSet<DocId> =
+        app.prefs_rt.recovery_keys.keys().chain(app.prefs_rt.autosaved.keys()).chain(app.prefs_rt.pending_autosaves.keys()).copied().collect();
+    for id in owned {
+        if live.contains(&id) || app.prefs_rt.retiring.contains(&id) || app.prefs_rt.retry_after.get(&id).is_some_and(|time| now < *time) {
+            continue;
+        }
+        if let Some(discard) = app.services.discard_autosave.as_mut() {
+            match discard(id.0, app.prefs_rt.recovery_keys.get(&id).map(String::as_str)) {
+                Ok(()) => {
+                    app.prefs_rt.retiring.insert(id);
+                }
+                Err(e) => {
+                    app.prefs_rt.retry_after.insert(id, now + 30_000.0);
+                    app.prefs_rt.autosave_errors.insert(id, format!("Could not remove recovery checkpoint: {e}"));
+                }
+            }
+        }
+    }
+    let fh = &app.session.prefs().file_handling;
+    if !fh.autosave || app.services.autosave.is_none() {
         return;
     }
-    let interval = minutes as f64 * 60_000.0;
+    let interval = f64::from(fh.autosave_minutes.max(1)) * 60_000.0;
     if app.prefs_rt.next_autosave_ms == 0.0 || app.prefs_rt.next_autosave_ms > now + interval {
         app.prefs_rt.next_autosave_ms = now + interval;
+    }
+    let due = now >= app.prefs_rt.next_autosave_ms;
+    if due {
+        app.prefs_rt.next_autosave_ms = now + interval;
+    }
+    if due {
+        for (index, st) in app.session.documents().iter().enumerate() {
+            if app.prefs_rt.pending_autosaves.get(&st.doc.id).is_some_and(|pending| *pending != CheckpointStamp::of(st, recovery_context(app, index, st))) {
+                app.prefs_rt.catch_up.insert(st.doc.id);
+            }
+        }
+    }
+    if !due && app.prefs_rt.catch_up.is_empty() && !app.prefs_rt.retry_after.values().any(|time| now >= *time) {
         return;
     }
-    if now < app.prefs_rt.next_autosave_ms {
-        return;
-    }
-    app.prefs_rt.next_autosave_ms = now + interval;
     let jobs: Vec<_> = app
         .session
         .documents()
         .iter()
-        .filter(|d| d.is_dirty() && app.prefs_rt.autosaved.get(&d.doc.id) != Some(&d.revision))
-        .map(|d| (d.doc.clone(), d.revision, d.path.clone()))
+        .enumerate()
+        .filter_map(|(index, st)| {
+            let stamp = CheckpointStamp::of(st, recovery_context(app, index, st));
+            let retry_due = app.prefs_rt.retry_after.get(&st.doc.id).is_some_and(|time| now >= *time);
+            if (!due && !retry_due && !app.prefs_rt.catch_up.contains(&st.doc.id))
+                || app.prefs_rt.pending_autosaves.contains_key(&st.doc.id)
+                || app.prefs_rt.autosaved.get(&st.doc.id) == Some(&stamp)
+                || app.prefs_rt.retry_after.get(&st.doc.id).is_some_and(|time| now < *time)
+            {
+                return None;
+            }
+            Some((st.doc.clone(), st.history.checkpoint(), stamp, st.path.clone()))
+        })
         .collect();
-    for (doc, rev, path) in jobs {
+    for (doc, history, stamp, path) in jobs {
         if let Some(save) = app.services.autosave.as_mut() {
-            match save(&doc, rev, path.as_deref()) {
+            match save(&doc, history, stamp.revision, path.as_deref(), app.prefs_rt.recovery_keys.get(&doc.id).map(String::as_str), stamp.context.clone()) {
                 Ok(()) => {
-                    app.prefs_rt.autosaved.insert(doc.id, rev);
+                    app.prefs_rt.pending_autosaves.insert(doc.id, stamp);
+                    app.prefs_rt.catch_up.remove(&doc.id);
                 }
-                Err(e) => app.ui.status = format!("Autosave failed: {e}"),
+                Err(e) => {
+                    app.prefs_rt.retry_after.insert(doc.id, now + 30_000.0);
+                    app.prefs_rt.autosave_errors.insert(doc.id, format!("Autosave failed: {e}. Your document remains open; save a copy or free disk space."));
+                }
             }
         }
     }
@@ -1627,52 +1795,194 @@ mod tests {
         assert!(!crate::menus::menu_items(&app).iter().any(|i| i.id == "edit.fade"));
     }
 
-    #[test]
-    fn autosave_runs_for_dirty_documents() {
-        type Saved = Arc<Mutex<Vec<(u64, u64)>>>;
-        let saved: Saved = Arc::default();
-        let s2 = saved.clone();
+    type Queued = Arc<Mutex<Vec<(u64, u64, usize, usize)>>>;
+    type Completed = Arc<Mutex<Vec<crate::AutosaveCompletion>>>;
+    fn checkpoint_app() -> (PhotocraftApp, Queued, Completed) {
+        let queued: Queued = Arc::default();
+        let completed: Completed = Arc::default();
+        let q = queued.clone();
+        let c = completed.clone();
         let services = crate::Services {
-            autosave: Some(Box::new(move |doc: &Arc<photocraft_doc::Document>, rev: u64, _path: Option<&str>| {
-                s2.lock().unwrap().push((doc.id.0, rev));
+            autosave: Some(Box::new(move |doc, history, rev, _path, _key, _context| {
+                q.lock().unwrap().push((doc.id.0, rev, history.undo.len(), history.redo.len()));
                 Ok(())
             })),
+            poll_autosave: Some(Box::new(move || std::mem::take(&mut *c.lock().unwrap()))),
             ..Default::default()
         };
-        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), services);
+        (PhotocraftApp::new(photocraft_engine::Session::new(), services), queued, completed)
+    }
+    fn complete(c: &Completed, id: DocId, revision: u64, result: Result<(), String>) {
+        c.lock().unwrap().push(crate::AutosaveCompletion { document_id: id.0, revision, result, retired: false });
+    }
+    #[test]
+    fn autosave_acknowledges_disk_completion_and_keeps_live_ram_fresh() {
+        let (mut app, queued, completed) = checkpoint_app();
         let ctx = egui::Context::default();
         app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
-        tick(&mut app, &ctx);
         autosave_now(&mut app);
         tick(&mut app, &ctx);
-        assert!(saved.lock().unwrap().is_empty(), "clean documents are not autosaved");
+        let id = app.session.active().unwrap().doc.id;
+        assert_eq!(queued.lock().unwrap().len(), 1, "clean open docs also retain recovery");
+        assert!(app.prefs_rt.autosaved.is_empty(), "enqueue is not durability");
+        let revision = app.session.active().unwrap().revision;
         app.run("edit.fill", json!({"color": "#ff0000"})).unwrap();
+        let fresh = app.session.active().unwrap().doc.clone();
+        complete(&completed, id, revision, Ok(()));
+        tick(&mut app, &ctx);
+        assert!(Arc::ptr_eq(&fresh, &app.session.active().unwrap().doc));
+        assert_eq!(app.prefs_rt.autosaved.get(&id).unwrap().revision, revision);
         autosave_now(&mut app);
         tick(&mut app, &ctx);
-        assert_eq!(saved.lock().unwrap().len(), 1);
+        assert_eq!(queued.lock().unwrap().len(), 2, "newer RAM revision still needs a checkpoint");
+        let revision = app.session.active().unwrap().revision;
+        complete(&completed, id, revision, Ok(()));
+        tick(&mut app, &ctx);
         autosave_now(&mut app);
         tick(&mut app, &ctx);
-        assert_eq!(saved.lock().unwrap().len(), 1, "unchanged since the last autosave");
-
-        // Loaded copies can have the same persisted identity and dirty revision.
-        let original = app.session.active().unwrap().doc.clone();
-        let original_id = original.id;
-        app.session.add_document(original.as_ref().clone(), None);
+        assert_eq!(queued.lock().unwrap().len(), 2, "unchanged checkpoints are skipped");
+        app.session.active_mut().unwrap().saved_revision = revision;
+        tick(&mut app, &ctx);
+        assert!(app.prefs_rt.autosaved.contains_key(&id), "normal Save must preserve undo recovery");
+        app.run("prefs.set", json!({"path": "fileHandling.autosave", "value": false})).unwrap();
         app.run("edit.fill", json!({"color": "#0000ff"})).unwrap();
         autosave_now(&mut app);
         tick(&mut app, &ctx);
-        {
-            let saved = saved.lock().unwrap();
-            assert_eq!(saved.len(), 2, "both dirty copies need independent autosaves");
-            assert_eq!(saved[0].0, original_id.0);
-            assert_ne!(saved[0].0, saved[1].0, "recovery ownership must be distinct");
-            assert_eq!(saved[0].1, saved[1].1, "the revisions must match to reproduce suppression");
-        }
-        app.run("prefs.set", json!({"path": "fileHandling.autosave", "value": false})).unwrap();
-        app.run("edit.fill", json!({"color": "#00ff00"})).unwrap();
+        assert_eq!(queued.lock().unwrap().len(), 2);
+    }
+    #[test]
+    fn slow_checkpoint_catches_up_and_save_as_updates_recovery_path() {
+        let (mut app, queued, completed) = checkpoint_app();
+        let ctx = egui::Context::default();
+        app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
         autosave_now(&mut app);
         tick(&mut app, &ctx);
-        assert_eq!(saved.lock().unwrap().len(), 2, "autosave off");
+        let id = app.session.active().unwrap().doc.id;
+        let old = app.session.active().unwrap().revision;
+        app.run("edit.fill", json!({"color": "#ff0000"})).unwrap();
+        autosave_now(&mut app);
+        tick(&mut app, &ctx);
+        assert_eq!(queued.lock().unwrap().len(), 1, "only one request per document is in flight");
+        complete(&completed, id, old, Ok(()));
+        tick(&mut app, &ctx);
+        assert_eq!(queued.lock().unwrap().len(), 2, "overdue fresh RAM checkpoint starts immediately");
+        let current = app.session.active().unwrap().revision;
+        complete(&completed, id, current, Ok(()));
+        tick(&mut app, &ctx);
+        app.session.active_mut().unwrap().path = Some("/renamed.pcraft".into());
+        autosave_now(&mut app);
+        tick(&mut app, &ctx);
+        assert_eq!(queued.lock().unwrap().len(), 3);
+        assert_eq!(app.prefs_rt.pending_autosaves.get(&id).unwrap().path.as_deref(), Some("/renamed.pcraft"));
+    }
+
+    #[test]
+    fn autosave_failure_retries_same_revision_with_backoff() {
+        let (mut app, queued, completed) = checkpoint_app();
+        let ctx = egui::Context::default();
+        app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
+        autosave_now(&mut app);
+        tick(&mut app, &ctx);
+        let st = app.session.active().unwrap();
+        let (id, revision) = (st.doc.id, st.revision);
+        complete(&completed, id, revision, Err("disk full".into()));
+        tick(&mut app, &ctx);
+        assert!(app.ui.status.contains("disk full"));
+        assert!(!app.prefs_rt.autosaved.contains_key(&id));
+        autosave_now(&mut app);
+        tick(&mut app, &ctx);
+        assert_eq!(queued.lock().unwrap().len(), 1, "failed saves cannot busy-loop");
+        app.prefs_rt.retry_after.insert(id, 0.0);
+        tick(&mut app, &ctx);
+        assert_eq!(queued.lock().unwrap().len(), 2);
+        {
+            let requests = queued.lock().unwrap();
+            assert_eq!(requests[0].1, requests[1].1);
+        }
+        complete(&completed, id, revision, Ok(()));
+        tick(&mut app, &ctx);
+        assert!(app.prefs_rt.autosave_errors.is_empty());
+        assert!(app.prefs_rt.autosaved.contains_key(&id));
+    }
+    #[test]
+    fn autosave_captures_redo_and_history_purge_without_revision_change() {
+        let (mut app, queued, completed) = checkpoint_app();
+        let ctx = egui::Context::default();
+        app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
+        app.run("edit.fill", json!({"color": "#ff0000"})).unwrap();
+        app.run("edit.fill", json!({"color": "#0000ff"})).unwrap();
+        app.run("edit.undo", json!({})).unwrap();
+        autosave_now(&mut app);
+        tick(&mut app, &ctx);
+        let st = app.session.active().unwrap();
+        let (id, revision) = (st.doc.id, st.revision);
+        assert_eq!(queued.lock().unwrap()[0].3, 1);
+        complete(&completed, id, revision, Ok(()));
+        tick(&mut app, &ctx);
+        app.session.active_mut().unwrap().history.clear();
+        autosave_now(&mut app);
+        tick(&mut app, &ctx);
+        assert_eq!(queued.lock().unwrap().len(), 2);
+        assert_eq!(queued.lock().unwrap()[1], (id.0, revision, 0, 0));
+    }
+    #[test]
+    fn startup_restores_history_and_retains_ownership_until_close_completes() {
+        let mut session = photocraft_engine::Session::new();
+        session.execute("file.new", json!({"width": 8, "height": 8})).unwrap();
+        session.execute("edit.fill", json!({"color": "#ff0000"})).unwrap();
+        session.execute("edit.fill", json!({"color": "#0000ff"})).unwrap();
+        session.execute("edit.undo", json!({})).unwrap();
+        let original = session.active().unwrap().clone();
+        let record = crate::RecoveredDocument {
+            key: "retained".into(),
+            path: Some("/a.pcraft".into()),
+            document: original.doc.as_ref().clone(),
+            history: Some(original.history.checkpoint()),
+            context: json!({"active": true, "view": {"zoom": 2.0, "center": [3.0, 4.0], "fit_pending": false, "doc_size": [8,8]}, "tool": "Brush", "activeLayer": original.active_layer, "selectedLayers": original.selected_layers}),
+        };
+        let mut record = Some(record);
+        let retired = Arc::new(Mutex::new(Vec::new()));
+        let r = retired.clone();
+        let completions: Completed = Arc::default();
+        let c = completions.clone();
+        let services = crate::Services {
+            recover: Some(Box::new(move || crate::RecoveryBatch {
+                documents: record.take().into_iter().collect(),
+                errors: vec!["Broken checkpoint retained".into()],
+            })),
+            discard_autosave: Some(Box::new(move |id, key| {
+                r.lock().unwrap().push((id, key.map(str::to_owned)));
+                Ok(())
+            })),
+            poll_autosave: Some(Box::new(move || std::mem::take(&mut *c.lock().unwrap()))),
+            ..Default::default()
+        };
+        // Existing duplicate forces an admitted identity change.
+        let mut target = photocraft_engine::Session::new();
+        target.add_document(original.doc.as_ref().clone(), None);
+        let mut app = PhotocraftApp::new(target, services);
+        let ctx = egui::Context::default();
+        let recovered = app.session.active().unwrap();
+        let id = recovered.doc.id;
+        assert_ne!(id, original.doc.id);
+        assert!(recovered.is_dirty());
+        assert!(recovered.history.can_redo());
+        assert_eq!(app.ui.views.last().unwrap().zoom, 2.0);
+        assert_eq!(app.ui.tool, crate::state::Tool::Brush);
+        assert_eq!(recovered.history.entries(), original.history.entries());
+        app.run("edit.redo", json!({})).unwrap();
+        assert_eq!(app.session.active().unwrap().doc.id, id);
+        tick(&mut app, &ctx);
+        assert!(app.ui.status.contains("Broken checkpoint retained"));
+        assert!(retired.lock().unwrap().is_empty());
+        let index = app.session.active_index().unwrap();
+        app.session.close(index);
+        tick(&mut app, &ctx);
+        assert_eq!(retired.lock().unwrap().as_slice(), &[(id.0, Some("retained".into()))]);
+        assert!(app.prefs_rt.recovery_keys.contains_key(&id), "cleanup acceptance is not completion");
+        completions.lock().unwrap().push(crate::AutosaveCompletion { document_id: id.0, revision: 0, result: Ok(()), retired: true });
+        tick(&mut app, &ctx);
+        assert!(!app.prefs_rt.recovery_keys.contains_key(&id));
     }
 
     #[test]

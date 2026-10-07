@@ -46,6 +46,7 @@ The other built-in ICC profiles and the generated LUT looks are produced by code
 | `docs/images/preferences-apply-*.png` | Preferences before and after adding Apply (no artwork) | PhotoCraft contributors | PhotoCraft control-channel capture and offscreen `snapshot` example | MIT OR Apache-2.0 |
 | `docs/images/rendering-*.png` | Rendering mode settings, GPU menu and CPU recovery warning | PhotoCraft contributors | Original app captures with a synthetic test document | MIT OR Apache-2.0 |
 | `docs/images/undo-*-preferences.png` | Undo cache memory and scratch preferences | PhotoCraft contributors | Original offscreen app captures, blank document workspace | MIT OR Apache-2.0, adjacent `docs/images/LICENSE-MIT` and `LICENSE-APACHE` |
+| `docs/images/recovery/*.png` | PhotoCraft recovery validation screenshots (synthetic document) | PhotoCraft contributors | Original offscreen rendering, `snapshot` example | MIT OR Apache-2.0, adjacent license files |
 
 Artwork shown in the screenshots (all public domain, via Wikimedia Commons; details in
 [`docs/images/SOURCES.md`](docs/images/SOURCES.md)):
@@ -77,3 +78,4 @@ next to the files:
 | `corpus/pngsuite/` | PngSuite | Willem van Schaik | <http://www.schaik.com/pngsuite/> | Public domain |
 
 Files copied into `corpus/` by hand (tiff, exr, raw) must be MIT, BSD or CC0.
+

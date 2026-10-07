@@ -38,7 +38,10 @@ use photocraft_doc::Document;
 use photocraft_raster::Rgba8Image;
 
 pub use atomic::atomic_write;
-pub use autosave::{Autosaver, RecoveryEntry, discard_recovery, list_recovery, recover};
+pub use autosave::{
+    AutosaveCompletion, Autosaver, RecoveryEntry, discard_recovery, list_recovery, list_recovery_checked, recover, recover_checkpoint,
+    recover_checkpoint_with_context,
+};
 pub use manifest::{FORMAT_VERSION, Manifest};
 pub use store::{PcraftWriter, SaveStats};
 

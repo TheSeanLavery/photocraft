@@ -129,6 +129,7 @@ cargo run -p photocraft-cli -- commands --filter blur                    # the c
 - `thumb.png` and `composite/preview.png`: previews.
 
 Keep one `PcraftWriter` per open document: re-saving then only compresses and writes tiles that changed, and directory bundles garbage-collect unreferenced objects. `format::Autosaver` writes snapshots into a recovery directory on a background thread. `list_recovery` / `recover` / `discard_recovery` implement crash recovery.
+The desktop checkpoint also preserves undo/redo and navigation context; see [Autosave and crash recovery](recovery.md) for completion acknowledgements, retention and storage limits.
 
 `photocraft-io` routes `.pcraft` through this crate in `import`/`export`, detecting it by magic or by extension.
 
