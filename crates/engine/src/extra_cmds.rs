@@ -286,12 +286,9 @@ fn reselect_target(s: &Session) -> Result<Option<photocraft_raster::Surface>> {
     if d.doc.selection.is_some() {
         return Ok(None);
     }
-    for i in (0..d.history.past_len()).rev() {
-        if let Some(doc) = d.history.try_state(i).map_err(EngineError::Other)?
-            && let Some(selection) = &doc.selection
-        {
-            return Ok(Some(selection.clone()));
-        }
+    let Some(i) = d.history.latest_selection_state() else { return Ok(None) };
+    if let Some(doc) = d.history.try_state(i).map_err(EngineError::Other)? {
+        return Ok(doc.selection.clone());
     }
     Ok(None)
 }

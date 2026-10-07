@@ -92,3 +92,35 @@ Regression tests cover lazy allocation, cross-document sharing, quota rollback,
 contention during cold reads or snapshot drops, count/budget reduction, redo
 invalidation, close/purge cleanup and atomic command failure. The CI workload
 publishes a reproducible report independently of the regular native/wasm tests.
+
+Release-mode measurement on Ubuntu CI / Rust 1.99, 2026-10-06
+([run](https://github.com/TheSeanLavery/photocraft/actions/runs/37552870516)):
+
+| Metric | Disk disabled | 8 GiB disk tier |
+|---|---:|---:|
+| Undo steps retained | 1 | 12 (11 archived) |
+| Resident managed payloads | 192 MiB | 192 MiB |
+| Actual disk payloads + manifests | 0 | 7.36 MiB |
+| Edit/enqueue overhead p50 / p95 | 0.265 / 8.585 ms | 0.207 / 0.231 ms |
+| Background settle p50 / p95 | 0 / 0 ms | 246.374 / 295.409 ms |
+| Cold undo p50 / p95 | unavailable | 37.759 / 47.645 ms |
+
+The current document plus immediately adjacent undo state occupy 192 MiB, so the
+128 MiB stress target is exceeded by pinned data even after eviction. Each edit
+mutates the full image; the benchmark settles after each edit. The synthetic
+repeated texture compresses unusually well. Actual photos, rapid consecutive
+edits, larger embedded assets and slower disks need separate measurements; these
+numbers do not certify UI latency or a hard process-memory ceiling.
+
+Preferences verified offscreen on Apple M1 Max / Metal:
+
+![Shared memory budget](images/undo-memory-preferences.png)
+
+![Demand-grown scratch disk budget](images/undo-scratch-preferences.png)
+
+Coordinator verification: Rust 1.99 local tests pass (617 engine, 29 format,
+16 history/ops, 554 UI; 13 existing ignored tests). Strict all-target Clippy for
+these four crates passes. The adversarial command check and layering pass;
+the dedicated release-mode workload and initial WebAssembly CI pass. Both
+preference dialogs were rendered offscreen and visually inspected. Final
+cross-platform/corpus CI is linked from the PR.
