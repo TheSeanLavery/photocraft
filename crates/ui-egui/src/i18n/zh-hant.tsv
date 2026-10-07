@@ -2127,3 +2127,5 @@ cameraRaw	Blending	混合
 	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	文件像素、嵌入資料與復原歷程共用記憶體上限。記憶體依需求增加；應用程式的其他記憶體另行使用。
 	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	復原磁碟空間僅在需要時增加，不超過此上限。設為零可停用磁碟快取。暫存路徑將在下一個快取工作階段生效。
 	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	瀏覽器版將復原歷程保存在記憶體中。暫存磁碟設定適用於桌面應用程式。
+
+	HDR Output	HDR 輸出

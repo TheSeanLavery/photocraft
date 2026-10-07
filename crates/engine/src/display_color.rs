@@ -318,7 +318,7 @@ impl ColorState {
     }
 
     fn resolved_monitor(&self, display: Option<u32>) -> (Arc<Profile>, MonitorStatus) {
-        let spec = self.settings.monitor_profile.as_str();
+        let spec = if self.surface_srgb { "srgb" } else { self.settings.monitor_profile.as_str() };
         let auto = spec.is_empty() || spec == "auto";
         let shown = self.display_or_primary(display);
         let icc = if auto { shown.and_then(|d| d.icc.clone()) } else { None };

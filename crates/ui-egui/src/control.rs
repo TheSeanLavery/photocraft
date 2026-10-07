@@ -70,7 +70,7 @@ pub enum Outcome {
 
 /// The fields `ui.set` reads. Anything else is rejected before a field is applied, so a typo or
 /// a field the method doesn't have can't reply with success while nothing changes (#412).
-pub const UI_SET_FIELDS: [&str; 21] = [
+pub const UI_SET_FIELDS: [&str; 22] = [
     "tool",
     "panels",
     "dock",
@@ -92,6 +92,7 @@ pub const UI_SET_FIELDS: [&str; 21] = [
     "gradientClassic",
     "vectorMode",
     "penShapeOperation",
+    "hdrOutput",
 ];
 
 fn ok(v: Value) -> Outcome {
@@ -288,6 +289,7 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     None => None,
                 };
                 let gradient_classic = bool_field(p, "gradientClassic")?;
+                let hdr_output = bool_field(p, "hdrOutput")?;
                 let vector_mode = match p.get("vectorMode") {
                     Some(Value::String(mode)) if mode == "path" || mode == "shape" => Some(mode.as_str()),
                     Some(_) => return Err("vectorMode must be path or shape".into()),
@@ -356,6 +358,9 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 // Apply (nothing below can fail).
                 if let Some(t) = tool {
                     app.ui.tool = t;
+                }
+                if let Some(on) = hdr_output {
+                    app.ui.sdr_output = !on;
                 }
                 if let Some(mode) = vector_mode {
                     app.ui.tool_options.vector_mode = mode.to_string();
@@ -726,6 +731,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "frame": app.frame,
         "session": photocraft_engine::inspect::session(&app.session),
         "document": app.session.active().map(photocraft_engine::inspect::document),
+        "hdrOutput": app.gpu.as_ref().map(|g| json!({"surface": g.hdr_surface(), "headroom": g.output_headroom(), "enabled": !app.ui.sdr_output, "active": !app.ui.sdr_output && g.output_headroom() > 1.0, "format": format!("{:?}", g.output_format()), "colorSpace": if g.hdr_surface() { "extended-sRGB" } else { "sRGB" }})),
         "perf": {"fps": app.fps, "timings": app.perf},
         "brush": {"size": app.session.tools.brush.size, "hardness": app.session.tools.brush.hardness, "opacity": app.session.tools.brush.opacity},
         "distort": app.distort.describe(),

@@ -41,6 +41,7 @@ rayon = { workspace = true }
 sys-locale = "=0.3.2"
 
 [dev-dependencies]
+photocraft-cms = { workspace = true }
 photocraft-io = { workspace = true }
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot", "eframe"] }
 # Benchmark helpers for the `--json` benches `cargo xtask perf` runs (in-process RSS, percentiles).

@@ -23,6 +23,7 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("edit.transform.distort", "Distort", &["Edit", "Transform"], None),
     ("edit.transform.perspective", "Perspective", &["Edit", "Transform"], None),
     ("select.selectAndMask", "Select and Mask…", &["Select"], Some("Cmd+Alt+R")),
+    ("view.hdrOutput", "HDR Output", &["View"], None),
     ("view.rulers", "Rulers", &["View"], Some("Cmd+R")),
     ("view.show.grid", "Grid", &["View", "Show"], Some("Cmd+'")),
     ("view.show.guides", "Guides", &["View", "Show"], Some("Cmd+;")),
@@ -200,6 +201,10 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
         return Ok(json!({"workspace": app.ui.workspace}));
     }
     match id {
+        "view.hdrOutput" => {
+            app.ui.sdr_output = !app.ui.sdr_output;
+            Ok(Value::Null)
+        }
         // ⌘↩ / Ctrl+Enter (#306): load the path selected in the Paths panel (or the one being
         // drawn) as a selection.
         "path.toSelection" if params.get("name").is_none() => crate::vector_ui::path_to_selection(app, params),
@@ -500,7 +505,7 @@ pub fn is_enabled(app: &PhotocraftApp, id: &str) -> bool {
         i if proof_preset(i).is_some() => app.session.active().is_some(),
         // "Custom…" is the full Proof Setup dialog.
         "view.proofSetup.custom" => app.session.active().is_some(),
-        "view.rulers" | "view.show.grid" | "view.show.guides" | "view.snap" | "view.lockGuides" => true,
+        "view.hdrOutput" | "view.rulers" | "view.show.grid" | "view.show.guides" | "view.snap" | "view.lockGuides" => true,
         // An image copied in another app can only be seen by reading the OS clipboard, which happens
         // on an explicit paste: with a clipboard service these stay enabled. Paste and New from
         // Clipboard need no document (with none open, Paste makes one); Paste in Place does.
@@ -562,6 +567,9 @@ fn checked(app: &PhotocraftApp, id: &str) -> Option<bool> {
     }
     // Check items stay check items with no document open (`Some(false)`, not `None`): a native
     // menu can't change an item's kind in place, so a change would rebuild the whole menu.
+    if id == "view.hdrOutput" {
+        return Some(!app.ui.sdr_output);
+    }
     if id == "select.isolateLayers" {
         return Some(app.session.active().is_some_and(|d| !d.isolated_layers.is_empty()));
     }

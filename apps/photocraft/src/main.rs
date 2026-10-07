@@ -32,6 +32,7 @@ mod gpu_startup;
 mod mac_menu;
 #[cfg(target_os = "macos")]
 mod mac_window;
+mod hdr_output;
 // Pure logic is tested on every platform; only Linux runs the check.
 #[cfg(any(target_os = "linux", test))]
 mod linux_libs;
@@ -262,6 +263,7 @@ fn main() -> eframe::Result {
     let gpu_note: std::sync::Arc<std::sync::Mutex<Option<String>>> = Default::default();
     // The adapter's real texture limits (egui asks for 8192 px), so big documents stay on the GPU.
     gpu_startup::configure(&mut options.wgpu_options.wgpu_setup, &plan, os, sentinel.clone(), gpu_note.clone());
+    hdr_output::configure(&mut options.wgpu_options, safe_gpu);
     let sentinel_ms = t_sentinel.elapsed().as_secs_f64() * 1000.0;
     log::info!("GPU startup: {:?} ({sentinel_ms:.2} ms)", plan);
     let retry_cpu = !safe_gpu && plan.backend != photocraft_engine::prefs::GpuBackend::Cpu;
@@ -314,6 +316,7 @@ fn main() -> eframe::Result {
             };
             info.canvas = "cpu".into();
             if let Some(rs) = cc.wgpu_render_state.clone() {
+                app.session.color.surface_srgb = rs.output_color_space == eframe::wgpu::SurfaceColorSpace::ExtendedSrgb;
                 app.perf.gpu_info.set_adapter(&rs.adapter.get_info());
                 let software_window = rs.adapter.get_info().device_type == eframe::wgpu::DeviceType::Cpu;
                 if software_window && mode != photocraft_engine::prefs::RenderingMode::Cpu {
