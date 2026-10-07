@@ -24,7 +24,7 @@ pub fn entries(has_selection: bool) -> &'static [(&'static str, &'static str)] {
     if has_selection {
         &[
             ("Deselect", "select.deselect"),
-            ("Select Inverse", "select.inverse"),
+            ("Inverse Selection", "select.inverse"),
             ("Feather…", "select.modify.feather"),
             ("Select and Mask…", "select.selectAndMask"),
             ("Transform Selection", "select.transformSelection"),
@@ -68,9 +68,20 @@ pub fn show(app: &mut PhotocraftApp, ctx: &Context) {
     let mut selected = None;
     let area = egui::Area::new(id).order(egui::Order::Foreground).fixed_pos(pos).show(ctx, |ui| {
         egui::Frame::menu(ui.style()).show(ui, |ui| {
-            ui.set_min_width(190.0);
+            let t = crate::theme::Tokens::get(ui.ctx());
+            let v = &mut ui.style_mut().visuals;
+            v.widgets.inactive.weak_bg_fill = egui::Color32::TRANSPARENT;
+            v.widgets.inactive.bg_stroke = egui::Stroke::NONE;
+            v.widgets.hovered.weak_bg_fill = t.accent;
+            v.widgets.hovered.bg_fill = t.accent;
+            v.widgets.hovered.bg_stroke = egui::Stroke::NONE;
+            v.widgets.hovered.fg_stroke = egui::Stroke::new(1.0, egui::Color32::WHITE);
+            v.widgets.hovered.corner_radius = egui::CornerRadius::same(3);
+            ui.spacing_mut().item_spacing.y = 0.0;
+            ui.set_width(200.0);
             for &(label, command) in entries(menu.has_selection) {
-                if ui.add_enabled(crate::menus::is_enabled(app, command), egui::Button::new(label)).clicked() {
+                let item = egui::Button::selectable(false, tl!(&label)).min_size(egui::vec2(200.0, 22.0));
+                if ui.add_enabled(crate::menus::is_enabled(app, command), item).clicked() {
                     selected = Some(command);
                 }
             }

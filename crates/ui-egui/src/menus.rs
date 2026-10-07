@@ -645,6 +645,14 @@ pub fn menu_items(app: &PhotocraftApp) -> Vec<MenuItem> {
             items.insert(at, e);
         }
     }
+    // The canvas selection menu puts Feather beside Deselect and Inverse. Offer the same
+    // one-click route in Select while retaining Photoshop's Select > Modify > Feather entry.
+    if let Some(after) = items.iter().position(|i| i.id == "select.inverse")
+        && let Some(mut feather) = items.iter().find(|i| i.id == "select.modify.feather").cloned()
+    {
+        feather.path = vec!["Select".into()];
+        items.insert(after + 1, feather);
+    }
     crate::plugin_ui::insert_menu_items(app, &mut items);
     // File › Open Recent: a dynamic submenu of recently opened files (inserted after "Open As…").
     if let Some(after) = items.iter().position(|i| i.id == "file.openAs") {
@@ -909,6 +917,25 @@ pub fn apply_workspace(app: &mut PhotocraftApp) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn top_select_menu_contains_every_selection_context_action_and_more() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
+        app.run("select.rect", json!({"x": 2, "y": 2, "width": 8, "height": 8})).unwrap();
+        let items = menu_items(&app);
+        let top: Vec<_> = items.iter().filter(|i| i.path.len() == 1 && i.path.first().is_some_and(|p| p == "Select")).collect();
+        for &(label, id) in crate::canvas_tool_menu::entries(true).iter().chain(crate::canvas_tool_menu::entries(false)) {
+            assert!(top.iter().any(|i| i.id == id && i.label == label), "Select menu missing {label} ({id})");
+        }
+        assert!(top.iter().any(|i| i.id == "select.all"));
+        assert!(top.iter().any(|i| i.id == "select.colorRange"));
+        assert!(
+            items.iter().any(|i| i.id == "select.modify.feather" && i.path.iter().map(String::as_str).eq(["Select", "Modify"])),
+            "keep the Photoshop Modify route"
+        );
+        assert!(top.iter().find(|i| i.id == "select.modify.feather").is_some_and(|i| i.enabled));
+    }
 
     #[test]
     fn menu_bar_labels_have_horizontal_padding_and_open_menus() {
