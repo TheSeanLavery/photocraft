@@ -206,25 +206,32 @@ pub type Inbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<u8>)>>>;
 pub type LoadTextFn = Box<dyn FnMut() -> Option<String>>;
 /// Persist the preferences text.
 pub type SaveTextFn = Box<dyn FnMut(&str) -> Result<(), String>>;
-/// Autosave a document snapshot for crash recovery: (snapshot, revision, original path).
-pub type AutosaveFn = Box<dyn FnMut(&std::sync::Arc<Document>, u64, Option<&str>) -> Result<(), String>>;
-/// Drop the recovery data of a document (by `DocId` value) once it is saved or closed.
-pub type DiscardAutosaveFn = Box<dyn FnMut(u64)>;
-/// Load recoverable documents left by a previous session. Their recovery data stays until the
-/// documents are saved or closed.
-pub type RecoverFn = Box<dyn FnMut() -> Vec<Recovered>>;
-/// A recovered document (by `DocId` value, once open) takes over its recovery entry (by key):
-/// its autosaves replace the entry, and saving or closing it drops the entry.
-pub type AdoptAutosaveFn = Box<dyn FnMut(u64, &str)>;
-
-/// A document [`RecoverFn`] found.
-pub struct Recovered {
-    /// The recovery entry it was loaded from (see [`AdoptAutosaveFn`]).
-    pub key: String,
-    /// Where the user last saved it, if anywhere.
-    pub path: Option<String>,
-    pub doc: Document,
+/// Queue an immutable document/history checkpoint. Success means accepted, not saved.
+pub type AutosaveFn =
+    Box<dyn FnMut(&std::sync::Arc<Document>, photocraft_ops::HistoryCheckpoint, u64, Option<&str>, Option<&str>, serde_json::Value) -> Result<(), String>>;
+/// Retire a closed document's checkpoint off the UI thread; inherited keys remain owned until completion.
+pub type DiscardAutosaveFn = Box<dyn FnMut(u64, Option<&str>) -> Result<(), String>>;
+pub struct AutosaveCompletion {
+    pub document_id: u64,
+    pub revision: u64,
+    pub result: Result<(), String>,
+    pub retired: bool,
 }
+pub type PollAutosaveFn = Box<dyn FnMut() -> Vec<AutosaveCompletion>>;
+pub struct RecoveredDocument {
+    pub key: String,
+    pub path: Option<String>,
+    pub document: Document,
+    pub history: Option<photocraft_ops::HistoryCheckpoint>,
+    pub context: serde_json::Value,
+}
+#[derive(Default)]
+pub struct RecoveryBatch {
+    pub documents: Vec<RecoveredDocument>,
+    pub errors: Vec<String>,
+}
+/// Load recoverable checkpoints without consuming their durable originals.
+pub type RecoverFn = Box<dyn FnMut() -> RecoveryBatch>;
 /// Append text to a file (History Log).
 pub type AppendTextFn = Box<dyn FnMut(&str, &str) -> Result<(), String>>;
 /// Requests from the operating system since the last call (see [`OsEvent`]).
@@ -275,8 +282,8 @@ pub struct Services {
     /// Crash-recovery autosave (Preferences › File Handling) and recovery at launch.
     pub autosave: Option<AutosaveFn>,
     pub discard_autosave: Option<DiscardAutosaveFn>,
+    pub poll_autosave: Option<PollAutosaveFn>,
     pub recover: Option<RecoverFn>,
-    pub adopt_autosave: Option<AdoptAutosaveFn>,
     /// History Log text file output.
     pub append_text: Option<AppendTextFn>,
     /// OS requests (macOS open-documents / quit Apple events), polled every frame.
