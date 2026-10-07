@@ -421,6 +421,13 @@ pub fn handle(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest
                     "up" => ToolEvent::Up { x, y },
                     _ => ToolEvent::Move { x, y, pressure: pr },
                 };
+                // With the Color Picker on top the image is its eyedropper, as for the mouse.
+                if crate::color_picker_ui::top(app).is_some() {
+                    if !matches!(ev, ToolEvent::Up { .. }) {
+                        crate::color_picker_ui::sample_at(app, x, y);
+                    }
+                    continue;
+                }
                 if matches!(s("button"), Some("secondary" | "right")) {
                     let down = matches!(ev, ToolEvent::Down { .. });
                     // Right-click with the Move tool, or ⌘/Ctrl+right-click: list the layers there.
@@ -607,6 +614,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "status": app.ui.status,
         "statusError": app.ui.status_error,
         "notices": app.ui.notices,
+        "gpuFallbackNotice": app.ui.gpu_fallback_notice,
         "frame": app.frame,
         "session": photocraft_engine::inspect::session(&app.session),
         "document": app.session.active().map(photocraft_engine::inspect::document),

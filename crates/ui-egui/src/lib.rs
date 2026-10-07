@@ -224,6 +224,8 @@ pub struct Services {
     /// the web (see `prefs_ui`).
     pub load_prefs: Option<LoadTextFn>,
     pub save_prefs: Option<SaveTextFn>,
+    /// The native window is connected directly to a Wayland compositor.
+    pub is_wayland: bool,
     /// Crash-recovery autosave (Preferences › File Handling) and recovery at launch.
     pub autosave: Option<AutosaveFn>,
     pub discard_autosave: Option<DiscardAutosaveFn>,
@@ -452,6 +454,7 @@ impl PhotocraftApp {
         };
         // Saved preferences (and recovered documents) are in place before the first frame.
         prefs_ui::load(&mut app);
+        notices::wayland_file_drop_guidance(&mut app);
         // File › Scripts › Script Events Manager: "Start Application".
         photocraft_engine::automate_cmds::fire_event(&mut app.session, "startApplication");
         app
@@ -462,8 +465,22 @@ impl PhotocraftApp {
     pub fn set_wgpu(&mut self, rs: eframe::egui_wgpu::RenderState) {
         // Preferences › Performance › cache tile size (PHOTOCRAFT_GPU_TILE still overrides).
         let tile = self.session.prefs().performance.cache_tile_size;
-        let gpu = gpu_canvas::GpuCanvas::with_tile(&rs, Some(tile));
-        self.perf.gpu_info.set_adapter(&gpu.adapter_info());
+        // Escaped driver/setup panics must leave the session and CPU canvas alive.
+        self.perf.gpu_info.set_adapter(&rs.adapter.get_info());
+        let gpu = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| gpu_canvas::GpuCanvas::with_tile(&rs, Some(tile)))) {
+            Ok(gpu) => gpu,
+            Err(payload) => {
+                let detail = payload
+                    .downcast_ref::<String>()
+                    .cloned()
+                    .or_else(|| payload.downcast_ref::<&str>().map(|s| (*s).to_string()))
+                    .unwrap_or_else(|| "GPU canvas initialization failed".into());
+                self.perf.gpu_info.canvas = "cpu".into();
+                self.perf.gpu_info.fallback = Some(detail.clone());
+                gpu_status::queue_fallback_notice(self, detail);
+                return;
+            }
+        };
         self.perf.gpu_info.canvas = "gpu".into();
         self.gpu = Some(gpu);
         self.prefs_rt.gpu_style = None;
@@ -505,6 +522,9 @@ impl PhotocraftApp {
             && let Some(authorize) = self.services.automation_command.as_ref()
         {
             authorize(id, &params)?;
+        }
+        if let Some(r) = transform_tool::intercept(self, id) {
+            return r;
         }
         let suppress_events = self.automation_input && self.session.prefs().script_events.enabled;
         if suppress_events {
@@ -918,6 +938,7 @@ impl eframe::App for PhotocraftApp {
         wide_angle_ui::show(self, &ctx);
         canvas::extra_windows(self, &ctx);
         notices::show(self, &ctx);
+        gpu_status::show_fallback(self, &ctx);
         // A device lost while drawing this frame: switch to the CPU canvas before the next one.
         gpu_status::check(self, &ctx);
         self.automation_input = false;
@@ -1254,6 +1275,9 @@ mod input_tests;
 mod pencil_tests;
 
 #[cfg(test)]
+mod transform_undo_tests;
+
+#[cfg(test)]
 mod move_auto_select_tests;
 
 #[cfg(test)]
@@ -1261,6 +1285,9 @@ mod marquee_tests;
 
 #[cfg(test)]
 mod stamp_tests;
+
+#[cfg(test)]
+mod polygon_lasso_tests;
 
 #[cfg(test)]
 mod clipboard_tests {

@@ -268,6 +268,7 @@ pub(crate) fn freehand_tool(tool: Tool) -> bool {
         tool,
         Tool::Brush
             | Tool::Pencil
+            | Tool::MixerBrush
             | Tool::Eraser
             | Tool::BackgroundEraser
             | Tool::HistoryBrush
@@ -869,6 +870,7 @@ pub(crate) fn retain_gpu_documents(app: &mut PhotocraftApp) {
 /// Tabs + canvas for the active document, or the start screen.
 pub fn document_area(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     retain_gpu_documents(app);
+    crate::transform_tool::track_steps(app, ui.ctx());
     let n = app.session.documents().len();
     // Files opening in the background (#210) have tabs before they have documents.
     let opening = !app.jobs.opens.is_empty();
@@ -1222,7 +1224,7 @@ fn start_screen(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             });
             ui.add_space(22.0);
             ui.horizontal(|ui| {
-                let msg = tl!("Drop an image or PSD anywhere to open it.");
+                let msg = start_screen_drop_hint(app.services.is_wayland);
                 let g = ui.painter().layout_no_wrap(msg.into(), egui::FontId::proportional(12.5), t.text_faint);
                 ui.add_space(((card.width() - g.size().x - 24.0) / 2.0).max(0.0));
                 let (r, _) = ui.allocate_exact_size(egui::vec2(18.0, 18.0), Sense::hover());
@@ -1239,6 +1241,10 @@ fn start_screen(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             crate::links::link_row(app, ui);
         });
     });
+}
+
+fn start_screen_drop_hint(is_wayland: bool) -> &'static str {
+    if is_wayland { tl!("Use File › Open to open an image.") } else { tl!("Drop an image or PSD anywhere to open it.") }
 }
 
 /// Recent files listed on the Home screen.
@@ -1487,7 +1493,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     }
 
     // Selection outline: true boundary, animated marching ants (cached per revision).
-    if let Some(sel) = doc.selection.as_ref().filter(|_| app.ui.view.shows(app.ui.view.show.selection_edges)) {
+    if let Some(sel) = doc.selection.as_ref().filter(|_| app.ui.view.shows(app.ui.view.show.selection_edges) && !polygon_replaces_selection(app)) {
         // Trace at display resolution over the visible part only; key by the mask's tile identity
         // (not the document revision) so unrelated edits don't re-trace it.
         let step = (1.0 / view.zoom.max(1e-3)).log2().floor().exp2().clamp(1.0, 64.0) as u32;
@@ -1575,12 +1581,28 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     };
 
     if under_dialog {
-        if let Some(d) = crate::dialogs::pan_delta(&ctx, rect, app.ui.tool == Tool::Hand) {
+        // With the Color Picker on top the image is its eyedropper, whatever the tool; Space and
+        // the middle button still pan (`color_picker_ui::sample_at`).
+        let picking = primary && crate::color_picker_ui::top(app).is_some();
+        let hand = app.ui.tool == Tool::Hand && !picking;
+        if let Some(d) = crate::dialogs::pan_delta(&ctx, rect, hand) {
             view.center[0] -= d.x / view.zoom * if flip { -1.0 } else { 1.0 };
             view.center[1] -= d.y / view.zoom;
             ctx.set_cursor_icon(egui::CursorIcon::Grabbing);
-        } else if free_hover && (space_pan || app.ui.tool == Tool::Hand) {
+        } else if free_hover && (space_pan || hand) {
             ctx.set_cursor_icon(egui::CursorIcon::Grab);
+        } else if picking && let Some(p) = crate::dialogs::free_pointer_over(&ctx, rect) {
+            if app.session.prefs().cursors.other == photocraft_engine::prefs::OtherCursor::Precise {
+                ctx.set_cursor_icon(egui::CursorIcon::Crosshair);
+            } else {
+                // The tip of the icon's pipette is at (2, 22) of its 24-unit box.
+                crate::icons::cursor(&ctx, "pipette", p, vec2(2.0, 22.0) / 24.0, 20.0);
+                ctx.set_cursor_icon(egui::CursorIcon::None);
+            }
+            if let Some(p) = crate::dialogs::free_press(&ctx, rect) {
+                let d = xf.to_doc(p);
+                crate::color_picker_ui::sample_at(app, d[0], d[1]);
+            }
         }
     }
     if tool == Tool::Hand && response.dragged() {
@@ -1689,6 +1711,10 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                 }
                 // A click with the (temporary) Hand does nothing, never the tool underneath.
                 Tool::Hand => {}
+                // Double-clicking closes the polygonal lasso: the first click placed the last
+                // vertex (or already closed it), so the second never starts a new polygon. egui
+                // reports it as a triple click when a vertex went down shortly before.
+                Tool::PolygonLasso if response.double_clicked() || response.triple_clicked() => commit_polygon(app),
                 _ => {
                     if tool == Tool::Move && app.ui.transform.is_none() {
                         begin_transform_controls_at(app, &ctx, &xf, p);
@@ -1991,7 +2017,8 @@ fn transform_controls_rect(app: &PhotocraftApp, xf: &ViewXform) -> Option<Rect> 
 /// The interior stays the normal Move-tool drag target.
 fn transform_controls_hit(r: Rect, p: Pos2) -> bool {
     let handles = [r.left_top(), r.center_top(), r.right_top(), r.right_center(), r.right_bottom(), r.center_bottom(), r.left_bottom(), r.left_center()];
-    handles.iter().any(|h| h.distance(p) <= 8.0) || (r.expand(18.0).contains(p) && !r.expand(5.0).contains(p))
+    let grab = crate::transform_tool::HANDLE_PX as f32;
+    handles.iter().any(|h| h.distance(p) <= grab) || (r.expand(18.0).contains(p) && !r.expand(5.0).contains(p))
 }
 
 /// Enter the existing Free Transform session when a Move-tool transform control is pressed.
@@ -2111,12 +2138,22 @@ fn alt_eyedropper(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers)
 }
 
 fn sample_eyedropper(app: &mut PhotocraftApp, x: f64, y: f64, mods: egui::Modifiers) {
-    if let Ok(v) = app.run("document.pixel", json!({"x": x.floor(), "y": y.floor()})) {
-        let color: Vec<f32> = serde_json::from_value(v).unwrap_or_default();
-        if color.len() == 4 && color[3] > 0.0 {
-            let key = if mods.alt { "background" } else { "foreground" };
-            let _ = app.run("tools.setColors", json!({ key: [color[0], color[1], color[2], 1.0] }));
-        }
+    if let Some([r, g, b]) = composite_color(app, x, y) {
+        let key = if mods.alt { "background" } else { "foreground" };
+        let _ = app.run("tools.setColors", json!({ key: [r, g, b, 1.0] }));
+    }
+}
+
+/// The active document's composite colour at document point (x, y): what the Eyedropper picks.
+/// `None` off the image or over transparency.
+pub(crate) fn composite_color(app: &mut PhotocraftApp, x: f64, y: f64) -> Option<[f32; 3]> {
+    if !(x.is_finite() && y.is_finite()) {
+        return None;
+    }
+    let v = app.run("document.pixel", json!({"x": x.floor(), "y": y.floor()})).ok()?;
+    match serde_json::from_value::<Vec<f32>>(v).ok()?[..] {
+        [r, g, b, a] if a > 0.0 => Some([r, g, b]),
+        _ => None,
     }
 }
 
@@ -2264,15 +2301,7 @@ pub fn tool_event(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers)
                     return;
                 }
                 Tool::PolygonLasso => {
-                    // Click adds a vertex; clicking near the first vertex closes the polygon.
-                    let close = app.ui.polygon.first().is_some_and(|p0| {
-                        app.ui.polygon.len() >= 3 && ((p0[0] - x).powi(2) + (p0[1] - y).powi(2)).sqrt() < 8.0 / app.current_zoom().max(0.01) as f64
-                    });
-                    if close {
-                        commit_polygon(app, mods);
-                    } else {
-                        app.ui.polygon.push([x, y]);
-                    }
+                    polygon_click(app, x, y, mods);
                     return;
                 }
                 Tool::Type if crate::type_tool::pointer_down(app, x, y, mods.shift) => return,
@@ -2449,11 +2478,36 @@ fn selection_mode(app: &PhotocraftApp, m: egui::Modifiers) -> &'static str {
     crate::tool_feedback::selection_mode(Tool::Lasso, app.ui.selection_mode, m)
 }
 
-/// Close the polygonal lasso and make the selection.
-pub fn commit_polygon(app: &mut PhotocraftApp, mods: egui::Modifiers) {
+/// A polygonal lasso click adds a vertex; clicking near the first vertex closes the polygon. The
+/// first click fixes the selection mode; a new-selection polygon hides the old outline while it is
+/// drawn, and replaces it in one history step when it closes.
+fn polygon_click(app: &mut PhotocraftApp, x: f64, y: f64, mods: egui::Modifiers) {
+    let close = app
+        .ui
+        .polygon
+        .first()
+        .is_some_and(|p0| app.ui.polygon.len() >= 3 && ((p0[0] - x).powi(2) + (p0[1] - y).powi(2)).sqrt() < 8.0 / app.current_zoom().max(0.01) as f64);
+    if close {
+        commit_polygon(app);
+        return;
+    }
+    if app.ui.polygon.is_empty() {
+        app.ui.polygon_mode = selection_mode(app, mods).into();
+    }
+    app.ui.polygon.push([x, y]);
+}
+
+/// A new-selection polygonal lasso is being drawn, so the selection it will replace is hidden.
+pub fn polygon_replaces_selection(app: &PhotocraftApp) -> bool {
+    !app.ui.polygon.is_empty() && app.ui.polygon_mode == "replace"
+}
+
+/// Close the polygonal lasso and make the selection in the mode it started in.
+pub fn commit_polygon(app: &mut PhotocraftApp) {
     let pts = std::mem::take(&mut app.ui.polygon);
+    let mode = std::mem::take(&mut app.ui.polygon_mode);
     if pts.len() >= 3 {
-        let mode = selection_mode(app, mods);
+        let mode = if mode.is_empty() { selection_mode(app, egui::Modifiers::NONE).to_owned() } else { mode };
         let _ = app.run("select.lasso", json!({"points": pts, "mode": mode, "antiAlias": app.ui.tool_options.anti_alias}));
     }
 }
@@ -2522,6 +2576,11 @@ mod tests {
     }
 
     #[test]
+    fn wayland_start_screen_hint_does_not_claim_file_drop_works() {
+        assert_ne!(start_screen_drop_hint(true), start_screen_drop_hint(false));
+    }
+
+    #[test]
     fn pointer_moves_are_bounded_by_the_press_and_release() {
         use egui::{Event, PointerButton, pos2};
         let button = |pos, pressed| Event::PointerButton { pos, button: PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE };
@@ -2542,9 +2601,18 @@ mod tests {
 
     #[test]
     fn freehand_tools_are_the_ones_that_follow_a_path() {
-        for t in
-            [Tool::Brush, Tool::Pencil, Tool::Eraser, Tool::BackgroundEraser, Tool::CloneStamp, Tool::Smudge, Tool::Dodge, Tool::Lasso, Tool::QuickSelection]
-        {
+        for t in [
+            Tool::Brush,
+            Tool::Pencil,
+            Tool::MixerBrush,
+            Tool::Eraser,
+            Tool::BackgroundEraser,
+            Tool::CloneStamp,
+            Tool::Smudge,
+            Tool::Dodge,
+            Tool::Lasso,
+            Tool::QuickSelection,
+        ] {
             assert!(freehand_tool(t), "{t:?} paints or retouches along a path");
         }
         for t in [Tool::Move, Tool::Eyedropper, Tool::Gradient, Tool::Crop, Tool::RectMarquee, Tool::Type, Tool::Hand] {

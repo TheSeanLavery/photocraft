@@ -175,8 +175,13 @@
 	Lab Color	Lab 颜色
 	Multichannel	多通道
 	8 Bits/Channel	8 位/通道
+	8 bit	8 位
+	Integer	整数
 	16 Bits/Channel	16 位/通道
+	16 bit	16 位
 	32 Bits/Channel	32 位/通道
+	32 bit (float)	32 位（浮点）
+	Floating point	浮点数
 	Color Table…	颜色表…
 	Bitmap…	位图…
 	Duotone…	双色调…
@@ -260,6 +265,7 @@
 	Layer Style	图层样式
 	Blending Options…	混合选项…
 	Bevel & Emboss…	斜面和浮雕…
+	Use Global Light	使用全局光
 	Inner Shadow…	内阴影…
 	Inner Glow…	内发光…
 	Satin…	光泽…
@@ -959,9 +965,12 @@
 	Drag to move the active shape's path or the Work Path	拖动以移动当前形状的路径或工作路径
 	Draw with the Pen tool (P) or make a work path from a selection.	使用钢笔工具（P）绘制，或从选区创建工作路径。
 	Drop an image or PSD anywhere to open it.	将图像或 PSD 拖放到任意位置即可打开。
+	Native file drag-and-drop is unavailable	Wayland 上不支持原生文件拖放
+	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run PhotoCraft under XWayland with `WAYLAND_DISPLAY= photocraft`.	Wayland 尚不支持原生文件拖放。请使用“文件 › 打开”，或通过 `WAYLAND_DISPLAY= photocraft` 在 XWayland 下运行 PhotoCraft。
 	Duplicate Layers…	复制图层…
 	Duplicate style	复制样式
 	Edit Toolbar…	编辑工具栏…
+	Use File › Open to open an image.	使用“文件 › 打开”打开图像。
 	Edit in Quick Mask Mode  (Q)	在快速蒙版模式下编辑  （Q）
 	Edit in Standard Mode  (Q)	在标准模式下编辑  （Q）
 	Effects	效果
@@ -1134,6 +1143,9 @@
 	Midtones	中间调
 	Midtones from:	中间调下限：
 	Midtones to:	中间调上限：
+	Mix	混合
+	Mixer Brush	混合笔刷
+	Mixer Brush Tool	混合画笔工具
 	Minimum Depth	最小深度
 	Minimum Diameter	最小直径
 	Minimum Roundness	最小圆度
@@ -1664,6 +1676,7 @@
 	Web Minimum	Web 最小尺寸
 	Web Most Common	Web 常用尺寸
 	WebP (lossless)	WebP（无损）
+	Wet	湿度
 	Wet Edges	湿边
 	Yellows	黄色
 	Zoom Tool	缩放工具
@@ -1674,6 +1687,8 @@
 	Doc: {flat}/{layered}	文档：{flat}/{layered}
 	Scratch: {size}	暂存：{size}
 	Untagged {mode}	未标记的 {mode}
+	Invalid {mode} profile	无效的 {mode} 配置文件
+	Unnamed {mode} profile	未命名的 {mode} 配置文件
 	{w} px x {h} px ({ppi} ppi)	{w} px x {h} px ({ppi} ppi)
 	Resolution: {dpi} pixels/inch	分辨率：{dpi} 像素/英寸
 	Doc: {w} × {h} px	文档：{w} × {h} px
@@ -1821,6 +1836,7 @@
 	Show only crosshair while painting	绘画时仅显示十字线
 	Show slice numbers	显示切片编号
 	Show tooltips	显示工具提示
+	Show bounding box when dragging layer	拖动图层时显示边界框
 	Show transformation values	显示变换值
 	Slice color	切片颜色
 	Smart guide color	智能参考线颜色
@@ -1897,3 +1913,4 @@
 	Brush picker	画笔选择器
 	Erase	擦除
 	Right click with painting tools	使用绘画工具时右键单击
+	Freeze Lasso: drag to freeze an area, Alt-drag to thaw it (L)	冻结套索：拖动以冻结区域，按住 Alt 拖动以解冻 (L)
