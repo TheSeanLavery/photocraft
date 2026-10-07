@@ -497,6 +497,13 @@ mod tests {
     }
 
     #[test]
+    fn malformed_unicode_hex_never_panics() {
+        for value in ["0é000", "#0é000", "000é0", "0000é", "💡00", "#12345", "#gggggg"] {
+            assert_eq!(parse_hex(value), None, "{value:?}");
+        }
+    }
+
+    #[test]
     fn hsv_round_trips() {
         for c in [[1.0, 0.0, 0.0], [0.2, 0.6, 0.4], [0.5, 0.5, 0.5], [0.0, 0.0, 1.0], [0.9, 0.8, 0.1]] {
             let h = rgb_to_hsv(c);
