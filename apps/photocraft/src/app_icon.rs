@@ -14,8 +14,9 @@
 //! ID would need a Win32 call (`unsafe`, which the workspace forbids) and would then also have to
 //! be stamped on the shortcut, or the taskbar would stop matching the two.
 
-/// Window, taskbar and unbundled Dock icon. macOS gets the padded 1024 px render on Apple's icon
-/// grid for direct Cargo runs; bundled apps use the layered Icon Composer asset instead.
+/// Window, taskbar and Dock icon. macOS gets the padded 1024 px render on Apple's icon grid.
+/// The window framework installs this at runtime even for bundled apps; omitting it causes its
+/// default icon to replace the bundle's layered icon in the Dock after launch.
 pub fn window_icon() -> egui::IconData {
     match eframe::icon_data::from_png_bytes(PNG) {
         Ok(icon) => icon,

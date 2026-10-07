@@ -37,7 +37,9 @@ render() {
   fi
 }
 
-render "$MAC" 1024 "$DIR/photocraft-1024.png"
+# The runtime Dock icon needs the full-size mark. The old padded render looked much smaller than
+# the Icon Composer asset in Finder when the window framework replaced the Dock icon on launch.
+render "$SVG" 1024 "$DIR/photocraft-1024.png"
 
 # Linux hicolor theme.
 for s in 16 24 32 48 64 128 256 512; do

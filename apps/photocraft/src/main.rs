@@ -455,6 +455,7 @@ mod tests {
         let o = super::native_options();
         assert!(o.centered, "#419: centred, not cascaded from the top-left corner");
         assert_eq!(o.viewport.inner_size, Some(egui::vec2(1440.0, 900.0)));
+        assert!(o.viewport.icon.is_some(), "the running app must keep the PhotoCraft Dock icon");
         // eframe shrinks the start size to the monitor, so the centred position is on-screen.
         assert_ne!(o.viewport.clamp_size_to_monitor_size, Some(false));
     }
