@@ -570,3 +570,26 @@ fn options_bar_reaches_brush_settings_and_the_preset_library() {
     h.run_steps(3);
     assert!(h.state().ui.panels.brush_settings && h.state().ui.brush_tab == 0);
 }
+
+#[test]
+fn pencil_options_expose_flow_and_pressure_overrides() {
+    use egui_kittest::kittest::Queryable;
+    let mut h = options_bar_harness(crate::state::Tool::Pencil);
+    assert!(h.query_by_label("Flow").is_some());
+    assert!(h.query_by_label("Auto Erase").is_some());
+    let opacity_before = h.state().session.tools.brush.pressure_opacity;
+    h.get_by_label("Always use pressure for opacity").click();
+    h.run_steps(2);
+    assert_ne!(h.state().session.tools.brush.pressure_opacity, opacity_before);
+    let size_before = h.state().session.tools.brush.pressure_size;
+    h.get_by_label("Always use pressure for size").click();
+    h.run_steps(2);
+    assert_ne!(h.state().session.tools.brush.pressure_size, size_before);
+    h.get_by_label("Set additional smoothing options").click();
+    h.run_steps(2);
+    assert!(h.query_by_label("Pulled String Mode").is_some());
+    let pulled_before = h.state().session.tools.brush.smoothing.pulled_string;
+    h.get_by_label("Pulled String Mode").click();
+    h.run_steps(2);
+    assert_ne!(h.state().session.tools.brush.smoothing.pulled_string, pulled_before);
+}

@@ -72,6 +72,15 @@ fn pencil_strokes_are_aliased_live_and_one_undo_step() {
 }
 
 #[test]
+fn pencil_uses_selected_flow_for_paint_coverage() {
+    let mut app = app();
+    app.run("tools.setBrush", json!({"brush": {"flow": 0.2}})).unwrap();
+    drag(&mut app, &[(20.0, 20.0)], Modifiers::NONE);
+    let alpha = rgba(&app, 20, 20)[3];
+    assert!(alpha > 0.0 && alpha < 1.0, "Pencil flow should affect painted coverage: {alpha}");
+}
+
+#[test]
 fn auto_erase_paints_the_background_colour_from_foreground_pixels() {
     let mut app = app();
     drag(&mut app, &[(10.0, 40.0), (110.0, 40.0)], Modifiers::NONE);

@@ -524,14 +524,14 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                         let _ = icons::button(ui, "sparkles", 24.0, false, tl!("Enable airbrush-style build-up effects"));
                         opt_label(ui, tl!("Smoothing"));
                         smoothing_field(ui, b, 58.0);
-                        let _ = icons::button(ui, "settings", 24.0, false, tl!("Set additional smoothing options"));
+                        smoothing_options_button(ui, b);
                         widgets::vline(ui, 22.0);
                         if icons::button(ui, "circle-dot", 24.0, b.pressure_size, tl!("Always use pressure for size")).clicked() {
                             b.pressure_size = !b.pressure_size;
                         }
                         let _ = icons::button(ui, "arrow-left-right", 24.0, false, tl!("Set painting symmetry options"));
                     }
-                    // Pencil: Photoshop's options (no hardness or flow: the pencil is always hard).
+                    // Pencil uses a hard, aliased tip, while retaining the shared paint controls.
                     Tool::Pencil => {
                         picked = brush_preset_chip(ui, b, &app.session.tools.presets);
                         crate::brush_picker::settings_toggle(app, ui);
@@ -547,10 +547,22 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                         if widgets::dropdown(ui, "pencil-mode", &mut mode, &opts, 96.0) {
                             b.mode = mode;
                         }
-                        percent_field(ui, tl!("Opacity"), &mut b.opacity, 0.0..=100.0, if t.pro { 62.0 } else { 66.0 });
+percent_field(ui, tl!("Opacity"), &mut b.opacity, 0.0..=100.0, if t.pro { 62.0 } else { 66.0 });
+                        let pressure_opacity = icons::button(ui, "circle-dot", 24.0, b.pressure_opacity, tl!("Always use pressure for opacity"));
+                        pressure_opacity.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Always use pressure for opacity")));
+                        if pressure_opacity.clicked() {
+                            b.pressure_opacity = !b.pressure_opacity;
+                        }
+                        percent_field(ui, tl!("Flow"), &mut b.flow, 1.0..=100.0, 62.0);
                         opt_label(ui, tl!("Smoothing"));
                         smoothing_field(ui, b, if t.pro { 58.0 } else { 66.0 });
+                        smoothing_options_button(ui, b);
                         widgets::vline(ui, 22.0);
+                        let pressure_size = icons::button(ui, "circle-dot", 24.0, b.pressure_size, tl!("Always use pressure for size"));
+                        pressure_size.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Always use pressure for size")));
+                        if pressure_size.clicked() {
+                            b.pressure_size = !b.pressure_size;
+                        }
                         widgets::checkbox(ui, &mut app.ui.tool_options.pencil_auto_erase, tl!("Auto Erase"));
                     }
                     Tool::Brush | Tool::Eraser => {
@@ -2412,6 +2424,17 @@ fn smoothing_field(ui: &mut egui::Ui, b: &mut photocraft_engine::BrushSettings, 
     if widgets::value_field(ui, &mut sm, 0.0..=100.0, "%", width).changed() {
         b.smoothing.amount = (sm / 100.0).clamp(0.0, 1.0);
     }
+}
+
+fn smoothing_options_button(ui: &mut egui::Ui, b: &mut photocraft_engine::BrushSettings) {
+    let button = icons::button(ui, "settings", 24.0, false, tl!("Set additional smoothing options"));
+    button.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Set additional smoothing options")));
+    egui::Popup::menu(&button).show(|ui| {
+        widgets::checkbox(ui, &mut b.smoothing.pulled_string, tl!("Pulled String Mode"));
+        widgets::checkbox(ui, &mut b.smoothing.catch_up, tl!("Stroke Catch-up"));
+        widgets::checkbox(ui, &mut b.smoothing.catch_up_on_end, tl!("Catch-up on Stroke End"));
+        widgets::checkbox(ui, &mut b.smoothing.adjust_for_zoom, tl!("Adjust for Zoom"));
+    });
 }
 
 /// Options-bar brush chip; opens Photoshop's Brush Preset picker (size, hardness, the preset
