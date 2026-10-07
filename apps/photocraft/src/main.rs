@@ -63,7 +63,7 @@ fn native_options() -> eframe::NativeOptions {
         .with_fullsize_content_view(true)
         .with_titlebar_shown(false)
         .with_title_shown(false);
-    let viewport = if app_icon::use_bundle_icon() { viewport } else { viewport.with_icon(app_icon::window_icon()) };
+    let viewport = viewport.with_icon(app_icon::native_icon());
     eframe::NativeOptions {
         viewport,
         centered: true,
