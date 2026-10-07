@@ -273,3 +273,9 @@ live headroom over SDR white, enabled view state and whether HDR highlights can 
 be shown. It is null when there is no GPU canvas. `surface=true` does not imply physical
 headroom greater than 1×. With `PHOTOCRAFT_HDR_CAPTURE_DIR` set locally, `ui.screenshot`
 also writes a linear-sRGB float EXR asynchronously; consult `docs/development.md`.
+
+HDR workbench: `engine.execute` command `view.hdrWorkbench` queries/updates display
+controls; `view.hdrDiagnostics` returns a sampled stop histogram. `app.exportSdr` with
+`{"path":"preview.png"}` writes the matched sRGB PNG through the authorized write
+root. `ui.menu.invoke` id `window.hdrWorkbench` toggles the panel. See
+[HDR Workbench](hdr-workbench.md) for float colors, swatches and export restrictions.

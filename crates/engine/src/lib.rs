@@ -37,6 +37,7 @@ pub mod fx_view_cmds;
 pub mod gallery_cmds;
 pub mod gradient_fill_cmds;
 pub mod group_view_cmds;
+pub mod hdr_cmds;
 mod history_cache;
 pub mod image_cmds;
 pub mod inspect;
@@ -329,6 +330,7 @@ impl Session {
         smart_cmds::on_close(self, index);
         if let Some(id) = self.docs.get(index).map(|d| d.doc.id) {
             self.cancel_jobs_on(id);
+            self.color.workbench.remove(&id);
         }
         let d = self.docs.remove(index);
         self.active = if self.docs.is_empty() { None } else { Some(index.min(self.docs.len() - 1)) };

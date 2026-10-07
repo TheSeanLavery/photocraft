@@ -725,6 +725,8 @@ pub struct ToolbarCustomization {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Preferences {
+    /// HDR user swatches in straight linear sRGB, preserving intensity across document profiles.
+    pub hdr_swatches: Vec<[f32; 4]>,
     pub general: General,
     pub interface: Interface,
     pub workspace: Workspace,
@@ -1061,7 +1063,9 @@ impl Preferences {
         check_value(path, &value)?;
         let mut root = self.to_json();
         set_path(&mut root, path, value)?;
-        *self = serde_json::from_value(root).map_err(|e| format!("invalid value for `{path}`: {e}"))?;
+        let candidate: Self = serde_json::from_value(root).map_err(|e| format!("invalid value for `{path}`: {e}"))?;
+        crate::hdr_cmds::validate_swatches(&candidate.hdr_swatches)?;
+        *self = candidate;
         Ok(())
     }
 
@@ -1260,6 +1264,7 @@ impl Session {
         let color = v.as_object_mut().and_then(|m| m.remove("colorSettings"));
         let presets = v.as_object_mut().and_then(|m| m.remove("presets"));
         let prefs: Preferences = serde_json::from_value(v).map_err(|e| format!("preferences: {e}"))?;
+        crate::hdr_cmds::validate_swatches(&prefs.hdr_swatches)?;
         if let Some(c) = color {
             self.color.settings = serde_json::from_value(c).unwrap_or_default();
             photocraft_compose::psblend::set_text_gamma(self.color.settings.blend_text_gamma);

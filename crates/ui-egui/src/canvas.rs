@@ -534,7 +534,28 @@ pub fn ensure_texture(app: &mut PhotocraftApp, ctx: &egui::Context, idx: usize) 
     {
         (doc, preview_key) = (st.doc.clone(), 0);
     }
-    let (display, display_key) = canvas_display(app, &doc);
+    let (display, mut display_key) = canvas_display(app, &doc);
+    let workbench = if doc.depth == photocraft_color::SampleType::F32 && !app.session.color.proof(doc.id).enabled {
+        Some(photocraft_engine::hdr_cmds::settings(&app.session, &doc))
+    } else {
+        None
+    };
+    if let Some(w) = workbench {
+        display_key ^= egui::Id::new(format!("{w:?}")).value();
+    }
+    let legacy = app.session.color.hdr_preview(&doc);
+    if let Some(h) = legacy {
+        display_key ^= egui::Id::new(format!("{h:?}")).value();
+    }
+    let shown = |buf: &photocraft_compose::Buffer| {
+        if let Some(w) = workbench
+            && let Ok(mut b) = photocraft_engine::hdr_cmds::preview_buffer(&doc, buf, w, legacy)
+        {
+            let _ = photocraft_engine::hdr_cmds::to_monitor(&mut b, display.as_deref());
+            return buffer_to_image(&b);
+        }
+        display_image(display.as_deref(), buf)
+    };
     let seen = app.canvases.get(&id).map(|c| (c.tex_revision, c.tex_preview_key));
     let damage = seen.and_then(|seen| damage_since(app, idx, seen, (revision, preview_key), display_key, last_damage));
     let preview_key = preview_key ^ display_key;
@@ -560,7 +581,7 @@ pub fn ensure_texture(app: &mut PhotocraftApp, ctx: &egui::Context, idx: usize) 
             let r = buf.rect;
             if !r.is_empty() {
                 let t1 = crate::gpu_canvas::now_ms();
-                t.set_partial([r.x0 as usize, r.y0 as usize], display_image(display.as_deref(), &buf), TextureOptions::LINEAR);
+                t.set_partial([r.x0 as usize, r.y0 as usize], shown(&buf), TextureOptions::LINEAR);
                 let px = (r.width() as u64 * r.height() as u64).saturating_mul(u64::from(factor).pow(2));
                 app.perf.record("rect", px, t1 - t0, crate::gpu_canvas::now_ms() - t1);
             }
@@ -568,7 +589,7 @@ pub fn ensure_texture(app: &mut PhotocraftApp, ctx: &egui::Context, idx: usize) 
             // Reduced in bands straight from the compositor: no full-size composite in memory.
             let full = photocraft_compose::render_reduced(&doc, w, h);
             let t1 = crate::gpu_canvas::now_ms();
-            let (img, scale) = (display_image(display.as_deref(), &full), 1.0 / factor as f32);
+            let (img, scale) = (shown(&full), 1.0 / factor as f32);
             match cache.texture.as_mut() {
                 Some(t) if t.size() == img.size => t.set(img, TextureOptions::LINEAR),
                 _ => cache.texture = Some(ctx.load_texture(format!("canvas-{}", id.0), img, TextureOptions::LINEAR)),
@@ -657,6 +678,12 @@ fn ensure_gpu(app: &mut PhotocraftApp, idx: usize, visible: DRect) -> bool {
     };
     let (doc, raw_key) = display_doc(app, idx);
     let (display, display_key) = canvas_display(app, &doc);
+    // Do not silently quantize HDR before tone mapping when the float canvas budget is exceeded.
+    if doc.depth == photocraft_color::SampleType::F32
+        && gpu.format_for(doc.depth, [doc.size.width, doc.size.height]) != eframe::wgpu::TextureFormat::Rgba16Float
+    {
+        return false;
+    }
     let seen = app.canvases.get(&id).map(|c| (c.revision, c.preview_key));
     let mut damage = seen.and_then(|seen| damage_since(app, idx, seen, (revision, raw_key), display_key, last_damage));
     // To an adjustment dialog's preview: only what the view shows now (the rest as it moves there).
@@ -845,6 +872,8 @@ pub(crate) fn retain_gpu_documents(app: &mut PhotocraftApp) {
         // retaining only document ids freed the previews every frame (blank canvas while previewing).
         let mut live: Vec<u64> = app.session.documents().iter().flat_map(|st| [st.doc.id.0, st.doc.id.0 ^ (1u64 << 61), st.doc.id.0 ^ (1u64 << 62)]).collect();
         live.extend(crate::adjust_preview::gpu_keys(app));
+        // A bounded set of picker/saved swatches keeps its float texture and ICC LUT cached.
+        live.extend(crate::hdr_ui::gpu_keys());
         gpu.retain(&live);
     }
     // Upload markers must not outlive the resources they describe: native reopen can reuse
@@ -1315,9 +1344,16 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     // Drop shadow, checkerboard, document image.
     let img_rect = xf.doc_rect(doc.bounds());
     // Live adjustment previews on big documents use a downsampled proxy (see proxy.rs).
+    // Workbench grading is defined in linear sRGB. A custom untagged monitor uses the CPU
+    // reference, then its ICC transform; do not grade nonlinear monitor numbers as scene RGB.
+    let workbench_gpu = doc.depth != photocraft_color::SampleType::F32
+        || app.session.color.proof(doc.id).enabled
+        || (app.gpu.as_ref().is_some_and(|g| g.format_for(doc.depth, [1, 1]) == eframe::wgpu::TextureFormat::Rgba16Float)
+            && app.session.color.canvas_display(&doc).is_ok_and(|d| d.monitor.to_bytes() == photocraft_engine::hdr_cmds::srgb_profile_bytes()));
     let mut on_gpu = false;
     // A flipped view draws through the CPU path (the GPU canvas shader has no mirroring).
     if app.gpu.is_some()
+        && workbench_gpu
         && !flip
         && let Some((k, key)) = ensure_adjust_proxy(app, idx, view.zoom * ctx.pixels_per_point())
             .or_else(|| ensure_filter_preview(app, idx))
@@ -1337,6 +1373,11 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             view_key: egui::Id::new(("pc-canvas-proxy", ctx.viewport_id(), idx)).value(),
             display: sync_display_lut(app, &doc, key),
             hdr: hdr_preview(app, &doc),
+            workbench: if doc.depth == photocraft_color::SampleType::F32 && !app.session.color.proof(doc.id).enabled {
+                Some(photocraft_engine::hdr_cmds::settings(&app.session, &doc))
+            } else {
+                None
+            },
             output_headroom: app.gpu.as_ref().map_or(0.0, |g| {
                 if !g.hdr_surface() {
                     0.0
@@ -1348,7 +1389,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             }),
         };
         crate::gpu_canvas::GpuCanvas::paint(&painter, rect, params);
-    } else if !flip && ensure_gpu(app, idx, visible_doc_rect(&xf)) {
+    } else if !flip && workbench_gpu && ensure_gpu(app, idx, visible_doc_rect(&xf)) {
         on_gpu = true;
         app.perf.gpu = true;
         // Shadow, checkerboard, document and pixel grid in one custom shader (gpu_canvas.rs).
@@ -1365,6 +1406,11 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             view_key: egui::Id::new(("pc-canvas", ctx.viewport_id(), idx)).value(),
             display: sync_display_lut(app, &doc, doc.id.0),
             hdr: hdr_preview(app, &doc),
+            workbench: if doc.depth == photocraft_color::SampleType::F32 && !app.session.color.proof(doc.id).enabled {
+                Some(photocraft_engine::hdr_cmds::settings(&app.session, &doc))
+            } else {
+                None
+            },
             output_headroom: app.gpu.as_ref().map_or(0.0, |g| {
                 if !g.hdr_surface() {
                     0.0
@@ -1393,6 +1439,16 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         if let Some((tex, _scale)) = ensure_texture(app, &ctx, idx) {
             let uv = if flip { Rect::from_min_max(pos2(1.0, 0.0), pos2(0.0, 1.0)) } else { Rect::from_min_max(Pos2::ZERO, pos2(1.0, 1.0)) };
             painter.image(tex, img_rect, uv, Color32::WHITE);
+        }
+    }
+    if doc.depth == photocraft_color::SampleType::F32 && !app.session.color.proof(doc.id).enabled {
+        let w = photocraft_engine::hdr_cmds::settings(&app.session, &doc);
+        if w.split && on_gpu {
+            let t = crate::theme::Tokens::get(&ctx);
+            let x = rect.center().x;
+            painter.line_segment([pos2(x, rect.top()), pos2(x, rect.bottom())], egui::Stroke::new(1.0, t.text));
+            painter.text(pos2(x - 8.0, rect.top() + 8.0), egui::Align2::RIGHT_TOP, "HDR", egui::FontId::proportional(12.0), t.text);
+            painter.text(pos2(x + 8.0, rect.top() + 8.0), egui::Align2::LEFT_TOP, "SDR", egui::FontId::proportional(12.0), t.text);
         }
     }
     // Channels panel: alpha / Quick Mask overlays and single-channel views (channel_view.rs).

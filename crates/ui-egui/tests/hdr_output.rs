@@ -6,7 +6,14 @@ use photocraft_geom::Rect;
 use photocraft_raster::Surface;
 use photocraft_ui_egui::gpu_canvas::{GpuCanvas, ViewParams};
 
-fn render(headroom: f32, preview: Option<[f32; 2]>, alpha: f32) -> Option<Vec<[f32; 4]>> {
+fn render_profile(
+    headroom: f32,
+    preview: Option<[f32; 2]>,
+    alpha: f32,
+    workbench: Option<photocraft_color::hdr::HdrWorkbench>,
+    chromatic: bool,
+    profile: photocraft_cms::Builtin,
+) -> Option<Vec<[f32; 4]>> {
     let mut rs = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         egui_kittest::wgpu::create_render_state(photocraft_ui_egui::gpu_canvas::wgpu_setup(), Default::default())
     }))
@@ -19,16 +26,24 @@ fn render(headroom: f32, preview: Option<[f32; 2]>, alpha: f32) -> Option<Vec<[f
     rs.renderer = std::sync::Arc::new(epaint_lock(egui_wgpu::Renderer::new(&rs.device, rs.target_format, Default::default())));
     let g = GpuCanvas::new(&rs);
     let mut doc = Document::new("HDR steps", Size::new(160, 32), ColorMode::Rgb, SampleType::F32);
-    doc.icc_profile = Some(photocraft_cms::Builtin::LinearSrgb.profile().to_bytes());
+    doc.icc_profile = Some(profile.profile().to_bytes());
     let mut surface = Surface::new(PixelFormat::new(ColorMode::Rgb, SampleType::F32, true));
     for (i, value) in [0.0, 0.18, 1.0, 2.0, 4.0].into_iter().enumerate() {
-        surface.fill_rect(Rect::new(i as i32 * 32, 0, i as i32 * 32 + 32, 32), &[value, value, value, alpha]);
+        let value = if i == 0 && workbench.is_some_and(|w| w.split) { 4.0 } else { value };
+        let rgb = if chromatic { [value, value * 0.5, value * 0.25] } else { [value; 3] };
+        surface.fill_rect(Rect::new(i as i32 * 32, 0, i as i32 * 32 + 32, 32), &[rgb[0], rgb[1], rgb[2], alpha]);
     }
     doc.layers.push(Layer::new("steps", LayerContent::Raster(surface)));
     let mut color = photocraft_engine::color_cmds::ColorState::default();
     color.surface_srgb = true;
     let display = color.canvas_display(&doc).unwrap();
     g.upload_composite(doc.id.0, &doc, Some(&display));
+    let display_mode = if let Some(lut) = color.gpu_canvas_lut(&doc, 33).unwrap() {
+        g.set_display_lut(doc.id.0, 33, Some(&lut));
+        1
+    } else {
+        0
+    };
     let ctx = egui::Context::default();
     let mut full =
         ctx.run_ui(egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(160.0, 32.0))), ..Default::default() }, |ui| {
@@ -44,9 +59,10 @@ fn render(headroom: f32, preview: Option<[f32; 2]>, alpha: f32) -> Option<Vec<[f
                     shadow: false,
                     pixel_grid: false,
                     view_key: 1,
-                    display: 0,
+                    display: display_mode,
                     hdr: preview,
                     output_headroom: headroom,
+                    workbench,
                 },
             );
         });
@@ -120,6 +136,70 @@ fn render(headroom: f32, preview: Option<[f32; 2]>, alpha: f32) -> Option<Vec<[f
     drop(bytes);
     buffer.unmap();
     Some(values)
+}
+
+fn render_colors(
+    headroom: f32,
+    preview: Option<[f32; 2]>,
+    alpha: f32,
+    workbench: Option<photocraft_color::hdr::HdrWorkbench>,
+    chromatic: bool,
+) -> Option<Vec<[f32; 4]>> {
+    render_profile(headroom, preview, alpha, workbench, chromatic, photocraft_cms::Builtin::LinearSrgb)
+}
+#[test]
+fn icc_profiles_match_the_sdr_export_reference() {
+    let settings = photocraft_color::hdr::HdrWorkbench::default();
+    for profile in [photocraft_cms::Builtin::DisplayP3, photocraft_cms::Builtin::AdobeRgbCompat] {
+        let Some(pixels) = render_profile(1.0, None, 1.0, Some(settings), true, profile) else {
+            return;
+        };
+        let mut doc = Document::new("ICC", Size::new(1, 1), ColorMode::Rgb, SampleType::F32);
+        doc.icc_profile = Some(profile.profile().to_bytes());
+        let b = photocraft_compose::Buffer::filled(doc.bounds(), [4.0, 2.0, 1.0, 1.0]);
+        let expected = photocraft_engine::hdr_cmds::sdr_buffer(&doc, &b, settings).unwrap().px[0];
+        let actual = pixels[16 * 160 + 144];
+        for channel in 0..3 {
+            assert!((actual[channel] - expected[channel]).abs() < 0.025, "{profile:?}: GPU {actual:?}, CPU {expected:?}");
+        }
+    }
+}
+fn render_workbench(headroom: f32, preview: Option<[f32; 2]>, alpha: f32, workbench: Option<photocraft_color::hdr::HdrWorkbench>) -> Option<Vec<[f32; 4]>> {
+    render_colors(headroom, preview, alpha, workbench, false)
+}
+fn render(headroom: f32, preview: Option<[f32; 2]>, alpha: f32) -> Option<Vec<[f32; 4]>> {
+    render_workbench(headroom, preview, alpha, None)
+}
+#[test]
+fn tone_mapping_matches_cpu_and_split_keeps_hdr() {
+    use photocraft_color::hdr::{HdrWorkbench, ToneMap};
+    for method in [ToneMap::Natural, ToneMap::Filmic, ToneMap::Clip] {
+        for (exposure, contrast, saturation) in [(0.0, 1.0, 1.0), (-1.0, 0.8, 0.0), (1.5, 1.4, 1.7)] {
+            let settings = HdrWorkbench { method, exposure, contrast, saturation, ..Default::default() };
+            let Some(pixels) = render_colors(1.0, None, 1.0, Some(settings), true) else {
+                eprintln!("skipping: no float GPU adapter");
+                return;
+            };
+            for (i, v) in [0.0, 0.18, 1.0, 2.0, 4.0].into_iter().enumerate() {
+                let p = pixels[16 * 160 + i * 32 + 16];
+                let cpu = settings.apply([v, v * 0.5, v * 0.25], 1.0);
+                for channel in 0..3 {
+                    let actual = photocraft_color::convert::srgb_to_linear(p[channel]);
+                    assert!((actual - cpu[channel]).abs() < 0.012, "{settings:?}: {v}: GPU {actual}, CPU {}", cpu[channel]);
+                }
+            }
+        }
+    }
+    let settings = HdrWorkbench { split: true, ..Default::default() };
+    let Some(pixels) = render_workbench(4.0, None, 1.0, Some(settings)) else {
+        return;
+    };
+    assert!((photocraft_color::convert::srgb_to_linear(pixels[16 * 160 + 16][0]) - 4.0).abs() < 0.025);
+    // White at the boundary's SDR side is compressed; HDR half preserves the midtone.
+    assert!((photocraft_color::convert::srgb_to_linear(pixels[16 * 160 + 48][0]) - 0.18).abs() < 0.005);
+    assert!(photocraft_color::convert::srgb_to_linear(pixels[16 * 160 + 144][0]) < 1.0);
+    let transparent = render_workbench(1.0, None, 0.0, Some(settings)).unwrap();
+    assert!(transparent.iter().all(|p| p.iter().all(|v| v.is_finite())));
 }
 
 // The lock type is inferred from the renderer field without depending directly on epaint.

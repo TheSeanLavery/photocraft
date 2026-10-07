@@ -1,0 +1,20 @@
+{
+  "hdr": {
+    "file": "native-hdr.exr",
+    "peakLinearRgb": 3.99206805229187,
+    "alphaMin": 1.0
+  },
+  "sdr": {
+    "file": "native-sdr.exr",
+    "peakLinearRgb": 1.0044488906860352,
+    "alphaMin": 1.0
+  },
+  "display": {
+    "active": true,
+    "colorSpace": "extended-sRGB",
+    "enabled": true,
+    "format": "Rgba16Float",
+    "headroom": 10.315301895141602,
+    "surface": true
+  }
+}

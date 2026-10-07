@@ -110,8 +110,11 @@ pub fn open(app: &mut PhotocraftApp, target: &str) -> u64 {
     let mut f = Map::new();
     f.insert("__colorPicker".into(), json!(target));
     f.insert("__label".into(), json!(if target == "background" { "Color Picker (Background Color)" } else { "Color Picker (Foreground Color)" }));
-    f.insert("color".into(), json!(hex(rgb)));
-    f.insert("__orig".into(), json!(hex(rgb)));
+    let float = app.session.active().is_some_and(|st| st.doc.depth == photocraft_color::SampleType::F32) || rgb.iter().any(|v| *v > 1.0);
+    f.insert("__float".into(), json!(float));
+    let color = if float { json!(rgb) } else { json!(hex(rgb)) };
+    f.insert("color".into(), color.clone());
+    f.insert("__orig".into(), color);
     f.insert("__hsv".into(), json!(hsv));
     f.insert("__mode".into(), json!("h"));
     f.insert("__webOnly".into(), json!(false));
@@ -127,8 +130,11 @@ pub fn open_for_command(app: &mut PhotocraftApp, label: &str, rgb: [f32; 3], com
     f.insert("__label".into(), json!(label));
     f.insert("__command".into(), json!(command));
     f.insert("__params".into(), params);
-    f.insert("color".into(), json!(hex(rgb)));
-    f.insert("__orig".into(), json!(hex(rgb)));
+    let float = app.session.active().is_some_and(|st| st.doc.depth == photocraft_color::SampleType::F32) || rgb.iter().any(|v| *v > 1.0);
+    f.insert("__float".into(), json!(float));
+    let color = if float { json!(rgb) } else { json!(hex(rgb)) };
+    f.insert("color".into(), color.clone());
+    f.insert("__orig".into(), color);
     f.insert("__hsv".into(), json!(hsv));
     f.insert("__mode".into(), json!("h"));
     f.insert("__webOnly".into(), json!(false));
@@ -141,7 +147,7 @@ pub fn owns(f: &Map<String, Value>) -> bool {
 
 /// Current colour as (rgb, hsv), keeping the stored hue/saturation when they still match `color`.
 pub fn current(f: &Map<String, Value>) -> ([f32; 3], [f32; 3]) {
-    let rgb = f.get("color").and_then(Value::as_str).and_then(parse_hex).unwrap_or([0.0; 3]);
+    let rgb = f.get("color").and_then(float_color).unwrap_or([0.0; 3]);
     let stored: Option<[f32; 3]> = f.get("__hsv").and_then(|v| serde_json::from_value(v.clone()).ok());
     let hsv = match stored {
         Some(h) if hex(hsv_to_rgb(h[0], h[1], h[2])) == hex(rgb) => h,
@@ -153,8 +159,91 @@ pub fn current(f: &Map<String, Value>) -> ([f32; 3], [f32; 3]) {
 fn set_rgb(f: &mut Map<String, Value>, rgb: [f32; 3], hsv: Option<[f32; 3]>) {
     let web = f.get("__webOnly").and_then(Value::as_bool).unwrap_or(false);
     let rgb = if web { rgb.map(|v| (v * 5.0).round() / 5.0) } else { rgb };
-    f.insert("color".into(), json!(hex(rgb)));
+    let float = f.get("__float").and_then(Value::as_bool).unwrap_or(false);
+    f.insert("color".into(), if float { json!(rgb) } else { json!(hex(rgb)) });
     f.insert("__hsv".into(), json!(hsv.filter(|_| !web).unwrap_or_else(|| rgb_to_hsv(rgb))));
+}
+
+fn float_color(v: &Value) -> Option<[f32; 3]> {
+    if let Some(s) = v.as_str() {
+        return parse_hex(s);
+    }
+    let a = v.as_array()?;
+    if !(3..=4).contains(&a.len()) {
+        return None;
+    }
+    let mut c = [0.0; 3];
+    for (dst, value) in c.iter_mut().zip(a) {
+        let x = value.as_f64()?;
+        if !x.is_finite() || !(0.0..=65504.0).contains(&x) {
+            return None;
+        }
+        *dst = x as f32;
+    }
+    Some(c)
+}
+fn float_body(app: &PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
+    let (mut c, _) = current(f);
+    let original = c;
+    let t = Tokens::get(ui.ctx());
+    ui.label("HDR Color Picker · 32-bit float RGB");
+    let profile = app.session.active().map(|st| photocraft_engine::color_cmds::composite_profile(&st.doc));
+    let name = profile.as_ref().map_or("No active document", |p| p.description.as_str());
+    ui.weak(format!("Document composite RGB · {name}"));
+    ui.weak("1.0 is reference white. Float values survive picking and painting.");
+    ui.horizontal(|ui| {
+        for (index, label) in ["R", "G", "B"].into_iter().enumerate() {
+            ui.label(label);
+            if let Some(value) = c.get_mut(index) {
+                ui.add(egui::DragValue::new(value).range(0.0..=65504.0).speed(0.01).max_decimals(5));
+            }
+        }
+    });
+    let peak = c[0].max(c[1]).max(c[2]);
+    let mut gain_ev = peak.max(1e-6).log2().clamp(-20.0, 15.999);
+    if ui.add(egui::Slider::new(&mut gain_ev, -20.0..=15.999).text("RGB gain (EV)")).changed() {
+        let ratio = 2.0f32.powf(gain_ev) / peak.max(1e-6);
+        c = if peak > 0.0 { c.map(|v| (v * ratio).min(65504.0)) } else { [2.0f32.powf(gain_ev); 3] };
+    }
+    ui.weak("+1 EV doubles RGB numbers; this equals light intensity in a linear working profile.");
+    // The hue field selects a unit color while retaining the current HDR scale.
+    let hsv = rgb_to_hsv(c.map(|v| v / peak.max(1e-6)));
+    let (rect, response) = ui.allocate_exact_size(vec2(360.0, 140.0), Sense::click_and_drag());
+    ui.painter().add(grid_mesh(rect, 32, |x, y| hsv_to_rgb(x * 360.0, 1.0 - y, 1.0)));
+    if let Some(p) = response.interact_pointer_pos().filter(|_| response.clicked() || response.dragged()) {
+        let h = ((p.x - rect.left()) / rect.width()).clamp(0.0, 1.0) * 360.0;
+        let sat = 1.0 - ((p.y - rect.top()) / rect.height()).clamp(0.0, 1.0);
+        c = hsv_to_rgb(h, sat, peak.max(1.0));
+    }
+    let point = pos2(rect.left() + hsv[0] / 360.0 * rect.width(), rect.bottom() - hsv[1] * rect.height());
+    ui.painter().circle_stroke(point, 5.0, Stroke::new(1.5, t.text));
+    ui.horizontal(|ui| {
+        ui.vertical(|ui| {
+            ui.label("New");
+            let (rect, _) = ui.allocate_exact_size(vec2(160.0, 60.0), Sense::hover());
+            crate::hdr_ui::swatch(app, ui, rect, [c[0], c[1], c[2], 1.0], egui::Id::new("hdr-picker-new").value());
+        });
+        ui.vertical(|ui| {
+            ui.label("Current");
+            let (rect, response) = ui.allocate_exact_size(vec2(160.0, 60.0), Sense::click());
+            let old = f.get("__orig").and_then(float_color).unwrap_or(original);
+            crate::hdr_ui::swatch(app, ui, rect, [old[0], old[1], old[2], 1.0], egui::Id::new("hdr-picker-old").value());
+            if response.clicked() {
+                c = old;
+            }
+        });
+    });
+    ui.weak("Hue is SDR. Swatches use float GPU output when available; CPU previews clip at white.");
+    ui.horizontal(|ui| {
+        for (label, v) in [("White", 1.0), ("+1 EV", 2.0), ("+2 EV", 4.0)] {
+            if ui.button(label).clicked() {
+                c = [v; 3];
+            }
+        }
+    });
+    if c != original {
+        set_rgb(f, c, None);
+    }
 }
 
 fn grid_mesh(rect: Rect, n: usize, color: impl Fn(f32, f32) -> [f32; 3]) -> Mesh {
@@ -176,7 +265,11 @@ fn grid_mesh(rect: Rect, n: usize, color: impl Fn(f32, f32) -> [f32; 3]) -> Mesh
     m
 }
 
-pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
+pub fn body(app: &PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
+    if f.get("__float").and_then(Value::as_bool).unwrap_or(false) {
+        float_body(app, ui, f);
+        return;
+    }
     let t = Tokens::get(ui.ctx());
     let mode = f.get("__mode").and_then(Value::as_str).unwrap_or("h").to_string();
     let (rgb, hsv) = current(f);
@@ -330,7 +423,7 @@ fn fields(ui: &mut egui::Ui, f: &mut Map<String, Value>, mode: &str, rgb: [f32; 
 /// OK: set the foreground or background colour.
 pub fn confirm(app: &mut PhotocraftApp, f: &Map<String, Value>) -> Result<Value, String> {
     let target = f.get("__colorPicker").and_then(Value::as_str).unwrap_or("foreground");
-    let color = f.get("color").and_then(Value::as_str).unwrap_or("#000000");
+    let color = f.get("color").cloned().unwrap_or_else(|| json!("#000000"));
     if let Some(cmd) = f.get("__command").and_then(Value::as_str) {
         let mut p = f.get("__params").cloned().filter(Value::is_object).unwrap_or_else(|| json!({}));
         p["color"] = json!(color);
@@ -342,6 +435,18 @@ pub fn confirm(app: &mut PhotocraftApp, f: &Map<String, Value>) -> Result<Value,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn float_picker_confirms_without_quantization() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        app.session.execute("file.new", json!({"width":8,"height":8,"depth":32})).unwrap();
+        app.run("tools.setColors", json!({"foreground":[4.0,2.125,0.3,1.0]})).unwrap();
+        let id = open(&mut app, "foreground");
+        let fields = app.ui.dialog_mut(id).unwrap().fields.clone();
+        assert_eq!(current(&fields).0, [4.0, 2.125, 0.3]);
+        confirm(&mut app, &fields).unwrap();
+        assert_eq!(app.session.tools.foreground, [4.0, 2.125, 0.3, 1.0]);
+    }
 
     #[test]
     fn malformed_unicode_hex_never_panics() {

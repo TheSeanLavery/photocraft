@@ -443,3 +443,6 @@ an SDR-clipped preview. HDR EXRs preserve values above 1; screenshot PNGs do not
 physical display brightness. The EXR sink is configured locally and is not a remotely
 selectable filesystem path. The dependency patch is documented in
 [`patches/egui-wgpu-hdr.md`](../patches/egui-wgpu-hdr.md).
+
+HDR display controls, float picking, diagnostics, matching SDR export and reproducible
+float screenshots are described in [HDR Workbench](hdr-workbench.md).

@@ -23,6 +23,7 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("edit.transform.distort", "Distort", &["Edit", "Transform"], None),
     ("edit.transform.perspective", "Perspective", &["Edit", "Transform"], None),
     ("select.selectAndMask", "Select and Mask…", &["Select"], Some("Cmd+Alt+R")),
+    ("window.hdrWorkbench", "HDR Workbench", &["Window"], None),
     ("view.hdrOutput", "HDR Output", &["View"], None),
     ("view.rulers", "Rulers", &["View"], Some("Cmd+R")),
     ("view.show.grid", "Grid", &["View", "Show"], Some("Cmd+'")),
@@ -199,6 +200,11 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
         return Ok(json!({"workspace": app.ui.workspace}));
     }
     match id {
+        "window.hdrWorkbench" => {
+            app.ui.hdr_workbench_open = !app.ui.hdr_workbench_open;
+            Ok(Value::Null)
+        }
+        "file.export.sdrPreview" if params.get("path").is_none() => crate::hdr_ui::export(app),
         "view.hdrOutput" => {
             app.ui.sdr_output = !app.ui.sdr_output;
             Ok(Value::Null)
@@ -475,7 +481,7 @@ pub fn is_enabled(app: &PhotocraftApp, id: &str) -> bool {
         i if proof_preset(i).is_some() => app.session.active().is_some(),
         // "Custom…" is the full Proof Setup dialog.
         "view.proofSetup.custom" => app.session.active().is_some(),
-        "view.hdrOutput" | "view.rulers" | "view.show.grid" | "view.show.guides" | "view.snap" | "view.lockGuides" => true,
+        "window.hdrWorkbench" | "view.hdrOutput" | "view.rulers" | "view.show.grid" | "view.show.guides" | "view.snap" | "view.lockGuides" => true,
         // An image copied in another app can only be seen by reading the OS clipboard, which happens
         // on an explicit paste: with a clipboard service, Paste stays enabled whenever a document is open.
         "edit.paste" | "edit.pasteSpecial.pasteInPlace" => {
