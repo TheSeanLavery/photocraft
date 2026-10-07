@@ -41,6 +41,7 @@ pub mod fx_view_cmds;
 pub mod gallery_cmds;
 pub mod gradient_fill_cmds;
 pub mod group_view_cmds;
+mod history_cache;
 pub mod image_cmds;
 pub mod inspect;
 pub mod jobs;
@@ -310,6 +311,7 @@ pub struct Session {
     pub authorize: Option<fn(&str, &serde_json::Value) -> Result<()>>,
     /// Background jobs (see [`jobs`]).
     jobs: jobs::Jobs,
+    history_cache: history_cache::Cache,
 }
 
 /// Move item `i` of `v` to position `to`, clamped to the end. Returns where it went; `None` when
@@ -369,10 +371,13 @@ impl Session {
         }
         let mut st = DocState::new(doc, path);
         st.history.max_states = self.prefs.get().performance.history_states.max(1) as usize;
-        st.history.max_bytes = self.prefs.get().performance.history_budget_bytes();
+        // Session-wide accounting replaces per-document trimming.
+        st.history.max_bytes = 0;
         self.docs.push(st);
         let i = self.docs.len() - 1;
         self.active = Some(i);
+        self.history_cache.dirty = true;
+        self.poll_history_cache();
         i
     }
 
@@ -386,6 +391,8 @@ impl Session {
         }
         let d = self.docs.remove(index);
         self.active = if self.docs.is_empty() { None } else { Some(index.min(self.docs.len() - 1)) };
+        self.history_cache.dirty = true;
+        self.poll_history_cache();
         Some(d)
     }
 
@@ -453,13 +460,14 @@ impl Session {
         let layers = st.layer_target();
         if key.is_none() || st.coalesce != key || !st.history.can_undo() {
             st.history.record(label, before, layers);
-            st.history.trim(&st.doc);
         } else {
             st.history.set_current_layers(layers);
         }
         st.coalesce = key;
         st.revision += 1;
         st.last_damage = None;
+        self.history_cache.dirty = true;
+        self.poll_history_cache();
         Ok(r)
     }
 
@@ -482,41 +490,51 @@ impl Session {
         Ok(())
     }
 
+    pub fn try_undo(&mut self) -> Result<bool> {
+        self.move_history(false)
+    }
+
+    pub fn try_redo(&mut self) -> Result<bool> {
+        self.move_history(true)
+    }
+
+    /// Legacy convenience API; errors remain available as a cache notice.
     pub fn undo(&mut self) -> bool {
-        // A background job is computing from the current state: it must not move under it.
-        if self.active_job().is_some() {
-            return false;
-        }
-        let Some(st) = self.active_mut() else { return false };
-        st.coalesce = None;
-        match st.history.undo(st.doc.clone()) {
-            Some((d, layers)) => {
-                st.doc = d;
-                restore_target(st, layers);
-                st.revision += 1;
-                st.last_damage = None;
-                true
+        match self.try_undo() {
+            Ok(changed) => changed,
+            Err(error) => {
+                self.history_cache.notice = Some(error.to_string());
+                false
             }
-            None => false,
         }
     }
 
     pub fn redo(&mut self) -> bool {
-        if self.active_job().is_some() {
-            return false;
-        }
-        let Some(st) = self.active_mut() else { return false };
-        st.coalesce = None;
-        match st.history.redo(st.doc.clone()) {
-            Some((d, layers)) => {
-                st.doc = d;
-                restore_target(st, layers);
-                st.revision += 1;
-                st.last_damage = None;
-                true
+        match self.try_redo() {
+            Ok(changed) => changed,
+            Err(error) => {
+                self.history_cache.notice = Some(error.to_string());
+                false
             }
-            None => false,
         }
+    }
+
+    fn move_history(&mut self, redo: bool) -> Result<bool> {
+        if self.active_job().is_some() {
+            return Ok(false);
+        }
+        let Some(st) = self.active_mut() else { return Ok(false) };
+        let restored = if redo { st.history.try_redo(st.doc.clone()) } else { st.history.try_undo(st.doc.clone()) }.map_err(EngineError::Other)?;
+        let Some(doc) = restored else { return Ok(false) };
+        st.coalesce = None;
+        st.doc = doc;
+        let layers = st.history.current_layers().clone();
+        restore_target(st, layers);
+        st.revision += 1;
+        st.last_damage = None;
+        self.history_cache.dirty = true;
+        self.poll_history_cache();
+        Ok(true)
     }
 }
 
