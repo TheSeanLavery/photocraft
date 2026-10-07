@@ -8,10 +8,14 @@ The integration PR targets `storytold/photocraft:main`. Its source branch lives 
 `TheSeanLavery/photocraft`. Sean has no upstream branch-write permission, so future
 stacked PRs are opened in that fork, where GitHub can target the preceding branch.
 
+The current tip is [`codex/disk-backed-undo`](https://github.com/TheSeanLavery/photocraft/pull/1),
+stacked on the integration branch. Start the next change from
+`fork/codex/disk-backed-undo` and target that branch in its fork PR.
+
 For new work:
 
-1. Fetch the fork and branch from the latest stack tip, initially
-   `fork/codex/photocraft-integration`, using a new `codex/<topic>` branch.
+1. Fetch the fork and branch from the latest stack tip, currently
+   `fork/codex/disk-backed-undo`, using a new `codex/<topic>` branch.
 2. Open the PR in `TheSeanLavery/photocraft` with the preceding stack branch as
    its base. Include links to the predecessor and the upstream integration PR.
 3. Start the next change from that new branch and target it in the next PR.

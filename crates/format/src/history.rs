@@ -136,6 +136,16 @@ impl HistoryArchive {
     }
 
     pub fn store(&self, doc: &Document) -> Result<HistorySnapshot> {
+        self.store_with_limits(doc, &LoadOptions::default())
+    }
+
+    /// Apply tighter admission limits. A published snapshot always fits the
+    /// default decoder limits, so releasing its resident state remains safe.
+    pub fn store_with_limits(&self, doc: &Document, limits: &LoadOptions) -> Result<HistorySnapshot> {
+        let defaults = LoadOptions::default();
+        let manifest_limit = limits.max_manifest_bytes.min(defaults.max_manifest_bytes);
+        let blob_limit = limits.max_blob_bytes.min(defaults.max_blob_bytes);
+        let total_limit = limits.max_total_bytes.min(defaults.max_total_bytes);
         let mut a = self.inner.lock().unwrap_or_else(PoisonError::into_inner);
         a.reclaim();
         if a.budget == 0 {
@@ -144,6 +154,12 @@ impl HistoryArchive {
         // prepare retains only Weak tile identities: no compressed data or
         // strong pixel references remain in the writer after this call.
         let prepared = a.writer.prepare(doc, &SaveOptions::default())?;
+        if prepared.manifest.len() > manifest_limit
+            || prepared.decoded_bytes > total_limit
+            || prepared.objects.values().any(|object| matches!(object, store::Object::Blob(blob) if blob.len() > blob_limit))
+        {
+            return Err(FormatError::LimitExceeded("scratch snapshot exceeds restore limits".into()));
+        }
         {
             let mut tiles = a.tiles.lock().unwrap_or_else(PoisonError::into_inner);
             tiles.retain(|_, tile| tile.strong_count() > 0);
@@ -427,6 +443,25 @@ mod tests {
         assert!(Arc::ptr_eq(&blob, restored.metadata.exif.as_ref().unwrap()));
         let limits = LoadOptions { max_blob_bytes: 1, ..Default::default() };
         assert!(snapshot.load_with_limits(&limits).is_err());
+    }
+
+    #[test]
+    fn admission_limits_reject_before_publishing_any_files() {
+        let root = tempfile::tempdir().unwrap();
+        let archive = HistoryArchive::new(Some(root.path().to_owned()), 1 << 20);
+        let mut doc = document();
+        doc.icc_profile = Some(Arc::new(vec![31; 1024]));
+        for limits in [
+            LoadOptions { max_manifest_bytes: 1, ..Default::default() },
+            LoadOptions { max_blob_bytes: 1, ..Default::default() },
+            LoadOptions { max_total_bytes: 1, ..Default::default() },
+        ] {
+            assert!(archive.store_with_limits(&doc, &limits).is_err());
+            assert_eq!(archive.bytes_used(), 0);
+            assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+        }
+        let snapshot = archive.store(&doc).unwrap();
+        assert_eq!(snapshot.load().unwrap(), doc);
     }
 
     #[test]

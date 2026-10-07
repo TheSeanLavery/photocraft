@@ -138,6 +138,11 @@ impl History {
         self.undo.iter().any(|state| state.has_selection)
     }
 
+    /// Most recent selection-bearing state, found without reading scratch storage.
+    pub fn latest_selection_state(&self) -> Option<usize> {
+        self.undo.iter().enumerate().rev().find_map(|(index, state)| state.has_selection.then_some(index))
+    }
+
     pub fn resident_state(&self, i: usize) -> Option<Arc<Document>> {
         self.undo.get(i).and_then(|state| state.document.resident().cloned())
     }
@@ -596,6 +601,9 @@ mod tests {
         history.record("Select", doc.clone());
         assert!(history.replace_resident(&doc, Arc::new(Archive(Err("must not read".into())))));
         assert!(history.has_past_selection());
+        assert_eq!(history.latest_selection_state(), Some(0));
+        history.record("Clear selection", Arc::new(base()));
+        assert_eq!(history.latest_selection_state(), Some(0), "skip newer no-selection states without loading archives");
         assert!(history.resident_state(0).is_none());
         assert!(history.try_state(0).is_err());
     }
