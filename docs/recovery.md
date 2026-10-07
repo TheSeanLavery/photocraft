@@ -44,7 +44,8 @@ Windows it is `%APPDATA%\Photocraft\Recovery`; on Linux it is
 - Native OS file locks prevent two running apps from claiming the same checkpoint;
   the OS releases these locks on process termination. Fresh documents use unique
   session keys. Unsafe keys and symlinked recovery descriptors/objects are refused.
-- Recovered undo states load lazily and pin their object root. Later checkpoints,
+- Recovered undo states load lazily, share unchanged live tile/blob allocations
+  through the undo cache's native decoder cache, and pin their object root. Later checkpoints,
   history-cache eviction and tab retirement cannot delete objects they still need.
   Once the final lease is released, retired roots are cleaned on a worker.
 

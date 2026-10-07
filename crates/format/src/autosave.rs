@@ -3,12 +3,14 @@
 //! shared across checkpoints; a failed save never replaces that descriptor.
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, OnceLock, PoisonError, Weak, mpsc};
 use std::thread::JoinHandle;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use photocraft_doc::Document;
 use photocraft_ops::{ArchivedDocument, History, HistoryCheckpoint, HistoryState};
+use photocraft_raster::Tile;
 use serde::{Deserialize, Serialize};
 
 use crate::store::{self, Source, write_atomic};
@@ -397,11 +399,15 @@ fn save_checkpoint(writer: &mut PcraftWriter, verified: &mut HashMap<PathBuf, Fi
 #[derive(Debug)]
 struct RootLease {
     root: PathBuf,
+    retired: AtomicBool,
+    tiles: Mutex<HashMap<String, Weak<Tile>>>,
+    blobs: Mutex<HashMap<String, Weak<Vec<u8>>>>,
 }
 impl Drop for RootLease {
     fn drop(&mut self) {
         // Lazy history handles can drop on the UI thread: cleanup is queued.
-        if std::fs::symlink_metadata(self.root.with_extension("json")).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound)
+        if self.retired.load(Ordering::Acquire)
+            && std::fs::symlink_metadata(self.root.with_extension("json")).is_err_and(|e| e.kind() == std::io::ErrorKind::NotFound)
             && let Some(tx) = cleanup_sender()
         {
             let _ = tx.send(self.root.clone());
@@ -419,7 +425,7 @@ fn root_lease(root: &Path) -> Arc<RootLease> {
     if let Some(lease) = roots.get(root).and_then(Weak::upgrade) {
         return lease;
     }
-    let lease = Arc::new(RootLease { root: root.to_path_buf() });
+    let lease = Arc::new(RootLease { root: root.to_path_buf(), retired: AtomicBool::new(false), tiles: Mutex::default(), blobs: Mutex::default() });
     roots.insert(root.to_path_buf(), Arc::downgrade(&lease));
     lease
 }
@@ -471,11 +477,23 @@ impl Source for RecoverySource {
         read_bounded(&self.lease.root.join(relative), max as u64)
     }
 }
-impl ArchivedDocument for RecoverySource {
-    fn load(&self) -> std::result::Result<Arc<Document>, String> {
-        store::load(self, &LoadOptions::default()).map(Arc::new).map_err(|e| e.to_string())
+impl RecoverySource {
+    fn load_native(&self) -> Result<Document> {
+        // Reuse the undo archive's native decoder cache. Weak entries share
+        // unchanged live pixels/blobs without retaining a second RAM copy.
+        let mut tiles = self.lease.tiles.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut blobs = self.lease.blobs.lock().unwrap_or_else(PoisonError::into_inner);
+        tiles.retain(|_, value| value.strong_count() > 0);
+        blobs.retain(|_, value| value.strong_count() > 0);
+        store::load_cached(self, &LoadOptions::default(), Some(&mut tiles), Some(&mut blobs))
     }
 }
+impl ArchivedDocument for RecoverySource {
+    fn load(&self) -> std::result::Result<Arc<Document>, String> {
+        self.load_native().map(Arc::new).map_err(|e| e.to_string())
+    }
+}
+
 fn descriptor(entry: &RecoveryEntry) -> Result<Descriptor> {
     if !safe_key(&entry.info.key) || entry.bundle.file_name().and_then(|n| n.to_str()) != Some(format!("{}.pcraft", entry.info.key).as_str()) {
         return Err(FormatError::corrupt("unsafe recovery key"));
@@ -563,7 +581,7 @@ pub fn recover_checkpoint_with_context(entry: &RecoveryEntry) -> Result<(Documen
     if checkpoint.undo.len().saturating_add(checkpoint.redo.len()) > 10_000 {
         return Err(FormatError::LimitExceeded("too many recovery history states".into()));
     }
-    let current = store::load(&RecoverySource { lease: lease.clone(), manifest: checkpoint.current }, &LoadOptions::default())?;
+    let current = RecoverySource { lease: lease.clone(), manifest: checkpoint.current }.load_native()?;
     let restore = |states: Vec<StoredState>| -> Result<Vec<HistoryState>> {
         states
             .into_iter()
@@ -610,7 +628,9 @@ fn remove_entry(dir: &Path, key: &str) -> Result<()> {
         std::fs::remove_file(sidecar)?;
     }
     let active = registry.get(&root).and_then(Weak::upgrade);
-    if active.is_none() && root.exists() {
+    if let Some(active) = active {
+        active.retired.store(true, Ordering::Release);
+    } else if root.exists() {
         std::fs::remove_dir_all(root)?;
     }
     Ok(())

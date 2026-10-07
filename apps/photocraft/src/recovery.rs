@@ -121,6 +121,9 @@ impl RecoveryManager {
         if owner.retiring {
             return Err("Recovery cleanup is still finishing".into());
         }
+        if owner.saver.as_ref().is_some_and(Autosaver::is_finished) {
+            owner.saver = None;
+        }
         let saver = owner.saver.get_or_insert_with(|| Autosaver::new(&dir, &owner.key));
         saver.request_checkpoint_with_context(doc.clone(), history, revision, path.map(str::to_owned), Default::default(), context)
     }
@@ -165,6 +168,9 @@ impl RecoveryManager {
         let owner = self.owned.get_mut(&id).ok_or("Recovery ownership unavailable")?;
         if owner.retiring {
             return Ok(());
+        }
+        if owner.saver.as_ref().is_some_and(Autosaver::is_finished) {
+            owner.saver = None;
         }
         let saver = owner.saver.get_or_insert_with(|| Autosaver::new(dir, &owner.key));
         saver.begin_discard()?;
