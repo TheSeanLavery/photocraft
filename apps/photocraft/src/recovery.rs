@@ -255,6 +255,27 @@ mod tests {
         assert!(manager.recover().documents.is_empty());
     }
     #[test]
+    fn stopped_storage_worker_is_restarted_on_retry() {
+        let dir = Temp::new();
+        let mut doc = document();
+        let mut manager = RecoveryManager::new(Some(dir.0.clone()));
+        manager.queue(&doc, History::default().checkpoint(), 1, None, None, serde_json::Value::Null).unwrap();
+        assert!(completed(&mut manager, false).result.is_ok());
+        // Model a stopped worker without retiring the manager's document ownership.
+        let saver = manager.owned.get(&doc.id.0).unwrap().saver.as_ref().unwrap();
+        saver.begin_discard().unwrap();
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while !saver.is_finished() {
+            assert!(Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+        Arc::make_mut(&mut doc).name = "After worker retry".into();
+        manager.queue(&doc, History::default().checkpoint(), 2, None, None, serde_json::Value::Null).unwrap();
+        assert!(completed(&mut manager, false).result.is_ok());
+        assert_eq!(manager.recover().documents.pop().unwrap().document, *doc);
+    }
+
+    #[test]
     fn independent_managers_never_reuse_fresh_keys_and_invalid_inheritance_fails() {
         let mut first = RecoveryManager::new(None);
         let mut second = RecoveryManager::new(None);

@@ -63,7 +63,8 @@ at 64 KiB, and history at 10,000 retained states; native decoder limits also app
 A full bundle fails visibly and preserves the last checkpoint. It never silently
 shortens history to make a checkpoint fit. Roots with live recovered-history
 leases conservatively defer object garbage collection until those leases expire.
-Many open documents can use more than 8 GiB in total. A configurable shared
+Many open documents can use more than 8 GiB in total. Crashes can leave orphan
+object roots that are not automatically reclaimed. A configurable shared
 recovery quota and finer per-object pinning remain follow-ups.
 
 ## Validation

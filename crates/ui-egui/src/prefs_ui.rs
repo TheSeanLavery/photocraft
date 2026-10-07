@@ -342,7 +342,11 @@ fn autosave(app: &mut PhotocraftApp) {
                         app.prefs_rt.pending_autosaves.remove(&id);
                         app.prefs_rt.catch_up.remove(&id);
                         app.prefs_rt.retry_after.remove(&id);
-                        app.prefs_rt.autosave_errors.remove(&id);
+                        if let Some(error) = app.prefs_rt.autosave_errors.remove(&id)
+                            && app.ui.status == error
+                        {
+                            app.ui.status = "Recovery checkpoint removed".into();
+                        }
                     }
                     Err(e) => {
                         app.prefs_rt.retry_after.insert(id, now + 30_000.0);
@@ -359,7 +363,11 @@ fn autosave(app: &mut PhotocraftApp) {
                     Ok(()) => {
                         app.prefs_rt.autosaved.insert(id, stamp);
                         app.prefs_rt.retry_after.remove(&id);
-                        app.prefs_rt.autosave_errors.remove(&id);
+                        if let Some(error) = app.prefs_rt.autosave_errors.remove(&id)
+                            && app.ui.status == error
+                        {
+                            app.ui.status = "Recovery checkpoint saved".into();
+                        }
                     }
                     Err(e) => {
                         app.prefs_rt.retry_after.insert(id, now + 30_000.0);
@@ -1902,6 +1910,7 @@ mod tests {
         complete(&completed, id, revision, Ok(()));
         tick(&mut app, &ctx);
         assert!(app.prefs_rt.autosave_errors.is_empty());
+        assert!(!app.ui.status.contains("disk full"), "a completed retry clears the displayed failure");
         assert!(app.prefs_rt.autosaved.contains_key(&id));
     }
     #[test]
