@@ -13,7 +13,7 @@
 //! - `ui.dialog.open {kind, fields?}` (kinds: newDocument, about, layerStyle {effect?}, colorPicker {target: foreground|background}, command {command}) / `ui.dialog.set {dialog, field, value}` / `ui.dialog.confirm {dialog}` / `ui.dialog.cancel {dialog}`
 //! - `ui.dialog.apply {dialog}`: commit Preferences changes without closing the dialog
 //! - `ui.window.open {document?}` / `ui.window.close {window}`: extra document windows
-//! - `ui.pointer {events: [{kind: down|move|up, x, y, pressure?, tiltX?, tiltY?, rotation?}], modifiers?, button?}`: drive the active tool in document coordinates (`button: "secondary"` = the right button: opens the Brush Preset picker, or erases with Preferences › Tools › Right-click with painting tools = erase)
+//! - `ui.pointer {events: [{kind: down|move|up, x, y, pressure?, tiltX?, tiltY?, rotation?}], modifiers?, button?}`: drive the active tool in document coordinates (`button: "secondary"` opens the tool's canvas context menu or Brush Preset picker, or erases with Preferences › Tools › Right-click with painting tools = erase)
 //! - `ui.click {x, y, button?, count?}` / `ui.move {x, y}`: synthetic pointer input in screen points
 //! - `ui.key {key, command?, shift?, alt?, ctrl?}` / `ui.type {text}`: synthetic keyboard input
 //! - `ui.resize {width, height}`: resize the main window
@@ -400,7 +400,15 @@ pub fn handle(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest
                 if matches!(s("button"), Some("secondary" | "right")) && crate::layer_pick_ui::is_gesture(app.ui.tool, mods) {
                     if matches!(ev, ToolEvent::Down { .. }) {
                         let at = app.last_canvas_rect.center();
+                        app.ui.canvas_tool_menu = None;
                         crate::layer_pick_ui::open(app, [at.x, at.y], x, y);
+                    }
+                    continue;
+                }
+                if matches!(s("button"), Some("secondary" | "right")) && crate::canvas_tool_menu::applies(app.ui.tool) {
+                    if matches!(ev, ToolEvent::Down { .. }) {
+                        let at = app.last_canvas_rect.center();
+                        crate::canvas_tool_menu::open(app, app.ui.tool, [at.x, at.y]);
                     }
                     continue;
                 }
@@ -550,6 +558,15 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "toolOptions": app.ui.tool_options,
         "textEdit": app.ui.text_edit,
         "layerMenu": app.ui.layer_menu,
+        "canvasToolMenu": app.ui.canvas_tool_menu.as_ref().map(|menu| {
+            json!({
+                "pos": menu.pos,
+                "tool": menu.tool,
+                "entries": crate::canvas_tool_menu::entries(menu.has_selection).iter().map(|&(label, id)| {
+                    json!({"label": label, "id": id, "enabled": crate::menus::is_enabled(app, id)})
+                }).collect::<Vec<_>>()
+            })
+        }),
         "panels": app.ui.panels,
         "views": app.ui.views,
         "dialogs": dialogs,
@@ -609,6 +626,28 @@ mod tests {
             Outcome::Done(v) => v,
             _ => panic!("{method}: expected an immediate reply"),
         }
+    }
+
+    #[test]
+    fn right_pointer_opens_agent_visible_selection_menu() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
+        app.run("select.rect", json!({"x": 1, "y": 1, "width": 8, "height": 8})).unwrap();
+        let result = call(
+            &mut app,
+            &ctx,
+            "ui.pointer",
+            json!({
+                "tool": "RectMarquee", "button": "secondary",
+                "events": [{"kind": "down", "x": 4, "y": 4}, {"kind": "up", "x": 4, "y": 4}]
+            }),
+        );
+        assert_eq!(result.get("ok"), Some(&Value::Bool(true)));
+        let inspected = call(&mut app, &ctx, "ui.inspect", json!({}));
+        let entries = inspected.pointer("/result/canvasToolMenu/entries").and_then(Value::as_array).unwrap();
+        assert!(entries.iter().any(|entry| entry.get("id") == Some(&json!("select.inverse")) && entry.get("enabled") == Some(&json!(true))));
+        assert!(app.session.active().unwrap().doc.selection.is_some(), "right-click must not edit selection");
     }
 
     #[test]
