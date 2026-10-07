@@ -343,6 +343,20 @@ fn merge_changes(base: &Value, ours: &Value, theirs: &mut Value) {
     }
 }
 
+/// Write the preferences now, through the same merge as [`persist`], for recovery choices that
+/// need the result immediately. The pending revision stays unsaved when the write fails.
+pub(crate) fn save_preferences(app: &mut PhotocraftApp) -> Result<(), String> {
+    let rev = app.session.prefs.rev();
+    let ours = app.session.prefs_value();
+    write_prefs(app, &ours)?;
+    app.prefs_rt.saved_rev = rev;
+    app.prefs_rt.saved_value = Some(ours);
+    if let Some(id) = std::mem::take(&mut app.prefs_rt.save_retry).notice {
+        app.ui.notices.retain(|n| n.id != id);
+    }
+    Ok(())
+}
+
 /// Background autosave of documents with unsaved changes every N minutes (File Handling).
 fn autosave(app: &mut PhotocraftApp) {
     let fh = &app.session.prefs().file_handling;
@@ -657,8 +671,7 @@ pub fn open_preferences(app: &mut PhotocraftApp, section: &str) -> u64 {
     let section = if SECTIONS.iter().any(|(id, _)| *id == section) { section } else { "general" };
     let working = preference_values(app.session.prefs());
     let order = field_order(app.session.prefs(), &working);
-    let gpu = app.perf.gpu_info.lines();
-    open_kind(app, "prefs", "Preferences", json!({"section": section, "values": working, "__order": order, "__gpuInfo": gpu}))
+    open_kind(app, "prefs", "Preferences", json!({"section": section, "values": working, "__order": order}))
 }
 
 /// Each section's keys in declaration order (JSON objects sort their keys; the serialised text

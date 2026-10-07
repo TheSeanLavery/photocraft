@@ -112,9 +112,10 @@ fn app_switches_to_the_cpu_canvas_and_keeps_the_documents() {
     let app = h.state();
     assert!(!app.gpu_active(), "still on the GPU canvas");
     assert_eq!(app.session.documents().len(), 1, "document kept");
-    let n = app.ui.notices.last().expect("notice");
-    assert_eq!(n.title, gpu_status::LOST_MESSAGE);
-    assert!(n.error);
+    assert_eq!(app.ui.status, gpu_status::LOST_MESSAGE);
+    assert!(app.ui.status_error);
+    assert!(app.ui.gpu_fallback_notice.as_deref().unwrap_or("").contains("killed by the OS"));
+    assert!(app.ui.notices.is_empty(), "one recovery warning, no duplicate notice");
     assert!(app.perf.gpu_info.lost.as_deref().unwrap_or("").contains("killed by the OS"));
     assert_eq!(app.perf.gpu_info.canvas, "cpu");
     // The CPU path draws the document: a refresh after the loss is a CPU one.

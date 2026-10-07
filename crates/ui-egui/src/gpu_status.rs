@@ -54,7 +54,6 @@ pub fn fall_back(app: &mut PhotocraftApp, fault: &photocraft_gpu::Fault) {
     app.perf.gpu_info.lost = Some(fault.to_string());
     let title = if fault.is_lost() { LOST_MESSAGE } else { ERROR_MESSAGE };
     queue_fallback_notice(app, fault.to_string());
-    crate::notices::post(app, title, vec![fault.to_string()], true);
     app.ui.status = title.to_string();
     app.ui.status_error = true;
 }
@@ -93,10 +92,7 @@ fn choose_recovery(app: &mut PhotocraftApp, retry: bool) -> Result<(), String> {
             "performance.gpuBackend": "auto"
         }}),
     )?;
-    let text = app.session.prefs_to_json();
-    if let Some(save) = app.services.save_prefs.as_mut() {
-        save(&text)?;
-    }
+    crate::prefs_ui::save_preferences(app)?;
     app.ui.gpu_fallback_notice = None;
     if retry {
         crate::notices::post(
@@ -169,15 +165,28 @@ mod tests {
 
     #[test]
     fn recovery_choices_save_next_launch_mode_without_restarting() {
-        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let saves = std::rc::Rc::new(std::cell::Cell::new(0));
+        let count = saves.clone();
+        let services = crate::Services {
+            save_prefs: Some(Box::new(move |_| {
+                count.set(count.get() + 1);
+                Ok(())
+            })),
+            ..Default::default()
+        };
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), services);
         queue_fallback_notice(&mut app, "device unavailable");
         choose_recovery(&mut app, false).unwrap();
         assert!(!app.session.prefs().performance.use_gpu);
         assert_eq!(app.session.prefs().get("performance.renderingMode"), Some(json!("cpu")));
         assert!(app.ui.gpu_fallback_notice.is_none());
+        crate::prefs_ui::tick(&mut app, &egui::Context::default());
+        assert_eq!(saves.get(), 1, "recovery choice writes once");
         choose_recovery(&mut app, true).unwrap();
         assert!(app.session.prefs().performance.use_gpu);
         assert_eq!(app.session.prefs().get("performance.renderingMode"), Some(json!("gpu")));
         assert!(app.gpu.is_none());
+        crate::prefs_ui::tick(&mut app, &egui::Context::default());
+        assert_eq!(saves.get(), 2, "retry choice writes once");
     }
 }
