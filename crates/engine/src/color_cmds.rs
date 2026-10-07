@@ -196,6 +196,8 @@ pub fn validate_settings(c: &ColorSettings) -> std::result::Result<(), String> {
 /// Session-wide colour settings and caches (`Session::color`).
 #[derive(Default)]
 pub struct ColorState {
+    /// Tagged sRGB presentation: the OS maps to the monitor, so avoid a second monitor transform.
+    pub surface_srgb: bool,
     /// Edit › Color Settings (persisted with the preferences).
     pub settings: ColorSettings,
     proofs: HashMap<DocId, ProofView>,

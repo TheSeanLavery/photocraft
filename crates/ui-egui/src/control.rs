@@ -142,6 +142,10 @@ pub fn handle(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest
         "ui.menu.list" => ok(serde_json::to_value(crate::menus::menu_items(app)).unwrap_or_default()),
         "ui.inspect" => ok(inspect(app, ctx)),
         "ui.set" => {
+            if let Some(v) = p.get("hdrOutput") {
+                let Some(on) = v.as_bool() else { return err("hdrOutput must be a boolean") };
+                app.ui.sdr_output = !on;
+            }
             if let Some(t) = s("tool") {
                 match Tool::from_name(t) {
                     Some(t) => app.ui.tool = t,
@@ -507,6 +511,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "frame": app.frame,
         "session": photocraft_engine::inspect::session(&app.session),
         "document": app.session.active().map(photocraft_engine::inspect::document),
+        "hdrOutput": app.gpu.as_ref().map(|g| json!({"surface": g.hdr_surface(), "headroom": g.output_headroom(), "enabled": !app.ui.sdr_output, "active": !app.ui.sdr_output && g.output_headroom() > 1.0, "format": format!("{:?}", g.output_format()), "colorSpace": if g.hdr_surface() { "extended-sRGB" } else { "sRGB" }})),
         "perf": {"fps": app.fps, "timings": app.perf},
         "brush": {"size": app.session.tools.brush.size, "hardness": app.session.tools.brush.hardness, "opacity": app.session.tools.brush.opacity},
         "distort": app.distort.describe(),

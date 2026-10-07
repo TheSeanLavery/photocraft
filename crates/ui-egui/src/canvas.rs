@@ -1337,6 +1337,15 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             view_key: egui::Id::new(("pc-canvas-proxy", ctx.viewport_id(), idx)).value(),
             display: sync_display_lut(app, &doc, key),
             hdr: hdr_preview(app, &doc),
+            output_headroom: app.gpu.as_ref().map_or(0.0, |g| {
+                if !g.hdr_surface() {
+                    0.0
+                } else if app.ui.sdr_output || app.session.color.proof(doc.id).enabled {
+                    1.0
+                } else {
+                    g.output_headroom()
+                }
+            }),
         };
         crate::gpu_canvas::GpuCanvas::paint(&painter, rect, params);
     } else if !flip && ensure_gpu(app, idx, visible_doc_rect(&xf)) {
@@ -1356,6 +1365,15 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             view_key: egui::Id::new(("pc-canvas", ctx.viewport_id(), idx)).value(),
             display: sync_display_lut(app, &doc, doc.id.0),
             hdr: hdr_preview(app, &doc),
+            output_headroom: app.gpu.as_ref().map_or(0.0, |g| {
+                if !g.hdr_surface() {
+                    0.0
+                } else if app.ui.sdr_output || app.session.color.proof(doc.id).enabled {
+                    1.0
+                } else {
+                    g.output_headroom()
+                }
+            }),
         };
         crate::gpu_canvas::GpuCanvas::paint(&painter, rect, params);
     } else {

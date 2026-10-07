@@ -1242,14 +1242,14 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.36.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5cef1f6d1bba40b09a4d0d62cb822b81030922cfbf65c5373398c3a3caafc5bd"
+source = "git+https://github.com/TheSeanLavery/egui.git?rev=66e2e61609af7b1239ac8524851790769dcea51f#66e2e61609af7b1239ac8524851790769dcea51f"
 dependencies = [
  "ahash",
  "bytemuck",
  "document-features",
  "egui",
  "epaint",
+ "half",
  "log",
  "profiling",
  "thiserror 2.0.21",
@@ -3742,6 +3742,7 @@ dependencies = [
  "egui_kittest",
  "log",
  "photocraft-algo",
+ "photocraft-cms",
  "photocraft-codecs",
  "photocraft-color",
  "photocraft-compose",

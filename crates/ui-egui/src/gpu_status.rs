@@ -20,6 +20,17 @@ pub type StartedHook = Box<dyn FnOnce(&mut PhotocraftApp)>;
 
 /// Per-frame check: switch to the CPU canvas when the GPU faulted, and run the started hook.
 pub fn check(app: &mut PhotocraftApp, ctx: &egui::Context) {
+    app.perf.gpu_info.hdr_output = app.gpu.as_ref().map(|g| {
+        format!(
+            "Display output: {:?}, {} (headroom {:.2}× SDR white)",
+            g.output_format(),
+            if g.hdr_surface() && !app.ui.sdr_output { "HDR" } else { "SDR" },
+            g.output_headroom().max(1.0)
+        )
+    });
+    if app.gpu.as_ref().is_some_and(|g| g.hdr_surface()) {
+        ctx.request_repaint_after(std::time::Duration::from_secs(1));
+    }
     if let Some(fault) = app.gpu.as_ref().and_then(|g| g.fault()) {
         fall_back(app, &fault);
         ctx.request_repaint();

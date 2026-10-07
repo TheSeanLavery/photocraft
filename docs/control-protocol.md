@@ -261,3 +261,15 @@ fall back on graphics errors rather than risk documents. CPU compatibility compo
 on the CPU and prefers software window adapters, when available. macOS still uses Metal for
 the window. A failed window renderer initialization retries once in CPU compatibility mode;
 a driver process crash is detected by the startup marker on the next launch.
+
+### HDR view state
+
+`ui.set {"hdrOutput": true|false}` toggles HDR highlight preview, also available as
+`ui.menu.invoke {"id":"view.hdrOutput"}` (View › HDR Output). This is pure display state;
+document pixels and exports are unchanged. Non-boolean values return an error.
+
+`ui.inspect.result.hdrOutput` reports the negotiated HDR surface, output format/colour space,
+live headroom over SDR white, enabled view state and whether HDR highlights can currently
+be shown. It is null when there is no GPU canvas. `surface=true` does not imply physical
+headroom greater than 1×. With `PHOTOCRAFT_HDR_CAPTURE_DIR` set locally, `ui.screenshot`
+also writes a linear-sRGB float EXR asynchronously; consult `docs/development.md`.

@@ -24,7 +24,7 @@ readiness; treat it as an upper bound.
 | M9 Text, vector, styles | 🟡 | type engine + Warp Text, shapes / pen / paths, all 10 effects on CPU and GPU (parity ≤1/255, 30/31 corpus effect files on the GPU) |
 | M10 Smart features | 🟡 | classical Select Subject / Object, content-aware fill and scale, healing, auto-align / auto-blend; ML backend not started |
 | M11 Automation + formats | 🟡 | MCP (headless + live bridge), batch, Image Processor, prefs over MCP; DoD test passes (10 agent tasks over MCP, `automation/tests/agent_tasks.rs`); JP2 / DICOM / DPX / C2PA pending |
-| M12 Pro parity | 🟡 | CMYK / Lab / Indexed / Bitmap / Duotone, ICC + soft proofing, channels + Quick Mask, smart-object stack modes, artboards, layer comps; print, HDR, photomerge, timeline pending |
+| M12 Pro parity | 🟡 | CMYK / Lab / Indexed / Bitmap / Duotone, ICC + soft proofing, channels + Quick Mask, smart-object stack modes, artboards, layer comps; macOS HDR display; print, HDR merge, photomerge, timeline pending |
 
 **Menu parity: 532 / 625 (85.1%)** on 2026-10-01, up from 224 (35.8%) the day before. See [`parity.md`](parity.md).
 
@@ -69,7 +69,7 @@ Confidence: moderate — the next users of 0.2.x will move these numbers either 
 | Tools | ~20 Photoshop tools missing: Pencil, Mixer Brush (tool), Patch, Content-Aware Move, Red Eye, Pattern Stamp, Art History Brush, Freeform/Curvature Pen, anchor tools, Direct Selection, Magnetic Lasso, single row/column marquee, Color Sampler, Perspective Crop, Rotate View, the Vertical Type tool (vertical layout itself landed, #199: toggle via Type › Orientation) and type masks, Frame | low–medium | Magic/Background Eraser added; live gradients in progress (#180). |
 | Painting | Brush model and Brush Settings panel near Photoshop; .abr/.grd import; persistent presets; pen pressure/tilt on Windows, web, macOS and X11 | medium | Wayland pen input open (#79); macOS/X11 pressure not yet verified on tablet hardware. |
 | Text / typography | Engine works; caret placement and size editing fixed; OpenType features, text-on-path editing, composer parity partial | medium-low | Measure with the Photoshop-authored set. |
-| Colour management | Colour-managed canvas (document → monitor), embedded CMYK profiles, linear EXR/HDR, 16-bit float canvas | medium-high | Monitor profile follows only at launch. |
+| Colour management | Colour-managed canvas (document → monitor), embedded CMYK profiles, linear EXR/HDR, 16-bit float canvas, macOS EDR output | medium-high | Monitor profile follows only at launch. macOS EDR float captures validated on M1 Max (2026-10-06); other platforms remain SDR. |
 | Performance | 14k+ px on the GPU at ~⅓ the memory; adjustment preview 285 ms → 4–9 ms; font-size edits 297 ms → 4.6 ms | medium-high on rasters | Complex layout documents still laggy (#125/#128); >16384 px GPU tiling in progress (#49). |
 | Stability | Never-crash lint series, crash guard, `panic_hunt` fuzzing in the gate | medium-high | No field crash data yet. |
 | Camera RAW | DNG, CR2, Sony ARW (lossless + compressed), RW2, uncompressed ORF | medium | Nikon compressed NEF, CR3, RAF blocked by clean-room limits (#50). |

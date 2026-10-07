@@ -162,7 +162,7 @@ impl ColorState {
     /// supplied in [`ColorState::monitor_profile`], else sRGB). Non-RGB or unreadable profiles
     /// fall back to sRGB.
     pub fn monitor(&self) -> Arc<Profile> {
-        let spec = self.settings.monitor_profile.as_str();
+        let spec = if self.surface_srgb { "srgb" } else { self.settings.monitor_profile.as_str() };
         let mut cache = self.display.monitor.lock().unwrap_or_else(|e| e.into_inner());
         if let Some((s, b, p)) = cache.as_ref()
             && s == spec
