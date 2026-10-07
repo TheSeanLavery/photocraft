@@ -1242,7 +1242,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.36.2"
-source = "git+https://github.com/TheSeanLavery/egui.git?rev=66e2e61609af7b1239ac8524851790769dcea51f#66e2e61609af7b1239ac8524851790769dcea51f"
+source = "git+https://github.com/TheSeanLavery/egui.git?rev=24fd06138d67cda864f81824ec05282c2f8e4188#24fd06138d67cda864f81824ec05282c2f8e4188"
 dependencies = [
  "ahash",
  "bytemuck",
