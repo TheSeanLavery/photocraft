@@ -12,7 +12,9 @@ ET.register_namespace("", NS)
 
 
 def layer(name: str, shapes: list[ET.Element], fill: str) -> None:
-    root = ET.Element(f"{{{NS}}}svg", {"viewBox": "0 0 512 512"})
+    # Icon Composer positions SVGs by their intrinsic size. Keep the 512-unit drawing grid,
+    # but declare a full 1024-point layer so it fills Apple's icon canvas.
+    root = ET.Element(f"{{{NS}}}svg", {"width": "1024", "height": "1024", "viewBox": "0 0 512 512"})
     group = ET.SubElement(root, f"{{{NS}}}g", {"fill": fill})
     for shape in shapes:
         item = copy.deepcopy(shape)

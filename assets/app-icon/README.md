@@ -18,7 +18,9 @@ shell icons without clipping the frame or sprocket holes.
   macOS, Windows, Linux and runtime icons.
 - `PhotoCraft.icon`: Apple Icon Composer document. Its background fill and three unmasked SVG
   foreground groups let macOS apply system lighting, edge highlights and appearance variants.
-  `packaging/macos/generate-icon-layers.py` derives the SVGs from the canonical master.
+  The SVGs declare a 1024-point intrinsic size so Icon Composer fills its canvas; the dark
+  perforations and letters retain their ink colour. `packaging/macos/generate-icon-layers.py`
+  derives the SVGs from the canonical master.
 
 `apps/photocraft/src/app_icon.rs` loads the generated PNG for unpackaged runs. A macOS app bundle
 uses the compiled `Assets.car` from the Icon Composer document and its generated `.icns` fallback;

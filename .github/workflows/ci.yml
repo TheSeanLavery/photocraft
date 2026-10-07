@@ -13,6 +13,10 @@ on:
       fuzz_seconds:
         description: "Seconds per fuzz target"
         default: "600"
+      release_preview:
+        description: "Build a complete ad-hoc macOS release preview"
+        type: boolean
+        default: false
 
 env:
   CARGO_TERM_COLOR: always
@@ -57,7 +61,7 @@ jobs:
 
   macos-release-preview:
     name: macOS universal release preview
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.release_preview
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
