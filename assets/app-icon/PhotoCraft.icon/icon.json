@@ -7,8 +7,9 @@
   },
   "groups": [
     {
+      "specular": false,
       "layers": [
-        { "image-name": "01-panel.svg", "name": "Inset panel" }
+        { "image-name": "03-lettering.svg", "name": "Pc lettering", "glass": false }
       ]
     },
     {
@@ -18,9 +19,8 @@
       ]
     },
     {
-      "specular": false,
       "layers": [
-        { "image-name": "03-lettering.svg", "name": "Pc lettering", "glass": false }
+        { "image-name": "01-panel.svg", "name": "Inset panel" }
       ]
     }
   ],
