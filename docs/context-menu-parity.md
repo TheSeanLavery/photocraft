@@ -1,6 +1,6 @@
 # Context-menu parity contract
 
-Status: implementation contract, 2026-10-06. Scope: canvas, document tabs, and panels. “Right-click” means a secondary pointer click; macOS Control-click should also open the same menu where the platform sends a context-menu gesture. Photoshop changes a context menu with the active tool, selection, and panel item. Adobe documents that principle but does not publish a complete current menu catalog. **Documented** means an Adobe source explicitly names the gesture or action. **Inferred** means a PhotoCraft design target or an item known from a main menu whose presence in a Photoshop context menu still needs a current-product capture. Do not present inferred rows as exact Photoshop menus. [Adobe: panels and menus](https://helpx.adobe.com/photoshop/using/panels-menus.html), [Adobe: shortcuts and context menus](https://helpx.adobe.com/sa_en/photoshop/using/customizing-keyboard-shortcuts.html).
+Status: implementation contract, updated 2026-10-07. Scope: canvas, document tabs, and panels. “Right-click” means a secondary pointer click; macOS Control-click should also open the same menu where the platform sends a context-menu gesture. Photoshop changes a context menu with the active tool, selection, and panel item. Adobe documents that principle but does not publish a complete current menu catalog. **Documented** means an Adobe source explicitly names the gesture or action. **Inferred** means a PhotoCraft design target or an item known from a main menu whose presence in a Photoshop context menu still needs a current-product capture. Do not present inferred rows as exact Photoshop menus. [Adobe: panels and menus](https://helpx.adobe.com/photoshop/using/panels-menus.html), [Adobe: shortcuts and context menus](https://helpx.adobe.com/sa_en/photoshop/using/customizing-keyboard-shortcuts.html).
 
 ## Dispatch contract
 
@@ -27,13 +27,32 @@ The “PhotoCraft at branch point” column records behavior before this PR. Pic
 | Gradient, Paint Bucket | Gradient preset/type/mode or fill source/tolerance **(inferred context placement)** | No tool menu | P1 |
 | Type | In text: cut/copy/paste, spelling suggestions, text formatting; outside text: type-layer action **(inferred context placement)** | No tool menu | P1; separate editing and nonediting states; [Adobe type editing](https://helpx.adobe.com/photoshop/desktop/text-typography/get-started-with-text/edit-text.html) |
 | Hand, Zoom | Fit on Screen, 100%, 200%, Print Size; zoom step choices **(inferred context placement)** | No tool menu | P1; view actions stay out of document history |
-| Pen, Path Selection | Path/point actions, Make Selection, Fill/Stroke Path, Free Transform Path **(inferred context placement)** | Pen canvas right-click now offers Make Selection for a completed or in-progress path; Paths rows offer Make Selection, Fill and Stroke. Other Pen/Path Selection targets remain open. | P1; distinguish node, segment, path, and blank canvas |
+| Pen, Path Selection | Path/point actions, Make Selection, Fill/Stroke Path, Free Transform Path **(inferred context placement)** | Pen canvas right-click follows the user-provided 20-row Photoshop capture below. Paths rows offer Make Selection, Fill and Stroke. Path Selection's own canvas menu remains open. | P1; distinguish node, segment, path, and blank canvas |
 | Rectangle, Ellipse Shape, Triangle, Polygon, Line, Custom Shape | Shape/path operations, fill/stroke settings, transform **(inferred context placement)** | No tool menu | P2 |
 | Slice, Slice Select | Slice properties, duplicate/delete, divide, guides **(inferred context placement)** | No tool menu | P2 |
 | Any tool while Free Transform is active | Scale, Rotate, Skew, Distort, Perspective, Warp, rotate/flip variants, commit/cancel **(inferred exact context placement)** | Missing per docs/scorecard.md TOOL-214-5 | P0; transform operations [documented by Adobe](https://helpx.adobe.com/photoshop/desktop/crop-resize-transform/transform-manipulate-reshape/adjust-scale-rotation-and-perspective.html); type restrictions [documented here](https://helpx.adobe.com/photoshop/using/creating-type.html) |
 | Any tool with Command/Ctrl + secondary click | List visible layers with pixels under pointer | Layers | P0; preserve existing route |
 
 The layer-list menu on an empty pixel or all-hidden hit should be empty/closed; it must not select a transparent or hidden layer. The right-erase preference is an alternate PhotoCraft behavior, and its selected state takes precedence over the Brush picker only for Brush/Eraser.
+
+## Pen canvas reference capture (2026-10-07)
+
+The user supplied a Photoshop screenshot of a closed path in Path mode. The table preserves every row in its order; separator boundaries appear between the groups. Gray rows in that capture remain visible but disabled for a plain work path. Enablement changes with the active shape layer, saved path, copied style, and symmetry state. Ellipsis rows open a parameter dialog before changing the document.
+
+| Group | Rows in screenshot order | PhotoCraft action and applicability |
+|---|---|---|
+| Path | Create Vector Mask; Delete Path | `layer.vectorMask.fromPath` on an eligible layer; `path.delete` on a work/saved path |
+| Preset | Define Custom Shape… | `edit.defineCustomShape` with a name dialog |
+| Selection/paint | Make Selection…; New Guides From Shape; Fill Path…; Stroke Path… | `path.toSelection` dialog; `view.newGuidesFromShape` for shape layers; `path.fill` and `path.stroke` dialogs on pixel layers |
+| Export | Clipping Path… | `path.clippingPath.set` on a saved path, with flatness parameter |
+| Geometry | Free Transform Path | `path.transform` with translation, scale and rotation parameters |
+| Shape operation | Unite Shapes; Subtract Front Shape; Unite Shapes at Overlap; Subtract Shapes at Overlap | The four `layer.combineShapes.*` operations on shape layers with multiple components |
+| Copy style | Copy Fill; Copy Complete Stroke | `path.style.copyFill` / `copyStroke` when the shape has that style |
+| Paste style | Paste Fill; Paste Complete Stroke | `path.style.pasteFill` / `pasteStroke` when a matching style has been copied |
+| Layer view | Isolate Layers | `select.isolateLayers` for an active layer |
+| Symmetry | Make Symmetry Path; Disable Symmetry Path | `paint.symmetryFromPath` on a path; `paint.symmetryDisable` when symmetry is active |
+
+The reference does not establish Photoshop's behavior for right-clicks on a single anchor, a segment, or empty canvas; these still need separate captures. PhotoCraft's disabled rows do not call a command.
 
 ## Panel and workspace matrix
 

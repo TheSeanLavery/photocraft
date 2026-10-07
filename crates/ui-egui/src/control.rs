@@ -108,6 +108,25 @@ pub fn handle(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest
     let s = |k: &str| p.get(k).and_then(Value::as_str);
     let u = |k: &str| p.get(k).and_then(Value::as_u64);
     match req.method.as_str() {
+        "ui.context.choose" => {
+            let Some(id) = s("id") else { return err("missing `id`") };
+            let Some(menu) = app.ui.canvas_tool_menu.as_ref() else { return err("no canvas context menu is open") };
+            let listed = if menu.tool == crate::state::Tool::Pen {
+                crate::canvas_tool_menu::PEN_MENU.iter().flatten().any(|(_, command)| *command == id)
+            } else {
+                crate::canvas_tool_menu::menu_entries(menu).iter().any(|(_, command)| *command == id)
+            };
+            if !listed || !crate::canvas_tool_menu::entry_enabled(app, menu, id) {
+                return err("context action is unavailable");
+            }
+            if let Some(authorize) = app.services.automation_command.as_ref()
+                && let Err(error) = authorize(id, &json!({}))
+            {
+                return err(error);
+            }
+            crate::canvas_tool_menu::choose(app, ctx, id);
+            ok(json!({"command": id, "dialog": app.ui.dialogs.last().map(|d| d.id)}))
+        }
         "engine.execute" | "ui.menu.invoke" => {
             let Some(id) = s("command").or(s("id")) else { return err("missing `command`") };
             let params = p.get("params").cloned().unwrap_or(json!({}));
@@ -562,9 +581,16 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
             json!({
                 "pos": menu.pos,
                 "tool": menu.tool,
-                "entries": crate::canvas_tool_menu::menu_entries(menu).iter().map(|&(label, id)| {
-                    json!({"label": label, "id": id, "enabled": crate::canvas_tool_menu::entry_enabled(app, menu, id)})
-                }).collect::<Vec<_>>()
+                "entries": if menu.tool == crate::state::Tool::Pen {
+                    crate::canvas_tool_menu::PEN_MENU.iter().map(|row| match row {
+                        Some((label, id)) => json!({"label": label, "id": id, "enabled": crate::canvas_tool_menu::entry_enabled(app, menu, id)}),
+                        None => json!({"separator": true}),
+                    }).collect::<Vec<_>>()
+                } else {
+                    crate::canvas_tool_menu::menu_entries(menu).iter().map(|&(label, id)| {
+                        json!({"label": label, "id": id, "enabled": crate::canvas_tool_menu::entry_enabled(app, menu, id)})
+                    }).collect::<Vec<_>>()
+                }
             })
         }),
         "panels": app.ui.panels,
@@ -648,6 +674,33 @@ mod tests {
         let entries = inspected.pointer("/result/canvasToolMenu/entries").and_then(Value::as_array).unwrap();
         assert!(entries.iter().any(|entry| entry.get("id") == Some(&json!("select.inverse")) && entry.get("enabled") == Some(&json!(true))));
         assert!(app.session.active().unwrap().doc.selection.is_some(), "right-click must not edit selection");
+    }
+
+    #[test]
+    fn agent_can_inspect_and_choose_pen_make_selection_from_full_context_menu() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        app.run("file.new", json!({"width": 32, "height": 32})).unwrap();
+        app.run("path.set", json!({"name":"work","path":{"subpaths":[{"closed":true,"knots":[[2,2],[20,2],[20,20]]}]}})).unwrap();
+        let result = call(
+            &mut app,
+            &ctx,
+            "ui.pointer",
+            json!({
+                "tool": "Pen", "button": "secondary", "events": [{"kind":"down","x":8,"y":8},{"kind":"up","x":8,"y":8}]
+            }),
+        );
+        assert_eq!(result["ok"], true);
+        let inspected = call(&mut app, &ctx, "ui.inspect", json!({}));
+        let entries = inspected.pointer("/result/canvasToolMenu/entries").and_then(Value::as_array).unwrap();
+        assert_eq!(entries.iter().filter(|row| row.get("separator") == Some(&json!(true))).count(), 9);
+        assert!(entries.iter().any(|row| row.get("id") == Some(&json!("path.toSelection")) && row.get("enabled") == Some(&json!(true))));
+        assert_eq!(call(&mut app, &ctx, "ui.context.choose", json!({"id":"file.new"}))["ok"], false);
+        let chosen = call(&mut app, &ctx, "ui.context.choose", json!({"id":"path.toSelection"}));
+        assert_eq!(chosen["ok"], true);
+        let dialog = chosen["result"]["dialog"].as_u64().unwrap();
+        assert_eq!(call(&mut app, &ctx, "ui.dialog.confirm", json!({"dialog":dialog}))["ok"], true);
+        assert!(app.session.active().unwrap().doc.selection.is_some());
     }
 
     #[test]
