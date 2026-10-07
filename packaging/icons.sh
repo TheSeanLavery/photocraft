@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Regenerate every app icon from assets/app-icon/photocraft.svg (the canonical master).
 #
-# Needs: resvg (brew install resvg / cargo install resvg). On macOS, iconutil also writes the
+# Needs: resvg or rsvg-convert. On macOS, iconutil also writes the
 # .icns. The outputs are committed, so packaging never needs these tools.
 #
 #   packaging/icons.sh
@@ -12,18 +12,30 @@ SVG="$DIR/photocraft.svg"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-command -v resvg >/dev/null || { echo "error: resvg not found (brew install resvg)" >&2; exit 1; }
+if command -v resvg >/dev/null; then
+  RENDERER=resvg
+elif command -v rsvg-convert >/dev/null; then
+  RENDERER=rsvg-convert
+else
+  echo "error: install resvg or rsvg-convert to regenerate icons" >&2
+  exit 1
+fi
 
-# The artwork is a full-bleed 512-unit tile (rx=112). macOS icons pad it to Apple's 824/1024 body
-# grid (transparent margin). Windows and Linux icons crop 22 units off each side (into the
-# rounded corners) so the portrait reads at 16-48 px.
+# The artwork is a full-bleed 512-unit tile. macOS icons pad it to Apple's 824/1024 body
+# grid. Windows and Linux icons crop 22 units off each side so the mark reads at 16-48 px.
 grep -q 'viewBox="0 0 512 512"' "$SVG" || { echo "error: expected viewBox=\"0 0 512 512\" in $SVG" >&2; exit 1; }
 MAC="$TMP/mac.svg"
 sed 's/viewBox="0 0 512 512"/viewBox="-62 -62 636 636"/' "$SVG" >"$MAC"
 TIGHT="$TMP/tight.svg"
 sed 's/viewBox="0 0 512 512"/viewBox="22 22 468 468"/' "$SVG" >"$TIGHT"
 
-render() { resvg -w "$2" -h "$2" "$1" "$3" </dev/null; }
+render() {
+  if [ "$RENDERER" = resvg ]; then
+    resvg -w "$2" -h "$2" "$1" "$3" </dev/null
+  else
+    rsvg-convert -w "$2" -h "$2" "$1" -o "$3"
+  fi
+}
 
 render "$MAC" 1024 "$DIR/photocraft-1024.png"
 
@@ -33,7 +45,7 @@ for s in 16 24 32 48 64 128 256 512; do
   render "$TIGHT" "$s" "$DIR/hicolor/${s}x${s}/apps/ai.storyteller.photocraft.png"
 done
 mkdir -p "$DIR/hicolor/scalable/apps"
-# The lighter trace (photocraft-small.svg) keeps the scalable theme icon cheap to render.
+# The flat-colour variant keeps the scalable theme icon cheap to render.
 cp "$DIR/photocraft-small.svg" "$DIR/hicolor/scalable/apps/ai.storyteller.photocraft.svg"
 
 # Windows .ico.
