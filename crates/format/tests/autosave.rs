@@ -114,7 +114,11 @@ fn checkpoint_preserves_current_undo_redo_and_lazy_lease_at_every_depth() {
         let (restored, history) = recover_checkpoint(&entry).unwrap();
         assert_eq!(restored, *current);
         assert_eq!(history.current_label, "Current edit");
-        assert_eq!(*history.undo[0].load_document().unwrap(), before);
+        let restored_before = history.undo[0].load_document().unwrap();
+        assert_eq!(*restored_before, before);
+        let mut allocations = std::collections::HashSet::new();
+        assert!(photocraft_ops::document_bytes(&restored, &mut allocations) > 0);
+        assert_eq!(photocraft_ops::document_bytes(&restored_before, &mut allocations), 0, "unchanged recovered pixels and blobs share live allocations");
         assert_eq!(*history.redo[0].load_document().unwrap(), after);
         let saver = Autosaver::new(&dir, "history");
         saver.request(current.clone(), 13, None, SaveOptions::default()).unwrap();
@@ -314,5 +318,26 @@ fn autosave_repairs_corrupt_existing_objects_before_acknowledging() {
     saver.request(doc.clone(), 2, None, SaveOptions::default()).unwrap();
     saver.flush().unwrap().unwrap();
     assert_eq!(recover(&list_recovery(&dir)[0]).unwrap(), *doc);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn missing_descriptor_does_not_consume_a_failed_recovery_source() {
+    let dir = temp_dir("missing-descriptor");
+    let doc = rich_doc(ColorMode::Rgb, SampleType::U16);
+    let bundle = dir.join("retained.pcraft");
+    PcraftWriter::new().save_dir(&doc, &bundle, &SaveOptions::default()).unwrap();
+    let entry = RecoveryEntry {
+        info: photocraft_format::autosave::RecoveryInfo {
+            key: "retained".into(),
+            document_name: doc.name.clone(),
+            original_path: None,
+            saved_at: 0,
+            revision: 1,
+        },
+        bundle: bundle.clone(),
+    };
+    assert!(recover_checkpoint(&entry).is_err());
+    assert_eq!(load_path(&bundle).unwrap(), doc, "a failed load never implicitly retires its source");
     std::fs::remove_dir_all(dir).unwrap();
 }
