@@ -24,7 +24,7 @@ pub fn route(app: &mut PhotocraftApp, response: &Response, xf: &ViewXform, tool:
     if !tool.is_brushlike() && tool != Tool::QuickSelection {
         return false;
     }
-    let (events, mods, frame_time, touch) = response.ctx.input(|i| {
+    let (mut events, mods, frame_time, touch) = response.ctx.input(|i| {
         (
             i.raw.events.iter().filter(|e| app.stylus.use_pressure || !matches!(e, Event::Touch { .. })).cloned().collect::<Vec<_>>(),
             i.modifiers,
@@ -32,6 +32,13 @@ pub fn route(app: &mut PhotocraftApp, response: &Response, xf: &ViewXform, tool:
             i.any_touches() || i.raw.events.iter().any(|e| matches!(e, Event::Touch { .. })),
         )
     });
+    // Classify each press with its own modifiers, including sticky modifiers. A
+    // frame may contain different gestures, so the final frame modifiers are insufficient.
+    for event in &mut events {
+        if let Event::PointerButton { modifiers, .. } = event {
+            *modifiers = crate::workspace_ui::sticky_mods(app, *modifiers);
+        }
+    }
     let secondary = crate::paint_mouse::right_erases(app, tool);
     let pressure = app.stylus.pressure();
     let zoom = response.ctx.zoom_factor();
@@ -60,7 +67,10 @@ pub fn route(app: &mut PhotocraftApp, response: &Response, xf: &ViewXform, tool:
             crate::canvas::feed_live_stroke(app);
         }
         if matches!(event, ToolEvent::Down { .. }) {
-            app.secondary_erase = erase;
+            let resize = erase && crate::brush_resize::is_right_gesture(modifiers);
+            // Arm the exact Down, rather than an earlier event in the same batch.
+            app.brush_resize_armed = resize;
+            app.secondary_erase = erase && !resize;
             app.brush_input.owner = app.session.active().map(|st| (st.doc.id, tool));
         }
         tool_event(app, event, modifiers);
@@ -163,7 +173,8 @@ impl BrushInput {
                     if self.button.is_none()
                         && eligible
                         && xf.rect.contains(pos)
-                        && (button == PointerButton::Primary || secondary && button == PointerButton::Secondary) =>
+                        && (button == PointerButton::Primary
+                            || button == PointerButton::Secondary && !modifiers.command && (secondary || crate::brush_resize::is_right_gesture(modifiers))) =>
                 {
                     self.button = Some(button);
                     self.last = Some(pos);
@@ -446,6 +457,20 @@ mod tests {
         assert_eq!(out.len(), 4);
         assert_eq!(out[1].0, ToolEvent::Move { x: 55.0, y: 65.0, pressure: 0.4 });
         assert!(input.button.is_none());
+    }
+
+    #[test]
+    fn secondary_press_classification_uses_event_modifiers() {
+        let p = pos2(20.0, 20.0);
+        let press = |modifiers| Event::PointerButton { pos: p, button: PointerButton::Secondary, pressed: true, modifiers };
+        for erase in [false, true] {
+            let mut input = BrushInput::default();
+            let resize = input.events(&[press(Modifiers::ALT)], &xf(), true, erase, 1.0, Modifiers::NONE);
+            assert_eq!(resize.len(), 1, "Alt+right remains a gesture with either preference");
+            assert_eq!(resize[0].1, Modifiers::ALT, "the press modifiers beat the frame modifiers");
+            let mut input = BrushInput::default();
+            assert!(input.events(&[press(Modifiers::COMMAND)], &xf(), true, erase, 1.0, Modifiers::NONE).is_empty());
+        }
     }
 
     #[test]
