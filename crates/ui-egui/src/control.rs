@@ -562,8 +562,8 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
             json!({
                 "pos": menu.pos,
                 "tool": menu.tool,
-                "entries": crate::canvas_tool_menu::entries(menu.has_selection).iter().map(|&(label, id)| {
-                    json!({"label": label, "id": id, "enabled": crate::menus::is_enabled(app, id)})
+                "entries": crate::canvas_tool_menu::menu_entries(menu).iter().map(|&(label, id)| {
+                    json!({"label": label, "id": id, "enabled": crate::canvas_tool_menu::entry_enabled(app, menu, id)})
                 }).collect::<Vec<_>>()
             })
         }),

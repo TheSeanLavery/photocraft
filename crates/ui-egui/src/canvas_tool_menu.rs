@@ -1,5 +1,4 @@
-//! Canvas context actions for selection tools. Entries reuse the Select menu's command ids and
-//! its enablement/dispatch, so dialogs and automation take the same path as the menu bar.
+//! Canvas context actions for selection and Pen tools.
 
 use egui::Context;
 use serde::{Deserialize, Serialize};
@@ -12,11 +11,13 @@ pub struct CanvasToolMenu {
     pub pos: [f32; 2],
     pub tool: Tool,
     pub has_selection: bool,
+    #[serde(default)]
+    pub has_path: bool,
 }
 
 /// Tools whose plain canvas right-click offers selection actions.
 pub fn applies(tool: Tool) -> bool {
-    matches!(tool, Tool::RectMarquee | Tool::EllipseMarquee | Tool::Lasso | Tool::PolygonLasso | Tool::MagicWand | Tool::ObjectSelection)
+    matches!(tool, Tool::RectMarquee | Tool::EllipseMarquee | Tool::Lasso | Tool::PolygonLasso | Tool::MagicWand | Tool::ObjectSelection | Tool::Pen)
 }
 
 /// Command ids are shared with the Select menu. Disabled actions remain visible.
@@ -34,6 +35,14 @@ pub fn entries(has_selection: bool) -> &'static [(&'static str, &'static str)] {
     }
 }
 
+pub fn menu_entries(menu: &CanvasToolMenu) -> &'static [(&'static str, &'static str)] {
+    if menu.tool == Tool::Pen { &[("Make Selection", "path.toSelection")] } else { entries(menu.has_selection) }
+}
+
+pub fn entry_enabled(app: &PhotocraftApp, menu: &CanvasToolMenu, command: &str) -> bool {
+    if menu.tool == Tool::Pen { menu.has_path && command == "path.toSelection" } else { crate::menus::is_enabled(app, command) }
+}
+
 pub fn open(app: &mut PhotocraftApp, tool: Tool, pos: [f32; 2]) -> bool {
     if !applies(tool) || !pos.iter().all(|v| v.is_finite()) {
         return false;
@@ -41,12 +50,23 @@ pub fn open(app: &mut PhotocraftApp, tool: Tool, pos: [f32; 2]) -> bool {
     app.ui.brush_picker = None;
     app.ui.layer_menu = None;
     let has_selection = app.session.active().is_some_and(|s| s.doc.selection.is_some());
-    app.ui.canvas_tool_menu = Some(CanvasToolMenu { pos, tool, has_selection });
+    let has_path = crate::vector_ui::active_path_name(app).is_some() || app.ui.pen.as_ref().is_some_and(|p| p.knots.len() >= 2);
+    app.ui.canvas_tool_menu = Some(CanvasToolMenu { pos, tool, has_selection, has_path });
     true
 }
 
 pub fn choose(app: &mut PhotocraftApp, ctx: &Context, command: &str) {
     let Some(menu) = app.ui.canvas_tool_menu.take() else { return };
+    if menu.tool == Tool::Pen {
+        if command == "path.toSelection"
+            && menu.has_path
+            && let Err(e) = crate::vector_ui::path_to_selection(app, json!({}))
+        {
+            app.ui.status = e;
+            app.ui.status_error = true;
+        }
+        return;
+    }
     if !entries(menu.has_selection).iter().any(|&(_, id)| id == command) || !crate::menus::is_enabled(app, command) {
         return;
     }
@@ -79,9 +99,9 @@ pub fn show(app: &mut PhotocraftApp, ctx: &Context) {
             v.widgets.hovered.corner_radius = egui::CornerRadius::same(3);
             ui.spacing_mut().item_spacing.y = 0.0;
             ui.set_width(200.0);
-            for &(label, command) in entries(menu.has_selection) {
+            for &(label, command) in menu_entries(&menu) {
                 let item = egui::Button::selectable(false, tl!(&label)).min_size(egui::vec2(200.0, 22.0));
-                if ui.add_enabled(crate::menus::is_enabled(app, command), item).clicked() {
+                if ui.add_enabled(entry_enabled(app, &menu, command), item).clicked() {
                     selected = Some(command);
                 }
             }
@@ -185,5 +205,42 @@ mod tests {
         let before = app.session.journal.len();
         choose(&mut app, &Context::default(), "file.new");
         assert_eq!(app.session.journal.len(), before, "context menu cannot invoke an unrelated command");
+    }
+
+    #[test]
+    fn completed_pen_path_right_click_makes_selection() {
+        let mut app = app();
+        app.ui.tool = Tool::Pen;
+        for (x, y) in [(2.0, 2.0), (20.0, 2.0), (20.0, 20.0)] {
+            crate::vector_ui::pen_down(&mut app, x, y);
+            crate::vector_ui::pen_up(&mut app);
+        }
+        crate::vector_ui::pen_commit(&mut app, true);
+        assert!(app.session.active().unwrap().doc.work_path.is_some());
+        let mut h = harness(app);
+        let center = h.state().last_canvas_rect.center();
+        right_click(&mut h, center, Modifiers::NONE);
+        assert!(h.state().ui.canvas_tool_menu.as_ref().is_some_and(|m| m.tool == Tool::Pen && m.has_path));
+        let ctx = h.ctx.clone();
+        choose(h.state_mut(), &ctx, "path.toSelection");
+        assert!(h.state().session.active().unwrap().doc.selection.is_some());
+        assert_eq!(h.state().session.journal.last().map(|(id, _)| id.as_str()), Some("path.toSelection"));
+    }
+
+    #[test]
+    fn pen_menu_finishes_in_progress_path_before_selection() {
+        let mut app = app();
+        app.ui.tool = Tool::Pen;
+        for (x, y) in [(2.0, 2.0), (20.0, 2.0), (20.0, 20.0)] {
+            crate::vector_ui::pen_down(&mut app, x, y);
+            crate::vector_ui::pen_up(&mut app);
+        }
+        assert!(app.session.active().unwrap().doc.work_path.is_none());
+        assert!(open(&mut app, Tool::Pen, [10.0, 10.0]));
+        let menu = app.ui.canvas_tool_menu.as_ref().unwrap();
+        assert!(entry_enabled(&app, menu, "path.toSelection"));
+        choose(&mut app, &Context::default(), "path.toSelection");
+        assert!(app.session.active().unwrap().doc.work_path.is_some());
+        assert!(app.session.active().unwrap().doc.selection.is_some());
     }
 }
