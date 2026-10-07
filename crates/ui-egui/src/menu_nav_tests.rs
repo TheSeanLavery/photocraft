@@ -408,7 +408,7 @@ fn level_room_keeps_every_level_below_the_bar() {
     assert!(level_room(screen, bar, 2, Some(odd), frame) <= below);
     assert_eq!(level_room(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(100.0, 40.0)), bar, 1, None, frame), 4.0 * ARROW);
     assert_eq!(level_room(screen, Some(f32::NAN), 1, None, frame), level_room(screen, None, 1, None, frame));
-    assert_eq!(level_room(egui::Rect::NOTHING, bar, 2, Some(row), frame), 4.0 * ARROW);
+    assert_eq!(level_room(egui::Rect::NOTHING, bar, 2, Some(row), frame), 2.0 * ARROW + 1.0);
 }
 
 /// #315: a 1366 × 768 pt display with a Windows taskbar. `window` is the window's content size and

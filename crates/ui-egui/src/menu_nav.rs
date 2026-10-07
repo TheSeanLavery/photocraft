@@ -294,7 +294,9 @@ pub fn level_room_in(screen: Rect, visible: Rect, bar_bottom: Option<f32>, depth
         }
         None => below_bar,
     } - frame;
-    if room.is_finite() { room.max(4.0 * ARROW) } else { 4.0 * ARROW }
+    // A submenu near the taskbar may have room for only the arrows and a sliver of rows.
+    let minimum = if depth > 1 { 2.0 * ARROW + 1.0 } else { 4.0 * ARROW };
+    if room.is_finite() { room.max(minimum) } else { minimum }
 }
 
 /// Draw one level of a menu, bounded by the window: when its rows don't fit they scroll, with

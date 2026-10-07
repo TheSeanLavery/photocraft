@@ -806,6 +806,8 @@ fn render_level_rows(ui: &mut egui::Ui, items: &[&MenuItem], depth: usize, click
     // Items never wrap: the menu widens to its longest label plus shortcut (translations can be
     // longer than the English).
     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+    ui.spacing_mut().interact_size.y = 22.0;
+    ui.spacing_mut().item_spacing.y = 2.0;
     if t.pro {
         // Spectrum/macOS menus: blue highlight row with white text.
         let v = &mut ui.style_mut().visuals;
@@ -813,7 +815,7 @@ fn render_level_rows(ui: &mut egui::Ui, items: &[&MenuItem], depth: usize, click
         v.widgets.hovered.bg_fill = t.accent;
         v.widgets.hovered.fg_stroke = egui::Stroke::new(1.0, egui::Color32::WHITE);
         v.widgets.hovered.corner_radius = egui::CornerRadius::same(3);
-        ui.spacing_mut().button_padding = egui::vec2(10.0, 4.0);
+        ui.spacing_mut().button_padding = egui::vec2(10.0, 2.0);
     }
     // Walk in Photoshop order: leaves and separators at this depth; a submenu appears at the position
     // of its first child.
@@ -1013,11 +1015,13 @@ mod tests {
             harness.run_steps(3);
             harness.get_by_label("File").click();
             harness.run_steps(3);
-            let a = harness.get_by_label_contains("New…").rect();
-            let b = harness.get_by_label_contains("Open…").rect();
+            let a = harness.get_by_label_contains("Open…").rect();
+            let b = harness.get_by_label_contains("Open As…").rect();
             let font = egui::TextStyle::Button.resolve(&harness.ctx.global_style()).size;
             assert!(a.height() >= font + 8.0, "{theme:?}: item height {} for a {font} pt font", a.height());
+            assert!(a.height() <= font + 11.0, "{theme:?}: item height {} is too tall for a {font} pt font", a.height());
             assert!(b.top() - a.top() >= font + 10.0, "{theme:?}: rows {} apart", b.top() - a.top());
+            assert!(b.top() - a.top() <= font + 14.0, "{theme:?}: rows {} apart", b.top() - a.top());
         }
     }
 
