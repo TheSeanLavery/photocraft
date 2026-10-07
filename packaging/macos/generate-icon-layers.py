@@ -15,7 +15,9 @@ def layer(name: str, shapes: list[ET.Element], fill: str) -> None:
     # Icon Composer positions SVGs by their intrinsic size. Keep the 512-unit drawing grid,
     # but declare a full 1024-point layer so it fills Apple's icon canvas.
     root = ET.Element(f"{{{NS}}}svg", {"width": "1024", "height": "1024", "viewBox": "0 0 512 512"})
-    group = ET.SubElement(root, f"{{{NS}}}g", {"fill": fill})
+    # Keep foreground marks clear of the macOS rounded-corner mask. The background fill
+    # remains full bleed; Icon Composer supplies the outer shape and lighting.
+    group = ET.SubElement(root, f"{{{NS}}}g", {"fill": fill, "transform": "translate(25.6 25.6) scale(0.9)"})
     for shape in shapes:
         item = copy.deepcopy(shape)
         item.attrib.pop("fill", None)
