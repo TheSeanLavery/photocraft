@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="PhotoCraft filmstrip logo">
-  <path fill="#220c02" d="M0 0h512v512H0z"/>
-  <rect x="1" y="1" width="510" height="510" rx="79" fill="#ffa20a"/>
+  <rect x="1" y="1" width="510" height="510" rx="58" fill="#ffa20a"/>
   <rect x="83" y="49" width="347" height="406" rx="18" fill="#f06000"/>
   <g fill="#2b0e02">
     <rect x="17" y="48" width="48" height="60" rx="10"/><rect x="17" y="153" width="48" height="60" rx="10"/><rect x="17" y="266" width="48" height="60" rx="10"/><rect x="17" y="378" width="48" height="60" rx="10"/>

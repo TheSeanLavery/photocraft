@@ -4,7 +4,6 @@
     <radialGradient id="panel"><stop stop-color="#f36500"/><stop offset="1" stop-color="#ed5900"/></radialGradient>
     <linearGradient id="ink" x2="100%" y2="100%"><stop stop-color="#210a00"/><stop offset="1" stop-color="#351203"/></linearGradient>
   </defs>
-  <path fill="#220c02" d="M0 0h512v512H0z"/>
   <rect x="1" y="1" width="510" height="510" rx="79" fill="url(#frame)"/>
   <rect x="83" y="49" width="347" height="406" rx="18" fill="url(#panel)"/>
   <g fill="url(#ink)">

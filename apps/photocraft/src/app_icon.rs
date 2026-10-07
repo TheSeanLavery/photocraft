@@ -51,6 +51,8 @@ mod tests {
         assert!(icon.width >= 256 && icon.width == icon.height, "{}x{}", icon.width, icon.height);
         assert_eq!(icon.rgba.len(), icon.width as usize * icon.height as usize * 4);
         assert!(icon.rgba.chunks(4).any(|p| p[3] > 0), "the icon isn't blank");
+        assert_eq!(icon.rgba[3], 0, "the app icon's top-left corner must be transparent");
+        assert_eq!(icon.rgba[icon.rgba.len() - 1], 0, "the app icon's bottom-right corner must be transparent");
     }
 
     /// The `.ico` build.rs embeds: every size Windows asks for, each a valid PNG or BMP image.
