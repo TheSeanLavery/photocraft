@@ -794,6 +794,13 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
     let t = Tokens::get(ui.ctx());
     if section == "performance" {
         rendering_mode_row(ui, obj);
+        ui.label(tl!("The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional."));
+    }
+    if section == "scratchDisks" {
+        #[cfg(not(target_arch = "wasm32"))]
+        ui.label(tl!("Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session."));
+        #[cfg(target_arch = "wasm32")]
+        ui.label(tl!("This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app."));
     }
     let mut keys: Vec<String> = order.iter().filter(|k| obj.contains_key(*k)).cloned().collect();
     keys.extend(obj.keys().filter(|k| !order.contains(k)).cloned());
@@ -806,7 +813,11 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
                 continue;
             }
             let v = obj.get(&k).cloned().unwrap_or(Value::Null);
-            let human = humanize(&k);
+            let human = match path.as_str() {
+                "performance.memoryUsageMb" => "Memory budget (MiB)".to_string(),
+                "scratchDisks.budgetMb" => "Undo disk budget (MiB)".to_string(),
+                _ => humanize(&k),
+            };
             let label = tl!(&human).to_string();
             match &v {
                 Value::Bool(b) => {
@@ -1403,9 +1414,12 @@ mod tests {
         assert!(has_visible_fields(&values, "general"));
         assert!(has_visible_fields(&values, "fileHandling"));
         // Every setting of these sections is still unimplemented.
-        for section in ["type", "enhancedControls", "rawDefaults", "integrations", "scratchDisks"] {
+        for section in ["type", "enhancedControls", "rawDefaults", "integrations"] {
             assert!(!has_visible_fields(&values, section), "{section}");
         }
+        assert!(has_visible_fields(&values, "scratchDisks"));
+        assert!(!prefs::is_hidden("scratchDisks.disks"));
+        assert!(!prefs::is_hidden("scratchDisks.budgetMb"));
         assert!(prefs::is_hidden("rawDefaults.applyAutoTone"));
         assert!(!prefs::is_hidden("general.autoShowHomeScreen"));
         assert!(!prefs::is_hidden("interface.uiScale"));

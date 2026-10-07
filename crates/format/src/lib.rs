@@ -23,9 +23,13 @@
 pub mod atomic;
 pub mod autosave;
 mod convert;
+#[cfg(not(target_arch = "wasm32"))]
+mod history;
 pub mod manifest;
 mod migrate;
 mod store;
+#[cfg(not(target_arch = "wasm32"))]
+pub use history::{HistoryArchive, HistorySnapshot};
 pub mod zip;
 
 use std::path::Path;

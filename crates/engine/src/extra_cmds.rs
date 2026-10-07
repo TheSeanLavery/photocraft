@@ -281,17 +281,28 @@ fn transform_preset(s: &mut Session, kind: &str) -> Result<Value> {
 
 // ---------- selection / clipboard ----------
 
-fn reselect_target(s: &Session) -> Option<photocraft_raster::Surface> {
-    let d = s.active()?;
+fn reselect_target(s: &Session) -> Result<Option<photocraft_raster::Surface>> {
+    let d = s.active().ok_or(EngineError::NoDocument)?;
     if d.doc.selection.is_some() {
-        return None;
+        return Ok(None);
     }
-    (0..d.history.past_len()).rev().find_map(|i| d.history.state(i).and_then(|doc| doc.selection.clone()))
+    for i in (0..d.history.past_len()).rev() {
+        if let Some(doc) = d.history.try_state(i).map_err(EngineError::Other)?
+            && let Some(selection) = &doc.selection
+        {
+            return Ok(Some(selection.clone()));
+        }
+    }
+    Ok(None)
 }
 
 fn can_reselect(s: &Session) -> std::result::Result<(), String> {
     has_doc(s)?;
-    reselect_target(s).map(|_| ()).ok_or_else(|| "there is no selection to restore".into())
+    if s.active().is_some_and(|d| d.doc.selection.is_none() && d.history.has_past_selection()) {
+        Ok(())
+    } else {
+        Err("there is no selection to restore".into())
+    }
 }
 
 fn paste_into(s: &mut Session, p: &Value, outside: bool) -> Result<Value> {
@@ -582,7 +593,7 @@ pub fn specs() -> Vec<CommandSpec> {
             paste_into(s, p, true)
         }),
         spec!("select.reselect", "Reselect", &["Select"], Some("Cmd+Shift+D"), "{}", can_reselect, |s, _| {
-            let m = reselect_target(s).ok_or(EngineError::Other("there is no selection to restore".into()))?;
+            let m = reselect_target(s)?.ok_or(EngineError::Other("there is no selection to restore".into()))?;
             s.edit("Reselect", |doc, _| {
                 doc.selection = Some(m);
                 Ok(())
