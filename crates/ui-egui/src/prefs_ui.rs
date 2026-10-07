@@ -203,14 +203,10 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
     presets_store(app);
     sync_tooltips(app, ctx);
     app.sync_recent();
-    if app.session.prefs.rev() != app.prefs_rt.saved_rev {
-        app.prefs_rt.saved_rev = app.session.prefs.rev();
-        let text = app.session.prefs_to_json();
-        if let Some(save) = app.services.save_prefs.as_mut()
-            && let Err(e) = save(&text)
-        {
-            app.ui.status = format!("Couldn't save preferences: {e}");
-        }
+    if app.session.prefs.rev() != app.prefs_rt.saved_rev
+        && let Err(e) = save_preferences(app)
+    {
+        app.ui.status = format!("Couldn't save preferences: {e}");
     }
     let style = canvas_style(app);
     if let Some(gpu) = app.gpu.as_ref()
@@ -221,6 +217,15 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
     }
     autosave(app);
     history_log(app);
+}
+
+/// Persist one revision, also used by recovery choices that need a save result immediately.
+pub(crate) fn save_preferences(app: &mut PhotocraftApp) -> Result<(), String> {
+    app.prefs_rt.saved_rev = app.session.prefs.rev();
+    if let Some(save) = app.services.save_prefs.as_mut() {
+        save(&app.session.prefs_to_json())?;
+    }
+    Ok(())
 }
 
 /// Background autosave of documents with unsaved changes every N minutes (File Handling).
@@ -537,8 +542,7 @@ pub fn open_preferences(app: &mut PhotocraftApp, section: &str) -> u64 {
     let section = if SECTIONS.iter().any(|(id, _)| *id == section) { section } else { "general" };
     let working = preference_values(app.session.prefs());
     let order = field_order(app.session.prefs(), &working);
-    let gpu = app.perf.gpu_info.lines();
-    open_kind(app, "prefs", "Preferences", json!({"section": section, "values": working, "__order": order, "__gpuInfo": gpu}))
+    open_kind(app, "prefs", "Preferences", json!({"section": section, "values": working, "__order": order}))
 }
 
 /// Each section's keys in declaration order (JSON objects sort their keys; the serialised text
@@ -605,7 +609,10 @@ pub fn open_mismatch(app: &mut PhotocraftApp, report: &Value) -> u64 {
 /// Render one of our dialogs' bodies.
 pub fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     match f.get("__prefsui").and_then(Value::as_str).unwrap_or("") {
-        "prefs" => prefs_body(ui, f),
+        "prefs" => {
+            f.insert("__gpuInfo".into(), json!(app.perf.gpu_info.lines()));
+            prefs_body(ui, f);
+        }
         "shortcuts" => shortcuts_body(app, ui, f),
         "presets" => presets_body(app, ui, f),
         "presetsIO" => presets_io_body(ui, f),
@@ -733,14 +740,47 @@ fn gpu_status_rows(ui: &mut egui::Ui, info: Option<&Value>, obj: &mut Map<String
     for line in info.and_then(Value::as_array).into_iter().flatten().filter_map(Value::as_str) {
         ui.label(RichText::new(line).color(t.text_dim));
     }
-    let auto = obj.get("gpuBackend").and_then(Value::as_str) == Some("auto");
     ui.add_space(4.0);
-    ui.horizontal(|ui| {
-        if ui.add_enabled(!auto, egui::Button::new(tl!("Reset GPU Backend"))).clicked() {
-            obj.insert("gpuBackend".into(), json!("auto"));
-        }
-        ui.label(RichText::new(tl!("Applies at next launch.")).color(t.text_faint));
+    ui.label(RichText::new(tl!("Applies at next launch.")).color(t.text_faint));
+    ui.collapsing(tl!("Advanced"), |ui| {
+        ui.horizontal(|ui| {
+            ui.label(tl!("GPU Backend"));
+            let mut current = obj.get("gpuBackend").and_then(Value::as_str).unwrap_or("auto").to_string();
+            let options = prefs::choices("performance.gpuBackend").unwrap_or(&[]);
+            let labels: Vec<String> = options.iter().map(|o| choice_label(o)).collect();
+            let pairs: Vec<(String, &str)> = options.iter().map(|o| o.to_string()).zip(labels.iter().map(String::as_str)).collect();
+            crate::widgets::dropdown(ui, "graphics-backend", &mut current, &pairs, 220.0);
+            obj.insert("gpuBackend".into(), json!(current));
+        });
     });
+}
+
+/// One user-facing choice; legacy flags remain compatible with older settings.
+fn rendering_mode_row(ui: &mut egui::Ui, obj: &mut Map<String, Value>) {
+    let mut current = rendering_mode_value(obj);
+    ui.horizontal(|ui| {
+        ui.label(tl!("Rendering Mode"));
+        let pairs =
+            vec![("auto".to_string(), tl!("Automatic (recommended)")), ("gpu".to_string(), tl!("GPU")), ("cpu".to_string(), tl!("CPU / Compatibility"))];
+        let previous = current.clone();
+        crate::widgets::dropdown(ui, "rendering-mode", &mut current, &pairs, 240.0);
+        if current != previous {
+            obj.insert("renderingMode".into(), json!(current));
+            obj.insert("useGpu".into(), json!(current != "cpu"));
+        }
+    });
+    ui.label(tl!("Automatic uses GPU acceleration when available and falls back to CPU rendering on errors."));
+    ui.add_space(8.0);
+}
+
+fn rendering_mode_value(obj: &Map<String, Value>) -> String {
+    obj.get("renderingMode").and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| {
+        if obj.get("useGpu").and_then(Value::as_bool) == Some(false) || obj.get("gpuBackend").and_then(Value::as_str) == Some("cpu") {
+            "cpu".into()
+        } else {
+            "auto".into()
+        }
+    })
 }
 
 /// Does `section` have any setting the dialog shows (see [`prefs::HIDDEN_UNTIL_IMPLEMENTED`])?
@@ -752,6 +792,9 @@ fn has_visible_fields(values: &Value, section: &str) -> bool {
 /// number fields with the preference's range, text fields.
 fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>, order: &[String], lang: crate::i18n::Lang) {
     let t = Tokens::get(ui.ctx());
+    if section == "performance" {
+        rendering_mode_row(ui, obj);
+    }
     let mut keys: Vec<String> = order.iter().filter(|k| obj.contains_key(*k)).cloned().collect();
     keys.extend(obj.keys().filter(|k| !order.contains(k)).cloned());
     egui::Grid::new(("prefs-grid", section)).num_columns(2).spacing([14.0, 7.0]).show(ui, |ui| {
@@ -759,7 +802,7 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
             let path = format!("{section}.{k}");
             // Settings nothing reads yet stay out of the dialog (issue #204); their stored values
             // pass through untouched.
-            if prefs::is_hidden(&path) {
+            if prefs::is_hidden(&path) || (section == "performance" && matches!(k.as_str(), "useGpu" | "gpuBackend" | "renderingMode")) {
                 continue;
             }
             let v = obj.get(&k).cloned().unwrap_or(Value::Null);
@@ -1197,6 +1240,16 @@ mod shortcut_capture_tests;
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn rendering_mode_display_respects_explicit_mode_and_legacy_disable() {
+        let legacy = serde_json::json!({"useGpu": false, "gpuBackend": "auto"});
+        assert_eq!(super::rendering_mode_value(legacy.as_object().unwrap()), "cpu");
+        let explicit = serde_json::json!({"renderingMode": "gpu", "useGpu": false, "gpuBackend": "cpu"});
+        assert_eq!(super::rendering_mode_value(explicit.as_object().unwrap()), "gpu");
+        let automatic = serde_json::json!({"renderingMode": null, "useGpu": true, "gpuBackend": "auto"});
+        assert_eq!(super::rendering_mode_value(automatic.as_object().unwrap()), "auto");
+    }
     use super::*;
     use std::sync::{Arc, Mutex};
 
