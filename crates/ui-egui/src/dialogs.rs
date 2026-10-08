@@ -187,7 +187,12 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 }
                 DialogKind::Command if fields.contains_key("__form") => crate::view_cmds::form_body(ui, &mut fields),
                 DialogKind::Command => {}
-                DialogKind::LayerStyle => crate::layer_style::body(app, ui, &mut fields),
+                DialogKind::LayerStyle => {
+                    // Keep the confirmation buttons reachable on small laptop windows while
+                    // allowing the long effect pages to scroll independently of the footer.
+                    let body_height = (ctx.content_rect().height() - 110.0).max(180.0);
+                    egui::ScrollArea::vertical().max_height(body_height).show(ui, |ui| crate::layer_style::body(app, ui, &mut fields));
+                }
                 DialogKind::Error => {
                     ui.label(fields.get("message").and_then(Value::as_str).unwrap_or("Error"));
                 }
@@ -355,6 +360,24 @@ pub fn open_command_dialog(app: &mut PhotocraftApp, command: &str, label: &str) 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn layer_style_confirmation_stays_on_screen_in_a_small_window() {
+        use egui_kittest::{Harness, kittest::Queryable};
+
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        app.run("file.new", json!({"width": 480, "height": 320})).unwrap();
+        app.run("layer.new.layer", json!({})).unwrap();
+        let mut harness = Harness::builder().with_size(egui::vec2(900.0, 600.0)).build_ui_state(|ui, app| show(app, ui.ctx()), app);
+        PhotocraftApp::setup_context(&harness.ctx, crate::theme::ThemeKind::ALL[0]);
+        crate::layer_style::open(harness.state_mut(), Some("dropShadow")).unwrap();
+        harness.run_steps(3);
+
+        for label in ["OK", "Cancel"] {
+            let rect = harness.get_by_label(label).rect();
+            assert!(rect.top() >= 0.0 && rect.bottom() <= 600.0, "{label} is outside the viewport: {rect:?}");
+        }
+    }
 
     #[test]
     fn dragging_the_title_bar_moves_the_dialog() {
