@@ -19,7 +19,8 @@ env:
 jobs:
   macos:
     name: Mac ${{ matrix.arch }} packages
-    runs-on: macos-15
+    # The layered PhotoCraft icon needs Xcode 26 actool to produce Assets.car.
+    runs-on: macos-26
     timeout-minutes: 120
     strategy:
       fail-fast: false
