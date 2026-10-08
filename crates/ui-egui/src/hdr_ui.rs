@@ -22,22 +22,22 @@ pub fn swatch(app: &PhotocraftApp, ui: &mut egui::Ui, rect: Rect, color: [f32; 4
         let b = photocraft_compose::Buffer::filled(photocraft_geom::Rect::new(0, 0, 1, 1), color);
         if let Ok(display) = app.session.color.canvas_display(&st.doc) {
             let signature = egui::Id::new((app.session.color.display_signature(&st.doc), color.map(f32::to_bits))).value();
-            let mode = if let Some((_, mode)) = g.display_lut_signature(key).filter(|(saved, _)| *saved == signature) {
+            let mode = if let Some((_, mode)) = g.display_lut_signature(key, 0).filter(|(saved, _)| *saved == signature) {
                 mode
             } else {
                 let b = display.texture_buffer(&b);
                 g.upload_buffer_full(key, &b, photocraft_color::SampleType::F32);
                 let mode = match app.session.color.gpu_canvas_lut(&st.doc, 33) {
                     Ok(Some(lut)) => {
-                        g.set_display_lut(key, 33, Some(&lut));
+                        g.set_display_lut(key, 0, 33, Some(&lut));
                         1
                     }
                     _ => {
-                        g.set_display_lut(key, 33, None);
+                        g.set_display_lut(key, 0, 33, None);
                         0
                     }
                 };
-                g.cache_display_lut_signature(key, signature, mode);
+                g.cache_display_lut_signature(key, 0, signature, mode);
                 mode
             };
             crate::gpu_canvas::GpuCanvas::paint(
@@ -45,6 +45,7 @@ pub fn swatch(app: &PhotocraftApp, ui: &mut egui::Ui, rect: Rect, color: [f32; 4
                 rect,
                 crate::gpu_canvas::ViewParams {
                     doc: key,
+                    output: 0,
                     doc_size: [1, 1],
                     zoom: rect.width().max(rect.height()),
                     center: [0.5, 0.5],
