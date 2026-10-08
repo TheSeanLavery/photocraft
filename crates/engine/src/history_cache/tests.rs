@@ -2,7 +2,16 @@ use super::*;
 use photocraft_doc::{Color, ColorMode, SampleType, Size};
 
 fn document(name: &str, depth: SampleType) -> Document {
-    Document::with_background(name, Size::new(512, 512), ColorMode::Rgb, depth, Color::WHITE)
+    let mut doc = Document::with_background(name, Size::new(512, 512), ColorMode::Rgb, depth, Color::WHITE);
+    // Solid fills share one COW tile across the canvas. Touch each tile so these
+    // tests actually exceed the 1 MiB RAM budget and exercise spill/trim paths.
+    let surface = doc.layers.first_mut().and_then(|layer| layer.surface_mut()).unwrap();
+    for y in [0, 256] {
+        for x in [0, 256] {
+            surface.write_pixel(x, y, &[0.5, 0.5, 0.5, 1.0]);
+        }
+    }
+    doc
 }
 
 fn small_cache(disk_mb: u32) -> Session {
