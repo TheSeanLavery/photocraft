@@ -156,6 +156,7 @@ fn main() {
         harness.step();
         harness.event(egui::Event::PointerButton { pos, button, pressed: false, modifiers: egui::Modifiers::NONE });
         harness.run_steps(4);
+    }
     if recovery_error.is_some() {
         photocraft_ui_egui::prefs_ui::autosave_now(harness.state_mut());
     }

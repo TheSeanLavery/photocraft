@@ -24,10 +24,10 @@ pub fn sink(feed: StylusFeed) -> impl Fn(Option<Sample>) + Send + 'static {
 /// Install the AppKit tablet monitor (main thread, before the event loop). Keep the result until
 /// the event loop returns. On failure this logs why: pens then paint like a mouse.
 #[cfg(target_os = "macos")]
-pub fn install_macos(feed: &StylusFeed, trackpad: &TrackpadFeed) -> Option<photocraft_tablet::macos::Monitor> {
+pub fn install_macos(feed: &StylusFeed, trackpad: &TrackpadFeed, motion: &photocraft_tablet::motion::Feed) -> Option<photocraft_tablet::macos::Monitor> {
     let pressure_feed = trackpad.clone();
     let enabled_feed = trackpad.clone();
-    photocraft_tablet::macos::Monitor::install_with_trackpad(sink(feed.clone()), move |pressure| pressure_feed.set(pressure), move || enabled_feed.is_enabled())
+    photocraft_tablet::macos::Monitor::with_motion_and_trackpad(sink(feed.clone()), move |pressure| pressure_feed.set(pressure), move || enabled_feed.is_enabled(), motion.clone())
         .map_err(|e| log::warn!("{e}"))
         .ok()
 }

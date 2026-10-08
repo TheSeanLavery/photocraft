@@ -23,6 +23,7 @@ pub mod analysis_ui;
 pub mod artboard_ui;
 mod brand;
 mod brush_cursor;
+mod brush_input;
 pub mod brush_panel;
 pub mod brush_picker;
 pub mod brush_preview;
@@ -239,11 +240,29 @@ pub type AppendTextFn = Box<dyn FnMut(&str, &str) -> Result<(), String>>;
 pub type OsEventsFn = Box<dyn FnMut() -> Vec<OsEvent>>;
 /// Where the OS pointer is now, in egui points within the window; `None` when unknown.
 pub type CursorPosFn = Box<dyn FnMut(&egui::Context) -> Option<egui::Pos2>>;
+/// Window events in egui points. Every press is synchronized, even if painting ignores it.
+#[derive(Clone, Copy)]
+pub enum MouseMotion {
+    Press {
+        position: egui::Pos2,
+        button: egui::PointerButton,
+    },
+    Move {
+        from: egui::Pos2,
+        to: egui::Pos2,
+    },
+    /// Drop samples not consumed by this frame (dialogs, other tools, rejected presses).
+    EndFrame,
+}
+/// The second argument is UI zoom, not display DPI. Returned interior points are in egui
+/// points, exclude the OS endpoint, and consume the matching native segment once.
+pub type MotionSamplesFn = Box<dyn FnMut(MouseMotion, f32) -> Vec<egui::Pos2>>;
 
 /// Platform services injected by the app binary (file dialogs, codecs), keeping this crate free of
 /// I/O dependencies.
 #[derive(Default)]
 pub struct Services {
+    pub motion_samples: Option<MotionSamplesFn>,
     /// Decode a file's bytes into a document (PSD, PNG, JPEG, …).
     pub import: Option<ImportFn>,
     /// Encode a document for a file name (format chosen by extension).
@@ -455,6 +474,7 @@ pub struct PhotocraftApp {
     pub(crate) allow_close: bool,
     /// Pen pressure/tilt from the platform (see `stylus`).
     pub stylus: stylus::Stylus,
+    pub(crate) brush_input: brush_input::BrushInput,
     /// Run long commands and file opens as background jobs with progress and Cancel (#210; see
     /// `jobs_ui`). The desktop app turns it on; off (the default), everything runs inline as
     /// before, which tests and scripts rely on.
@@ -543,6 +563,7 @@ impl PhotocraftApp {
             tiff_options: None,
             allow_close: false,
             stylus: Default::default(),
+            brush_input: Default::default(),
             background_jobs: false,
             jobs: Default::default(),
             #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
@@ -1035,6 +1056,7 @@ impl eframe::App for PhotocraftApp {
             self.open_dropped(ctx, dropped, at);
         }
         self.place_next_dropped(ctx);
+        brush_input::sync_capture(self, ctx);
         // The control transport wakes the UI on arrival (ctx.request_repaint); only poll while a
         // screenshot is pending. (Polling every 50 ms here made idle apps render at 20 fps.)
         if !self.pending_screenshots.is_empty() {
@@ -1058,6 +1080,9 @@ impl eframe::App for PhotocraftApp {
         i18n::set_current(i18n::Lang::from_pref(&self.session.prefs().interface.language));
         // Fonts registered via set_fonts only take effect next frame; named families would panic now.
         if !self.fonts_ready {
+            if let Some(read) = self.services.motion_samples.as_mut() {
+                read(MouseMotion::EndFrame, ctx.zoom_factor());
+            }
             ctx.request_repaint();
             self.automation_input = false;
             return;
@@ -1112,6 +1137,9 @@ impl eframe::App for PhotocraftApp {
         }
         // A device lost while drawing this frame: switch to the CPU canvas before the next one.
         gpu_status::check(self, &ctx);
+        if let Some(read) = self.services.motion_samples.as_mut() {
+            read(MouseMotion::EndFrame, ctx.zoom_factor());
+        }
         self.automation_input = false;
         native_menu::sync(self, &ctx);
         self.perf.frame(gpu_canvas::now_ms() - t0);

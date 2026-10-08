@@ -267,9 +267,7 @@ fn begin_live_stroke(app: &PhotocraftApp) -> Option<LiveStroke> {
 
 /// Render the drag points the live stroke hasn't seen yet, with the pen pressure, tilt and
 /// rotation the commit's `paint.stroke` gets for them.
-fn feed_live_stroke(app: &mut PhotocraftApp) {
-    // A batched move replays several samples in one frame and calls this once at the end, so the
-    // per-sample calls from `tool_event` are skipped (see `canvas_view`).
+pub(crate) fn feed_live_stroke(app: &mut PhotocraftApp) {
     if app.defer_live_stroke {
         return;
     }
@@ -359,7 +357,7 @@ pub enum ToolEvent {
 }
 
 /// Document ↔ screen mapping for a canvas rect and a view.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ViewXform {
     pub rect: Rect,
     pub zoom: f32,
@@ -1863,6 +1861,9 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         None if middle => Tool::Hand,
         None => app.ui.tool,
     };
+    if primary {
+        crate::brush_input::sync_effective_tool(app, tool);
+    }
     // Zoom direction: the temporary zoom key decides, else ⌥ (Zoom tool).
     let zoom_out = |alt: bool| match temporary {
         Some(crate::hold_keys::Temporary::ZoomOut) => true,
@@ -1934,8 +1935,8 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             crate::canvas_tool_menu::open(app, tool, [p.x, p.y]);
         }
         // The (temporary) Hand pans above; its gestures never reach the tool underneath.
-        if tool == Tool::Hand {
-            (buttons.started, buttons.dragged, buttons.stopped) = (false, false, false);
+        if crate::brush_input::route(app, &response, &xf, tool) || tool == Tool::Hand {
+            buttons = crate::paint_mouse::Buttons::default();
         }
         // Zoom tool drags: scrubby zoom or a zoom rectangle (zoom_tool.rs); clicks step below.
         if tool == Tool::Zoom && crate::zoom_tool::drag(app, &ctx, &mut view, &xf, &buttons, response.interact_pointer_pos()) {
@@ -2120,14 +2121,8 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                     };
                     match cur.painting {
                         PaintingCursor::Standard => egui::CursorIcon::Default,
-                        PaintingCursor::Precise => {
-                            crosshair(6.0);
-                            egui::CursorIcon::None
-                        }
-                        _ if painting && cur.show_only_crosshair_while_painting => {
-                            crosshair(5.0);
-                            egui::CursorIcon::None
-                        }
+                        PaintingCursor::Precise => egui::CursorIcon::Crosshair,
+                        _ if painting && cur.show_only_crosshair_while_painting => egui::CursorIcon::Crosshair,
                         // The Pencil: the square of whole pixels its dab fills, on the pixel grid.
                         _ if tool == Tool::Pencil => {
                             let ppp = painter.ctx().pixels_per_point();
@@ -2537,7 +2532,13 @@ fn tool_move(app: &mut PhotocraftApp, x: f64, y: f64, pressure: f32, mods: egui:
         // ⇧: straight 0/45/90° strokes, 45° gradient angles (stroke_constraint.rs).
         let last = d.points.last().map_or(d.start, |p| [p[0], p[1]]);
         let [x, y] = crate::stroke_constraint::constrain(d.tool, &mut d.constrain, d.start, last, [x, y], mods.shift, zoom);
-        if d.points.last().is_none_or(|p| (p[0] - x).abs() + (p[1] - y).abs() > 0.25) {
+        if d.points.last().is_none_or(|p| {
+            if d.tool.is_brushlike() || d.tool == Tool::QuickSelection {
+                p[0] != x || p[1] != y || p[2] != f64::from(pressure)
+            } else {
+                (p[0] - x).abs() + (p[1] - y).abs() > 0.25
+            }
+        }) {
             d.points.push([x, y, pressure as f64]);
             app.stylus.record_point();
         }
@@ -2729,7 +2730,9 @@ pub fn tool_event(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers)
         }
         ToolEvent::Move { x, y, pressure } => {
             tool_move(app, x, y, pressure, mods);
-            feed_live_stroke(app);
+            if !app.brush_input.defer_preview {
+                feed_live_stroke(app);
+            }
         }
         ToolEvent::Up { x, y } => {
             if tool.is_type()
@@ -2823,6 +2826,18 @@ fn finish_selection_drag(app: &mut PhotocraftApp, floating: bool, start: [f64; 2
         app.ui.status = e;
         app.ui.status_error = true;
     }
+}
+
+pub(crate) fn finish_brush_capture(app: &mut PhotocraftApp, tool: Tool) {
+    let previous = app.ui.tool;
+    app.ui.tool = tool;
+    if app.drag.as_ref().is_some_and(|drag| drag.tool == tool) {
+        feed_live_stroke(app);
+        if let Some(drag) = app.drag.take() {
+            finish_gesture(app, drag);
+        }
+    }
+    app.ui.tool = previous;
 }
 
 pub(crate) fn finish_gesture(app: &mut PhotocraftApp, d: Drag) {
