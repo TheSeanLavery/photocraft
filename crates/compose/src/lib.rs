@@ -274,6 +274,29 @@ pub fn render_layer(layer: &Layer, rect: Rect) -> Buffer {
     buf
 }
 
+/// Alpha of a layer's own visible content at a document point. Move-tool picking uses the
+/// compositing path so fill geometry, cached PSD fills, pixel masks and vector masks agree with
+/// what the canvas actually shows. Layer/group opacity and ancestor clipping are checked by the
+/// caller; effects are intentionally not part of the content hit area.
+pub fn content_alpha_at(doc: &Document, layer: &Layer, x: i32, y: i32) -> f32 {
+    let Some(x1) = x.checked_add(1) else { return 0.0 };
+    let Some(y1) = y.checked_add(1) else { return 0.0 };
+    let rect = Rect::new(x, y, x1, y1);
+    let patterns = pattern::PreparedPatterns::new(&doc.patterns, pattern::PREPARED_PATTERN_BYTES);
+    let cx = Ctx::for_doc(doc, &patterns);
+    render_content(layer, rect, &cx).and_then(|b| b.px.first().map(|p| p[3])).unwrap_or(0.0)
+}
+
+/// A group's pixel/vector mask at one point without recompositing all its children.
+pub fn mask_alpha_at(doc: &Document, layer: &Layer, x: i32, y: i32) -> f32 {
+    let Some(x1) = x.checked_add(1) else { return 0.0 };
+    let Some(y1) = y.checked_add(1) else { return 0.0 };
+    let rect = Rect::new(x, y, x1, y1);
+    let patterns = pattern::PreparedPatterns::new(&doc.patterns, pattern::PREPARED_PATTERN_BYTES);
+    let cx = Ctx::for_doc(doc, &patterns);
+    mask_vals(layer, rect, &cx).and_then(|v| v.first().copied()).unwrap_or(1.0)
+}
+
 /// Documents above this many pixels get thumbnails from a proxy (see [`proxy`]) when that is
 /// faithful; smaller ones are reduced from the exact composite.
 pub const PROXY_THUMBNAIL_PIXELS: u64 = 16 << 20;

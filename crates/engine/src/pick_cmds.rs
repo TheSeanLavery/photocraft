@@ -3,7 +3,6 @@
 //! layer list).
 
 use photocraft_doc::{Document, LayerContent, LayerId};
-use photocraft_geom::Rect;
 use serde_json::{Value, json};
 
 use crate::commands::CommandSpec;
@@ -15,38 +14,28 @@ fn has_doc(s: &Session) -> std::result::Result<(), String> {
 
 /// Layers with visible pixels at (x, y), topmost first (hidden layers and hidden groups skipped).
 pub fn layers_at(doc: &Document, x: i32, y: i32) -> Vec<LayerId> {
-    // A 1×1 read at i32::MAX would be an empty rect (huge `x` params saturate there).
-    if x.checked_add(1).is_none() || y.checked_add(1).is_none() {
+    if !doc.bounds().contains(x, y) {
         return Vec::new();
     }
     let rows = doc.walk();
     let mut out = Vec::new();
     for (path, _, l) in rows.iter().rev() {
         // The layer and every enclosing group must be visible.
-        if !(1..=path.len()).all(|n| doc.layer_at(&path[..n]).is_some_and(|a| a.visible)) {
+        if !(1..path.len()).all(|n| {
+            doc.layer_at(&path[..n]).is_some_and(|a| {
+                a.visible
+                    && a.opacity > 0.0
+                    && a.fill_opacity > 0.0
+                    && !matches!(&a.content, LayerContent::Group(g) if g.artboard.as_ref().is_some_and(|b| !b.rect.contains(x, y)))
+                    && photocraft_compose::mask_alpha_at(doc, a, x, y) > 0.0
+            })
+        }) {
             continue;
         }
         if matches!(l.content, LayerContent::Group(_) | LayerContent::Adjustment(_)) {
             continue;
         }
-        let alpha = match &l.content {
-            // Fill layers cover the canvas (their mask limits them).
-            LayerContent::Fill(_) => 1.0,
-            _ => match l.surface() {
-                Some(s) => {
-                    let mut px = [[0.0f32; 4]; 1];
-                    s.read_rgba_into(Rect::from_xywh(x, y, 1, 1), &mut px);
-                    px[0][3]
-                }
-                None => 0.0,
-            },
-        };
-        let mask = l.mask.as_ref().filter(|m| m.enabled).map_or(1.0, |m| {
-            let mut v = [0.0f32];
-            m.surface.read_pixel(x, y, &mut v);
-            v[0]
-        });
-        if alpha * mask > 0.0 {
+        if l.visible && l.opacity > 0.0 && l.fill_opacity > 0.0 && photocraft_compose::content_alpha_at(doc, l, x, y) > 0.0 {
             out.push(l.id);
         }
     }
@@ -97,6 +86,8 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use photocraft_doc::{Color, Fill, Layer, comps::Artboard, vector::VectorMask};
+    use photocraft_geom::Rect;
 
     #[test]
     fn picks_topmost_layer_with_pixels() {
@@ -171,6 +162,41 @@ mod tests {
         s.execute("layer.pickAt", json!({"x": 25, "y": 25, "mode": "add"})).unwrap();
         let st = s.active().unwrap();
         assert!(st.is_layer_selected(a) && st.is_layer_selected(b));
+    }
+
+    #[test]
+    fn transparent_fill_and_vector_mask_do_not_steal_the_pick() {
+        let (mut s, a, _) = two_squares();
+        let top = Layer::new("Transparent fill", LayerContent::Fill(Fill::Solid(Color::rgba(1.0, 0.0, 0.0, 0.0))));
+        let id = top.id;
+        std::sync::Arc::make_mut(&mut s.active_mut().unwrap().doc).layers.push(top);
+        assert_eq!(s.execute("layer.pickAt", json!({"x": 5, "y": 5})).unwrap()["layer"], a.0);
+
+        let top = std::sync::Arc::make_mut(&mut s.active_mut().unwrap().doc).layer_mut(id).unwrap();
+        top.content = LayerContent::Fill(Fill::Solid(Color::rgb(1.0, 0.0, 0.0)));
+        assert_eq!(s.execute("layer.pickAt", json!({"x": 5, "y": 5})).unwrap()["layer"], id.0);
+
+        let mut hidden = photocraft_doc::vector::Path::default();
+        hidden.inverted = true;
+        std::sync::Arc::make_mut(&mut s.active_mut().unwrap().doc).layer_mut(id).unwrap().vector_mask = Some(VectorMask::new(hidden));
+        assert_eq!(s.execute("layer.pickAt", json!({"x": 5, "y": 5})).unwrap()["layer"], a.0);
+    }
+
+    #[test]
+    fn group_opacity_and_artboard_clip_limit_child_hits() {
+        let (mut s, a, _) = two_squares();
+        s.execute("layer.select", json!({"layer": a.0})).unwrap();
+        let group = LayerId(s.execute("layer.new.groupFromLayers", json!({"name": "Group"})).unwrap()["layer"].as_u64().unwrap());
+        std::sync::Arc::make_mut(&mut s.active_mut().unwrap().doc).layer_mut(group).unwrap().opacity = 0.0;
+        let bg = s.active().unwrap().doc.layers[0].id;
+        assert_eq!(s.execute("layer.pickAt", json!({"x": 5, "y": 5})).unwrap()["layer"], bg.0);
+        std::sync::Arc::make_mut(&mut s.active_mut().unwrap().doc).layer_mut(group).unwrap().opacity = 1.0;
+        assert_eq!(s.execute("layer.pickAt", json!({"x": 5, "y": 5, "target": "group"})).unwrap()["layer"], group.0);
+        let layer = std::sync::Arc::make_mut(&mut s.active_mut().unwrap().doc).layer_mut(group).unwrap();
+        if let LayerContent::Group(g) = &mut layer.content {
+            g.artboard = Some(Artboard::new(Rect::new(10, 10, 30, 30)));
+        }
+        assert_eq!(s.execute("layer.pickAt", json!({"x": 5, "y": 5})).unwrap()["layer"], bg.0);
     }
 
     #[test]

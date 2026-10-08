@@ -22,7 +22,10 @@ fn bad(msg: impl Into<String>) -> EngineError {
 /// Content scans are cached per tile: snapping asks for every layer's bounds per Move drag.
 pub fn transform_bounds(doc: &Document, layer: &Layer) -> Rect {
     let content = match &layer.content {
-        LayerContent::Group(g) => g.children.iter().map(|l| transform_bounds(doc, l)).fold(Rect::EMPTY, |a, b| a.union(&b)),
+        LayerContent::Group(g) => {
+            let visible = g.children.iter().filter(|l| l.visible).map(|l| transform_bounds(doc, l)).fold(Rect::EMPTY, |a, b| a.union(&b));
+            g.artboard.as_ref().map_or(visible, |a| visible.intersect(&a.rect))
+        }
         _ => layer.surface().map_or(Rect::EMPTY, photocraft_compose::bounds::content_bounds),
     };
     let content =
@@ -423,6 +426,7 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use photocraft_doc::Artboard;
 
     fn session() -> Session {
         let mut s = Session::new();
@@ -440,6 +444,23 @@ mod tests {
     fn active_bounds(s: &Session) -> Rect {
         let st = s.active().unwrap();
         st.doc.layer(st.active_layer.unwrap()).unwrap().surface().unwrap().content_bounds()
+    }
+
+    #[test]
+    fn group_transform_box_ignores_hidden_children_and_artboard_overflow() {
+        let s = session();
+        let doc = &s.active().unwrap().doc;
+        let child = doc.layer(s.active().unwrap().active_layer.unwrap()).unwrap().clone();
+        let mut hidden = child.clone();
+        hidden.visible = false;
+        hidden.surface_mut().unwrap().fill_rect(Rect::new(70, 70, 90, 90), &[1.0, 0.0, 0.0, 1.0]);
+        let group = Layer::group("Group", vec![child, hidden]);
+        assert_eq!(transform_bounds(doc, &group), Rect::new(10, 10, 30, 20));
+        let mut clipped = group;
+        if let LayerContent::Group(g) = &mut clipped.content {
+            g.artboard = Some(Artboard::new(Rect::new(15, 5, 25, 25)));
+        }
+        assert_eq!(transform_bounds(doc, &clipped), Rect::new(15, 10, 25, 20));
     }
 
     #[test]
