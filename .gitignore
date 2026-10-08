@@ -9,3 +9,6 @@ target/
 /temp
 /book/output
 /craft-fonts
+/result
+/result-*
+/.direnv
