@@ -176,8 +176,7 @@ mod tests {
         top.content = LayerContent::Fill(Fill::Solid(Color::rgb(1.0, 0.0, 0.0)));
         assert_eq!(s.execute("layer.pickAt", json!({"x": 5, "y": 5})).unwrap()["layer"], id.0);
 
-        let mut hidden = photocraft_doc::vector::Path::default();
-        hidden.inverted = true;
+        let hidden = photocraft_doc::vector::Path { inverted: true, ..Default::default() };
         std::sync::Arc::make_mut(&mut s.active_mut().unwrap().doc).layer_mut(id).unwrap().vector_mask = Some(VectorMask::new(hidden));
         assert_eq!(s.execute("layer.pickAt", json!({"x": 5, "y": 5})).unwrap()["layer"], a.0);
     }
