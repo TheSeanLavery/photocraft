@@ -19,20 +19,37 @@ pub enum GradientShape {
 
 /// Gradient tool parameter `t` for a drag from `from` to `to`.
 pub fn tool_gradient_t(shape: GradientShape, from: (f32, f32), to: (f32, f32), x: f32, y: f32) -> f32 {
-    let (dx, dy) = (to.0 - from.0, to.1 - from.1);
-    let len = (dx * dx + dy * dy).sqrt().max(1e-6);
-    let (ux, uy) = (dx / len, dy / len);
-    let (px, py) = (x - from.0, y - from.1);
-    let along = px * ux + py * uy;
-    let across = -px * uy + py * ux;
-    let t = match shape {
-        GradientShape::Linear => along / len,
-        GradientShape::Radial => (px * px + py * py).sqrt() / len,
-        GradientShape::Reflected => along.abs() / len,
-        GradientShape::Diamond => (along.abs() + across.abs()) / len,
-        GradientShape::Angle => (across.atan2(along) / std::f32::consts::TAU).rem_euclid(1.0),
-    };
-    t.clamp(0.0, 1.0)
+    PreparedGradient::new(shape, from, to).sample(x, y)
+}
+
+/// Geometry shared by every pixel of one gradient application.
+struct PreparedGradient {
+    shape: GradientShape,
+    from: (f32, f32),
+    len: f32,
+    unit: (f32, f32),
+}
+
+impl PreparedGradient {
+    fn new(shape: GradientShape, from: (f32, f32), to: (f32, f32)) -> Self {
+        let (dx, dy) = (to.0 - from.0, to.1 - from.1);
+        let len = (dx * dx + dy * dy).sqrt().max(1e-6);
+        Self { shape, from, len, unit: (dx / len, dy / len) }
+    }
+
+    fn sample(&self, x: f32, y: f32) -> f32 {
+        let (px, py) = (x - self.from.0, y - self.from.1);
+        let along = px * self.unit.0 + py * self.unit.1;
+        let across = -px * self.unit.1 + py * self.unit.0;
+        let t = match self.shape {
+            GradientShape::Linear => along / self.len,
+            GradientShape::Radial => (px * px + py * py).sqrt() / self.len,
+            GradientShape::Reflected => along.abs() / self.len,
+            GradientShape::Diamond => (along.abs() + across.abs()) / self.len,
+            GradientShape::Angle => (across.atan2(along) / std::f32::consts::TAU).rem_euclid(1.0),
+        };
+        t.clamp(0.0, 1.0)
+    }
 }
 
 /// Samples RGBA stops (sorted by position) at `t`.
@@ -125,13 +142,14 @@ pub fn paint_gradient(
     dither: bool,
     selection: Option<&Surface>,
 ) {
+    let geometry = PreparedGradient::new(shape, from, to);
     composite_area(
         s,
         area,
         blend_mode,
         |x, y| opacity * selection.map_or(1.0, |m| m.sample_channel(x, y, 0)),
         |x, y| {
-            let t = tool_gradient_t(shape, from, to, x as f32 + 0.5, y as f32 + 0.5);
+            let t = geometry.sample(x as f32 + 0.5, y as f32 + 0.5);
             let mut c = sample_stops(stops, if reverse { 1.0 - t } else { t });
             if dither {
                 // One quantisation step of monochromatic noise breaks 8-bit banding without speckle.
