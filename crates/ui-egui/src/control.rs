@@ -70,12 +70,15 @@ pub enum Outcome {
 
 /// The fields `ui.set` reads. Anything else is rejected before a field is applied, so a typo or
 /// a field the method doesn't have can't reply with success while nothing changes (#412).
-pub const UI_SET_FIELDS: [&str; 22] = [
+pub const UI_SET_FIELDS: [&str; 25] = [
     "tool",
     "panels",
     "dock",
     "dockTabs",
     "dockWidth",
+    "toolbarColumns",
+    "toolbarFloating",
+    "toolbarPosition",
     "colorPanel",
     "maskTarget",
     "vectorMaskTarget",
@@ -311,6 +314,29 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 // Which chip the Color panel edits.
                 let color_panel = whole_object(&app.ui.color_panel, p.get("colorPanel"), "colorPanel")?;
                 let dock_width = num_field(p, "dockWidth")?;
+                let toolbar_columns = match p.get("toolbarColumns") {
+                    Some(Value::Null) => Some(None),
+                    Some(v) if matches!(v.as_u64(), Some(1 | 2)) => Some(v.as_u64().map(|n| n as u8)),
+                    Some(_) => return Err("toolbarColumns must be 1, 2, or null (automatic)".into()),
+                    None => None,
+                };
+                let toolbar_floating = bool_field(p, "toolbarFloating")?;
+                let toolbar_position = match p.get("toolbarPosition") {
+                    Some(v) => {
+                        let a = v.as_array().ok_or_else(|| "toolbarPosition must be [x, y]".to_string())?;
+                        if a.len() != 2 {
+                            return Err("toolbarPosition must be exactly [x, y]".into());
+                        }
+                        let (Some(x), Some(y)) = (a.first().and_then(Value::as_f64), a.get(1).and_then(Value::as_f64)) else {
+                            return Err("toolbarPosition must contain two numbers".into());
+                        };
+                        if !x.is_finite() || !y.is_finite() || x.abs() > 100_000.0 || y.abs() > 100_000.0 {
+                            return Err("toolbarPosition must contain finite screen coordinates".into());
+                        }
+                        Some([x as f32, y as f32])
+                    }
+                    None => None,
+                };
                 let zoom = num_field(p, "zoom")?;
                 let center = match p.get("center") {
                     Some(v) => {
@@ -406,6 +432,15 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 // Right dock width in points (clamped to the dock's 250..=520 range), applied next frame.
                 if let Some(w) = dock_width {
                     crate::panels::request_dock_width(ctx, w as f32);
+                }
+                if let Some(columns) = toolbar_columns {
+                    app.ui.toolbar_columns = columns;
+                }
+                if let Some(floating) = toolbar_floating {
+                    app.ui.toolbar_floating = floating;
+                }
+                if let Some(position) = toolbar_position {
+                    app.ui.toolbar_position = Some(position);
                 }
                 if let Some(i) = app.session.active_index() {
                     if let Some(z) = zoom {
@@ -727,6 +762,9 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
             })
         }),
         "panels": app.ui.panels,
+        "toolbarColumns": app.ui.toolbar_columns,
+        "toolbarFloating": app.ui.toolbar_floating,
+        "toolbarPosition": app.ui.toolbar_position,
         "views": app.ui.views,
         "dialogs": dialogs,
         "windows": app.ui.windows,
@@ -907,6 +945,25 @@ mod tests {
         assert_eq!(app.ui.tool_options.pen_shape_operation, crate::state::ShapeOperation::Subtract);
         assert_eq!(call(&mut app, &ctx, "ui.set", json!({"vectorMode": "path", "penShapeOperation": "invalid"}))["ok"], false);
         assert_eq!(app.ui.tool_options.vector_mode, "shape");
+    }
+
+    #[test]
+    fn toolbar_layout_can_be_driven_and_invalid_values_do_not_apply() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        let set = call(&mut app, &ctx, "ui.set", json!({"toolbarColumns": 2, "toolbarFloating": true, "toolbarPosition": [120, 80]}));
+        assert_eq!(set["ok"], true, "{set}");
+        assert_eq!(app.ui.toolbar_columns, Some(2));
+        assert!(app.ui.toolbar_floating);
+        assert_eq!(app.ui.toolbar_position, Some([120.0, 80.0]));
+        let inspected = call(&mut app, &ctx, "ui.inspect", json!({}));
+        assert_eq!(inspected["result"]["toolbarColumns"], 2);
+        assert_eq!(inspected["result"]["toolbarFloating"], true);
+        assert_eq!(inspected["result"]["toolbarPosition"], json!([120.0, 80.0]));
+        let bad = call(&mut app, &ctx, "ui.set", json!({"toolbarFloating": false, "toolbarColumns": 3}));
+        assert_eq!(bad["ok"], false);
+        assert!(app.ui.toolbar_floating);
+        assert_eq!(app.ui.toolbar_columns, Some(2));
     }
 
     #[test]

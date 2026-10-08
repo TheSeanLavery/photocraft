@@ -799,6 +799,13 @@ pub struct UiState {
     #[serde(default)]
     pub view: crate::view_cmds::ViewOptions,
     pub panels: Panels,
+    /// Tools panel: explicit column choice, whether it floats, and its last floating position.
+    #[serde(default)]
+    pub toolbar_columns: Option<u8>,
+    #[serde(default)]
+    pub toolbar_floating: bool,
+    #[serde(default)]
+    pub toolbar_position: Option<[f32; 2]>,
     /// Views per open document (index-aligned with the session's documents).
     pub views: Vec<View>,
     pub dialogs: Vec<Dialog>,
@@ -893,6 +900,9 @@ impl Default for UiState {
             direct_selection: Default::default(),
             selected_path: None,
             panels: Panels::default(),
+            toolbar_columns: None,
+            toolbar_floating: false,
+            toolbar_position: None,
             views: Vec::new(),
             dialogs: Vec::new(),
             windows: Vec::new(),

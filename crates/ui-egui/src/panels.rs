@@ -54,21 +54,47 @@ fn slot_tool(ui: &egui::Ui, current: Tool, slot: &[Tool], key: egui::Id) -> Tool
 pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let (w1, bx, m) = if t.pro { (40.0, 30.0, 5i8) } else { (50.0, 36.0, 7i8) };
-    // Photoshop switches to a double-column toolbar only when one column doesn't fit.
+    // Start with the compact layout when it fits; the header lets the user override it.
     let slots: usize = TOOL_SECTIONS.iter().map(|g| g.len()).sum();
-    let double = toolbar_needs_double(slots, TOOL_SECTIONS.len(), bx, t.pro, ui.available_rect_before_wrap().height());
+    let double = match app.ui.toolbar_columns {
+        Some(1) => false,
+        Some(2) => true,
+        _ => toolbar_needs_double(slots, TOOL_SECTIONS.len(), bx, t.pro, ui.available_rect_before_wrap().height()),
+    };
     let w = if double { w1 + bx + 2.0 } else { w1 };
-    egui::Panel::left("toolbar").resizable(false).exact_size(w).frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(m, 8))).show(
-        ui,
-        |ui| {
-            if t.pro {
-                let r = ui.max_rect();
+    let floating = app.ui.toolbar_floating;
+    let position = app.ui.toolbar_position;
+    let content = |ui: &mut egui::Ui| {
+        if floating {
+            ui.set_width(w);
+        }
+        {
+            let r = ui.max_rect();
+            if t.pro && !floating {
                 ui.painter().line_segment([r.right_top() + vec2(m as f32, -8.0), r.right_bottom() + vec2(m as f32, 8.0)], Stroke::new(1.0, t.separator));
-                // collapse chevrons like Photoshop's toolbar header
-                let (cr, _) = ui.allocate_exact_size(vec2(bx, 14.0), Sense::hover());
-                icons::paint(ui, cr, "chevrons-right", 11.0, t.text_faint);
-                ui.add_space(4.0);
             }
+            // Click to switch between one and two columns; drag to detach.
+            let (cr, header) = ui.allocate_exact_size(vec2(bx, 18.0), Sense::click_and_drag());
+            icons::paint(ui, cr, if double { "chevrons-left" } else { "chevrons-right" }, 11.0, t.text_dim);
+            let header = header.on_hover_text(if floating {
+                tl!("Click to change columns; drag the title bar to move")
+            } else {
+                tl!("Click to change columns; drag to detach Tools")
+            });
+            if header.clicked() {
+                app.ui.toolbar_columns = Some(if double { 1 } else { 2 });
+            }
+            if !floating && header.dragged() {
+                app.ui.toolbar_floating = true;
+                let cursor = ui.input(|i| i.pointer.interact_pos()).unwrap_or(cr.left_top());
+                app.ui.toolbar_position = Some([cursor.x + 8.0, cursor.y - 8.0]);
+            }
+            if floating && icons::button(ui, "panels-top-left", bx, false, tl!("Dock Tools on the left")).clicked() {
+                app.ui.toolbar_floating = false;
+            }
+            ui.add_space(4.0);
+        }
+        egui::ScrollArea::vertical().id_salt("toolbar-tools").auto_shrink([false, false]).show(ui, |ui| {
             // Subtle violet wash at the bottom of the toolbar.
             let full = ui.max_rect();
             if !t.bevel && !t.pro && t.dark() {
@@ -244,8 +270,27 @@ pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     }
                 });
             }
-        },
-    );
+        });
+    };
+    if floating {
+        let mut window = egui::Window::new(tl!("Tools"))
+            .id(egui::Id::new("floating-tools"))
+            .resizable(false)
+            .max_height((ui.ctx().content_rect().height() - 24.0).max(160.0))
+            .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(m, 8)));
+        if let Some([x, y]) = position {
+            window = window.default_pos(pos2(x, y));
+        }
+        if let Some(response) = window.show(ui.ctx(), content) {
+            app.ui.toolbar_position = Some([response.response.rect.left(), response.response.rect.top()]);
+        }
+    } else {
+        egui::Panel::left("toolbar")
+            .resizable(false)
+            .exact_size(w)
+            .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(m, 8)))
+            .show(ui, content);
+    }
 }
 
 /// Does the toolbar need two columns? Height of one column (header, tool slots, Edit Toolbar,
