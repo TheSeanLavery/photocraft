@@ -342,8 +342,17 @@ mod tests {
         prefs_ui::tick(app, ctx);
     }
 
+    fn wait_for_recovery_count(app: &mut PhotocraftApp, ctx: &egui::Context, dir: &Path, expected: usize) {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while list_recovery(dir).len() != expected && std::time::Instant::now() < deadline {
+            prefs_ui::tick(app, ctx);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert_eq!(list_recovery(dir).len(), expected);
+    }
+
     #[test]
-    fn recovered_documents_survive_a_second_crash_until_saved_or_closed() {
+    fn recovered_documents_survive_a_second_crash_until_closed() {
         let dir = std::env::temp_dir().join(format!("photocraft-recovery-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let ctx = egui::Context::default();
@@ -374,7 +383,8 @@ mod tests {
             autosave(&mut app, &ctx);
         }
         assert_eq!(list_recovery(&dir).len(), 3);
-        // Launch 4: closing and saving recovered documents removes their entries, no duplicates.
+        // Launch 4: closing removes its checkpoint. Saving an open document keeps its
+        // checkpoint (including undo history) until a confirmed normal quit.
         let mut app = launch(&dir);
         assert_eq!(app.session.documents().len(), 3);
         let red = index_of(&app, RED);
@@ -384,13 +394,20 @@ mod tests {
         let st = app.session.active_mut().unwrap();
         st.saved_revision = st.revision;
         prefs_ui::tick(&mut app, &ctx);
+        wait_for_recovery_count(&mut app, &ctx, &dir, 2);
         let left = list_recovery(&dir);
-        assert_eq!(left.len(), 1);
-        assert_eq!(photocraft_compose::flatten(&photocraft_format::recover(&left[0]).unwrap()).px.first().copied(), Some(GREEN));
+        let mut colors: Vec<_> =
+            left.iter().map(|entry| photocraft_compose::flatten(&photocraft_format::recover(entry).unwrap()).px.first().copied()).collect();
+        colors.sort_by(|a, b| a.unwrap_or_default()[1].total_cmp(&b.unwrap_or_default()[1]));
+        assert_eq!(colors, [Some(BLUE), Some(GREEN)]);
         let green = index_of(&app, GREEN);
         app.run("file.close", json!({"document": green})).unwrap();
         prefs_ui::tick(&mut app, &ctx);
-        assert!(list_recovery(&dir).is_empty());
+        wait_for_recovery_count(&mut app, &ctx, &dir, 1);
+        let blue = index_of(&app, BLUE);
+        app.run("file.close", json!({"document": blue})).unwrap();
+        prefs_ui::tick(&mut app, &ctx);
+        wait_for_recovery_count(&mut app, &ctx, &dir, 0);
         drop(app);
         let _ = std::fs::remove_dir_all(&dir);
     }
