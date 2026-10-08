@@ -231,6 +231,7 @@ jobs:
             desktop-file-utils appstream python3-yaml zsync
           curl -fsSL -o "$RUNNER_TEMP/nfpm.deb" \
             "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_${{ matrix.deb }}.deb"
+          # SHA-256 digests of the pinned v2.47.0 GitHub release assets.
           case "${{ matrix.deb }}" in
             amd64) nfpm_sha256=3f1cf344bd0b57373ca55636a78c08b0491f7293d609a456a9ac3b0b150fda97 ;;
             arm64) nfpm_sha256=27419eb382695a7942be8ad52259f3ec1854fad001b3ae4baed34ce39a223b97 ;;
