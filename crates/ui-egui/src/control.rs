@@ -8,7 +8,7 @@
 //! - `engine.commands`: list commands with enablement
 //! - `ui.inspect`: full UI state (tool, panels, views, dialogs, windows, window size); the menu
 //!   tree is `ui.menu.list`
-//! - `ui.set {tool?, panels?, dock?, dockTabs?, dockWidth?, colorPanel?, maskTarget?, vectorMaskTarget?, selectionMode?, zoom?, center?, fit?, theme?, brushSection?, brushTab?, brushesView?, brushSize?}`:
+//! - `ui.set {tool?, panels?, dock?, dockTabs?, dockWidth?, colorPanel?, maskTarget?, vectorMaskTarget?, selectionMode?, zoom?, center?, fit?, theme?, brushSection?, brushTab?, brushesView?, brushSize?, vectorMode?, penShapeOperation?}`:
 //!   change UI state; any other field is an error ([`UI_SET_FIELDS`])
 //! - `ui.menu.invoke {id, wait?}` / `ui.menu.list`: activate a menu item by id; list the menu tree
 //! - `ui.dialog.open {kind, fields?}` (kinds: newDocument, about, layerStyle {effect?}, colorPicker {target: foreground|background}, command {command}) / `ui.dialog.set {dialog, field, value}` / `ui.dialog.confirm {dialog, wait?}` / `ui.dialog.cancel {dialog}`
@@ -70,7 +70,7 @@ pub enum Outcome {
 
 /// The fields `ui.set` reads. Anything else is rejected before a field is applied, so a typo or
 /// a field the method doesn't have can't reply with success while nothing changes (#412).
-pub const UI_SET_FIELDS: [&str; 19] = [
+pub const UI_SET_FIELDS: [&str; 21] = [
     "tool",
     "panels",
     "dock",
@@ -90,6 +90,8 @@ pub const UI_SET_FIELDS: [&str; 19] = [
     "brushSize",
     "gradientBlendMode",
     "gradientClassic",
+    "vectorMode",
+    "penShapeOperation",
 ];
 
 fn ok(v: Value) -> Outcome {
@@ -286,6 +288,18 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     None => None,
                 };
                 let gradient_classic = bool_field(p, "gradientClassic")?;
+                let vector_mode = match p.get("vectorMode") {
+                    Some(Value::String(mode)) if mode == "path" || mode == "shape" => Some(mode.as_str()),
+                    Some(_) => return Err("vectorMode must be path or shape".into()),
+                    None => None,
+                };
+                let pen_shape_operation = match p.get("penShapeOperation") {
+                    Some(value) => Some(
+                        serde_json::from_value::<crate::state::ShapeOperation>(value.clone())
+                            .map_err(|_| "penShapeOperation must be newLayer, combine, subtract, intersect, or exclude".to_string())?,
+                    ),
+                    None => None,
+                };
                 let panels = merged_object(&app.ui.panels, p.get("panels"), "panels")?;
                 let mask_target = bool_field(p, "maskTarget")?;
                 let vector_mask_target = bool_field(p, "vectorMaskTarget")?;
@@ -342,6 +356,12 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 // Apply (nothing below can fail).
                 if let Some(t) = tool {
                     app.ui.tool = t;
+                }
+                if let Some(mode) = vector_mode {
+                    app.ui.tool_options.vector_mode = mode.to_string();
+                }
+                if let Some(operation) = pen_shape_operation {
+                    app.ui.tool_options.pen_shape_operation = operation;
                 }
                 let gradient_before = app.ui.tool_options.clone();
                 if let Some(mode) = gradient_blend {
@@ -844,6 +864,18 @@ mod tests {
             assert!(!r.to_string().contains("unknown field"), "{field}: {r}");
         }
         assert_eq!(call(&mut app, &ctx, "ui.set", Value::Null)["ok"], true);
+    }
+
+    #[test]
+    fn ui_set_pen_shape_operation_is_validated_atomically() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        assert_eq!(call(&mut app, &ctx, "ui.set", json!({"tool": "pen", "vectorMode": "shape", "penShapeOperation": "subtract"}))["ok"], true);
+        assert_eq!(app.ui.tool, Tool::Pen);
+        assert_eq!(app.ui.tool_options.vector_mode, "shape");
+        assert_eq!(app.ui.tool_options.pen_shape_operation, crate::state::ShapeOperation::Subtract);
+        assert_eq!(call(&mut app, &ctx, "ui.set", json!({"vectorMode": "path", "penShapeOperation": "invalid"}))["ok"], false);
+        assert_eq!(app.ui.tool_options.vector_mode, "shape");
     }
 
     #[test]

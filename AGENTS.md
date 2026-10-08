@@ -107,6 +107,7 @@ Then append a terse entry to `log/devlog.md` (what landed, numbers, what's still
 
 ## 6. Parallel agents
 
+- When a subagent produces screenshots, show them to Sean in the parent chat with inline image embeds and a brief description of what each one shows. Ask subagents to return absolute screenshot paths; do not leave visual evidence only in an agent report or filesystem path.
 - Use your own target dir (`CARGO_TARGET_DIR=target/agent-<name>`) to avoid the Cargo build lock, and edit only the files you own. Shared files (`engine/src/lib.rs`, the `v.extend(...)` list in `engine/src/commands.rs`, `ui-egui/src/menus.rs`, `state.rs`) get small, surgical edits; re-read before editing.
 - Put new commands in a **new module** (`engine/src/<area>_cmds.rs` with a `specs()` function) rather than growing a shared file.
 - If someone else's in-progress edit breaks the build, wait and retry; don't fix their files.

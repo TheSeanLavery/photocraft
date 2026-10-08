@@ -383,6 +383,18 @@ pub struct DocWindow {
     pub open: bool,
 }
 
+/// How a finished Pen path joins the active shape layer.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ShapeOperation {
+    #[default]
+    NewLayer,
+    Combine,
+    Subtract,
+    Intersect,
+    Exclude,
+}
+
 /// Options-bar state for tools (Photoshop keeps these per tool).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -438,6 +450,8 @@ pub struct ToolOptions {
     pub enhance_edge: bool,
     /// Pen: "path" (work path) or "shape" (shape layer).
     pub vector_mode: String,
+    /// Pen in Shape mode: where the next closed path goes and how it combines.
+    pub pen_shape_operation: ShapeOperation,
     /// Shape tools: fill with the foreground colour, stroke width (0 = none), rectangle corner
     /// radius, polygon sides, line weight.
     pub shape_fill: bool,
@@ -542,6 +556,7 @@ impl Default for ToolOptions {
             finger_painting: false,
             enhance_edge: false,
             vector_mode: "path".into(),
+            pen_shape_operation: ShapeOperation::NewLayer,
             shape_fill: true,
             stroke_width: 0.0,
             corner_radius: 0.0,

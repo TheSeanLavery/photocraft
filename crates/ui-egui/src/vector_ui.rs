@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 
 use crate::PhotocraftApp;
 use crate::canvas::ViewXform;
-use crate::state::{Tool, ToolOptions};
+use crate::state::{ShapeOperation, Tool, ToolOptions};
 use crate::theme::Tokens;
 
 /// Pen tool path under construction: knots as [anchor, in, out] (document px).
@@ -123,6 +123,16 @@ fn pen_to_json(pen: &PenPath, closed: bool) -> Value {
     json!({"subpaths": [{"closed": closed, "knots": pen.knots.iter().map(|k| json!({"anchor": k[0], "in": k[1], "out": k[2], "smooth": k[1] != k[0] || k[2] != k[0]})).collect::<Vec<_>>()}]})
 }
 
+fn pen_operation_param(operation: ShapeOperation) -> Option<&'static str> {
+    match operation {
+        ShapeOperation::NewLayer => None,
+        ShapeOperation::Combine => Some("combine"),
+        ShapeOperation::Subtract => Some("subtract"),
+        ShapeOperation::Intersect => Some("intersect"),
+        ShapeOperation::Exclude => Some("exclude"),
+    }
+}
+
 /// Pen press: close on the first anchor, else add an anchor (dragging pulls smooth handles).
 pub fn pen_down(app: &mut PhotocraftApp, x: f64, y: f64) {
     let tol = 6.0 / app.current_zoom().max(0.01) as f64;
@@ -166,7 +176,14 @@ pub fn pen_commit(app: &mut PhotocraftApp, closed: bool) {
         let fill = if closed && app.ui.tool_options.shape_fill { json!(hex(app.session.tools.foreground)) } else { Value::Null };
         let stroke =
             if closed { stroke_param(app) } else { json!({"width": app.ui.tool_options.stroke_width.max(1.0), "color": hex(app.session.tools.foreground)}) };
-        app.run("shape.create", json!({"kind": "path", "path": path, "fill": fill, "stroke": stroke}))
+        let mut params = json!({"kind": "path", "path": path, "fill": fill, "stroke": stroke});
+        if let Some(op) = pen_operation_param(app.ui.tool_options.pen_shape_operation)
+            && let Some((id, _)) = active_shape_path(app)
+        {
+            params["addTo"] = json!(id);
+            params["op"] = json!(op);
+        }
+        app.run("shape.create", params)
     } else if let Some((id, existing)) = targeted_vector_mask(app) {
         // A targeted vector mask takes the new subpath (#196), as in Photoshop.
         let mut p = photocraft_engine::vector_cmds::path_json(&existing);
@@ -406,7 +423,6 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, tool: Tool) -> bo
     let lbl = |ui: &mut egui::Ui, s: &str| {
         ui.label(egui::RichText::new(s).color(t.text_dim).size(12.0));
     };
-    let o = &mut app.ui.tool_options;
     if tool == Tool::PathSelection {
         lbl(ui, if app.ui.vector_mask_target { "Drag to move the targeted vector mask" } else { tl!("Drag to move the active shape's path or the Work Path") });
         return true;
@@ -424,17 +440,55 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, tool: Tool) -> bo
     }
     if tool == Tool::Pen {
         let opts = [("path".to_string(), tl!("Path")), ("shape".to_string(), tl!("Shape"))];
-        crate::widgets::dropdown(ui, "pen-mode", &mut o.vector_mode, &opts, 80.0);
+        crate::widgets::dropdown(ui, "pen-mode", &mut app.ui.tool_options.vector_mode, &opts, 80.0);
         crate::widgets::vline(ui, 22.0);
-        lbl(
-            ui,
-            &crate::i18n::fmt(
-                tl!("Click: corner · Drag: smooth · Click first point: close · {key} finish · Esc cancel"),
-                &[("key", &crate::shortcuts::pretty("Enter"))],
-            ),
-        );
+        if app.ui.tool_options.vector_mode == "shape" {
+            let selected = app.ui.tool_options.pen_shape_operation;
+            ui.menu_button(tl!("Shape Operations"), |ui| {
+                for (op, label) in [
+                    (ShapeOperation::NewLayer, "New Layer"),
+                    (ShapeOperation::Combine, "Combine Shapes"),
+                    (ShapeOperation::Subtract, "Subtract Front Shape"),
+                    (ShapeOperation::Intersect, "Intersect Shape Areas"),
+                    (ShapeOperation::Exclude, "Exclude Overlapping Shapes"),
+                ] {
+                    if ui.selectable_label(selected == op, tl!(label)).clicked() {
+                        app.ui.tool_options.pen_shape_operation = op;
+                        ui.close();
+                    }
+                }
+                ui.separator();
+                let merge_id = active_shape_path(app).filter(|(_, path)| path.subpaths.len() > 1).map(|(id, _)| id);
+                if ui.add_enabled(merge_id.is_some() && app.ui.pen.is_none(), egui::Button::new(tl!("Merge Shape Components"))).clicked() {
+                    if let Some(id) = merge_id
+                        && let Err(e) = app.run("layer.combineShapes.mergeShapeComponents", json!({"layer": id}))
+                    {
+                        app.ui.status = e;
+                        app.ui.status_error = true;
+                    }
+                    ui.close();
+                }
+            });
+            crate::widgets::vline(ui, 22.0);
+            lbl(ui, tl!("Fill:"));
+            crate::widgets::checkbox(ui, &mut app.ui.tool_options.shape_fill, "");
+            let (r, _) = ui.allocate_exact_size(vec2(22.0, 16.0), Sense::hover());
+            ui.painter().rect_filled(r, 2.0, rgb32(app.session.tools.foreground));
+            ui.painter().rect_stroke(r, 2.0, Stroke::new(1.0, t.field_border), egui::StrokeKind::Outside);
+            lbl(ui, tl!("Stroke:"));
+            crate::widgets::value_field(ui, &mut app.ui.tool_options.stroke_width, 0.0..=288.0, "px", 58.0);
+        } else {
+            lbl(
+                ui,
+                &crate::i18n::fmt(
+                    tl!("Click: corner · Drag: smooth · Click first point: close · {key} finish · Esc cancel"),
+                    &[("key", &crate::shortcuts::pretty("Enter"))],
+                ),
+            );
+        }
         return true;
     }
+    let o = &mut app.ui.tool_options;
     let mut mode = "shape".to_string();
     crate::widgets::dropdown(ui, "shape-mode", &mut mode, &[("shape".to_string(), tl!("Shape"))], 80.0);
     crate::widgets::vline(ui, 22.0);
@@ -978,6 +1032,46 @@ mod tests {
         path_selection_finish(&mut app, [50.0, 50.0], [60.0, 55.0]);
         let wp = app.session.active().unwrap().doc.work_path.clone().unwrap();
         assert_eq!((wp.subpaths[0].knots[0].anchor.x, wp.subpaths[0].knots[0].anchor.y), (30.0, 25.0));
+    }
+
+    #[test]
+    fn pen_shape_operations_use_one_layer_and_keep_the_selected_operation() {
+        use photocraft_doc::vector::PathOp;
+
+        let finish = |app: &mut PhotocraftApp, points: &[[f64; 2]]| {
+            app.ui.pen = Some(PenPath { knots: points.iter().map(|&p| [p; 3]).collect(), dragging: false });
+            pen_commit(app, true);
+            assert!(!app.ui.status_error, "{}", app.ui.status);
+        };
+        for (operation, expected) in [
+            (ShapeOperation::Combine, PathOp::Combine),
+            (ShapeOperation::Subtract, PathOp::Subtract),
+            (ShapeOperation::Intersect, PathOp::Intersect),
+            (ShapeOperation::Exclude, PathOp::Exclude),
+        ] {
+            let mut app = app();
+            app.ui.tool_options.vector_mode = "shape".into();
+            finish(&mut app, &[[20.0, 20.0], [100.0, 20.0], [100.0, 100.0], [20.0, 100.0]]);
+            let first = app.session.active().unwrap().active_layer.unwrap();
+            app.ui.tool_options.pen_shape_operation = operation;
+            finish(&mut app, &[[60.0, 60.0], [140.0, 60.0], [140.0, 140.0], [60.0, 140.0]]);
+            let st = app.session.active().unwrap();
+            assert_eq!(st.doc.layers.len(), 2, "{operation:?} should edit the active shape layer");
+            assert_eq!(st.active_layer, Some(first));
+            let LayerContent::Shape(sh) = &st.doc.layer(first).unwrap().content else { panic!("not a shape layer") };
+            assert_eq!(sh.path.subpaths.len(), 2);
+            assert_eq!(sh.path.subpaths[1].op, expected);
+            assert_eq!(app.ui.tool_options.pen_shape_operation, operation);
+            app.ui.tool_options.pen_shape_operation = ShapeOperation::NewLayer;
+            finish(&mut app, &[[145.0, 20.0], [180.0, 20.0], [180.0, 55.0]]);
+            assert_eq!(app.session.active().unwrap().doc.layers.len(), 3, "New Layer should not alter the existing shape");
+        }
+
+        let mut app = app();
+        app.ui.tool_options.vector_mode = "shape".into();
+        app.ui.tool_options.pen_shape_operation = ShapeOperation::Subtract;
+        finish(&mut app, &[[20.0, 20.0], [80.0, 20.0], [80.0, 80.0]]);
+        assert_eq!(app.session.active().unwrap().doc.layers.len(), 2, "without an active shape, a new layer is made");
     }
 
     /// #534: dragging in a shape's fill picker, opened from the Properties panel at the right edge
