@@ -2579,3 +2579,16 @@ cameraRaw	Whites	Brancos
 	Full HD Portrait	Full HD vertical
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K vertical
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Clique para alterar as colunas; arraste a barra de título para mover
+	Click to change columns; drag to detach Tools	Clique para alterar as colunas; arraste para destacar as Ferramentas
+	Dock Tools on the left	Encaixar Ferramentas à esquerda
+	Use trackpad pressure	Usar pressão do trackpad
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	O limite de memória é compartilhado pelos pixels do documento, dados incorporados e histórico de desfazer. Ele cresce conforme necessário; o restante da memória do aplicativo é adicional.
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Esta versão para navegador mantém o histórico de desfazer na memória. As configurações do disco de trabalho se aplicam ao aplicativo de desktop.
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	O espaço em disco para desfazer cresce apenas quando necessário, até este limite. Zero desativa o cache em disco. Os caminhos do disco de trabalho valem para a próxima sessão de cache.
+	HDR Output	Saída HDR
+	HDR Workbench	Área de trabalho HDR
+	Export SDR Preview…	Exportar prévia SDR…
+	Budget mb	Limite (MiB)

@@ -2131,3 +2131,9 @@ cameraRaw	Blending	混合
 	HDR Output	HDR 輸出
 	HDR Workbench	HDR 工作台
 	Export SDR Preview…	匯出 SDR 預覽…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	點按以變更欄數；拖曳標題列以移動
+	Click to change columns; drag to detach Tools	點按以變更欄數；拖曳以分離工具列
+	Dock Tools on the left	將工具列停駐在左側
+	Use trackpad pressure	使用觸控板壓力

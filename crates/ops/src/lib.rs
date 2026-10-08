@@ -210,7 +210,12 @@ impl History {
     pub fn record(&mut self, label: impl Into<String>, before: Arc<Document>, layers: LayerTarget) {
         let prev_label = std::mem::replace(&mut self.current_label, label.into());
         let prev_layers = std::mem::replace(&mut self.current_layers, layers);
-        self.undo.push_back(HistoryState { label: prev_label, layers: prev_layers, has_selection: before.selection.is_some(), document: StoredDocument::Resident(before) });
+        self.undo.push_back(HistoryState {
+            label: prev_label,
+            layers: prev_layers,
+            has_selection: before.selection.is_some(),
+            document: StoredDocument::Resident(before),
+        });
         self.redo.clear();
         while self.undo.len() > self.max_states {
             self.undo.pop_front();

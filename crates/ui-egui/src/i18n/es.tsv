@@ -2225,3 +2225,9 @@ cameraRaw	Amount	Cantidad
 	HDR Output	Salida HDR
 	HDR Workbench	Banco de trabajo HDR
 	Export SDR Preview…	Exportar vista previa SDR…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Haz clic para cambiar las columnas; arrastra la barra de título para mover
+	Click to change columns; drag to detach Tools	Haz clic para cambiar las columnas; arrastra para separar Herramientas
+	Dock Tools on the left	Acoplar Herramientas a la izquierda
+	Use trackpad pressure	Usar la presión del trackpad

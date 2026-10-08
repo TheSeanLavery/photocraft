@@ -518,10 +518,11 @@ mod tests {
         let mut f = Map::new();
         f.insert("__colorPicker".into(), json!("foreground"));
         f.insert("color".into(), json!(color));
+        let app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
         let mut h = Harness::builder().with_size(vec2(700.0, 500.0)).build_ui_state(
-            |ui, f: &mut Map<String, Value>| {
+            move |ui, f: &mut Map<String, Value>| {
                 if ui.ctx().fonts(|fonts| fonts.families().contains(&egui::FontFamily::Name("medium".into()))) {
-                    body(ui, f);
+                    body(&app, ui, f);
                 }
             },
             f,

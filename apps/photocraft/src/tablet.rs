@@ -27,9 +27,14 @@ pub fn sink(feed: StylusFeed) -> impl Fn(Option<Sample>) + Send + 'static {
 pub fn install_macos(feed: &StylusFeed, trackpad: &TrackpadFeed, motion: &photocraft_tablet::motion::Feed) -> Option<photocraft_tablet::macos::Monitor> {
     let pressure_feed = trackpad.clone();
     let enabled_feed = trackpad.clone();
-    photocraft_tablet::macos::Monitor::with_motion_and_trackpad(sink(feed.clone()), move |pressure| pressure_feed.set(pressure), move || enabled_feed.is_enabled(), motion.clone())
-        .map_err(|e| log::warn!("{e}"))
-        .ok()
+    photocraft_tablet::macos::Monitor::with_motion_and_trackpad(
+        sink(feed.clone()),
+        move |pressure| pressure_feed.set(pressure),
+        move || enabled_feed.is_enabled(),
+        motion.clone(),
+    )
+    .map_err(|e| log::warn!("{e}"))
+    .ok()
 }
 
 /// Start the XInput2 reader when eframe runs on X11. On Wayland, `$DISPLAY` is Xwayland, which

@@ -2137,3 +2137,9 @@ cameraRaw	Color	カラー
 	HDR Output	HDR 出力
 	HDR Workbench	HDR ワークベンチ
 	Export SDR Preview…	SDR プレビューを書き出し…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	列数を変更するにはクリックし、タイトルバーをドラッグして移動
+	Click to change columns; drag to detach Tools	クリックして列数を変更、ドラッグしてツールを切り離す
+	Dock Tools on the left	ツールを左側にドッキング
+	Use trackpad pressure	トラックパッドの筆圧を使用

@@ -70,6 +70,7 @@ fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
 }
 
 /// Recovery services for a configured directory (also used by native recovery tests).
+#[cfg(test)]
 fn recovery_services(dir: Option<PathBuf>) -> Services {
     let recovery = Rc::new(RefCell::new(crate::recovery::RecoveryManager::new(dir)));
     let queue = recovery.clone();

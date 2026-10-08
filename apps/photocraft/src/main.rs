@@ -28,11 +28,11 @@ mod control_server;
 mod crash_guard;
 mod cursor;
 mod gpu_startup;
+mod hdr_output;
 #[cfg(target_os = "macos")]
 mod mac_menu;
 #[cfg(target_os = "macos")]
 mod mac_window;
-mod hdr_output;
 // Pure logic is tested on every platform; only Linux runs the check.
 #[cfg(any(target_os = "linux", test))]
 mod linux_libs;

@@ -5,7 +5,7 @@
 // Compile the same native adapter with cfg(test), so its private main-thread fixture can
 // inject GC candidates without adding test hooks or features to the production API.
 #[cfg(target_os = "macos")]
-use photocraft_tablet::{Error, Sample, Update, appkit, deliver, motion};
+use photocraft_tablet::{Error, Sample, Update, appkit, deliver, deliver_trackpad, motion};
 #[cfg(target_os = "macos")]
 #[path = "../src/macos.rs"]
 #[allow(dead_code)] // harness=false explicitly invokes the main-thread fixture only

@@ -2427,3 +2427,9 @@ cameraRaw	Roughness	Неровность
 	HDR Output	Вывод HDR
 	HDR Workbench	Панель HDR
 	Export SDR Preview…	Экспортировать предпросмотр SDR…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Нажмите, чтобы изменить число столбцов; перетащите строку заголовка для перемещения
+	Click to change columns; drag to detach Tools	Нажмите, чтобы изменить число столбцов; перетащите, чтобы открепить инструменты
+	Dock Tools on the left	Закрепить инструменты слева
+	Use trackpad pressure	Использовать давление на трекпаде

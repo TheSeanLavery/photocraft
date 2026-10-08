@@ -89,7 +89,7 @@ fn brush_cursor_preserves_preferences_and_large_tip_has_a_native_hotspot() {
     h.state_mut().session.tools.brush.size = 20.0;
     h.event(egui::Event::PointerMoved(free_canvas(&h)));
     h.run_steps(2);
-    for (pref, icon) in [("precise", egui::CursorIcon::None), ("standard", egui::CursorIcon::Default)] {
+    for (pref, icon) in [("precise", egui::CursorIcon::Crosshair), ("standard", egui::CursorIcon::Default)] {
         h.state_mut().run("prefs.set", json!({"path": "cursors.painting", "value": pref})).unwrap();
         h.step();
         assert!(h.output().platform_output.cursor_image.is_none());
@@ -121,7 +121,7 @@ fn crosshair_only_while_painting_restores_the_native_tip_after_mouse_up() {
     h.step();
     assert!(h.state().drag.is_some());
     assert!(h.output().platform_output.cursor_image.is_none(), "the native tip must not cover the painting crosshair");
-    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::None, "keep the existing canvas crosshair");
+    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::Crosshair, "use the OS crosshair while painting");
     h.event(egui::Event::PointerButton { pos: end, button: egui::PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
     h.run_steps(2);
     assert!(h.state().drag.is_none());

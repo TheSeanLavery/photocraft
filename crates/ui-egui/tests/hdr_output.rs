@@ -39,7 +39,7 @@ fn render_profile(
     let display = color.canvas_display(&doc).unwrap();
     g.upload_composite(doc.id.0, &doc, Some(&display));
     let display_mode = if let Some(lut) = color.gpu_canvas_lut(&doc, 33).unwrap() {
-        g.set_display_lut(doc.id.0, 33, Some(&lut));
+        g.set_display_lut(doc.id.0, 0, 33, Some(&lut));
         1
     } else {
         0
@@ -53,6 +53,7 @@ fn render_profile(
                 egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(160.0, 32.0)),
                 ViewParams {
                     doc: doc.id.0,
+                    output: 0,
                     doc_size: [160, 32],
                     zoom: 1.0,
                     center: [80.0, 16.0],

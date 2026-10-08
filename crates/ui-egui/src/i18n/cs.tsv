@@ -2154,3 +2154,9 @@ cameraRaw	Color	Barvy
 	HDR Output	Výstup HDR
 	HDR Workbench	Pracovní panel HDR
 	Export SDR Preview…	Exportovat náhled SDR…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Kliknutím změňte počet sloupců; přetažením záhlaví panel přesuňte
+	Click to change columns; drag to detach Tools	Kliknutím změňte počet sloupců; přetažením odpojte Nástroje
+	Dock Tools on the left	Ukotvit Nástroje vlevo
+	Use trackpad pressure	Používat tlak trackpadu
