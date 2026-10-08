@@ -22,6 +22,20 @@
   <img alt="Status: early alpha" src="https://img.shields.io/badge/status-early%20alpha-d69e2e?style=flat-square">
 </p>
 
+## Download and install
+
+[Download the latest PhotoCraft release](https://github.com/storytold/photocraft/releases/latest) and expand **Assets**. The examples below use `<version>` for the release version; choose the file matching your CPU architecture. The current v0.3.0 release includes each format listed here.
+
+| Platform | Download | Install or run |
+|---|---|---|
+| macOS 11+ (Apple silicon or Intel) | `photocraft-<version>-macos-universal.dmg` | Open the disk image and drag PhotoCraft to Applications. |
+| Windows 10+ | `photocraft-<version>-windows-x64.msi` (or `x86`/`arm64`) | Run the installer. For a portable copy, download the matching `windows-<arch>-portable.zip`, extract it, and run `photocraft.exe`. |
+| Linux x86_64 or aarch64 | `photocraft-<version>-linux-<arch>.AppImage`, `.deb`, `.rpm`, `.flatpak`, or `.tar.gz` | Choose the package for your distribution. The AppImage runs directly after `chmod +x`; see [Linux installation details](docs/releasing.md#linux). |
+| FreeBSD 14 x86_64 | `photocraft-<version>-freebsd-x86_64.tar.gz` | Install the [runtime libraries and unpack the tarball](#get-started) under `/usr/local`. |
+| Web | `photocraft-web-<version>.zip` | Extract and serve the static files over HTTPS; see [web hosting instructions](packaging/web/README.md). |
+
+For a source build, see [Get started](#get-started). The macOS command-line tool is a separate `photocraft-cli-<version>-macos-universal.zip` download.
+
 <p align="center">
   <a href="https://discord.gg/artcraft"><img alt="Join the ArtCraft community on Discord" src="https://img.shields.io/badge/Join%20us%20on%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" height="40"></a>
 </p>
@@ -267,7 +281,7 @@ CRAFT_FONTS_DIR="$PWD/../craft-fonts" cargo run --release -p photocraft
 
 New contributors and AI agents: start with [`AGENTS.md`](AGENTS.md), then [`docs/`](docs/).
 
-Installers for macOS, Windows, Linux, FreeBSD and the web are attached to each [GitHub release](https://github.com/storytold/photocraft/releases). On Linux you can pick an AppImage, a `.deb`, an `.rpm`, a tarball or a Flatpak bundle. The bundle needs the freedesktop runtime from [Flathub](https://flathub.org/setup), which `flatpak` offers to install along with it:
+The [Flatpak bundle](https://github.com/storytold/photocraft/releases/latest) needs the freedesktop runtime from [Flathub](https://flathub.org/setup), which `flatpak` offers to install along with it:
 
 ```sh
 flatpak install --user photocraft-<version>-linux-x86_64.flatpak   # or -linux-aarch64
