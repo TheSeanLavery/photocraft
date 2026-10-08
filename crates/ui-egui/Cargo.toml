@@ -8,6 +8,8 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+fluent-bundle = "0.16"
+unic-langid = "0.9"
 photocraft-tablet = { workspace = true }
 photocraft-geom = { workspace = true }
 photocraft-color = { workspace = true }

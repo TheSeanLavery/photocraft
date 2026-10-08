@@ -19,6 +19,7 @@
 //!   translators may reorder placeholders freely.
 
 mod catalog;
+mod fluent;
 mod system;
 
 pub use system::system_lang;
@@ -265,7 +266,7 @@ pub fn sync_context(ctx: &egui::Context, language: &str) {
 
 /// Does `lang` have a catalog entry for this plain string? (English never does: it is the source.)
 pub fn has(lang: Lang, s: &str) -> bool {
-    lang.catalog().plain(s).is_some()
+    fluent::has(lang.code(), s) || lang.catalog().plain(s).is_some()
 }
 
 /// Translate an English UI string into the current language ([`tr`] with [`current`]).
@@ -275,21 +276,39 @@ pub fn t(s: &str) -> &str {
 
 /// Translate an English UI string; unknown strings come back unchanged.
 pub fn tr(lang: Lang, s: &str) -> &str {
+    if !s.contains('{')
+        && let Some(value) = fluent::simple(lang.code(), "", s)
+    {
+        return value;
+    }
     lang.catalog().plain(s).unwrap_or(s)
 }
 
 /// Like [`tr`], for an English string that needs a disambiguating `context`.
 pub fn tr_ctx<'a>(lang: Lang, context: &str, s: &'a str) -> &'a str {
+    if !s.contains('{')
+        && let Some(value) = fluent::simple(lang.code(), context, s)
+    {
+        return value;
+    }
     lang.catalog().contextual(context, s).unwrap_or_else(|| tr(lang, s))
 }
 
 /// A string keyed by its command id, falling back to the translation of the English `label`.
 pub fn tr_id<'a>(lang: Lang, id: &str, label: &'a str) -> &'a str {
+    if !label.contains('{')
+        && let Some(value) = fluent::simple(lang.code(), "@id", id)
+    {
+        return value;
+    }
     lang.catalog().id(id).unwrap_or_else(|| tr(lang, label))
 }
 
 /// Fill `{name}` placeholders. Unknown placeholders are left as written.
 pub fn fmt(template: &str, args: &[(&str, &str)]) -> String {
+    if let Some(value) = fluent::format(current().code(), template, args) {
+        return value;
+    }
     let mut out = template.to_string();
     for (k, v) in args {
         out = out.replace(&format!("{{{k}}}"), v);
@@ -299,6 +318,9 @@ pub fn fmt(template: &str, args: &[(&str, &str)]) -> String {
 
 /// A plural-aware message: `one`/`other` are the English forms (with `{n}` where the count goes).
 pub fn trn(lang: Lang, n: u64, one: &str, other: &str) -> String {
+    if let Some(value) = fluent::plural(lang.code(), n, one, other) {
+        return value;
+    }
     let idx = (lang.0.plural)(n);
     let text = lang.catalog().plural(one, other, idx).unwrap_or(if n == 1 { one } else { other });
     fmt(text, &[("n", &n.to_string())])
