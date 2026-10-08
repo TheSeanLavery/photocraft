@@ -42,8 +42,8 @@ const FORMAT_HIGH: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 /// documents (a 14000² one would need 2.1 GB) use `Rgba8Unorm`, so they stay on the GPU like
 /// 8-bit ones. `PHOTOCRAFT_CANVAS_F16=0` turns the float canvas off, `=1` ignores this budget.
 pub const F16_BUDGET_PX: u64 = 100_000_000;
-const VIEW_UNIFORM_SIZE: u64 = 112;
-const VIEW_FLOATS: usize = 28;
+const VIEW_UNIFORM_SIZE: u64 = 176;
+const VIEW_FLOATS: usize = 44;
 const TILE_UNIFORM_SIZE: u64 = 16;
 
 /// Parameters for drawing one document view. Positions are in egui points.
@@ -72,6 +72,9 @@ pub struct ViewParams {
     /// before the display LUT; `None` when off. The display LUT must then leave it out
     /// (`ColorState::gpu_canvas_lut`).
     pub hdr: Option<[f32; 2]>,
+    /// Live EDR headroom; zero means the original SDR path.
+    pub output_headroom: f32,
+    pub workbench: Option<photocraft_color::hdr::HdrWorkbench>,
 }
 
 /// When high-bit documents get an `Rgba16Float` canvas texture.
@@ -107,6 +110,25 @@ pub fn supports_f16_canvas(adapter: &wgpu::Adapter) -> bool {
 }
 
 impl GpuCanvas {
+    /// Negotiated presentation texture format.
+    pub fn output_format(&self) -> wgpu::TextureFormat {
+        self.rs.target_format
+    }
+
+    /// Whether the negotiated surface accepts encoded values above SDR white.
+    pub fn hdr_surface(&self) -> bool {
+        self.rs.output_color_space == wgpu::SurfaceColorSpace::ExtendedSrgb
+    }
+
+    /// Live physical headroom; unknown/invalid display data conservatively uses SDR white.
+    pub fn output_headroom(&self) -> f32 {
+        if !self.hdr_surface() {
+            return 0.0;
+        }
+        let headroom = self.rs.display_hdr_info.read().tone_map_headroom().unwrap_or(1.0);
+        if headroom.is_finite() { headroom.clamp(1.0, 16.0) } else { 1.0 }
+    }
+
     /// Create pipelines and register resources with the egui renderer.
     pub fn new(rs: &RenderState) -> Self {
         Self::with_tile(rs, None)
@@ -822,6 +844,9 @@ pub struct GpuInfo {
     pub canvas: String,
     /// Why the GPU canvas was dropped during this session (device lost or a GPU error).
     pub lost: Option<String>,
+    /// Current display presentation description, reported in Help > System Info.
+    #[serde(default)]
+    pub hdr_output: Option<String>,
 }
 
 impl GpuInfo {
@@ -861,6 +886,9 @@ impl GpuInfo {
                 }
             ),
         ];
+        if let Some(output) = &self.hdr_output {
+            v.push(output.clone());
+        }
         if let Some(f) = &self.fallback {
             v.push(format!("Fallback: {f}"));
         }
@@ -1562,6 +1590,12 @@ impl CanvasCallback {
             Some([e, gm]) if e.is_finite() && gm.is_finite() && gm > 0.0 => (2f32.powf(e.clamp(-20.0, 20.0)), 1.0 / gm.max(0.01)),
             _ => (0.0, 1.0),
         };
+        let w = p.workbench.unwrap_or_default().sanitized();
+        let method = match w.method {
+            photocraft_color::hdr::ToneMap::Natural => 0.0,
+            photocraft_color::hdr::ToneMap::Filmic => 1.0,
+            photocraft_color::hdr::ToneMap::Clip => 2.0,
+        };
         [
             screen[0] as f32,
             screen[1] as f32,
@@ -1591,6 +1625,22 @@ impl CanvasCallback {
             g[1],
             g[2],
             inv_gamma,
+            p.output_headroom,
+            photocraft_color::convert::linear_to_srgb(p.output_headroom.max(1.0)),
+            0.0,
+            0.0,
+            if p.workbench.is_some() { 1.0 } else { 0.0 },
+            method,
+            w.exposure,
+            w.shoulder,
+            w.contrast,
+            w.saturation,
+            if w.split { 1.0 } else { 0.0 },
+            if w.clipping { 1.0 } else { 0.0 },
+            self.rect.center().x * ppp,
+            0.0,
+            0.0,
+            0.0,
         ]
     }
 }
@@ -1684,6 +1734,10 @@ struct View {
     e: vec4<f32>, // checker light rgb, gamut warning opacity
     f: vec4<f32>, // checker dark rgb, 32-bit preview gain (2^exposure; 0 = off)
     g: vec4<f32>, // gamut warning rgb, 32-bit preview 1 / gamma
+    h: vec4<f32>, // linear EDR headroom (0 = SDR), encoded ceiling, padding
+    i: vec4<f32>, // workbench enabled, method, exposure EV, shoulder
+    j: vec4<f32>, // contrast, saturation, split, clipping overlay
+    k: vec4<f32>, // split boundary in framebuffer pixels
 };
 struct Tile { r: vec4<f32> }; // x, y, w, h in doc px
 
@@ -1801,17 +1855,51 @@ fn fs_tile(in: VOut) -> @location(0) vec4<f32> {
         // texture value, before the display LUT. A float canvas keeps values above 1.0, so they
         // are brought into range by the exposure instead of clipped.
         let lin = srgb_to_linear(max(col.rgb / col.a, vec3(0.0))) * view.f.w;
-        let v = linear_to_srgb(min(pow(max(lin, vec3(1e-12)), vec3(view.g.w)), vec3(1.0)));
+        let ceiling = select(select(1.0, max(view.h.x, 1.0), view.h.x > 0.0), 65504.0, view.i.x > 0.5);
+        let v = linear_to_srgb(min(pow(max(lin, vec3(1e-12)), vec3(view.g.w)), vec3(ceiling)));
         col = vec4(v * col.a, col.a);
     }
     if (view.d.z > 0.5 && col.a > 0.0) {
         // Colour management, Proof Colors, Gamut Warning: the document's display LUT (alpha flags
         // out-of-gamut colours).
         let n = f32(textureDimensions(lut).x);
-        let c = clamp(col.rgb / col.a, vec3(0.0), vec3(1.0));
+        var c = clamp(col.rgb / col.a, vec3(0.0), vec3(1.0));
+        var scale_hdr = 1.0;
+        if ((view.h.x > 1.0 || view.i.x > 0.5) && any(col.rgb > vec3(col.a))) {
+            // Normalize HDR radiance into the ICC LUT domain, then restore its scale.
+            let linear = srgb_to_linear(max(col.rgb / col.a, vec3(0.0)));
+            scale_hdr = max(max(linear.r, linear.g), max(linear.b, 1.0));
+            c = clamp(linear_to_srgb(linear / scale_hdr), vec3(0.0), vec3(1.0));
+        }
         let l = textureSampleLevel(lut, samp, (c * (n - 1.0) + 0.5) / n, 0.0);
         let shown = select(l.rgb, mix(l.rgb, view.g.xyz, view.e.w), view.d.z > 1.5 && l.a > 0.5);
-        col = vec4(shown * col.a, col.a);
+        var extended = shown;
+        if (scale_hdr > 1.0) { extended = linear_to_srgb(srgb_to_linear(shown) * scale_hdr); }
+        col = vec4(extended * col.a, col.a);
+    }
+    if (view.i.x > 0.5 && col.a > 0.0) {
+        var ceiling = max(view.h.x, 1.0);
+        if (view.j.z > 0.5 && p.x >= view.k.x) { ceiling = 1.0; }
+        var c = srgb_to_linear(max(col.rgb / col.a, vec3(0.0)));
+        // Invalid float inputs are sanitized at upload; bounded gains remain representable.
+        c = min(c, vec3(65504.0)) * exp2(view.i.z);
+        c = pow(c / 0.18, vec3(view.j.x)) * 0.18;
+        let l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        c = max(vec3(l) + (c - vec3(l)) * view.j.y, vec3(0.0));
+        let peak = max(max(c.r, c.g), c.b);
+        let was_clipped = peak > ceiling;
+        if (ceiling <= 1.0 && view.i.y < 1.5 && peak > 0.0) {
+            let k = view.i.w;
+            var mapped = peak;
+            if (peak > k) { mapped = k + (1.0-k) * (1.0-exp(-(peak-k)/(1.0-k))); }
+            if (view.i.y > 0.5) { mapped = mapped * mapped / (mapped + 0.04) * 1.04; }
+            c = c * (mapped / peak);
+        }
+        c = clamp(c, vec3(0.0), vec3(ceiling));
+        if (view.j.w > 0.5 && was_clipped && (u32(p.x+p.y) % 12u) < 6u) { c = vec3(1.0, 0.0, 0.5); }
+        col = vec4(linear_to_srgb(c) * col.a, col.a);
+    } else if (view.h.x > 0.0) {
+        col = vec4(clamp(col.rgb, vec3(0.0), vec3(view.h.y * col.a)), col.a);
     }
     var rgb = col.rgb + checker(p) * (1.0 - col.a);
     let grid = view.c.z;

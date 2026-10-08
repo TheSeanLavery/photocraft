@@ -99,6 +99,7 @@
 	Fill…	Rellenar…
 	Stroke…	Contornear…
 	Content-Aware Fill…	Relleno de contenido…
+	Delete and Fill Selection	Eliminar y rellenar selección
 	Content-Aware Scale	Escalado de contenido
 	Puppet Warp	Deformación de clavos
 	Perspective Warp	Deformación en perspectiva
@@ -310,6 +311,7 @@
 	Smart Object	Objeto inteligente
 	Convert to Smart Object	Convertir en objeto inteligente
 	Convert to Embedded	Convertir en incrustado
+	Convert to Layers	Convertir en capas
 	Convert to Linked…	Convertir en vinculado…
 	Edit Contents	Editar contenido
 	Replace Contents…	Reemplazar contenido…
@@ -2212,3 +2214,22 @@ cameraRaw	Amount	Cantidad
 	Full HD Portrait	Full HD vertical
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K vertical
+
+# Undo cache budgets
+	Memory budget (MiB)	Límite de memoria (MiB)
+	Undo disk budget (MiB)	Límite de disco para deshacer (MiB)
+	Budget mb	Límite (MiB)
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	El límite de memoria se comparte entre los píxeles del documento, los datos incrustados y el historial de deshacer. Crece según se necesita; la demás memoria de la aplicación es adicional.
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	El espacio en disco para deshacer crece solo cuando se necesita, hasta este límite. Cero desactiva la caché en disco. Las rutas temporales se aplican a la siguiente sesión de caché.
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Esta versión del navegador conserva el historial de deshacer en memoria. Los ajustes de disco temporal se aplican a la aplicación de escritorio.
+
+	HDR Output	Salida HDR
+	HDR Workbench	Banco de trabajo HDR
+	Export SDR Preview…	Exportar vista previa SDR…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Haz clic para cambiar las columnas; arrastra la barra de título para mover
+	Click to change columns; drag to detach Tools	Haz clic para cambiar las columnas; arrastra para separar Herramientas
+	Dock Tools on the left	Acoplar Herramientas a la izquierda
+	Use trackpad pressure	Usar la presión del trackpad
+	Apply At Canvas Bounds	Aplicar efecto en los límites del lienzo

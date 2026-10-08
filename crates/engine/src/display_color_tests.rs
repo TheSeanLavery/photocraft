@@ -374,3 +374,12 @@ fn proof_colors_still_apply_on_top() {
     s.execute("view.gamutWarning", json!({"on": true})).unwrap();
     assert_ne!(sig, s.color.display_signature(&d));
 }
+
+#[test]
+fn tagged_srgb_surface_does_not_apply_monitor_conversion_twice() {
+    let mut state = crate::color_cmds::ColorState::default();
+    state.settings.monitor_profile = "display-p3".into();
+    assert_ne!(state.monitor().content_hash(), photocraft_cms::Builtin::Srgb.profile().content_hash());
+    state.surface_srgb = true;
+    assert_eq!(state.monitor().content_hash(), photocraft_cms::Builtin::Srgb.profile().content_hash());
+}

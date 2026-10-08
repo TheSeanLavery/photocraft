@@ -4,7 +4,7 @@ members = ["crates/*", "apps/*", "xtask"]
 default-members = ["crates/*", "apps/photocraft", "apps/photocraft-cli", "xtask"]
 
 [workspace.package]
-version = "0.3.1-rc.1"
+version = "0.5.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
@@ -53,6 +53,10 @@ rayon = "1"
 criterion = { version = "0.5", default-features = false }
 getrandom = "0.3"
 
+[patch.crates-io]
+# Narrow safe-API HDR patch; see patches/egui-wgpu-hdr.md.
+egui-wgpu = { git = "https://github.com/TheSeanLavery/egui.git", rev = "24fd06138d67cda864f81824ec05282c2f8e4188" }
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
@@ -98,4 +102,62 @@ opt-level = 3
 [profile.wasm-release.package.photocraft-algo]
 opt-level = 3
 [profile.wasm-release.package.photocraft-paint]
+opt-level = 3
+
+# Native installers use a size-oriented profile without sacrificing panic recovery.
+# Packaging extracts private diagnostic symbols, then strips BEFORE signing.
+# Hot pixel, codec, vector and text paths retain speed optimization; release stays
+# unchanged as the performance oracle for same-source size/performance comparisons.
+[profile.native-release]
+inherits = "release"
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+panic = "unwind"
+debug = "line-tables-only"
+strip = "none"
+
+[profile.native-release.package.photocraft-geom]
+opt-level = 3
+[profile.native-release.package.photocraft-color]
+opt-level = 3
+[profile.native-release.package.photocraft-cms]
+opt-level = 3
+[profile.native-release.package.photocraft-raster]
+opt-level = 3
+[profile.native-release.package.photocraft-compose]
+opt-level = 3
+[profile.native-release.package.photocraft-algo]
+opt-level = 3
+[profile.native-release.package.photocraft-paint]
+opt-level = 3
+[profile.native-release.package.photocraft-codecs]
+opt-level = 3
+[profile.native-release.package.photocraft-raw]
+opt-level = 3
+[profile.native-release.package.photocraft-vector]
+opt-level = 3
+[profile.native-release.package.photocraft-text]
+opt-level = 3
+[profile.native-release.package.parley]
+opt-level = 3
+[profile.native-release.package.skrifa]
+opt-level = 3
+[profile.native-release.package.harfrust]
+opt-level = 3
+[profile.native-release.package.vello_cpu]
+opt-level = 3
+[profile.native-release.package.image]
+opt-level = 3
+[profile.native-release.package.png]
+opt-level = 3
+[profile.native-release.package.tiff]
+opt-level = 3
+[profile.native-release.package.exr]
+opt-level = 3
+[profile.native-release.package.zune-jpeg]
+opt-level = 3
+[profile.native-release.package.jpeg-encoder]
+opt-level = 3
+[profile.native-release.package.image-webp]
 opt-level = 3

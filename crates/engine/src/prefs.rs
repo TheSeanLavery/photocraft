@@ -284,6 +284,8 @@ pub struct Tools {
     pub right_click_with_painting_tools: RightClickPaint,
     /// Pen tablets: pressure, tilt and rotation reach the brush (off: a pen paints like a mouse).
     pub use_tablet_pressure: bool,
+    /// macOS Force Touch trackpad pressure controls brush size and opacity while dragging.
+    pub use_trackpad_pressure: bool,
 }
 
 impl Default for Tools {
@@ -300,6 +302,7 @@ impl Default for Tools {
             double_click_layer_mask_launches_select_and_mask: true,
             right_click_with_painting_tools: RightClickPaint::BrushPicker,
             use_tablet_pressure: true,
+            use_trackpad_pressure: false,
         }
     }
 }
@@ -364,6 +367,9 @@ pub struct Export {
     pub quick_export_format: QuickExportFormat,
     pub quick_export_location: ExportLocation,
     pub jpeg_quality: u32,
+    /// Keep the existing lossless Quick Export default until the user opts into lossy WebP.
+    pub webp_lossless: bool,
+    pub webp_quality: u32,
     pub metadata: ExportMetadata,
     pub convert_to_srgb: bool,
 }
@@ -374,6 +380,8 @@ impl Default for Export {
             quick_export_format: QuickExportFormat::Png,
             quick_export_location: ExportLocation::Ask,
             jpeg_quality: 85,
+            webp_lossless: true,
+            webp_quality: 85,
             metadata: ExportMetadata::Copyright,
             convert_to_srgb: true,
         }
@@ -383,8 +391,8 @@ impl Default for Export {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Performance {
-    /// Memory PhotoCraft may use, in MB: bounds each document's pixels plus its History (the
-    /// oldest states are dropped beyond it).
+    /// Shared RAM target for managed document/history pixels, in MiB. This is not a
+    /// reservation or a limit on total process memory, GPU caches, or temporary allocations.
     pub memory_usage_mb: u32,
     /// Undo steps kept per document (History panel states).
     pub history_states: u32,
@@ -409,8 +417,7 @@ impl Performance {
         self.rendering_mode.unwrap_or_else(|| if !self.use_gpu || self.gpu_backend == GpuBackend::Cpu { RenderingMode::Cpu } else { RenderingMode::Auto })
     }
 
-    /// Pixel memory a document and its History may hold (Memory Usage), in bytes: beyond it
-    /// the oldest history states are dropped.
+    /// Shared managed-pixel RAM target (Memory Usage), in bytes.
     pub fn history_budget_bytes(&self) -> usize {
         (self.memory_usage_mb as usize).saturating_mul(1 << 20)
     }
@@ -419,7 +426,7 @@ impl Performance {
 impl Default for Performance {
     fn default() -> Self {
         Self {
-            memory_usage_mb: 8192,
+            memory_usage_mb: 4096,
             history_states: 50,
             cache_levels: 4,
             cache_tile_size: 8192,
@@ -442,13 +449,16 @@ pub struct ScratchDisk {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct ScratchDisks {
+    /// Maximum compressed history bytes on scratch disks, in MiB (0 disables disk spill).
+    /// The cache grows on demand; no space is reserved upfront.
+    pub budget_mb: u32,
     /// Disks for spilling tiles once the memory budget is reached (in priority order).
     pub disks: Vec<ScratchDisk>,
 }
 
 impl Default for ScratchDisks {
     fn default() -> Self {
-        Self { disks: vec![ScratchDisk { path: "(system temp)".into(), enabled: true }] }
+        Self { budget_mb: 8192, disks: vec![ScratchDisk { path: "(system temp)".into(), enabled: true }] }
     }
 }
 
@@ -727,6 +737,8 @@ pub struct ToolbarCustomization {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Preferences {
+    /// HDR user swatches in straight linear sRGB, preserving intensity across document profiles.
+    pub hdr_swatches: Vec<[f32; 4]>,
     pub general: General,
     pub interface: Interface,
     pub workspace: Workspace,
@@ -825,7 +837,6 @@ pub const HIDDEN_UNTIL_IMPLEMENTED: &[&str] = &[
     "performance.cacheLevels",
     "performance.effectCacheMb",
     "performance.legacyCompositing",
-    "scratchDisks.disks",
     "cursors.brushPreviewColor",
     "unitsAndRulers.typeUnits",
     "unitsAndRulers.columnWidth",
@@ -905,8 +916,9 @@ pub fn range(path: &str) -> Option<(f64, f64)> {
     Some(match path {
         "fileHandling.autosaveMinutes" => (1.0, 240.0),
         "fileHandling.recentFileCount" => (0.0, 100.0),
-        "export.jpegQuality" => (1.0, 100.0),
+        "export.jpegQuality" | "export.webpQuality" => (1.0, 100.0),
         "performance.memoryUsageMb" => (256.0, 1_048_576.0),
+        "scratchDisks.budgetMb" => (0.0, 1_048_576.0),
         "performance.historyStates" => (1.0, 1000.0),
         "performance.cacheLevels" => (1.0, 8.0),
         "performance.cacheTileSize" => (256.0, 16384.0),
@@ -1060,7 +1072,9 @@ impl Preferences {
         check_value(path, &value)?;
         let mut root = self.to_json();
         set_path(&mut root, path, value)?;
-        *self = serde_json::from_value(root).map_err(|e| format!("invalid value for `{path}`: {e}"))?;
+        let candidate: Self = serde_json::from_value(root).map_err(|e| format!("invalid value for `{path}`: {e}"))?;
+        crate::hdr_cmds::validate_swatches(&candidate.hdr_swatches)?;
+        *self = candidate;
         Ok(())
     }
 
@@ -1231,13 +1245,12 @@ impl Session {
     /// the layer-effect cache budget.
     pub fn apply_prefs(&mut self) {
         let n = self.prefs().performance.history_states.max(1) as usize;
-        let bytes = self.prefs().performance.history_budget_bytes();
         let budget = self.prefs().performance.effect_cache_mb as usize;
         for st in &mut self.docs {
             st.history.max_states = n;
-            st.history.max_bytes = bytes;
-            st.history.trim(&st.doc);
+            st.history.enforce_state_limit();
         }
+        self.configure_history_cache();
         photocraft_compose::set_effect_cache_budget(budget << 20);
         crate::plugin_cmds::sync_prefs(self);
     }
@@ -1265,6 +1278,7 @@ impl Session {
         let color = v.as_object_mut().and_then(|m| m.remove("colorSettings"));
         let presets = v.as_object_mut().and_then(|m| m.remove("presets"));
         let prefs: Preferences = serde_json::from_value(v).map_err(|e| format!("preferences: {e}"))?;
+        crate::hdr_cmds::validate_swatches(&prefs.hdr_swatches)?;
         if let Some(c) = color {
             self.color.settings = serde_json::from_value(c).unwrap_or_default();
             photocraft_compose::psblend::set_text_gamma(self.color.settings.blend_text_gamma);

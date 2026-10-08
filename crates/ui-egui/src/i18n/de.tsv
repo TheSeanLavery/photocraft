@@ -103,6 +103,7 @@
 	Fill…	Füllen…
 	Stroke…	Nachziehen…
 	Content-Aware Fill…	Inhaltsbasiert füllen…
+	Delete and Fill Selection	Auswahl löschen und füllen
 	Content-Aware Scale	Inhaltsbasiert skalieren
 	Puppet Warp	Marionetten-Verkrümmung
 	Perspective Warp	Perspektivisch verkrümmen
@@ -314,6 +315,7 @@
 	Smart Object	Smart-Objekt
 	Convert to Smart Object	In Smart-Objekt konvertieren
 	Convert to Embedded	In eingebettetes Smart-Objekt konvertieren
+	Convert to Layers	In Ebenen konvertieren
 	Convert to Linked…	In verknüpftes Smart-Objekt konvertieren…
 	Edit Contents	Inhalt bearbeiten
 	Replace Contents…	Inhalt ersetzen…
@@ -2180,3 +2182,17 @@
 	Full HD Portrait	Full HD Hochformat
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K Hochformat
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Klicken, um die Spaltenzahl zu ändern; Titelleiste zum Verschieben ziehen
+	Click to change columns; drag to detach Tools	Klicken, um die Spaltenzahl zu ändern; zum Lösen der Werkzeuge ziehen
+	Dock Tools on the left	Werkzeuge links andocken
+	Use trackpad pressure	Trackpad-Druck verwenden
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Das Speicherbudget wird von Dokumentpixeln, eingebetteten Daten und dem Rückgängig-Verlauf gemeinsam genutzt. Es wächst bei Bedarf; anderer App-Speicher kommt hinzu.
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Diese Browserversion hält den Rückgängig-Verlauf im Arbeitsspeicher. Arbeitsvolume-Einstellungen gelten für die Desktop-App.
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	Der Speicherplatz für Rückgängig-Daten wächst nur bei Bedarf bis zu diesem Grenzwert. Null deaktiviert den Festplatten-Cache. Arbeitsvolume-Pfade gelten ab der nächsten Cache-Sitzung.
+	HDR Output	HDR-Ausgabe
+	HDR Workbench	HDR-Arbeitsbereich
+	Export SDR Preview…	SDR-Vorschau exportieren…
+	Budget mb	Grenzwert (MiB)
+	Apply At Canvas Bounds	Effekt an Arbeitsflächenbegrenzungen anwenden

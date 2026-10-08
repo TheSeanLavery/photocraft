@@ -21,8 +21,10 @@ pub mod adjust_preview;
 pub mod adjust_ui;
 pub mod analysis_ui;
 pub mod artboard_ui;
+pub(crate) mod blend_preview;
 mod brand;
 mod brush_cursor;
+mod brush_input;
 pub mod brush_panel;
 pub mod brush_picker;
 pub mod brush_preview;
@@ -53,7 +55,7 @@ pub mod doc_props_ui;
 pub mod dock;
 pub mod enable_rules;
 pub mod eraser_ui;
-pub mod export_dialog;
+mod export_dialog;
 pub mod file_open;
 pub mod file_ui;
 pub mod fill_ui;
@@ -62,6 +64,7 @@ pub mod gallery_ui;
 pub mod gpu_canvas;
 pub mod gpu_status;
 pub mod gradient_ui;
+pub mod hdr_ui;
 pub mod hold_keys;
 pub mod i18n;
 mod icon_data;
@@ -74,6 +77,7 @@ pub mod layer_props_ui;
 mod layer_reveal;
 pub mod layer_row_ui;
 pub mod layer_style;
+mod layer_transfer;
 pub mod layer_tree_ui;
 pub mod links;
 pub mod liquify_ui;
@@ -85,6 +89,7 @@ pub mod menus;
 pub mod monitor_status;
 pub mod move_mods;
 pub mod move_ui;
+pub mod native_menu;
 pub mod new_doc_ui;
 pub mod notices;
 mod opacity_keys;
@@ -204,36 +209,61 @@ pub type Inbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<u8>)>>>;
 pub type LoadTextFn = Box<dyn FnMut() -> Option<String>>;
 /// Persist the preferences text.
 pub type SaveTextFn = Box<dyn FnMut(&str) -> Result<(), String>>;
-/// Autosave a document snapshot for crash recovery: (snapshot, revision, original path).
-pub type AutosaveFn = Box<dyn FnMut(&std::sync::Arc<Document>, u64, Option<&str>) -> Result<(), String>>;
-/// Drop the recovery data of a document (by `DocId` value) once it is saved or closed.
-pub type DiscardAutosaveFn = Box<dyn FnMut(u64)>;
-/// Load recoverable documents left by a previous session. Their recovery data stays until the
-/// documents are saved or closed.
-pub type RecoverFn = Box<dyn FnMut() -> Vec<Recovered>>;
-/// A recovered document (by `DocId` value, once open) takes over its recovery entry (by key):
-/// its autosaves replace the entry, and saving or closing it drops the entry.
-pub type AdoptAutosaveFn = Box<dyn FnMut(u64, &str)>;
-
-/// A document [`RecoverFn`] found.
-pub struct Recovered {
-    /// The recovery entry it was loaded from (see [`AdoptAutosaveFn`]).
-    pub key: String,
-    /// Where the user last saved it, if anywhere.
-    pub path: Option<String>,
-    pub doc: Document,
+/// Queue an immutable document/history checkpoint. Success means accepted, not saved.
+pub type AutosaveFn =
+    Box<dyn FnMut(&std::sync::Arc<Document>, photocraft_ops::HistoryCheckpoint, u64, Option<&str>, Option<&str>, serde_json::Value) -> Result<(), String>>;
+/// Retire a closed document's checkpoint off the UI thread; inherited keys remain owned until completion.
+pub type DiscardAutosaveFn = Box<dyn FnMut(u64, Option<&str>) -> Result<(), String>>;
+pub struct AutosaveCompletion {
+    pub document_id: u64,
+    pub revision: u64,
+    pub result: Result<(), String>,
+    pub retired: bool,
 }
+pub type PollAutosaveFn = Box<dyn FnMut() -> Vec<AutosaveCompletion>>;
+pub struct RecoveredDocument {
+    pub key: String,
+    pub path: Option<String>,
+    pub document: Document,
+    pub history: Option<photocraft_ops::HistoryCheckpoint>,
+    pub context: serde_json::Value,
+}
+#[derive(Default)]
+pub struct RecoveryBatch {
+    pub documents: Vec<RecoveredDocument>,
+    pub errors: Vec<String>,
+}
+/// Load recoverable checkpoints without consuming their durable originals.
+pub type RecoverFn = Box<dyn FnMut() -> RecoveryBatch>;
 /// Append text to a file (History Log).
 pub type AppendTextFn = Box<dyn FnMut(&str, &str) -> Result<(), String>>;
 /// Requests from the operating system since the last call (see [`OsEvent`]).
 pub type OsEventsFn = Box<dyn FnMut() -> Vec<OsEvent>>;
 /// Where the OS pointer is now, in egui points within the window; `None` when unknown.
 pub type CursorPosFn = Box<dyn FnMut(&egui::Context) -> Option<egui::Pos2>>;
+/// Window events in egui points. Every press is synchronized, even if painting ignores it.
+#[derive(Clone, Copy)]
+pub enum MouseMotion {
+    Press {
+        position: egui::Pos2,
+        button: egui::PointerButton,
+    },
+    Move {
+        from: egui::Pos2,
+        to: egui::Pos2,
+    },
+    /// Drop samples not consumed by this frame (dialogs, other tools, rejected presses).
+    EndFrame,
+}
+/// The second argument is UI zoom, not display DPI. Returned interior points are in egui
+/// points, exclude the OS endpoint, and consume the matching native segment once.
+pub type MotionSamplesFn = Box<dyn FnMut(MouseMotion, f32) -> Vec<egui::Pos2>>;
 
 /// Platform services injected by the app binary (file dialogs, codecs), keeping this crate free of
 /// I/O dependencies.
 #[derive(Default)]
 pub struct Services {
+    pub motion_samples: Option<MotionSamplesFn>,
     /// Decode a file's bytes into a document (PSD, PNG, JPEG, …).
     pub import: Option<ImportFn>,
     /// Encode a document for a file name (format chosen by extension).
@@ -273,8 +303,8 @@ pub struct Services {
     /// Crash-recovery autosave (Preferences › File Handling) and recovery at launch.
     pub autosave: Option<AutosaveFn>,
     pub discard_autosave: Option<DiscardAutosaveFn>,
+    pub poll_autosave: Option<PollAutosaveFn>,
     pub recover: Option<RecoverFn>,
-    pub adopt_autosave: Option<AdoptAutosaveFn>,
     /// History Log text file output.
     pub append_text: Option<AppendTextFn>,
     /// OS requests (macOS open-documents / quit Apple events), polled every frame.
@@ -289,6 +319,8 @@ pub struct Services {
     /// Reads the displays and their ICC profiles in the background (desktop macOS; see
     /// `monitor_status`). Without one, the canvas uses the profile chosen in Color Settings, or sRGB.
     pub read_displays: Option<monitor_status::ReadDisplaysFn>,
+    /// The macOS menu bar, when the desktop app installed one; the in-window menus are hidden then.
+    pub native_menu: Option<native_menu::NativeMenu>,
 }
 
 pub struct PhotocraftApp {
@@ -308,6 +340,8 @@ pub struct PhotocraftApp {
     trail: Option<stroke_trail::Trail>,
     /// Move tool drag shown live (`move_ui`).
     pub(crate) move_preview: Option<move_ui::MovePreview>,
+    /// A blend mode hovered in the Layers panel, shown live (`blend_preview`).
+    pub(crate) blend_preview: Option<blend_preview::BlendPreview>,
     /// Patch Tool drag: the healed document at the pointer (`patch_preview`).
     pub(crate) patch_preview: Option<patch_preview::PatchPreview>,
     /// The pixels a Magnetic Lasso border follows (`magnetic_lasso_ui`).
@@ -443,6 +477,7 @@ pub struct PhotocraftApp {
     pub(crate) allow_close: bool,
     /// Pen pressure/tilt from the platform (see `stylus`).
     pub stylus: stylus::Stylus,
+    pub(crate) brush_input: brush_input::BrushInput,
     /// Run long commands and file opens as background jobs with progress and Cancel (#210; see
     /// `jobs_ui`). The desktop app turns it on; off (the default), everything runs inline as
     /// before, which tests and scripts rely on.
@@ -466,6 +501,7 @@ impl PhotocraftApp {
             live_stroke: None,
             trail: None,
             move_preview: None,
+            blend_preview: None,
             patch_preview: None,
             magnetic: Default::default(),
             secondary_erase: false,
@@ -531,6 +567,7 @@ impl PhotocraftApp {
             tiff_options: None,
             allow_close: false,
             stylus: Default::default(),
+            brush_input: Default::default(),
             background_jobs: false,
             jobs: Default::default(),
             #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
@@ -641,6 +678,7 @@ impl PhotocraftApp {
             }
         }
         // Long commands become background jobs when enabled (`jobs_ui`); the rest run inline.
+        let params = self.with_mask_target(id, params);
         let r = jobs_ui::run(self, id, params);
         if r.is_ok() && matches!(id, "edit.copy" | "edit.cut" | "edit.copyMerged") {
             self.clip_external = false;
@@ -959,6 +997,7 @@ impl PhotocraftApp {
 impl eframe::App for PhotocraftApp {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         i18n::set_current(i18n::Lang::from_pref(&self.session.prefs().interface.language));
+        self.stylus.trackpad_feed.set_enabled(self.session.prefs().tools.use_trackpad_pressure);
         if !self.styled {
             Self::setup_context(ctx, self.ui.theme);
             self.styled = true;
@@ -979,6 +1018,7 @@ impl eframe::App for PhotocraftApp {
             self.checker = None;
         }
         self.drain_control(ctx);
+        native_menu::run(self, ctx);
         if self.ui.text_edit.is_some() && !self.ui.tool.is_type() {
             type_tool::commit(self);
         }
@@ -1020,6 +1060,7 @@ impl eframe::App for PhotocraftApp {
             self.open_dropped(ctx, dropped, at);
         }
         self.place_next_dropped(ctx);
+        brush_input::sync_capture(self, ctx);
         // The control transport wakes the UI on arrival (ctx.request_repaint); only poll while a
         // screenshot is pending. (Polling every 50 ms here made idle apps render at 20 fps.)
         if !self.pending_screenshots.is_empty() {
@@ -1028,6 +1069,10 @@ impl eframe::App for PhotocraftApp {
     }
 
     fn raw_input_hook(&mut self, ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+        // Native menu key equivalents become the key presses they were (see `native_menu`).
+        if let Some(menu) = self.services.native_menu.as_mut() {
+            menu.raw_input(raw_input);
+        }
         shortcuts::clipboard_keys(ctx, ctx.text_edit_focused() || self.ui.text_edit.is_some(), raw_input);
         raw_input.events.extend(self.take_synthetic_step());
     }
@@ -1039,6 +1084,9 @@ impl eframe::App for PhotocraftApp {
         i18n::set_current(i18n::Lang::from_pref(&self.session.prefs().interface.language));
         // Fonts registered via set_fonts only take effect next frame; named families would panic now.
         if !self.fonts_ready {
+            if let Some(read) = self.services.motion_samples.as_mut() {
+                read(MouseMotion::EndFrame, ctx.zoom_factor());
+            }
             ctx.request_repaint();
             self.automation_input = false;
             return;
@@ -1077,6 +1125,7 @@ impl eframe::App for PhotocraftApp {
         timeline_ui::windows(self, &ctx);
         workspace_ui::windows(self, &ctx);
         palette::show(self, &ctx);
+        hdr_ui::show(self, &ctx);
         dialogs::show(self, &ctx);
         jobs_ui::dialog(self, &ctx);
         discard_ui::show(self, &ctx);
@@ -1092,7 +1141,11 @@ impl eframe::App for PhotocraftApp {
         }
         // A device lost while drawing this frame: switch to the CPU canvas before the next one.
         gpu_status::check(self, &ctx);
+        if let Some(read) = self.services.motion_samples.as_mut() {
+            read(MouseMotion::EndFrame, ctx.zoom_factor());
+        }
         self.automation_input = false;
+        native_menu::sync(self, &ctx);
         self.perf.frame(gpu_canvas::now_ms() - t0);
         // Synthetic input is injected one press/release step per frame: keep frames coming until
         // the queue is empty, then release control replies waiting on it.
@@ -1118,6 +1171,28 @@ fn read_dropped(_f: &dyn egui::DroppedFile) -> Result<Vec<u8>, String> {
 }
 
 impl PhotocraftApp {
+    /// `params` aimed at the active layer's mask (`"target":"mask"`) when the Layers panel targets
+    /// it and command `id` edits the target (adjustments, filters, fills) without naming one:
+    /// ⌘I then inverts the mask, as in Photoshop (#780). A targeted alpha channel or Quick Mask
+    /// mode wins, as the engine routes those itself.
+    pub fn with_mask_target(&self, id: &str, params: Value) -> Value {
+        if !self.ui.mask_target || !photocraft_engine::channel_cmds::follows_target(id) || params.get("target").is_some() {
+            return params;
+        }
+        let Some(st) = self.session.active() else { return params };
+        let composite = st.channel_view.target == photocraft_engine::channel_cmds::ChannelTarget::Composite && st.doc.quick_mask.is_none();
+        if !composite || st.active_layer.and_then(|id| st.doc.layer(id)).is_none_or(|l| l.mask.is_none()) {
+            return params;
+        }
+        match params {
+            Value::Object(mut m) => {
+                m.insert("target".into(), Value::from("mask"));
+                Value::Object(m)
+            }
+            _ => serde_json::json!({ "target": "mask" }),
+        }
+    }
+
     /// Viewing a layer mask (#196) targets it; a vector-mask target needs a vector mask on the
     /// active layer (a shape layer's path is its content, not a mask).
     fn sync_mask_targets(&mut self) {
@@ -1394,6 +1469,18 @@ impl PhotocraftApp {
         if set(b.width(), b.height(), &bytes).is_ok() {
             self.os_clip_sig = Some(clip_signature(b.width(), b.height(), &bytes));
         }
+    }
+
+    /// File › New's fields: the defaults, plus the Clipboard preset (the clipboard image's size,
+    /// selected) when the clipboard holds an image. Opening the dialog is an explicit request, so
+    /// the OS clipboard is read here, as for a paste.
+    pub(crate) fn new_document_fields(&mut self) -> serde_json::Map<String, serde_json::Value> {
+        let mut f = crate::state::UiState::new_document_fields();
+        self.import_os_clipboard();
+        if let Some(c) = self.session.clipboard.as_ref().filter(|c| !c.bounds.is_empty()) {
+            crate::new_doc_ui::set_clipboard(&mut f, c.bounds.width(), c.bounds.height());
+        }
+        f
     }
 
     /// If the OS clipboard holds an image that isn't the one we put there, make it the session

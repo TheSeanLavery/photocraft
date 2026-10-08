@@ -82,6 +82,7 @@
 	Fill…	Выполнить заливку…
 	Stroke…	Обвести…
 	Content-Aware Fill…	Заливка с учётом содержимого…
+	Delete and Fill Selection	Удалить и заполнить выделение
 	Define Brush Preset…	Определить кисть…
 	Define Pattern…	Определить паттерн…
 	Define Custom Shape…	Определить свою фигуру…
@@ -1726,6 +1727,7 @@
 	Combine Shapes	Комбинировать фигуры
 	Contract…	Сжать…
 	Convert to Embedded	Преобразовать во встроенный
+	Convert to Layers	Преобразовать в слои
 	Convert to Linked…	Преобразовать в связанный…
 	Count	Счёт
 	Create Layer	Создать слой
@@ -2414,3 +2416,22 @@ cameraRaw	Roughness	Неровность
 	Full HD Portrait	Full HD, портрет
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K, портрет
+
+# Undo cache budgets
+	Memory budget (MiB)	Лимит памяти (МиБ)
+	Undo disk budget (MiB)	Лимит диска для отмены (МиБ)
+	Budget mb	Лимит (МиБ)
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Лимит памяти общий для пикселей документа, встроенных данных и истории отмены. Память выделяется по мере необходимости; остальные нужды приложения требуют дополнительной памяти.
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	Место на диске для отмены используется только по мере необходимости, до этого лимита. Ноль отключает дисковый кэш. Пути рабочих дисков применяются со следующего сеанса кэша.
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Версия для браузера хранит историю отмены в памяти. Настройки рабочих дисков применяются к настольному приложению.
+
+	HDR Output	Вывод HDR
+	HDR Workbench	Панель HDR
+	Export SDR Preview…	Экспортировать предпросмотр SDR…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Нажмите, чтобы изменить число столбцов; перетащите строку заголовка для перемещения
+	Click to change columns; drag to detach Tools	Нажмите, чтобы изменить число столбцов; перетащите, чтобы открепить инструменты
+	Dock Tools on the left	Закрепить инструменты слева
+	Use trackpad pressure	Использовать давление на трекпаде
+	Apply At Canvas Bounds	Применить эффект на границах холста

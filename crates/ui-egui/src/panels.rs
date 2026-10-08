@@ -54,21 +54,47 @@ fn slot_tool(ui: &egui::Ui, current: Tool, slot: &[Tool], key: egui::Id) -> Tool
 pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let (w1, bx, m) = if t.pro { (40.0, 30.0, 5i8) } else { (50.0, 36.0, 7i8) };
-    // Photoshop switches to a double-column toolbar only when one column doesn't fit.
+    // Start with the compact layout when it fits; the header lets the user override it.
     let slots: usize = TOOL_SECTIONS.iter().map(|g| g.len()).sum();
-    let double = toolbar_needs_double(slots, TOOL_SECTIONS.len(), bx, t.pro, ui.available_rect_before_wrap().height());
+    let double = match app.ui.toolbar_columns {
+        Some(1) => false,
+        Some(2) => true,
+        _ => toolbar_needs_double(slots, TOOL_SECTIONS.len(), bx, t.pro, ui.available_rect_before_wrap().height()),
+    };
     let w = if double { w1 + bx + 2.0 } else { w1 };
-    egui::Panel::left("toolbar").resizable(false).exact_size(w).frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(m, 8))).show(
-        ui,
-        |ui| {
-            if t.pro {
-                let r = ui.max_rect();
+    let floating = app.ui.toolbar_floating;
+    let position = app.ui.toolbar_position;
+    let content = |ui: &mut egui::Ui| {
+        if floating {
+            ui.set_width(w);
+        }
+        {
+            let r = ui.max_rect();
+            if t.pro && !floating {
                 ui.painter().line_segment([r.right_top() + vec2(m as f32, -8.0), r.right_bottom() + vec2(m as f32, 8.0)], Stroke::new(1.0, t.separator));
-                // collapse chevrons like Photoshop's toolbar header
-                let (cr, _) = ui.allocate_exact_size(vec2(bx, 14.0), Sense::hover());
-                icons::paint(ui, cr, "chevrons-right", 11.0, t.text_faint);
-                ui.add_space(4.0);
             }
+            // Click to switch between one and two columns; drag to detach.
+            let (cr, header) = ui.allocate_exact_size(vec2(bx, 18.0), Sense::click_and_drag());
+            icons::paint(ui, cr, if double { "chevrons-left" } else { "chevrons-right" }, 11.0, t.text_dim);
+            let header = header.on_hover_text(if floating {
+                tl!("Click to change columns; drag the title bar to move")
+            } else {
+                tl!("Click to change columns; drag to detach Tools")
+            });
+            if header.clicked() {
+                app.ui.toolbar_columns = Some(if double { 1 } else { 2 });
+            }
+            if !floating && header.dragged() {
+                app.ui.toolbar_floating = true;
+                let cursor = ui.input(|i| i.pointer.interact_pos()).unwrap_or(cr.left_top());
+                app.ui.toolbar_position = Some([cursor.x + 8.0, cursor.y - 8.0]);
+            }
+            if floating && icons::button(ui, "panels-top-left", bx, false, tl!("Dock Tools on the left")).clicked() {
+                app.ui.toolbar_floating = false;
+            }
+            ui.add_space(4.0);
+        }
+        egui::ScrollArea::vertical().id_salt("toolbar-tools").auto_shrink([false, false]).show(ui, |ui| {
             // Subtle violet wash at the bottom of the toolbar.
             let full = ui.max_rect();
             if !t.bevel && !t.pro && t.dark() {
@@ -244,8 +270,27 @@ pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     }
                 });
             }
-        },
-    );
+        });
+    };
+    if floating {
+        let mut window = egui::Window::new(tl!("Tools"))
+            .id(egui::Id::new("floating-tools"))
+            .resizable(false)
+            .max_height((ui.ctx().content_rect().height() - 24.0).max(160.0))
+            .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(m, 8)));
+        if let Some([x, y]) = position {
+            window = window.default_pos(pos2(x, y));
+        }
+        if let Some(response) = window.show(ui.ctx(), content) {
+            app.ui.toolbar_position = Some([response.response.rect.left(), response.response.rect.top()]);
+        }
+    } else {
+        egui::Panel::left("toolbar")
+            .resizable(false)
+            .exact_size(w)
+            .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(m, 8)))
+            .show(ui, content);
+    }
 }
 
 /// Does the toolbar need two columns? Height of one column (header, tool slots, Edit Toolbar,
@@ -333,7 +378,8 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 let (mark, _) = ui.allocate_exact_size(vec2(side, side), Sense::hover());
                 crate::brand::paint_mark(ui, mark);
                 ui.add_space(6.0);
-                menus_right = crate::menus::menu_bar(app, ui);
+                // With the macOS menu bar the menus are at the top of the screen instead.
+                menus_right = if app.services.native_menu.is_some() { ui.cursor().left() } else { crate::menus::menu_bar(app, ui) };
                 // The menu bar takes the whole row, so the right-hand group gets its own rect:
                 // from the menus to the bar's end, or to the caption buttons.
                 let right_edge = if custom { full.right() - crate::titlebar::WIDTH - 4.0 } else { full.right() };
@@ -852,7 +898,11 @@ percent_field(ui, tl!("Opacity"), &mut b.opacity, 0.0..=100.0, if t.pro { 62.0 }
                             crate::shortcuts::pretty("Shift+Alt")
                         ),
                     ),
-                    Tool::Move => hint(ui, tl!("Drag to move the active layer")),
+                    Tool::Move => {
+                        // The Studio themes keep Photoshop's Auto-Select toggle too (#1275).
+                        widgets::checkbox(ui, &mut app.ui.tool_options.move_auto_select, tl!("Auto-Select:"));
+                        hint(ui, tl!("Drag to move the active layer"));
+                    }
                     Tool::Eyedropper => hint(
                         ui,
                         &crate::i18n::fmt(
@@ -1426,9 +1476,12 @@ fn layers(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 let opacity_label = if t.pro { tl!("Opacity:") } else { tl!("Opacity") };
                 let right = (body_text_width(ui, opacity_label) + 66.0 + 2.0 * ui.spacing().item_spacing.x + 16.0).max(150.0);
                 let w = ui.available_width() - right;
-                if widgets::dropdown(ui, "blend", &mut m, &blend_options(l.is_group()), w.max(100.0)) {
+                let (chosen, hovered) = widgets::dropdown_hovered(ui, "blend", &mut m, &blend_options(l.is_group()), w.max(100.0));
+                if chosen {
                     actions.push(("layer.setProps".into(), json!({"layer": l.id.0, "blend": m.label()})));
                 }
+                // Hovering a mode previews it on the canvas (#970).
+                crate::blend_preview::hover(app, l.id, hovered.filter(|_| !chosen));
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let mut o = l.opacity * 100.0;
                     if widgets::value_field(ui, &mut o, 0.0..=100.0, "%", 66.0).changed() {
@@ -1538,6 +1591,12 @@ fn layers(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 actions.push(done);
             }
         });
+    // A layer being dragged can also be dropped on the footer's Delete, New Layer and Group
+    // buttons (#736); read the drag before it ends.
+    let footer_drag = ctx.data(|d| d.get_temp::<u64>(egui::Id::new("layer-drag"))).map(|id| {
+        let in_selection = selection.iter().any(|s| s.0 == id);
+        (id, in_selection)
+    });
     // End any layer drag after every row has had a chance to accept the drop.
     if ctx.input(|i| i.pointer.any_released()) {
         ctx.data_mut(|d| d.remove::<u64>(egui::Id::new("layer-drag")));
@@ -1548,15 +1607,21 @@ fn layers(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 2.0;
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if icons::button(ui, "trash", 26.0, false, tl!("Delete layer")).clicked() {
+            let trash = icons::button(ui, "trash", 26.0, false, tl!("Delete layer"));
+            if trash.clicked() {
                 actions.push(("layer.delete".into(), json!({})));
             }
-            if icons::button(ui, "square-plus", 26.0, false, &crate::shortcuts::tip_label(app, "Create a new layer", "layer.new.layer")).clicked() {
+            actions.extend(footer_drop(ui, &trash, footer_drag, "layer.delete"));
+            let new_layer = icons::button(ui, "square-plus", 26.0, false, &crate::shortcuts::tip_label(app, "Create a new layer", "layer.new.layer"));
+            if new_layer.clicked() {
                 actions.push(("layer.new.layer".into(), json!({})));
             }
-            if icons::button(ui, "folder", 26.0, false, tl!("Create a new group")).clicked() {
+            actions.extend(footer_drop(ui, &new_layer, footer_drag, "layer.duplicate"));
+            let group = icons::button(ui, "folder", 26.0, false, tl!("Create a new group"));
+            if group.clicked() {
                 actions.push(("layer.new.group".into(), json!({})));
             }
+            actions.extend(footer_drop(ui, &group, footer_drag, "layer.groupLayers"));
             let adj = icons::button(ui, "contrast", 26.0, false, tl!("Create new fill or adjustment layer"));
             egui::Popup::menu(&adj).show(|ui| {
                 ui.set_min_width(190.0);
@@ -1631,6 +1696,34 @@ fn layers(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             continue;
         }
         let _ = app.run(&id, p);
+    }
+}
+
+/// A layer row dragged onto a Layers panel footer button, as in Photoshop: onto Delete deletes it,
+/// onto New Layer duplicates it, onto New Group groups it. A row that is part of the selection
+/// carries the whole selection; any other row goes alone. Highlights the button while over it and
+/// returns the command on release.
+fn footer_drop(ui: &egui::Ui, button: &egui::Response, drag: Option<(u64, bool)>, command: &str) -> Option<(String, Value)> {
+    // Named for screen readers (and tests) after the command a drop runs.
+    button.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, footer_label(command)));
+    let (layer, in_selection) = drag?;
+    let p = ui.ctx().input(|i| i.pointer.interact_pos())?;
+    if !button.rect.contains(p) {
+        return None;
+    }
+    let t = Tokens::get(ui.ctx());
+    ui.painter().rect_stroke(button.rect, t.radius_sm, Stroke::new(2.0, t.accent), StrokeKind::Inside);
+    if !ui.ctx().input(|i| i.pointer.any_released()) {
+        return None;
+    }
+    Some((command.into(), if in_selection { json!({}) } else { json!({"layer": layer}) }))
+}
+
+fn footer_label(command: &str) -> &'static str {
+    match command {
+        "layer.delete" => tl!("Delete layer"),
+        "layer.duplicate" => tl!("Create a new layer"),
+        _ => tl!("Create a new group"),
     }
 }
 
@@ -1726,6 +1819,9 @@ fn layer_row(
     let row_h = if t.pro { 32.0 } else { 46.0 };
     let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), row_h), Sense::click_and_drag());
     layer_drag_and_drop(ctx, ui, l, rect, &resp, actions);
+    if resp.drag_started() {
+        crate::layer_transfer::begin_from_panel(app, ctx, l.id);
+    }
     // Rows are painted: name them for screen readers and UI tests.
     resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, selected, &l.name));
     // A row scrolled out of view only keeps its place (#125): a layout's hundreds of rows would
@@ -2475,13 +2571,7 @@ fn layer_drag_and_drop(ctx: &egui::Context, ui: &egui::Ui, l: &Layer, rect: Rect
     if dragged == l.id.0 {
         // Ghost label following the pointer.
         if let Some(p) = pointer {
-            let layer = egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("layer-drag-ghost"));
-            let painter = ctx.layer_painter(layer);
-            let g = painter.layout_no_wrap(l.name.clone(), egui::FontId::proportional(12.0), t.text);
-            let r = Rect::from_min_size(p + vec2(12.0, -10.0), g.size() + vec2(16.0, 8.0));
-            painter.rect_filled(r, t.radius_sm, t.card.gamma_multiply(0.95));
-            painter.rect_stroke(r, t.radius_sm, Stroke::new(1.0, t.accent), StrokeKind::Inside);
-            painter.galley(r.min + vec2(8.0, 4.0), g, t.text);
+            crate::layer_transfer::ghost(ctx, p, &l.name);
         }
         return;
     }

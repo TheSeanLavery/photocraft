@@ -103,6 +103,7 @@
 	Fill…	塗りつぶし…
 	Stroke…	境界線を描く…
 	Content-Aware Fill…	コンテンツに応じた塗りつぶし…
+	Delete and Fill Selection	選択範囲を削除して塗りつぶし
 	Content-Aware Scale	コンテンツに応じた拡大・縮小
 	Puppet Warp	パペットワープ
 	Perspective Warp	遠近法ワープ
@@ -314,6 +315,7 @@
 	Smart Object	スマートオブジェクト
 	Convert to Smart Object	スマートオブジェクトに変換
 	Convert to Embedded	埋め込みに変換
+	Convert to Layers	レイヤーに変換
 	Convert to Linked…	リンクに変換…
 	Edit Contents	コンテンツを編集
 	Replace Contents…	コンテンツを置き換え…
@@ -2124,3 +2126,22 @@ cameraRaw	Color	カラー
 	Full HD Portrait	フルHD 縦向き
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K 縦向き
+
+# Undo cache budgets
+	Memory budget (MiB)	メモリ上限 (MiB)
+	Undo disk budget (MiB)	取り消し用ディスク上限 (MiB)
+	Budget mb	容量上限 (MiB)
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	メモリ上限はドキュメントの画素、埋め込みデータ、取り消し履歴で共有します。必要に応じて増加し、アプリのその他のメモリは別途使用されます。
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	取り消し用ディスク容量は必要なときだけ、この上限まで増加します。0 にするとディスクキャッシュを無効にします。保存先は次のキャッシュセッションから適用されます。
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	ブラウザー版では取り消し履歴をメモリに保持します。スクラッチディスク設定はデスクトップ版に適用されます。
+
+	HDR Output	HDR 出力
+	HDR Workbench	HDR ワークベンチ
+	Export SDR Preview…	SDR プレビューを書き出し…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	列数を変更するにはクリックし、タイトルバーをドラッグして移動
+	Click to change columns; drag to detach Tools	クリックして列数を変更、ドラッグしてツールを切り離す
+	Dock Tools on the left	ツールを左側にドッキング
+	Use trackpad pressure	トラックパッドの筆圧を使用
+	Apply At Canvas Bounds	カンバスの境界に効果を適用

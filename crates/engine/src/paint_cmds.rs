@@ -99,13 +99,18 @@ fn gradient(s: &mut Session, p: &Value) -> Result<Value> {
     let opacity = f(p, "opacity", 100.0) / 100.0;
     let blend = p.get("mode").and_then(Value::as_str).and_then(blend_from_str).unwrap_or(photocraft_color::BlendMode::Normal);
     let dither = b(p, "dither", true); // Photoshop dithers gradients by default (reduces banding).
+    let mut damage = photocraft_geom::Rect::EMPTY;
     s.edit("Gradient", |doc, active| {
         let sel = doc.selection.clone();
         let area = sel.as_ref().map(|m| m.content_bounds()).filter(|r| !r.is_empty()).unwrap_or_else(|| doc.bounds()).intersect(&doc.bounds());
+        damage = area;
         let (surf, _) = crate::channel_cmds::target_surface(doc, *active, p)?;
         paint_gradient(surf, area, from, to, shape, &stops, reverse, opacity, blend, dither, sel.as_ref());
         Ok(())
     })?;
+    if let Some(st) = s.active_mut() {
+        st.last_damage = Some(damage);
+    }
     Ok(Value::Null)
 }
 
@@ -197,6 +202,7 @@ mod tests {
         assert!(px(&s, 0, 5)[0] > 0.95);
         s.execute("select.rect", json!({"x": 0, "y": 0, "width": 5, "height": 10})).unwrap();
         s.execute("paint.gradient", json!({"from": [0, 0], "to": [0, 10], "colors": ["#ff0000"]})).unwrap();
+        assert_eq!(s.active().and_then(|st| st.last_damage), Some(Rect::new(0, 0, 5, 10)));
         assert_eq!(px(&s, 2, 5)[..3], [1.0, 0.0, 0.0]);
         assert!(px(&s, 10, 5)[1] > 0.4, "outside the selection untouched");
         assert!(s.execute("paint.gradient", json!({"from": [0, 0]})).is_err());

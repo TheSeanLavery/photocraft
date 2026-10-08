@@ -51,6 +51,9 @@ The other built-in ICC profiles and the generated LUT looks are produced by code
 | `docs/images/photocraft-*.jpg` | PhotoCraft screenshots | PhotoCraft contributors (UI) | Rendered offscreen with the `snapshot` example | MIT OR Apache-2.0 (UI); the artwork in each is public domain, listed below |
 | `docs/images/preferences-apply-*.png` | Preferences before and after adding Apply (no artwork) | PhotoCraft contributors | PhotoCraft control-channel capture and offscreen `snapshot` example | MIT OR Apache-2.0 |
 | `docs/images/brush-preview-spacing-921-*.png` | Brush Settings before and after refreshing the spacing preview (synthetic document) | PhotoCraft contributors | Rendered offscreen with the `snapshot` example | MIT OR Apache-2.0; [`LICENSE-brush-preview-spacing-921.txt`](docs/images/LICENSE-brush-preview-spacing-921.txt) |
+| `docs/images/rendering-*.png` | Rendering mode settings, GPU menu and CPU recovery warning | PhotoCraft contributors | Original app captures with a synthetic test document | MIT OR Apache-2.0 |
+| `docs/images/undo-*-preferences.png` | Undo cache memory and scratch preferences | PhotoCraft contributors | Original offscreen app captures, blank document workspace | MIT OR Apache-2.0, adjacent `docs/images/LICENSE-MIT` and `LICENSE-APACHE` |
+| `docs/images/recovery/*.png` | PhotoCraft recovery validation screenshots (synthetic document) | PhotoCraft contributors | Original offscreen rendering, `snapshot` example | MIT OR Apache-2.0, adjacent license files |
 
 Artwork shown in the screenshots (all public domain, via Wikimedia Commons; details in
 [`docs/images/SOURCES.md`](docs/images/SOURCES.md)):
@@ -83,3 +86,5 @@ next to the files:
 | `corpus/pngsuite/` | PngSuite | Willem van Schaik | <http://www.schaik.com/pngsuite/> | Public domain |
 
 Files copied into `corpus/` by hand (tiff, exr, raw) must be MIT, BSD or CC0.
+
+| `docs/evidence/hdr-workbench/` | Original synthetic HDR chart and PhotoCraft validation captures | PhotoCraft contributors | Generated locally with `hdr_fixture` and `hdr_snapshot`; native control screenshots | MIT (see adjacent `LICENSE`) |

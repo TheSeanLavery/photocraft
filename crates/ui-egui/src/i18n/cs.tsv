@@ -107,6 +107,7 @@
 	Fill…	Vyplnit…
 	Stroke…	Tah…
 	Content-Aware Fill…	Výplň s ohledem na obsah…
+	Delete and Fill Selection	Odstranit a vyplnit výběr
 	Content-Aware Scale	Změna velikosti s ohledem na obsah
 	Puppet Warp	Loutková deformace
 	Perspective Warp	Perspektivní deformace
@@ -318,6 +319,7 @@
 	Smart Object	Chytrý objekt
 	Convert to Smart Object	Převést na chytrý objekt
 	Convert to Embedded	Převést na vložený
+	Convert to Layers	Převést na vrstvy
 	Convert to Linked…	Převést na propojený…
 	Edit Contents	Upravit obsah
 	Replace Contents…	Nahradit obsah…
@@ -1713,6 +1715,7 @@
 	Constraints ({n})	Omezení ({n})
 	Align {what}	Zarovnat: {what}
 @plural	{n} Layer|{n} Layers	{n} vrstva|{n} vrstvy|{n} vrstev
+@plural	{n} layer|{n} layers	{n} vrstva|{n} vrstvy|{n} vrstev
 @plural	Group · {n} layer|Group · {n} layers	Skupina · {n} vrstva|Skupina · {n} vrstvy|Skupina · {n} vrstev
 
 # Preferences (labels are generated from the setting names)
@@ -2140,3 +2143,22 @@ cameraRaw	Color	Barvy
 	Full HD Portrait	Full HD na výšku
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K na výšku
+
+# Undo cache budgets
+	Memory budget (MiB)	Limit paměti (MiB)
+	Undo disk budget (MiB)	Limit disku pro historii (MiB)
+	Budget mb	Limit (MiB)
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Limit paměti je společný pro pixely dokumentů, vložená data a historii změn. Paměť se přiděluje podle potřeby; ostatní paměť aplikace je navíc.
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	Místo na disku pro historii roste pouze podle potřeby až do tohoto limitu. Nula vypíná diskovou mezipaměť. Cesty odkládacích disků se použijí při příští relaci mezipaměti.
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Tato verze pro prohlížeč uchovává historii změn v paměti. Nastavení odkládacích disků platí pro aplikaci pro počítač.
+
+	HDR Output	Výstup HDR
+	HDR Workbench	Pracovní panel HDR
+	Export SDR Preview…	Exportovat náhled SDR…
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Kliknutím změňte počet sloupců; přetažením záhlaví panel přesuňte
+	Click to change columns; drag to detach Tools	Kliknutím změňte počet sloupců; přetažením odpojte Nástroje
+	Dock Tools on the left	Ukotvit Nástroje vlevo
+	Use trackpad pressure	Používat tlak trackpadu
+	Apply At Canvas Bounds	Použít efekt na hranicích plátna

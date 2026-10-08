@@ -20,9 +20,13 @@ cargo xtask parity                                         # Photoshop menu cove
 
 Image code is slow at `opt-level 0`, so the workspace profile builds dependencies at `opt-level 2`. Use `--release` for anything interactive.
 
+### Force Touch trackpad painting on macOS
+
+On a Force Touch Mac, enable **Edit › Preferences › Tools › Use Trackpad Pressure**. Select a brush preset with pressure-controlled size or opacity, then press and drag with the trackpad's primary button. PhotoCraft reads AppKit's pressure events during that drag. Pen tablet input remains separate; an ordinary mouse or trackpad without pressure support paints at full strength. The preference is off by default and is available through `prefs.set` at `tools.useTrackpadPressure` for automation.
+
 ## Fonts (craft-fonts)
 
-Font assets shared by the Crafting Apps live in [storytold/craft-fonts](https://github.com/storytold/craft-fonts), never in this repo: don't commit font files here (Inter and JetBrains Mono in `assets/fonts/` are the only exceptions; new fonts go to craft-fonts). The rules are in [`craftrules/standards/fonts.md`](../../craftrules/standards/fonts.md) ([on GitHub](https://github.com/storytold/craftrules/blob/main/standards/fonts.md)).
+Font assets shared by the Crafting Apps live in [storytold/craft-fonts](https://github.com/storytold/craft-fonts), never in this repo: don't commit font files here (Inter and JetBrains Mono in `assets/fonts/` are the only exceptions; new fonts go to craft-fonts). The rules are in `craftrules/standards/fonts.md` in a sibling `craftrules` checkout (see below); that repository is not public, so outside contributors can ask a maintainer for the rules that apply to their change.
 
 craft-fonts is an **optional build input**, never a Cargo dependency:
 
@@ -110,6 +114,24 @@ If the device is lost while running (#243), every GPU entry point checks the dev
 
 Keys are the field names of `theme::Tokens` (`crates/ui-egui/src/theme.rs`). Edit and save the file while the app runs to see changes immediately, with no recompile. This is compiled out of release builds.
 
+## Brush input
+
+Painting consumes ordered motion events and uses a cached native brush outline. Large outlines,
+pixel-snapped Pencil footprints and the web retain their canvas-drawn cursor fallback.
+On macOS, GC motion adds bounded intermediate points aligned to consecutive OS endpoints.
+The OS cursor and acceleration remain authoritative; absent or ambiguous samples automatically
+use the original endpoint. GC callback order estimates the interior path: GC does not expose a
+reliable timestamp per delta, so delayed callbacks cannot be perfectly synchronized. No waiting
+or retroactive stroke edits are introduced. Supported on macOS 14 and later.
+Windows and Linux reuse eframe's relative mouse events (Windows Raw Input, XInput2, and the
+Wayland relative-pointer protocol when available). Multiple relative samples can add an interior
+curve between OS endpoints. Batched absolute positions, missing samples and uncertain geometry
+keep the OS-only path. These normalized events omit device IDs and individual timestamps;
+arrival order and a frame clock provide estimates, not measured device-rate coordinates.
+Hardware and compositor event delivery determine whether extra points are available; no higher
+sampling rate is guaranteed. Pen/touch input and automation retain their existing paths.
+No input-engine switches or comparison windows are exposed.
+
 ## Driving the app programmatically
 
 Start the app with a private token file. It then accepts authenticated JSON lines on `127.0.0.1:7878`:
@@ -151,7 +173,8 @@ cargo run -p photocraft-cli -- commands --filter blur                    # the c
 - `tiles/<blake3>.zst` and `blobs/<blake3>.zst`: zstd-compressed objects, content-addressed by the BLAKE3 hash of their uncompressed bytes.
 - `thumb.png` and `composite/preview.png`: previews.
 
-Keep one `PcraftWriter` per open document: re-saving then only compresses and writes tiles that changed. Directory bundles verify objects on first encounter in a folder; later saves reuse them while their file size and modification time are unchanged, and re-verify changed objects, repair missing or damaged objects, and garbage-collect unreferenced ones. `format::Autosaver` writes snapshots into a recovery directory on a background thread. `list_recovery` / `recover` / `discard_recovery` implement crash recovery, and `format::RecoveryStore` is the lifecycle the desktop app uses: new documents autosave under per-launch keys (document ids restart every launch, so they never overwrite an older entry), and a recovered document adopts the entry it came from. That entry is replaced in place by the next autosave and removed only when the document is saved or closed, never just because it was recovered, so a second crash loses nothing. The web build has no crash recovery (no autosave services).
+Keep one `PcraftWriter` per open document: re-saving then only compresses and writes tiles that changed, and directory bundles garbage-collect unreferenced objects. `format::Autosaver` writes snapshots into a recovery directory on a background thread. `list_recovery` / `recover` / `discard_recovery` implement crash recovery.
+The desktop checkpoint also preserves undo/redo and navigation context; see [Autosave and crash recovery](recovery.md) for completion acknowledgements, retention and storage limits.
 
 `photocraft-io` routes `.pcraft` through this crate in `import`/`export`, detecting it by magic or by extension.
 
@@ -453,3 +476,39 @@ stroke is drawn above its clipped layers; linked effect patterns tile from the l
 reference point; stroke distances follow a 5 × 5 chamfer metric (1, √2, √5) seeded at sub-pixel
 edge offsets; interior effects keep the layer's alpha; outside strokes blend onto the backdrop with
 their own modes, an upper stroke covering lower ones.
+
+## HDR display output (macOS)
+
+On a Metal display that supports it, PhotoCraft automatically requests a 16-bit float,
+encoded extended-sRGB window. The OS maps that tagged signal to the current display;
+PhotoCraft converts documents to sRGB rather than applying the monitor profile twice.
+Highlights are limited to live EDR headroom, and UI white stays at SDR white. Unknown
+headroom uses 1× (SDR brightness). Other platforms retain SDR pending runtime validation.
+
+View › HDR Output toggles highlight display without changing document pixels. Proof Colors
+uses an SDR preview. `PHOTOCRAFT_HDR=0` forces the original SDR window for comparison or
+recovery. `--safe-gpu` also uses the original SDR presentation path.
+
+For an original synthetic validation image:
+
+```sh
+cargo run -p photocraft --example hdr_fixture -- /tmp/photocraft-hdr-chart.exr
+cargo run -p photocraft -- /tmp/photocraft-hdr-chart.exr
+```
+
+The chart contains 0, 0.18, 1, 2 and 4× SDR-white patches, a neutral ramp and a warm ramp.
+On an XDR display with headroom above 1×, the two brightest patches should be brighter
+than the 1× patch and the menus. Compare with HDR Output disabled. Brightness, power and
+ambient conditions can change available headroom; no fixed physical-nit output is promised.
+
+For float framebuffer captures, set `PHOTOCRAFT_HDR_CAPTURE_DIR` to an explicit developer
+output folder before launching. On the float HDR surface, every requested `ui.screenshot` also saves
+`window-<pid>-<sequence>.exr` asynchronously in that folder. These are the actual rendered
+window pixels converted from extended-sRGB encoding to linear sRGB. The ordinary PNG is
+an SDR-clipped preview. HDR EXRs preserve values above 1; screenshot PNGs do not prove
+physical display brightness. The EXR sink is configured locally and is not a remotely
+selectable filesystem path. The dependency patch is documented in
+[`patches/egui-wgpu-hdr.md`](../patches/egui-wgpu-hdr.md).
+
+HDR display controls, float picking, diagnostics, matching SDR export and reproducible
+float screenshots are described in [HDR Workbench](hdr-workbench.md).

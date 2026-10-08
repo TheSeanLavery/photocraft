@@ -24,6 +24,8 @@
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+pub mod motion;
+
 pub mod appkit;
 pub mod xi;
 
@@ -106,6 +108,12 @@ pub fn deliver(callback: &dyn Fn(Option<Sample>), sample: Option<Sample>) {
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(sample.map(Sample::sanitized))));
 }
 
+/// Deliver Force Touch pressure independently of the pen channel. Never unwind into AppKit.
+pub fn deliver_trackpad(callback: &dyn Fn(Option<f32>), pressure: Option<f32>) {
+    let pressure = pressure.and_then(|p| p.is_finite().then(|| p.clamp(0.0, 1.0)));
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| callback(pressure)));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,5 +135,8 @@ mod tests {
         deliver(&|s| seen.set(s), Some(Sample { pressure: 3.0, ..Default::default() }));
         assert_eq!(seen.get().map(|s| s.pressure), Some(1.0), "sanitized on the way out");
         deliver(&|_| panic!("boom"), None);
+        deliver_trackpad(&|_| panic!("boom"), Some(0.5));
+        deliver_trackpad(&|p| seen.set(p.map(|pressure| Sample { pressure, ..Default::default() })), Some(f32::NAN));
+        assert_eq!(seen.get(), None);
     }
 }

@@ -158,6 +158,26 @@ pub(crate) fn color_param(p: &Value, key: &str, default: [f32; 4]) -> [f32; 4] {
         _ => default,
     }
 }
+fn validated_color_param(p: &Value, key: &str, default: [f32; 4]) -> Result<[f32; 4]> {
+    let bad = || EngineError::BadParams { cmd: "tools.setColors".into(), msg: format!("{key}: expected hex or 3/4 finite numbers, RGB 0..65504, alpha 0..1") };
+    match p.get(key) {
+        None => Ok(default),
+        Some(Value::String(s)) => parse_hex(s).ok_or_else(bad),
+        Some(Value::Array(a)) if (3..=4).contains(&a.len()) => {
+            let mut out = [0.0, 0.0, 0.0, 1.0];
+            for (i, (dst, value)) in out.iter_mut().zip(a).enumerate() {
+                let x = value.as_f64().ok_or_else(bad)?;
+                let ceiling = if i == 3 { 1.0 } else { 65504.0 };
+                if !x.is_finite() || !(0.0..=ceiling).contains(&x) {
+                    return Err(bad());
+                }
+                *dst = x as f32;
+            }
+            Ok(out)
+        }
+        _ => Err(bad()),
+    }
+}
 fn parse_hex(s: &str) -> Option<[f32; 4]> {
     let s = s.trim_start_matches('#');
     let b = |i: usize| u8::from_str_radix(s.get(i..i + 2)?, 16).ok().map(|v| v as f32 / 255.0);
@@ -192,11 +212,22 @@ fn new_adjustment(s: &mut Session, adj: Adjustment) -> Result<Value> {
 }
 
 fn destructive_adjust(s: &mut Session, label: &str, adj: Adjustment, p: &Value) -> Result<Value> {
+    if is_mask_target(p) {
+        // The targeted layer mask (#780): ⌘I inverts it, as in Photoshop.
+        let id = layer_param(s, &Value::Null)?;
+        return s.edit(label, |doc, _| {
+            let sel = doc.selection.clone();
+            let l = doc.layer_mut(id).ok_or(EngineError::NoLayer(id))?;
+            let mask = l.mask.as_mut().ok_or_else(|| EngineError::Other("layer has no mask".into()))?;
+            pixels::adjust_mask(&mut mask.surface, &adj, sel.as_ref());
+            Ok(Value::Null)
+        });
+    }
     if crate::channel_cmds::is_channel_target(p) {
         // Alpha channel / Quick Mask target: the adjustment runs on the grayscale channel.
         return s.edit(label, |doc, _| {
             let sel = doc.selection.clone();
-            if let Some(surf) = crate::channel_cmds::channel_surface_for_filter(doc, p)? {
+            if let Some(surf) = crate::channel_cmds::channel_surface_for_filter(doc, None, p)? {
                 pixels::adjust_surface(surf, &adj, sel.as_ref(), ColorMode::Grayscale);
                 surf.prune();
             }
@@ -289,8 +320,8 @@ fn build() -> Vec<CommandSpec> {
             Ok(Value::Null)
         }),
         // Edit
-        cmd!("edit.undo", "Undo", ["Edit"], Some("Cmd+Z"), "{}", can_undo, |s, _| Ok(json!(s.undo()))),
-        cmd!("edit.redo", "Redo", ["Edit"], Some("Cmd+Shift+Z"), "{}", can_redo, |s, _| Ok(json!(s.redo()))),
+        cmd!("edit.undo", "Undo", ["Edit"], Some("Cmd+Z"), "{}", can_undo, |s, _| Ok(json!(s.try_undo()?))),
+        cmd!("edit.redo", "Redo", ["Edit"], Some("Cmd+Shift+Z"), "{}", can_redo, |s, _| Ok(json!(s.try_redo()?))),
         cmd!(
             "edit.fill",
             "Fill…",
@@ -446,7 +477,7 @@ fn build() -> Vec<CommandSpec> {
                 // A copy of the Background layer is an ordinary, unlocked layer (Photoshop).
                 let from_background = src.name == "Background" && src.locks.transparency && doc.layers.first().is_some_and(|b| b.id == id);
                 let mut dup = src.duplicate();
-                dup.name = format!("{} copy", dup.name);
+                dup.name = doc.copy_name(&dup.name);
                 if from_background {
                     dup.locks = Default::default();
                 }
@@ -771,11 +802,21 @@ fn build() -> Vec<CommandSpec> {
             has_paintable,
             crate::brush_cmds::paint_stroke
         ),
-        cmd!("tools.setColors", "Set Colors", [], None, r##"{"foreground":"#rrggbb"?,"background":"#rrggbb"?}"##, always, |s, p| {
-            s.tools.foreground = color_param(p, "foreground", s.tools.foreground);
-            s.tools.background = color_param(p, "background", s.tools.background);
-            Ok(Value::Null)
-        }),
+        cmd!(
+            "tools.setColors",
+            "Set Colors",
+            [],
+            None,
+            r##"{"foreground":"#rrggbb"|[r,g,b,a?],"background":"#rrggbb"|[r,g,b,a?]} (optional; float RGB in document composite space; 0..65504, alpha 0..1)"##,
+            always,
+            |s, p| {
+                let foreground = validated_color_param(p, "foreground", s.tools.foreground)?;
+                let background = validated_color_param(p, "background", s.tools.background)?;
+                s.tools.foreground = foreground;
+                s.tools.background = background;
+                Ok(Value::Null)
+            }
+        ),
         cmd!("tools.swapColors", "Switch Foreground and Background Colors", [], Some("X"), "{}", always, |s, _| {
             std::mem::swap(&mut s.tools.foreground, &mut s.tools.background);
             Ok(Value::Null)
@@ -1016,6 +1057,7 @@ fn build() -> Vec<CommandSpec> {
     v.extend(crate::type_caret_cmds::specs());
     v.extend(crate::smart_cmds::specs());
     v.extend(crate::layer_multi_cmds::specs());
+    v.extend(crate::layer_copy_cmds::specs());
     v.extend(crate::prefs::specs());
     v.extend(crate::edit_menu_cmds::specs());
     v.extend(crate::fill_key_cmds::specs());
@@ -1038,6 +1080,7 @@ fn build() -> Vec<CommandSpec> {
     v.extend(crate::analysis_cmds::specs());
     v.extend(crate::notes_cmds::specs());
     v.extend(crate::proof_sim::specs());
+    v.extend(crate::hdr_cmds::specs());
     v.extend(crate::presets::specs());
     v.extend(crate::render_cmds::specs());
     v.extend(crate::slice_cmds::specs());

@@ -604,15 +604,15 @@ impl Session {
         if let Some(v) = crate::float_cmds::before_command(self, id)? {
             return Ok(Started::Done(v));
         }
-        if let Err(why) = crate::smart_cmds::target_enabled(self, spec, &params).unwrap_or_else(|| (spec.enabled)(self)) {
+        // Pixel commands follow the Channels panel target unless the caller names one.
+        let run_params = crate::channel_cmds::inject_target(self, id, crate::commands::inject_kind(id, params.clone()));
+        if let Err(why) = crate::smart_cmds::target_enabled(self, spec, &params).unwrap_or_else(|| self.precondition(spec, &run_params)) {
             return Err(EngineError::Disabled(id.to_string(), why));
         }
         if let Some(why) = self.job_conflict(id, spec.journal) {
             return Err(EngineError::Disabled(id.to_string(), why));
         }
         self.coalesce_request = params.get("coalesce").and_then(Value::as_str).map(str::to_string);
-        // Pixel commands follow the Channels panel target unless the caller names one.
-        let run_params = crate::channel_cmds::inject_target(self, id, crate::commands::inject_kind(id, params.clone()));
         self.color_restrict = crate::channel_cmds::color_restriction(self, id, &run_params);
         self.jobs.spawn = background;
         // Last-resort guard (AGENTS.md, Never crash): a command that panics anyway fails with an
@@ -654,6 +654,10 @@ impl Session {
         crate::edit_menu_cmds::after_command(self, id);
         crate::automate_cmds::after_command(self, id);
         self.sync_preset_store();
+        if journal {
+            self.history_cache.dirty = true;
+            self.poll_history_cache();
+        }
         if journal && !crate::brush_cmds::coalesce_journal(self, id, &params) {
             self.journal.push((id.to_string(), params));
         }

@@ -203,7 +203,7 @@ fn layer_via(s: &mut Session, cut: bool) -> Result<Value> {
         let nid = s.edit("Layer Via Copy", |doc, active| {
             let src = doc.layer(id).ok_or(EngineError::NoLayer(id))?;
             let mut dup = src.duplicate();
-            dup.name = format!("{} copy", src.name);
+            dup.name = doc.copy_name(&src.name);
             dup.locks = Default::default();
             let nid = doc.insert_above(Some(id), dup);
             *active = Some(nid);
@@ -379,7 +379,7 @@ fn auto_adjust(s: &mut Session, kind: &str) -> Result<Value> {
 fn toggle_last_state(s: &mut Session) -> Result<Value> {
     let st = s.active().ok_or(EngineError::NoDocument)?;
     let redo = st.history.can_redo();
-    Ok(json!(if redo { s.redo() } else { s.undo() }))
+    Ok(json!(if redo { s.try_redo()? } else { s.try_undo()? }))
 }
 
 /// Edit › Transform › Again: replay the last `edit.transform` on the active layer.

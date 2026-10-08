@@ -24,6 +24,8 @@ pub mod event_type {
     pub const OTHER_MOUSE_DOWN: usize = 25;
     pub const OTHER_MOUSE_UP: usize = 26;
     pub const OTHER_MOUSE_DRAGGED: usize = 27;
+    /// Force Touch pressure changes are a separate stream from mouse movement.
+    pub const PRESSURE: usize = 34;
 }
 
 /// `NSEventSubtype` values of mouse events.
@@ -54,6 +56,8 @@ pub struct RawEvent {
     /// `subtype` (only meaningful for mouse events).
     pub subtype: i16,
     pub pressure: f32,
+    /// Pressure gesture stage, meaningful only for `PRESSURE` events.
+    pub stage: isize,
     /// `tilt` (x, y), each -1..1.
     pub tilt: (f64, f64),
     /// `rotation`, degrees.
@@ -80,6 +84,7 @@ pub fn event_mask() -> u64 {
         OTHER_MOUSE_DOWN,
         OTHER_MOUSE_UP,
         OTHER_MOUSE_DRAGGED,
+        PRESSURE,
     ]
     .iter()
     .fold(0u64, |m, t| m | 1u64.checked_shl(*t as u32).unwrap_or(0))
@@ -90,11 +95,25 @@ pub fn event_mask() -> u64 {
 pub struct State {
     /// The tool in proximity is the eraser end.
     pub eraser: bool,
+    left_down: bool,
+    pen_active: bool,
+}
+
+/// A separate Force Touch reading. A mouse or pen event never becomes a pen sample.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TrackpadUpdate {
+    Keep,
+    Set(Option<f32>),
 }
 
 impl State {
     /// Map one event.
     pub fn handle(&mut self, e: &RawEvent) -> Update {
+        self.handle_both(e).0
+    }
+
+    /// Map an event to independent pen and trackpad channels.
+    pub fn handle_both(&mut self, e: &RawEvent) -> (Update, TrackpadUpdate) {
         use event_type::*;
         let mouse = matches!(
             e.kind,
@@ -110,12 +129,50 @@ impl State {
                 | OTHER_MOUSE_DRAGGED
         );
         if e.kind == TABLET_PROXIMITY || (mouse && e.subtype == subtype::TABLET_PROXIMITY) {
-            return self.proximity(e);
+            self.pen_active = e.entering;
+            return (self.proximity(e), TrackpadUpdate::Set(None));
         }
         if e.kind == TABLET_POINT || (mouse && e.subtype == subtype::TABLET_POINT) {
-            return Update::Set(Some(self.sample(e)));
+            self.pen_active = true;
+            return (Update::Set(Some(self.sample(e))), TrackpadUpdate::Set(None));
         }
-        if mouse { Update::Set(None) } else { Update::Keep }
+        if e.kind == LEFT_MOUSE_UP {
+            self.left_down = false;
+            return (Update::Set(None), TrackpadUpdate::Set(None));
+        }
+        if e.kind == LEFT_MOUSE_DOWN {
+            self.left_down = true;
+            self.pen_active = false;
+            // Plain mice report 0 or 1. A fractional down reading lets the first dab use
+            // actual trackpad pressure; otherwise wait for the separate pressure event.
+            let pressure = fractional_pressure(e.pressure);
+            return (Update::Set(None), TrackpadUpdate::Set(pressure));
+        }
+        if e.kind == PRESSURE {
+            if self.pen_active {
+                return (Update::Keep, TrackpadUpdate::Keep);
+            }
+            if !self.left_down || e.stage <= 0 {
+                return (Update::Keep, TrackpadUpdate::Set(None));
+            }
+            if e.stage >= 2 {
+                return (Update::Keep, TrackpadUpdate::Set(Some(1.0)));
+            }
+            if let Some(pressure) = valid_pressure(e.pressure) {
+                return (Update::Keep, TrackpadUpdate::Set(Some(pressure)));
+            }
+            return (Update::Keep, TrackpadUpdate::Keep);
+        }
+        if e.kind == LEFT_MOUSE_DRAGGED {
+            let pressure = fractional_pressure(e.pressure);
+            if self.left_down
+                && let Some(pressure) = pressure
+            {
+                return (Update::Set(None), TrackpadUpdate::Set(Some(pressure)));
+            }
+            return (Update::Set(None), TrackpadUpdate::Keep);
+        }
+        if mouse { (Update::Set(None), TrackpadUpdate::Keep) } else { (Update::Keep, TrackpadUpdate::Keep) }
     }
 
     fn proximity(&mut self, e: &RawEvent) -> Update {
@@ -145,6 +202,14 @@ impl State {
         }
         .sanitized()
     }
+}
+
+fn valid_pressure(pressure: f32) -> Option<f32> {
+    pressure.is_finite().then(|| pressure.clamp(0.0, 1.0))
+}
+
+fn fractional_pressure(pressure: f32) -> Option<f32> {
+    (pressure.is_finite() && pressure > 0.0 && pressure < 1.0).then_some(pressure)
 }
 
 #[cfg(test)]
@@ -178,7 +243,7 @@ mod tests {
             let e = RawEvent { kind: event_type::LEFT_MOUSE_DOWN, subtype: sub, pressure: 1.0, ..Default::default() };
             assert_eq!(st.handle(&e), Update::Set(None), "subtype {sub}");
         }
-        // Unrelated event types (keys, scroll, pressure-trackpad) don't touch the sample.
+        // Unrelated event types (keys and scroll) don't touch the pen sample.
         for kind in [0, 10, 22, 29, 34, usize::MAX] {
             assert_eq!(st.handle(&RawEvent { kind, ..Default::default() }), Update::Keep, "type {kind}");
         }
@@ -217,9 +282,40 @@ mod tests {
     #[test]
     fn mask_covers_the_mapped_types() {
         let m = event_mask();
-        for t in [1, 2, 3, 4, 5, 6, 7, 23, 24, 25, 26, 27] {
+        for t in [1, 2, 3, 4, 5, 6, 7, 23, 24, 25, 26, 27, 34] {
             assert!(m & (1 << t) != 0, "{t}");
         }
         assert_eq!(m & (1 << 10), 0, "key down is not monitored");
+    }
+
+    #[test]
+    fn trackpad_pressure_is_separate_from_pen_and_bounded_to_left_gesture() {
+        let mut st = State::default();
+        let pressure = |stage, pressure| RawEvent { kind: event_type::PRESSURE, stage, pressure, ..Default::default() };
+        assert_eq!(st.handle_both(&pressure(1, 0.4)), (Update::Keep, TrackpadUpdate::Set(None)));
+        let down = RawEvent { kind: event_type::LEFT_MOUSE_DOWN, pressure: 0.25, ..Default::default() };
+        assert_eq!(st.handle_both(&down), (Update::Set(None), TrackpadUpdate::Set(Some(0.25))));
+        assert_eq!(st.handle_both(&pressure(1, 0.6)), (Update::Keep, TrackpadUpdate::Set(Some(0.6))));
+        let drag = RawEvent { kind: event_type::LEFT_MOUSE_DRAGGED, pressure: 1.0, ..Default::default() };
+        assert_eq!(st.handle_both(&drag), (Update::Set(None), TrackpadUpdate::Keep));
+        assert_eq!(st.handle_both(&pressure(2, 0.1)), (Update::Keep, TrackpadUpdate::Set(Some(1.0))));
+        assert_eq!(st.handle_both(&pressure(0, 0.0)), (Update::Keep, TrackpadUpdate::Set(None)));
+        assert_eq!(st.handle_both(&RawEvent { kind: event_type::LEFT_MOUSE_UP, ..Default::default() }), (Update::Set(None), TrackpadUpdate::Set(None)));
+        assert_eq!(st.handle_both(&pressure(1, 0.7)), (Update::Keep, TrackpadUpdate::Set(None)));
+    }
+
+    #[test]
+    fn fractional_mouse_drag_seeds_trackpad_pressure_but_pen_stays_separate() {
+        let mut st = State::default();
+        let down = RawEvent { kind: event_type::LEFT_MOUSE_DOWN, pressure: 1.0, ..Default::default() };
+        assert_eq!(st.handle_both(&down).1, TrackpadUpdate::Set(None));
+        let drag = RawEvent { kind: event_type::LEFT_MOUSE_DRAGGED, pressure: 0.5, ..Default::default() };
+        assert_eq!(st.handle_both(&drag).1, TrackpadUpdate::Set(Some(0.5)));
+        let pen = RawEvent { kind: event_type::TABLET_POINT, pressure: 0.8, ..Default::default() };
+        let (sample, trackpad) = st.handle_both(&pen);
+        assert!(matches!(sample, Update::Set(Some(Sample { pressure: 0.8, .. }))));
+        assert_eq!(trackpad, TrackpadUpdate::Set(None));
+        let invalid = RawEvent { kind: event_type::PRESSURE, stage: 1, pressure: f32::NAN, ..Default::default() };
+        assert_eq!(st.handle_both(&invalid).1, TrackpadUpdate::Keep);
     }
 }

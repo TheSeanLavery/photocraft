@@ -98,6 +98,7 @@
 	Fill…	Isi…
 	Stroke…	Stroke…
 	Content-Aware Fill…	Isi Content-Aware…
+	Delete and Fill Selection	Hapus dan Isi Seleksi
 	Content-Aware Scale	Skala Content-Aware
 	Puppet Warp	Puppet Warp
 	Perspective Warp	Perspective Warp
@@ -301,6 +302,7 @@
 	Smart Object	Smart Object
 	Convert to Smart Object	Konversi ke Smart Object
 	Convert to Embedded	Konversi ke Tertanam
+	Convert to Layers	Konversi ke Layer
 	Convert to Linked…	Konversi ke Tertaut…
 	Edit Contents	Edit Isi
 	Replace Contents…	Ganti Isi…
@@ -2558,3 +2560,17 @@ cameraRaw	Blending	Pembauran
 	Full HD Portrait	Full HD Potret
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K Potret
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Klik untuk mengubah jumlah kolom; seret bilah judul untuk memindahkan
+	Click to change columns; drag to detach Tools	Klik untuk mengubah jumlah kolom; seret untuk melepas Alat
+	Dock Tools on the left	Tambatkan Alat di kiri
+	Use trackpad pressure	Gunakan tekanan trackpad
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Anggaran memori dipakai bersama oleh piksel dokumen, data tertanam, dan riwayat urungkan. Anggaran bertambah saat diperlukan; memori aplikasi lainnya terpisah.
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Versi browser ini menyimpan riwayat urungkan di memori. Pengaturan disk kerja berlaku untuk aplikasi desktop.
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	Ruang disk untuk urungkan bertambah hanya bila diperlukan, hingga batas ini. Nol menonaktifkan cache disk. Jalur disk kerja berlaku pada sesi cache berikutnya.
+	HDR Output	Keluaran HDR
+	HDR Workbench	Ruang kerja HDR
+	Export SDR Preview…	Ekspor Pratinjau SDR…
+	Budget mb	Batas (MiB)
+	Apply At Canvas Bounds	Terapkan efek di batas kanvas

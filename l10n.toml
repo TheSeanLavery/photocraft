@@ -1,0 +1,6 @@
+# Fluent catalog staging for PhotoCraft. The native UI still reads the TSV catalogs.
+locales = ["cs", "de", "es", "fr", "id", "it", "ja", "ko", "pt-BR", "ru", "zh-CN", "zh-TW"]
+
+[[paths]]
+reference = "crates/ui-egui/src/i18n/locales/en/messages.ftl"
+l10n = "crates/ui-egui/src/i18n/locales/{locale}/messages.ftl"

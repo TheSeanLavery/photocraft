@@ -9,3 +9,4 @@ workspace = true
 
 [dependencies]
 photocraft-doc = { workspace = true }
+serde = { workspace = true }

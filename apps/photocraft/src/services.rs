@@ -3,13 +3,11 @@
 use photocraft_codecs::{ChannelLayout, EncodeOptions, Image, SampleType as CS};
 use photocraft_color::{ColorMode, SampleType};
 use photocraft_doc::{Document, Layer, Size};
-use photocraft_format::RecoveryStore;
 use photocraft_geom::Rect;
-use photocraft_ui_egui::{Recovered, Services};
+use photocraft_ui_egui::Services;
 use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::Arc;
 
 /// Everything File › Open reads: PhotoCraft and Photoshop documents, flat images, and Photoshop
 /// brushes (.abr) and gradients (.grd), which go to the preset libraries.
@@ -71,35 +69,18 @@ fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     photocraft_format::atomic_write(path, bytes).map_err(|e| e.to_string())
 }
 
-type SharedRecovery = Rc<RefCell<Option<RecoveryStore>>>;
-
-/// Run `f` on the recovery store (`Err` without a config directory). The service closures never
-/// call each other, so the store is never borrowed twice.
-fn with_store<R>(store: &SharedRecovery, f: impl FnOnce(&mut RecoveryStore) -> R) -> Result<R, String> {
-    let mut slot = store.try_borrow_mut().map_err(|_| "crash recovery is busy".to_string())?;
-    Ok(f(slot.as_mut().ok_or("no config directory")?))
-}
-
-/// Crash recovery: background incremental .pcraft autosaves into `dir` (`None`: no config
-/// directory, so autosaves fail and nothing is recovered). Recovered documents keep their entries
-/// until a newer autosave replaces them or they're saved or closed (see [`RecoveryStore`]).
+/// Recovery services for a configured directory (also used by native recovery tests).
+#[cfg(test)]
 fn recovery_services(dir: Option<PathBuf>) -> Services {
-    let store: SharedRecovery = Rc::new(RefCell::new(dir.map(RecoveryStore::new)));
-    let (s1, s2, s3) = (store.clone(), store.clone(), store.clone());
+    let recovery = Rc::new(RefCell::new(crate::recovery::RecoveryManager::new(dir)));
+    let queue = recovery.clone();
+    let discard = recovery.clone();
+    let poll = recovery.clone();
     Services {
-        autosave: Some(Box::new(move |doc: &Arc<Document>, revision: u64, path: Option<&str>| {
-            with_store(&s1, |s| s.autosave(doc, revision, path.map(str::to_string)))
-        })),
-        discard_autosave: Some(Box::new(move |id: u64| {
-            let _ = with_store(&s2, |s| s.discard(id));
-        })),
-        recover: Some(Box::new(move || {
-            let found = with_store(&s3, |s| s.recover()).unwrap_or_default();
-            found.into_iter().map(|(e, doc)| Recovered { key: e.info.key, path: e.info.original_path, doc }).collect()
-        })),
-        adopt_autosave: Some(Box::new(move |id: u64, key: &str| {
-            let _ = with_store(&store, |s| s.adopt(id, key));
-        })),
+        autosave: Some(Box::new(move |doc, history, revision, path, key, context| queue.borrow_mut().queue(doc, history, revision, path, key, context))),
+        discard_autosave: Some(Box::new(move |id, key| discard.borrow_mut().discard(id, key))),
+        poll_autosave: Some(Box::new(move || poll.borrow_mut().poll())),
+        recover: Some(Box::new(move || recovery.borrow_mut().recover())),
         ..Default::default()
     }
 }
@@ -128,6 +109,10 @@ fn image_from_files(paths: &[PathBuf]) -> Option<(u32, u32, Vec<u8>)> {
 }
 
 pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) -> Services {
+    let recovery = Rc::new(RefCell::new(crate::recovery::RecoveryManager::new(recovery_dir())));
+    let recovery_queue = recovery.clone();
+    let recovery_discard = recovery.clone();
+    let recovery_poll = recovery.clone();
     let clip: Rc<RefCell<Option<arboard::Clipboard>>> = Rc::default();
     let automation_read = automation.clone().map(|workspace| {
         Box::new(move |path: &str| {
@@ -147,6 +132,7 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         }) as photocraft_ui_egui::AutomationCommandFn
     });
     Services {
+        motion_samples: None,
         import: Some(Box::new(|name: &str, bytes: &[u8]| {
             crate::crash_guard::guard("Open", || photocraft_io::import(name, bytes).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string()))
         })),
@@ -228,6 +214,13 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         }),
         load_prefs: Some(Box::new(|| std::fs::read_to_string(prefs_file()?).ok())),
         save_prefs: Some(Box::new(|text: &str| write_atomic(&prefs_file().ok_or("no config directory")?, text.as_bytes()))),
+        // The same immutable RAM checkpoint supplies pixels and undo/redo to the background writer.
+        autosave: Some(Box::new(move |doc, history, revision, path, key, context| {
+            recovery_queue.borrow_mut().queue(doc, history, revision, path, key, context)
+        })),
+        discard_autosave: Some(Box::new(move |id, key| recovery_discard.borrow_mut().discard(id, key))),
+        poll_autosave: Some(Box::new(move || recovery_poll.borrow_mut().poll())),
+        recover: Some(Box::new(move || recovery.borrow_mut().recover())),
         append_text: Some(Box::new(|path: &str, text: &str| {
             use std::io::Write;
             let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path).map_err(|e| e.to_string())?;
@@ -238,7 +231,7 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         // Set by main, which starts loading the store before the window opens.
         preset_store: None,
         is_wayland: false,
-        ..recovery_services(recovery_dir())
+        ..Services::default()
     }
 }
 
@@ -349,8 +342,17 @@ mod tests {
         prefs_ui::tick(app, ctx);
     }
 
+    fn wait_for_recovery_count(app: &mut PhotocraftApp, ctx: &egui::Context, dir: &Path, expected: usize) {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while list_recovery(dir).len() != expected && std::time::Instant::now() < deadline {
+            prefs_ui::tick(app, ctx);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert_eq!(list_recovery(dir).len(), expected);
+    }
+
     #[test]
-    fn recovered_documents_survive_a_second_crash_until_saved_or_closed() {
+    fn recovered_documents_survive_a_second_crash_until_closed() {
         let dir = std::env::temp_dir().join(format!("photocraft-recovery-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let ctx = egui::Context::default();
@@ -381,7 +383,8 @@ mod tests {
             autosave(&mut app, &ctx);
         }
         assert_eq!(list_recovery(&dir).len(), 3);
-        // Launch 4: closing and saving recovered documents removes their entries, no duplicates.
+        // Launch 4: closing removes its checkpoint. Saving an open document keeps its
+        // checkpoint (including undo history) until a confirmed normal quit.
         let mut app = launch(&dir);
         assert_eq!(app.session.documents().len(), 3);
         let red = index_of(&app, RED);
@@ -391,13 +394,20 @@ mod tests {
         let st = app.session.active_mut().unwrap();
         st.saved_revision = st.revision;
         prefs_ui::tick(&mut app, &ctx);
+        wait_for_recovery_count(&mut app, &ctx, &dir, 2);
         let left = list_recovery(&dir);
-        assert_eq!(left.len(), 1);
-        assert_eq!(photocraft_compose::flatten(&photocraft_format::recover(&left[0]).unwrap()).px.first().copied(), Some(GREEN));
+        let mut colors: Vec<_> =
+            left.iter().map(|entry| photocraft_compose::flatten(&photocraft_format::recover(entry).unwrap()).px.first().copied()).collect();
+        colors.sort_by(|a, b| a.unwrap_or_default()[1].total_cmp(&b.unwrap_or_default()[1]));
+        assert_eq!(colors, [Some(BLUE), Some(GREEN)]);
         let green = index_of(&app, GREEN);
         app.run("file.close", json!({"document": green})).unwrap();
         prefs_ui::tick(&mut app, &ctx);
-        assert!(list_recovery(&dir).is_empty());
+        wait_for_recovery_count(&mut app, &ctx, &dir, 1);
+        let blue = index_of(&app, BLUE);
+        app.run("file.close", json!({"document": blue})).unwrap();
+        prefs_ui::tick(&mut app, &ctx);
+        wait_for_recovery_count(&mut app, &ctx, &dir, 0);
         drop(app);
         let _ = std::fs::remove_dir_all(&dir);
     }

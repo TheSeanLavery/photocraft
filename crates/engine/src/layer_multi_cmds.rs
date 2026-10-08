@@ -60,7 +60,7 @@ pub fn set_selection(s: &mut Session, ids: Vec<LayerId>, active: Option<LayerId>
 
 /// After a structural edit, make `ids` the selection (dropping any that no longer exist), which
 /// is also what the edit's history state targets.
-fn reselect(s: &mut Session, ids: Vec<LayerId>, active: Option<LayerId>) {
+pub(crate) fn reselect(s: &mut Session, ids: Vec<LayerId>, active: Option<LayerId>) {
     if let Some(st) = s.active_mut() {
         st.selected_layers = ids;
         if let Some(a) = active {
@@ -725,7 +725,7 @@ pub fn duplicate_selected(s: &mut Session) -> Result<Value> {
         let mut new_active = None;
         for id in top_level(doc, &sel) {
             let mut dup = doc.layer(id).ok_or(EngineError::NoLayer(id))?.duplicate();
-            dup.name = format!("{} copy", dup.name);
+            dup.name = doc.copy_name(&dup.name);
             let nid = doc.insert_above(Some(id), dup);
             if Some(id) == old_active {
                 new_active = Some(nid);
@@ -832,6 +832,29 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn duplicates_are_numbered_not_stacked() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width": 20, "height": 20})).unwrap();
+        s.execute("layer.new.layer", json!({"name": "Layer 1"})).unwrap();
+        let name = |s: &Session| {
+            let st = s.active().unwrap();
+            st.doc.layer(st.active_layer.unwrap()).unwrap().name.clone()
+        };
+        s.execute("layer.duplicate", json!({})).unwrap();
+        assert_eq!(name(&s), "Layer 1 copy");
+        // Duplicating the copy (the active layer) numbers it rather than adding "copy" again.
+        s.execute("layer.duplicate", json!({})).unwrap();
+        assert_eq!(name(&s), "Layer 1 copy 2");
+        s.execute("layer.duplicate", json!({})).unwrap();
+        assert_eq!(name(&s), "Layer 1 copy 3");
+        let doc = &s.active().unwrap().doc;
+        assert_eq!(doc.copy_name("Layer 1"), "Layer 1 copy 4");
+        // Names that merely contain "copy" keep it.
+        assert_eq!(doc.copy_name("Copywriting"), "Copywriting copy");
+        assert_eq!(doc.copy_name("A copyedit"), "A copyedit copy");
+    }
 
     fn session(depth: u32) -> Session {
         let mut s = Session::new();

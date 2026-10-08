@@ -7,6 +7,8 @@
 //! `WM_POINTER` pressure as touch force. Wayland has no tablet input yet (see the crate docs).
 
 use photocraft_tablet::Sample;
+#[cfg(target_os = "macos")]
+use photocraft_ui_egui::stylus::TrackpadFeed;
 use photocraft_ui_egui::stylus::{PenSample, StylusFeed};
 
 /// A tablet sample as the UI's pen sample.
@@ -22,8 +24,17 @@ pub fn sink(feed: StylusFeed) -> impl Fn(Option<Sample>) + Send + 'static {
 /// Install the AppKit tablet monitor (main thread, before the event loop). Keep the result until
 /// the event loop returns. On failure this logs why: pens then paint like a mouse.
 #[cfg(target_os = "macos")]
-pub fn install_macos(feed: &StylusFeed) -> Option<photocraft_tablet::macos::Monitor> {
-    photocraft_tablet::macos::Monitor::install(sink(feed.clone())).map_err(|e| log::warn!("{e}")).ok()
+pub fn install_macos(feed: &StylusFeed, trackpad: &TrackpadFeed, motion: &photocraft_tablet::motion::Feed) -> Option<photocraft_tablet::macos::Monitor> {
+    let pressure_feed = trackpad.clone();
+    let enabled_feed = trackpad.clone();
+    photocraft_tablet::macos::Monitor::with_motion_and_trackpad(
+        sink(feed.clone()),
+        move |pressure| pressure_feed.set(pressure),
+        move || enabled_feed.is_enabled(),
+        motion.clone(),
+    )
+    .map_err(|e| log::warn!("{e}"))
+    .ok()
 }
 
 /// Start the XInput2 reader when eframe runs on X11. On Wayland, `$DISPLAY` is Xwayland, which
@@ -90,9 +101,14 @@ mod tests {
     /// A light-to-heavy pen stroke must paint thin and faint at the light end and wide and opaque
     /// at the heavy end (Size and Opacity on Pen Pressure); a mouse paints full strength.
     fn pressure_stroke(mut next: impl FnMut(f32) -> Option<Sample>) -> (f64, f64, f64, f64) {
+        pressure_stroke_input(|p| (next(p), None), false)
+    }
+
+    fn pressure_stroke_input(mut next: impl FnMut(f32) -> (Option<Sample>, Option<f32>), use_trackpad: bool) -> (f64, f64, f64, f64) {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let feed = app.stylus.feed.clone();
         let sink = sink(feed);
+        app.stylus.use_trackpad_pressure = use_trackpad;
         app.session.execute("file.new", json!({"width": 240, "height": 80, "background": "white"})).unwrap();
         app.session.execute("tools.setColors", json!({"foreground": [0.0, 0.0, 0.0, 1.0]})).unwrap();
         let brush = json!({"size": 30, "hardness": 1.0, "spacing": 0.05, "pressureSize": true, "pressureOpacity": true, "smoothing": {"amount": 0}});
@@ -102,7 +118,9 @@ mod tests {
         let n = 20;
         for i in 0..=n {
             let t = i as f32 / n as f32;
-            sink(next(0.1 + 0.9 * t));
+            let (pen, trackpad) = next(0.1 + 0.9 * t);
+            sink(pen);
+            app.stylus.trackpad_feed.set(trackpad);
             let (x, y) = (20.0 + 200.0 * f64::from(t), 40.0);
             let pressure = app.stylus.pressure();
             let ev = if i == 0 { ToolEvent::Down { x, y, pressure } } else { ToolEvent::Move { x, y, pressure } };
@@ -120,6 +138,31 @@ mod tests {
         let light_w = (0..40).take_while(|d| dark(50, 40 + d) > 0.02).count() as f64;
         let heavy_w = (0..40).take_while(|d| dark(200, 40 + d) > 0.02).count() as f64;
         (light, light_w, heavy, heavy_w)
+    }
+
+    #[test]
+    fn trackpad_pressure_changes_brush_width_and_opacity_when_enabled() {
+        let mut st = appkit::State::default();
+        let mut last = None;
+        let (light_dark, light_w, heavy_dark, heavy_w) = pressure_stroke_input(
+            |p| {
+                let kind = if p <= 0.1 { appkit::event_type::LEFT_MOUSE_DOWN } else { appkit::event_type::LEFT_MOUSE_DRAGGED };
+                let raw = appkit::RawEvent { kind, pressure: p, ..Default::default() };
+                let (_, trackpad) = st.handle_both(&raw);
+                if let appkit::TrackpadUpdate::Set(value) = trackpad {
+                    last = value;
+                }
+                (None, last)
+            },
+            true,
+        );
+        assert!(heavy_w > light_w * 2.0, "trackpad width responds: {light_w} → {heavy_w}");
+        assert!(heavy_dark > light_dark + 0.3, "trackpad opacity responds: {light_dark} → {heavy_dark}");
+
+        let (mouse_dark, mouse_w, _, _) = pressure_stroke_input(|_| (None, None), true);
+        assert!(mouse_dark > 0.9 && mouse_w >= heavy_w - 1.0, "plain mouse paints at full strength");
+        let (off_dark, off_w, _, _) = pressure_stroke_input(|p| (None, Some(p)), false);
+        assert!(off_dark > 0.9 && off_w >= heavy_w - 1.0, "disabled trackpad pressure paints at full strength");
     }
 
     #[test]

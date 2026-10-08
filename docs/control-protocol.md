@@ -390,3 +390,20 @@ and region changes rebuild only the dependent analysis. Display options and the 
 geometry persist in preferences `dialogs["filter.cameraRaw.scope"]`; probes and vectorscope
 visibility reset when the dialog opens. HDR scopes are not implemented. See
 [camera-raw-histogram.md](camera-raw-histogram.md).
+### HDR view state
+
+`ui.set {"hdrOutput": true|false}` toggles HDR highlight preview, also available as
+`ui.menu.invoke {"id":"view.hdrOutput"}` (View › HDR Output). This is pure display state;
+document pixels and exports are unchanged. Non-boolean values return an error.
+
+`ui.inspect.result.hdrOutput` reports the negotiated HDR surface, output format/colour space,
+live headroom over SDR white, enabled view state and whether HDR highlights can currently
+be shown. It is null when there is no GPU canvas. `surface=true` does not imply physical
+headroom greater than 1×. With `PHOTOCRAFT_HDR_CAPTURE_DIR` set locally, `ui.screenshot`
+also writes a linear-sRGB float EXR asynchronously; consult `docs/development.md`.
+
+HDR workbench: `engine.execute` command `view.hdrWorkbench` queries/updates display
+controls; `view.hdrDiagnostics` returns a sampled stop histogram. `app.exportSdr` with
+`{"path":"preview.png"}` writes the matched sRGB PNG through the authorized write
+root. `ui.menu.invoke` id `window.hdrWorkbench` toggles the panel. See
+[HDR Workbench](hdr-workbench.md) for float colors, swatches and export restrictions.

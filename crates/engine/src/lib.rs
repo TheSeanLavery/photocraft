@@ -41,9 +41,12 @@ pub mod fx_view_cmds;
 pub mod gallery_cmds;
 pub mod gradient_fill_cmds;
 pub mod group_view_cmds;
+pub mod hdr_cmds;
+mod history_cache;
 pub mod image_cmds;
 pub mod inspect;
 pub mod jobs;
+pub mod layer_copy_cmds;
 pub mod layer_menu_cmds;
 pub mod layer_multi_cmds;
 pub mod layer_nav_cmds;
@@ -309,6 +312,7 @@ pub struct Session {
     pub authorize: Option<fn(&str, &serde_json::Value) -> Result<()>>,
     /// Background jobs (see [`jobs`]).
     jobs: jobs::Jobs,
+    history_cache: history_cache::Cache,
 }
 
 /// Move item `i` of `v` to position `to`, clamped to the end. Returns where it went; `None` when
@@ -368,10 +372,13 @@ impl Session {
         }
         let mut st = DocState::new(doc, path);
         st.history.max_states = self.prefs.get().performance.history_states.max(1) as usize;
-        st.history.max_bytes = self.prefs.get().performance.history_budget_bytes();
+        // Session-wide accounting replaces per-document trimming.
+        st.history.max_bytes = 0;
         self.docs.push(st);
         let i = self.docs.len() - 1;
         self.active = Some(i);
+        self.history_cache.dirty = true;
+        self.poll_history_cache();
         i
     }
 
@@ -382,9 +389,12 @@ impl Session {
         smart_cmds::on_close(self, index);
         if let Some(id) = self.docs.get(index).map(|d| d.doc.id) {
             self.cancel_jobs_on(id);
+            self.color.workbench.remove(&id);
         }
         let d = self.docs.remove(index);
         self.active = if self.docs.is_empty() { None } else { Some(index.min(self.docs.len() - 1)) };
+        self.history_cache.dirty = true;
+        self.poll_history_cache();
         Some(d)
     }
 
@@ -406,14 +416,30 @@ impl Session {
 
     /// Is the command currently runnable? (drives menu enablement)
     pub fn is_enabled(&self, id: &str) -> bool {
-        commands::find(id).is_some_and(|s| (s.enabled)(self).is_ok() && self.job_conflict(id, s.journal).is_none())
+        self.is_enabled_with(id, &Value::Null)
+    }
+
+    /// [`Self::is_enabled`] for a call with `params`: their `"target"` can enable a command, as a
+    /// targeted layer mask enables Image › Adjustments › Invert on an adjustment layer (#780).
+    pub fn is_enabled_with(&self, id: &str, params: &Value) -> bool {
+        self.disabled_reason_with(id, params).is_none()
     }
 
     /// Why the command can't run now (None = it can): its own precondition, or a background job
     /// running on the active document.
     pub fn disabled_reason(&self, id: &str) -> Option<String> {
+        self.disabled_reason_with(id, &Value::Null)
+    }
+
+    /// [`Self::disabled_reason`] for a call with `params`.
+    pub fn disabled_reason_with(&self, id: &str, params: &Value) -> Option<String> {
         let Some(s) = commands::find(id) else { return Some(format!("unknown command `{id}`")) };
-        (s.enabled)(self).err().or_else(|| self.job_conflict(id, s.journal))
+        self.precondition(s, &channel_cmds::inject_target(self, id, params.clone())).err().or_else(|| self.job_conflict(id, s.journal))
+    }
+
+    /// The command's own precondition for a call with `params` (their target filled in).
+    fn precondition(&self, spec: &commands::CommandSpec, params: &Value) -> std::result::Result<(), String> {
+        channel_cmds::mask_target_enabled(self, spec.id, params).unwrap_or_else(|| (spec.enabled)(self))
     }
 
     /// Apply an undoable edit to the active document.
@@ -436,13 +462,14 @@ impl Session {
         let layers = st.layer_target();
         if key.is_none() || st.coalesce != key || !st.history.can_undo() {
             st.history.record(label, before, layers);
-            st.history.trim(&st.doc);
         } else {
             st.history.set_current_layers(layers);
         }
         st.coalesce = key;
         st.revision += 1;
         st.last_damage = None;
+        self.history_cache.dirty = true;
+        self.poll_history_cache();
         Ok(r)
     }
 
@@ -465,41 +492,51 @@ impl Session {
         Ok(())
     }
 
+    pub fn try_undo(&mut self) -> Result<bool> {
+        self.move_history(false)
+    }
+
+    pub fn try_redo(&mut self) -> Result<bool> {
+        self.move_history(true)
+    }
+
+    /// Legacy convenience API; errors remain available as a cache notice.
     pub fn undo(&mut self) -> bool {
-        // A background job is computing from the current state: it must not move under it.
-        if self.active_job().is_some() {
-            return false;
-        }
-        let Some(st) = self.active_mut() else { return false };
-        st.coalesce = None;
-        match st.history.undo(st.doc.clone()) {
-            Some((d, layers)) => {
-                st.doc = d;
-                restore_target(st, layers);
-                st.revision += 1;
-                st.last_damage = None;
-                true
+        match self.try_undo() {
+            Ok(changed) => changed,
+            Err(error) => {
+                self.history_cache.notice = Some(error.to_string());
+                false
             }
-            None => false,
         }
     }
 
     pub fn redo(&mut self) -> bool {
-        if self.active_job().is_some() {
-            return false;
-        }
-        let Some(st) = self.active_mut() else { return false };
-        st.coalesce = None;
-        match st.history.redo(st.doc.clone()) {
-            Some((d, layers)) => {
-                st.doc = d;
-                restore_target(st, layers);
-                st.revision += 1;
-                st.last_damage = None;
-                true
+        match self.try_redo() {
+            Ok(changed) => changed,
+            Err(error) => {
+                self.history_cache.notice = Some(error.to_string());
+                false
             }
-            None => false,
         }
+    }
+
+    fn move_history(&mut self, redo: bool) -> Result<bool> {
+        if self.active_job().is_some() {
+            return Ok(false);
+        }
+        let Some(st) = self.active_mut() else { return Ok(false) };
+        let restored = if redo { st.history.try_redo(st.doc.clone()) } else { st.history.try_undo(st.doc.clone()) }.map_err(EngineError::Other)?;
+        let Some(doc) = restored else { return Ok(false) };
+        st.coalesce = None;
+        st.doc = doc;
+        let layers = st.history.current_layers().clone();
+        restore_target(st, layers);
+        st.revision += 1;
+        st.last_damage = None;
+        self.history_cache.dirty = true;
+        self.poll_history_cache();
+        Ok(true)
     }
 }
 

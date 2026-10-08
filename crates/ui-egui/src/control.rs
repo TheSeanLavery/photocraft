@@ -70,12 +70,15 @@ pub enum Outcome {
 
 /// The fields `ui.set` reads. Anything else is rejected before a field is applied, so a typo or
 /// a field the method doesn't have can't reply with success while nothing changes (#412).
-pub const UI_SET_FIELDS: [&str; 21] = [
+pub const UI_SET_FIELDS: [&str; 25] = [
     "tool",
     "panels",
     "dock",
     "dockTabs",
     "dockWidth",
+    "toolbarColumns",
+    "toolbarFloating",
+    "toolbarPosition",
     "colorPanel",
     "maskTarget",
     "vectorMaskTarget",
@@ -92,6 +95,7 @@ pub const UI_SET_FIELDS: [&str; 21] = [
     "gradientClassic",
     "vectorMode",
     "penShapeOperation",
+    "hdrOutput",
 ];
 
 fn ok(v: Value) -> Outcome {
@@ -288,6 +292,7 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     None => None,
                 };
                 let gradient_classic = bool_field(p, "gradientClassic")?;
+                let hdr_output = bool_field(p, "hdrOutput")?;
                 let vector_mode = match p.get("vectorMode") {
                     Some(Value::String(mode)) if mode == "path" || mode == "shape" => Some(mode.as_str()),
                     Some(_) => return Err("vectorMode must be path or shape".into()),
@@ -309,6 +314,29 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 // Which chip the Color panel edits.
                 let color_panel = whole_object(&app.ui.color_panel, p.get("colorPanel"), "colorPanel")?;
                 let dock_width = num_field(p, "dockWidth")?;
+                let toolbar_columns = match p.get("toolbarColumns") {
+                    Some(Value::Null) => Some(None),
+                    Some(v) if matches!(v.as_u64(), Some(1 | 2)) => Some(v.as_u64().map(|n| n as u8)),
+                    Some(_) => return Err("toolbarColumns must be 1, 2, or null (automatic)".into()),
+                    None => None,
+                };
+                let toolbar_floating = bool_field(p, "toolbarFloating")?;
+                let toolbar_position = match p.get("toolbarPosition") {
+                    Some(v) => {
+                        let a = v.as_array().ok_or_else(|| "toolbarPosition must be [x, y]".to_string())?;
+                        if a.len() != 2 {
+                            return Err("toolbarPosition must be exactly [x, y]".into());
+                        }
+                        let (Some(x), Some(y)) = (a.first().and_then(Value::as_f64), a.get(1).and_then(Value::as_f64)) else {
+                            return Err("toolbarPosition must contain two numbers".into());
+                        };
+                        if !x.is_finite() || !y.is_finite() || x.abs() > 100_000.0 || y.abs() > 100_000.0 {
+                            return Err("toolbarPosition must contain finite screen coordinates".into());
+                        }
+                        Some([x as f32, y as f32])
+                    }
+                    None => None,
+                };
                 let zoom = num_field(p, "zoom")?;
                 let center = match p.get("center") {
                     Some(v) => {
@@ -357,6 +385,9 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 if let Some(t) = tool {
                     app.ui.tool = t;
                 }
+                if let Some(on) = hdr_output {
+                    app.ui.sdr_output = !on;
+                }
                 if let Some(mode) = vector_mode {
                     app.ui.tool_options.vector_mode = mode.to_string();
                 }
@@ -401,6 +432,15 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 // Right dock width in points (clamped to the dock's 250..=520 range), applied next frame.
                 if let Some(w) = dock_width {
                     crate::panels::request_dock_width(ctx, w as f32);
+                }
+                if let Some(columns) = toolbar_columns {
+                    app.ui.toolbar_columns = columns;
+                }
+                if let Some(floating) = toolbar_floating {
+                    app.ui.toolbar_floating = floating;
+                }
+                if let Some(position) = toolbar_position {
+                    app.ui.toolbar_position = Some(position);
                 }
                 if let Some(i) = app.session.active_index() {
                     if let Some(z) = zoom {
@@ -497,8 +537,10 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             None => err("no such dialog"),
         },
         "ui.window.open" => {
-            if let Some(d) = u("document") {
-                app.session.set_active(d as usize);
+            if let Some(d) = u("document")
+                && !app.session.set_active(d as usize)
+            {
+                return err(format!("no document {d}"));
             }
             wrap(crate::menus::invoke(app, ctx, "window.newWindowForDocument", json!({})))
         }
@@ -682,6 +724,13 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             }
             None => err("missing `path`"),
         },
+        "app.exportSdr" => wrap((|| {
+            let path = s("path").filter(|p| p.to_ascii_lowercase().ends_with(".png")).ok_or("SDR export needs a relative .png path")?;
+            let bytes = photocraft_engine::hdr_cmds::sdr_png(&app.session).map_err(|e| e.to_string())?;
+            let write = app.services.automation_write.as_mut().ok_or("automation write authority is not configured")?;
+            write(path, &bytes)?;
+            Ok(json!({"path": path, "bytes": bytes.len(), "colorSpace": "sRGB"}))
+        })()),
         "app.save" => wrap(app.save_automation(s("path").map(str::to_string)).map(|(p, w)| json!({"path": p, "warnings": w}))),
         "app.quit" => {
             app.allow_close = true;
@@ -715,6 +764,9 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
             })
         }),
         "panels": app.ui.panels,
+        "toolbarColumns": app.ui.toolbar_columns,
+        "toolbarFloating": app.ui.toolbar_floating,
+        "toolbarPosition": app.ui.toolbar_position,
         "views": app.ui.views,
         "dialogs": dialogs,
         "windows": app.ui.windows,
@@ -726,6 +778,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "frame": app.frame,
         "session": photocraft_engine::inspect::session(&app.session),
         "document": app.session.active().map(photocraft_engine::inspect::document),
+        "hdrOutput": app.gpu.as_ref().map(|g| json!({"surface": g.hdr_surface(), "headroom": g.output_headroom(), "enabled": !app.ui.sdr_output, "active": !app.ui.sdr_output && g.output_headroom() > 1.0, "format": format!("{:?}", g.output_format()), "colorSpace": if g.hdr_surface() { "extended-sRGB" } else { "sRGB" }})),
         "perf": {"fps": app.fps, "timings": app.perf},
         "brush": {"size": app.session.tools.brush.size, "hardness": app.session.tools.brush.hardness, "opacity": app.session.tools.brush.opacity},
         "distort": app.distort.describe(),
@@ -829,6 +882,24 @@ mod tests {
     }
 
     #[test]
+    fn sdr_export_uses_only_the_granted_writer() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        let ctx = egui::Context::default();
+        app.session.execute("file.new", json!({"width":8,"height":8,"depth":32})).unwrap();
+        app.services.write = Some(Box::new(|_, _| panic!("ambient writer must never run")));
+        assert_eq!(call(&mut app, &ctx, "app.exportSdr", json!({"path":"out.png"}))["ok"], false);
+        let saved = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+        let copy = saved.clone();
+        app.services.automation_write = Some(Box::new(move |path, bytes| {
+            copy.borrow_mut().push((path.to_string(), bytes.to_vec()));
+            Ok(())
+        }));
+        assert_eq!(call(&mut app, &ctx, "app.exportSdr", json!({"path":"out.png"}))["ok"], true);
+        assert_eq!(saved.borrow()[0].0, "out.png");
+        assert!(saved.borrow()[0].1.starts_with(b"\x89PNG"));
+        assert_eq!(call(&mut app, &ctx, "app.exportSdr", json!({"path":"out.exr"}))["ok"], false);
+    }
+    #[test]
     fn engine_execute_runs_with_defaults_but_menu_invoke_opens_the_dialog() {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
         let ctx = egui::Context::default();
@@ -876,6 +947,25 @@ mod tests {
         assert_eq!(app.ui.tool_options.pen_shape_operation, crate::state::ShapeOperation::Subtract);
         assert_eq!(call(&mut app, &ctx, "ui.set", json!({"vectorMode": "path", "penShapeOperation": "invalid"}))["ok"], false);
         assert_eq!(app.ui.tool_options.vector_mode, "shape");
+    }
+
+    #[test]
+    fn toolbar_layout_can_be_driven_and_invalid_values_do_not_apply() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        let set = call(&mut app, &ctx, "ui.set", json!({"toolbarColumns": 2, "toolbarFloating": true, "toolbarPosition": [120, 80]}));
+        assert_eq!(set["ok"], true, "{set}");
+        assert_eq!(app.ui.toolbar_columns, Some(2));
+        assert!(app.ui.toolbar_floating);
+        assert_eq!(app.ui.toolbar_position, Some([120.0, 80.0]));
+        let inspected = call(&mut app, &ctx, "ui.inspect", json!({}));
+        assert_eq!(inspected["result"]["toolbarColumns"], 2);
+        assert_eq!(inspected["result"]["toolbarFloating"], true);
+        assert_eq!(inspected["result"]["toolbarPosition"], json!([120.0, 80.0]));
+        let bad = call(&mut app, &ctx, "ui.set", json!({"toolbarFloating": false, "toolbarColumns": 3}));
+        assert_eq!(bad["ok"], false);
+        assert!(app.ui.toolbar_floating);
+        assert_eq!(app.ui.toolbar_columns, Some(2));
     }
 
     #[test]
@@ -950,6 +1040,22 @@ mod tests {
             assert_eq!(app.ui.theme, kind);
             assert_eq!(ThemeKind::from_name(kind.id()), Some(kind));
         }
+    }
+
+    #[test]
+    fn ui_window_open_rejects_an_unknown_document_index() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        app.run("file.new", json!({"width": 8, "height": 8})).unwrap();
+        // An out-of-range index must error instead of silently switching the active document
+        // and opening the window for whatever is active now.
+        let before = app.session.active_index();
+        let r = call(&mut app, &ctx, "ui.window.open", json!({"document": 99}));
+        assert_eq!(r["ok"], false, "{r}");
+        assert!(r["error"].as_str().unwrap().contains("no document 99"), "{r}");
+        assert_eq!(app.session.active_index(), before, "the active document is untouched");
+        // A valid index still opens the window.
+        assert_eq!(call(&mut app, &ctx, "ui.window.open", json!({"document": 0}))["ok"], true);
     }
 
     #[test]

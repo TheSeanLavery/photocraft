@@ -105,6 +105,7 @@
 	Fill…	Remplir…
 	Stroke…	Contourner…
 	Content-Aware Fill…	Remplissage d'après le contenu…
+	Delete and Fill Selection	Supprimer et remplir la sélection
 	Content-Aware Scale	Mise à l'échelle d'après le contenu
 	Puppet Warp	Déformation par épingles
 	Perspective Warp	Déformation de la perspective
@@ -308,6 +309,7 @@
 	Smart Object	Objet intelligent
 	Convert to Smart Object	Convertir en objet intelligent
 	Convert to Embedded	Convertir en objet incorporé
+	Convert to Layers	Convertir en calques
 	Convert to Linked…	Convertir en objet lié…
 	Edit Contents	Modifier le contenu
 	Replace Contents…	Remplacer le contenu…
@@ -2571,3 +2573,17 @@ cameraRaw	Blending	Fusion
 	Full HD Portrait	Full HD portrait
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K portrait
+
+# Integrated controls and HDR
+	Click to change columns; drag the title bar to move	Cliquer pour changer le nombre de colonnes ; faire glisser la barre de titre pour déplacer
+	Click to change columns; drag to detach Tools	Cliquer pour changer le nombre de colonnes ; faire glisser pour détacher les outils
+	Dock Tools on the left	Ancrer les outils à gauche
+	Use trackpad pressure	Utiliser la pression du pavé tactile
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Le budget mémoire est partagé entre les pixels du document, les données intégrées et l’historique d’annulation. Il augmente selon les besoins ; les autres usages mémoire de l’application s’y ajoutent.
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Cette version pour navigateur conserve l’historique d’annulation en mémoire. Les réglages du disque de travail s’appliquent à l’application de bureau.
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	L’espace disque pour l’annulation augmente uniquement si nécessaire, jusqu’à cette limite. Zéro désactive le cache disque. Les chemins de travail s’appliquent à la prochaine session de cache.
+	HDR Output	Sortie HDR
+	HDR Workbench	Espace de travail HDR
+	Export SDR Preview…	Exporter un aperçu SDR…
+	Budget mb	Limite (Mio)
+	Apply At Canvas Bounds	Appliquer l’effet aux limites de la zone de travail

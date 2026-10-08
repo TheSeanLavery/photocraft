@@ -26,6 +26,7 @@
 //! Automation simulates a pen with `ui.pointer` events carrying `pressure`, `tiltX`, `tiltY`
 //! and `rotation`.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 /// One stylus reading. Tilt is in degrees (-90..90, W3C Pointer Events convention), rotation in
@@ -77,11 +78,43 @@ impl StylusFeed {
     }
 }
 
+/// Current Force Touch pressure while the trackpad's primary button is down.
+#[derive(Clone, Debug, Default)]
+pub struct TrackpadFeed {
+    pressure: Arc<Mutex<Option<f32>>>,
+    enabled: Arc<AtomicBool>,
+}
+
+impl TrackpadFeed {
+    pub fn set(&self, pressure: Option<f32>) {
+        let mut slot = self.pressure.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        *slot = pressure.filter(|p| p.is_finite()).map(|p| p.clamp(0.0, 1.0));
+    }
+
+    pub fn get(&self) -> Option<f32> {
+        *self.pressure.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        let was_enabled = self.enabled.swap(enabled, Ordering::Relaxed);
+        if was_enabled != enabled {
+            self.set(None);
+        }
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.enabled.load(Ordering::Relaxed)
+    }
+}
+
 /// Per-app stylus state.
 #[derive(Clone, Debug)]
 pub struct Stylus {
     /// Pen samples pushed by the platform (desktop tablet monitor, web runner) or by automation.
     pub feed: StylusFeed,
+    /// Force Touch input is separate from pen events, and only used when enabled.
+    pub trackpad_feed: TrackpadFeed,
+    pub use_trackpad_pressure: bool,
     /// Preferences › Tools › Use Tablet Pressure: off, a pen paints like a mouse.
     pub use_pressure: bool,
     /// The pen end last seen (`Some(true)` = eraser), for the eraser tool switch.
@@ -98,7 +131,17 @@ pub struct Stylus {
 
 impl Default for Stylus {
     fn default() -> Self {
-        Self { feed: StylusFeed::default(), use_pressure: true, end: None, tool_before_eraser: None, touch: None, lifted: false, stroke: Vec::new() }
+        Self {
+            feed: StylusFeed::default(),
+            trackpad_feed: TrackpadFeed::default(),
+            use_pressure: true,
+            use_trackpad_pressure: false,
+            end: None,
+            tool_before_eraser: None,
+            touch: None,
+            lifted: false,
+            stroke: Vec::new(),
+        }
     }
 }
 
@@ -125,10 +168,8 @@ impl Stylus {
     /// The current pen sample, `None` for a mouse (and for any pen while Use Tablet Pressure is
     /// off).
     pub fn sample(&self) -> Option<PenSample> {
-        if !self.use_pressure {
-            return None;
-        }
-        self.feed.get().or(self.touch.map(|pressure| PenSample { pressure, ..Default::default() }))
+        let pen = self.use_pressure.then(|| self.feed.get().or(self.touch.map(|pressure| PenSample { pressure, ..Default::default() }))).flatten();
+        pen.or_else(|| self.use_trackpad_pressure.then(|| self.trackpad_feed.get()).flatten().map(|pressure| PenSample { pressure, ..Default::default() }))
     }
 
     /// Did the pen just flip to its eraser end (`Some(true)`) or back to its tip (`Some(false)`)?
@@ -214,6 +255,33 @@ mod tests {
         s.update(&[egui::Event::PointerMoved(egui::pos2(3.0, 4.0))]);
         assert_eq!(s.pressure(), 1.0);
         assert_eq!(s.sample(), None);
+    }
+
+    #[test]
+    fn trackpad_pressure_is_opt_in_and_pen_has_priority() {
+        let mut s = Stylus::default();
+        assert!(!s.trackpad_feed.is_enabled());
+        s.trackpad_feed.set_enabled(true);
+        assert!(s.trackpad_feed.is_enabled());
+        s.trackpad_feed.set(Some(0.25));
+        assert_eq!(s.pressure(), 1.0);
+        s.use_trackpad_pressure = true;
+        assert_eq!(s.pressure(), 0.25);
+        s.feed.set(Some(PenSample { pressure: 0.75, ..Default::default() }));
+        assert_eq!(s.pressure(), 0.75);
+        s.feed.set(None);
+        s.trackpad_feed.set(Some(f32::NAN));
+        assert_eq!(s.pressure(), 1.0);
+        s.trackpad_feed.set(Some(0.4));
+        s.use_pressure = false;
+        assert_eq!(s.pressure(), 0.4);
+        s.trackpad_feed.set(None);
+        assert_eq!(s.pressure(), 1.0);
+        s.trackpad_feed.set(Some(0.6));
+        s.trackpad_feed.set_enabled(false);
+        assert_eq!(s.trackpad_feed.get(), None);
+        s.trackpad_feed.set_enabled(true);
+        assert_eq!(s.pressure(), 1.0);
     }
 
     #[test]
