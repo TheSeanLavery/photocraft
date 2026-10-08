@@ -159,6 +159,42 @@ class ReleasePackagingTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("--arch needs a value", result.stderr)
 
+    def test_mac_verify_mounts_and_detaches_dmg_once(self):
+        self.env["FIXTURE_ARCH"] = "arm64"
+        self.env["RUNNER_TEMP"] = self.temp.name
+        mount_log = Path(self.temp.name) / "mount.log"
+        self.env["PHOTOCRAFT_VERIFY_MOUNT_LOG"] = str(mount_log)
+        self.dist.mkdir()
+        (self.dist / "photocraft-9.8.7-macos-aarch64.dmg").write_bytes(b"fixture dmg")
+        (self.dist / "photocraft-cli-9.8.7-macos-aarch64.zip").write_bytes(b"fixture zip")
+        self.mock("ditto", 'mkdir -p "$4/photocraft-cli-9.8.7-macos-aarch64"\n'
+                  'printf "#!/bin/sh\\necho photocraft-cli 9.8.7\\n" > "$4/photocraft-cli-9.8.7-macos-aarch64/photocraft-cli"\n'
+                  'chmod +x "$4/photocraft-cli-9.8.7-macos-aarch64/photocraft-cli"')
+        self.mock("lipo", 'echo arm64')
+        self.mock("codesign", 'exit 0')
+        self.mock("spctl", 'echo "source=Notarized Developer ID"')
+        self.mock("plutil", 'echo PhotoCraft')
+        self.mock("hdiutil", 'case "$1" in\n'
+                  '  attach)\n'
+                  '    while [ "$#" -gt 0 ]; do\n'
+                  '      if [ "$1" = -mountpoint ]; then shift; mount="$1"; break; fi\n'
+                  '      shift\n'
+                  '    done\n'
+                  '    echo attach >> "$PHOTOCRAFT_VERIFY_MOUNT_LOG"\n'
+                  '    mkdir -p "$mount/PhotoCraft.app/Contents/Resources" "$mount/PhotoCraft.app/Contents/MacOS"\n'
+                  '    printf icon > "$mount/PhotoCraft.app/Contents/Resources/Assets.car"\n'
+                  '    printf icon > "$mount/PhotoCraft.app/Contents/Resources/PhotoCraft.icns"\n'
+                  '    printf plist > "$mount/PhotoCraft.app/Contents/Info.plist"\n'
+                  '    printf "#!/bin/sh\\necho photocraft 9.8.7\\n" > "$mount/PhotoCraft.app/Contents/MacOS/PhotoCraft"\n'
+                  '    chmod +x "$mount/PhotoCraft.app/Contents/MacOS/PhotoCraft" ;;\n'
+                  '  detach) echo detach >> "$PHOTOCRAFT_VERIFY_MOUNT_LOG" ;;\n'
+                  '  *) exit 99 ;;\n'
+                  'esac')
+        result = subprocess.run(["bash", str(self.root / "packaging/macos/verify.sh"), "--arch", "aarch64"],
+                                env=self.env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(mount_log.read_text().splitlines(), ["attach", "detach"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -148,10 +148,10 @@ smoke_version "$CLI"
 # ---- DMG ---------------------------------------------------------------------------------------
 echo "==> $(basename "$DMG")"
 codesign --verify --strict --verbose=2 "$DMG"
-mkdir -p "$WORK/mounted"
-hdiutil attach -quiet -readonly -nobrowse -mountpoint "$WORK/mounted" "$DMG"
+mkdir -p "$MOUNT"
+hdiutil attach -quiet -readonly -nobrowse -mountpoint "$MOUNT" "$DMG"
 MOUNTED=1
-APP="$WORK/mounted/PhotoCraft.app"
+APP="$MOUNT/PhotoCraft.app"
 codesign --verify --strict --deep --verbose=2 "$APP"
 test -s "$APP/Contents/Resources/Assets.car" || { echo "error: DMG app lacks layered Assets.car" >&2; exit 1; }
 test -s "$APP/Contents/Resources/PhotoCraft.icns" || { echo "error: DMG app lacks icon fallback" >&2; exit 1; }
@@ -164,10 +164,6 @@ if [ "$STRICT" = 1 ]; then
 fi
 
 # Verify the executable inside the shipped DMG, including exact single architecture.
-mkdir -p "$MOUNT"
-hdiutil attach "$DMG" -readonly -nobrowse -mountpoint "$MOUNT" -quiet
-MOUNTED=1
-APP="$MOUNT/PhotoCraft.app"
 GUI="$APP/Contents/MacOS/PhotoCraft"
 if [ ! -x "$GUI" ]; then
   echo "error: DMG has no PhotoCraft.app executable" >&2
