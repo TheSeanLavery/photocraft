@@ -898,7 +898,11 @@ percent_field(ui, tl!("Opacity"), &mut b.opacity, 0.0..=100.0, if t.pro { 62.0 }
                             crate::shortcuts::pretty("Shift+Alt")
                         ),
                     ),
-                    Tool::Move => hint(ui, tl!("Drag to move the active layer")),
+                    Tool::Move => {
+                        // The Studio themes keep Photoshop's Auto-Select toggle too (#1275).
+                        widgets::checkbox(ui, &mut app.ui.tool_options.move_auto_select, tl!("Auto-Select:"));
+                        hint(ui, tl!("Drag to move the active layer"));
+                    }
                     Tool::Eyedropper => hint(
                         ui,
                         &crate::i18n::fmt(
@@ -1472,9 +1476,12 @@ fn layers(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 let opacity_label = if t.pro { tl!("Opacity:") } else { tl!("Opacity") };
                 let right = (body_text_width(ui, opacity_label) + 66.0 + 2.0 * ui.spacing().item_spacing.x + 16.0).max(150.0);
                 let w = ui.available_width() - right;
-                if widgets::dropdown(ui, "blend", &mut m, &blend_options(l.is_group()), w.max(100.0)) {
+                let (chosen, hovered) = widgets::dropdown_hovered(ui, "blend", &mut m, &blend_options(l.is_group()), w.max(100.0));
+                if chosen {
                     actions.push(("layer.setProps".into(), json!({"layer": l.id.0, "blend": m.label()})));
                 }
+                // Hovering a mode previews it on the canvas (#970).
+                crate::blend_preview::hover(app, l.id, hovered.filter(|_| !chosen));
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let mut o = l.opacity * 100.0;
                     if widgets::value_field(ui, &mut o, 0.0..=100.0, "%", 66.0).changed() {

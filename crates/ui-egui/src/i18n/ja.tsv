@@ -2144,3 +2144,4 @@ cameraRaw	Color	カラー
 	Click to change columns; drag to detach Tools	クリックして列数を変更、ドラッグしてツールを切り離す
 	Dock Tools on the left	ツールを左側にドッキング
 	Use trackpad pressure	トラックパッドの筆圧を使用
+	Apply At Canvas Bounds	カンバスの境界に効果を適用

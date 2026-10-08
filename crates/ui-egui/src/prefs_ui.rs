@@ -946,6 +946,13 @@ pub fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Valu
 }
 
 fn humanize(key: &str) -> String {
+    // These controls appear only for WebP, so reuse the existing translated labels.
+    if key == "webpLossless" {
+        return "Lossless".into();
+    }
+    if key == "webpQuality" {
+        return "Quality".into();
+    }
     let mut s = String::new();
     for (i, ch) in key.chars().enumerate() {
         if i == 0 {
@@ -1130,6 +1137,17 @@ fn has_visible_fields(values: &Value, section: &str) -> bool {
     values.get(section).and_then(Value::as_object).is_some_and(|o| o.keys().any(|k| !prefs::is_hidden(&format!("{section}.{k}"))))
 }
 
+/// JPEG and WebP have independent settings; unrelated format controls stay out of view.
+fn export_field_visible(obj: &Map<String, Value>, key: &str) -> bool {
+    let format = obj.get("quickExportFormat").and_then(Value::as_str).unwrap_or("png");
+    match key {
+        "jpegQuality" => format == "jpg",
+        "webpLossless" => format == "webp",
+        "webpQuality" => format == "webp" && obj.get("webpLossless").and_then(Value::as_bool) != Some(true),
+        _ => true,
+    }
+}
+
 /// Generic editor for a section's fields: checkboxes, dropdowns for choices, colour swatches,
 /// number fields with the preference's range, text fields.
 fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>, order: &[String], lang: crate::i18n::Lang) {
@@ -1154,6 +1172,7 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
             if prefs::is_hidden(&path)
                 || (path == "tools.useTrackpadPressure" && !cfg!(target_os = "macos"))
                 || (section == "performance" && matches!(k.as_str(), "useGpu" | "gpuBackend" | "renderingMode"))
+                || (section == "export" && !export_field_visible(obj, &k))
             {
                 continue;
             }
@@ -1661,6 +1680,29 @@ mod tests {
         assert_eq!(*retired.lock().unwrap(), vec![(id.0, Some("restored-key".into()))]);
         crate::prefs_ui::retire_all(&mut app);
         assert_eq!(retired.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn quick_export_controls_match_selected_format() {
+        let mut obj = serde_json::to_value(photocraft_engine::prefs::Export::default()).unwrap().as_object().unwrap().clone();
+        assert!(!export_field_visible(&obj, "jpegQuality"));
+        assert!(!export_field_visible(&obj, "webpLossless"));
+        assert!(!export_field_visible(&obj, "webpQuality"));
+
+        obj.insert("quickExportFormat".into(), json!("jpg"));
+        assert!(export_field_visible(&obj, "jpegQuality"));
+        assert!(!export_field_visible(&obj, "webpLossless"));
+        assert!(!export_field_visible(&obj, "webpQuality"));
+
+        obj.insert("quickExportFormat".into(), json!("webp"));
+        assert!(!export_field_visible(&obj, "jpegQuality"));
+        assert!(export_field_visible(&obj, "webpLossless"));
+        assert!(!export_field_visible(&obj, "webpQuality"), "lossless WebP does not have a quality setting");
+
+        obj.insert("webpLossless".into(), json!(false));
+        assert!(export_field_visible(&obj, "webpQuality"));
+        assert_eq!(humanize("webpLossless"), "Lossless");
+        assert_eq!(humanize("webpQuality"), "Quality");
     }
 
     #[test]
