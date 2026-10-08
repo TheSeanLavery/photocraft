@@ -2350,10 +2350,9 @@ fn draw_tool_state(app: &PhotocraftApp, painter: &egui::Painter, xf: &ViewXform,
     }
 }
 
-/// Move tool › Show Transform Controls: bounds of the layers a Move drag would translate.
-/// Free Transform currently acts on one layer, so multi-layer selections get an outline without
-/// misleading handles until that command supports transforming the whole selection.
-fn transform_controls_rect(app: &PhotocraftApp, xf: &ViewXform) -> Option<(Rect, bool)> {
+/// Bounds of the visible Move targets. The box is also a drag target: its empty interior must
+/// keep the selected layers instead of Auto-Selecting a lower layer under the pointer.
+fn transform_controls_bounds(app: &PhotocraftApp) -> Option<(photocraft_geom::Rect, bool)> {
     if app.ui.tool != Tool::Move || !app.ui.tool_options.move_show_transform || app.ui.transform.is_some() || app.drag.is_some() {
         return None;
     }
@@ -2373,7 +2372,22 @@ fn transform_controls_rect(app: &PhotocraftApp, xf: &ViewXform) -> Option<(Rect,
     if b.is_empty() {
         return None;
     }
-    Some((Rect::from_two_pos(xf.to_screen(b.x0 as f32, b.y0 as f32), xf.to_screen(b.x1 as f32, b.y1 as f32)), ids.len() == 1))
+    Some((b, ids.len() == 1))
+}
+
+/// Move tool › Show Transform Controls: bounds of the layers a Move drag would translate.
+/// Free Transform currently acts on one layer, so multi-layer selections get an outline without
+/// misleading handles until that command supports transforming the whole selection.
+fn transform_controls_rect(app: &PhotocraftApp, xf: &ViewXform) -> Option<(Rect, bool)> {
+    let (b, handles) = transform_controls_bounds(app)?;
+    Some((Rect::from_two_pos(xf.to_screen(b.x0 as f32, b.y0 as f32), xf.to_screen(b.x1 as f32, b.y1 as f32)), handles))
+}
+
+fn move_inside_selected_box(app: &PhotocraftApp, x: f64, y: f64) -> bool {
+    if !x.is_finite() || !y.is_finite() || app.session.active().is_some_and(|st| st.doc.selection.is_some()) {
+        return false;
+    }
+    transform_controls_bounds(app).is_some_and(|(b, _)| x >= f64::from(b.x0) && x < f64::from(b.x1) && y >= f64::from(b.y0) && y < f64::from(b.y1))
 }
 
 /// A visible handle starts scaling; the narrow band just outside the box starts rotation.
@@ -2660,7 +2674,7 @@ pub fn tool_event(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers)
                 return;
             }
             // Auto-Select (or ⌘-click while it is off) picks the layer under the pointer first.
-            if app.ui.tool_options.move_auto_select != mods.command {
+            if app.ui.tool_options.move_auto_select != mods.command && (mods.shift || mods.command || !move_inside_selected_box(app, x, y)) {
                 let target = app.ui.tool_options.move_target.clone();
                 let mode = if mods.shift { "add" } else { "replace" };
                 let _ = app.run("layer.pickAt", json!({"x": x, "y": y, "target": target, "mode": mode}));
@@ -3656,5 +3670,36 @@ mod transform_controls_tests {
         assert_eq!(r, Rect::from_min_max(pos2(20.0, 30.0), pos2(150.0, 130.0)));
         assert!(!handles, "Free Transform only handles one layer, so no misleading handles");
         assert!(!begin_transform_controls_at(&mut app, &egui::Context::default(), &xf, r.left_top()));
+    }
+
+    #[test]
+    fn dragging_empty_box_interior_moves_both_selected_layers() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        app.session.execute("file.new", json!({"width": 200, "height": 200})).unwrap();
+        let a = app.session.execute("shape.create", json!({"kind": "rect", "rect": [20, 30, 40, 30], "fill": "#ff0000"})).unwrap()["layer"].as_u64().unwrap();
+        let b = app.session.execute("shape.create", json!({"kind": "rect", "rect": [100, 110, 50, 20], "fill": "#00ff00"})).unwrap()["layer"].as_u64().unwrap();
+        app.session.execute("layer.select", json!({"layer": a})).unwrap();
+        app.session.execute("layer.select", json!({"layer": b, "mode": "add"})).unwrap();
+        app.sync_views();
+        app.ui.tool = Tool::Move;
+        app.ui.tool_options.move_auto_select = true;
+        app.ui.tool_options.move_show_transform = true;
+        app.ui.extras.snap = false;
+        app.ui.view.show.smart_guides = false;
+        let before = app.session.active().unwrap().history.past_len();
+        let mods = egui::Modifiers::NONE;
+
+        // (80, 80) lies inside the union box, in the gap between the two shapes.
+        tool_event(&mut app, ToolEvent::Down { x: 80.0, y: 80.0, pressure: 1.0 }, mods);
+        let st = app.session.active().unwrap();
+        assert!(st.is_layer_selected(photocraft_doc::LayerId(a)) && st.is_layer_selected(photocraft_doc::LayerId(b)));
+        tool_event(&mut app, ToolEvent::Move { x: 90.0, y: 85.0, pressure: 1.0 }, mods);
+        tool_event(&mut app, ToolEvent::Up { x: 90.0, y: 85.0 }, mods);
+
+        let st = app.session.active().unwrap();
+        let bounds = |id| photocraft_engine::transform_cmds::transform_bounds(&st.doc, st.doc.layer(photocraft_doc::LayerId(id)).unwrap());
+        assert_eq!(bounds(a), photocraft_geom::Rect::new(30, 35, 70, 65));
+        assert_eq!(bounds(b), photocraft_geom::Rect::new(110, 115, 160, 135));
+        assert_eq!(st.history.past_len(), before + 1, "one drag is one undo step");
     }
 }
