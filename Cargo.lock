@@ -3797,6 +3797,7 @@ name = "photocraft-text"
 version = "0.5.0"
 dependencies = [
  "flate2",
+ "log",
  "parley",
  "photocraft-color",
  "photocraft-doc",

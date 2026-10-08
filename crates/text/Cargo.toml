@@ -20,6 +20,7 @@ photocraft-psd = { workspace = true }
 parley = { version = "0.11", default-features = false, features = ["std"] }
 skrifa = "0.44"
 flate2 = { workspace = true }
+log = { workspace = true }
 
 # ICU dictionary data for Japanese word boundaries and complex-script (Thai, Lao, Khmer, Burmese)
 # line breaking. Native only: the CJK dictionary alone is 3.8 MB of wasm, and the web build must
@@ -27,3 +28,5 @@ flate2 = { workspace = true }
 # to the generic Unicode rules for those scripts.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 parley = { version = "0.11", default-features = false, features = ["std", "complex-scripts"] }
+[build-dependencies]
+flate2 = { workspace = true }
