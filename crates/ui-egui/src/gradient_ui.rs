@@ -285,19 +285,28 @@ fn finish(app: &mut PhotocraftApp) {
             if dist(from, to) * zoom < 2.0 {
                 return;
             }
-            let _ = match redraw {
-                Some(id) => app.run(cmds::SET, json!({"layer": id.0, "from": from, "to": to})),
+            match redraw {
+                Some(id) => commit_preview(app, id, cmds::SET, json!({"layer": id.0, "from": from, "to": to}), json!({"from": from, "to": to})),
                 None => {
                     let p = create_params(app, from, to);
-                    app.run(cmds::CREATE, p)
+                    commit_preview(app, PREVIEW_LAYER, cmds::CREATE, p.clone(), p);
                 }
-            };
+            }
         }
-        Drag::Edit { commit: Some((cmd, p)), moved: true, .. } => {
-            let _ = app.run(cmd, p);
+        Drag::Edit { layer, commit: Some((cmd, p)), moved: true, .. } => {
+            commit_preview(app, layer, cmd, p.clone(), p);
         }
         Drag::Edit { layer, grab, moved: false, .. } => click(app, layer, grab),
         Drag::Edit { .. } => {}
+    }
+}
+
+fn commit_preview(app: &mut PhotocraftApp, layer: LayerId, cmd: &str, p: Value, preview_params: Value) {
+    let before = app.session.active().map(|st| (st.doc.id, preview_key(st.revision, &format!("{}{cmd}{preview_params}", layer.0))));
+    if app.run(cmd, p).is_ok()
+        && let Some((doc, key)) = before
+    {
+        crate::canvas::committed_gradient_preview(app, doc, key);
     }
 }
 
@@ -817,8 +826,8 @@ fn stops_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, layer: &Layer) {
     }
     if resp.drag_stopped() {
         ui.data_mut(|d| d.remove::<Marker>(key));
-        if let Some((_, cmd, p)) = app.gradient.panel.take() {
-            let _ = app.run(cmd, p);
+        if let Some((layer, cmd, p)) = app.gradient.panel.take() {
+            commit_preview(app, layer, cmd, p.clone(), p);
         }
         return;
     }

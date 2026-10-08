@@ -1,9 +1,11 @@
 //! Paint helpers: bucket fill and the gradient tool.
 
 use photocraft_color::blend::{self, BlendMode};
-use photocraft_geom::Rect;
+use photocraft_color::{read_sample, write_sample};
+use photocraft_geom::{Rect, TILE_SIZE, TileCoord};
 use photocraft_raster::{Surface, from_rgba_into};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 /// Gradient tool shape.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -143,25 +145,64 @@ pub fn paint_gradient(
     selection: Option<&Surface>,
 ) {
     let geometry = PreparedGradient::new(shape, from, to);
-    composite_area(
-        s,
-        area,
-        blend_mode,
-        |x, y| opacity * selection.map_or(1.0, |m| m.sample_channel(x, y, 0)),
-        |x, y| {
-            let t = geometry.sample(x as f32 + 0.5, y as f32 + 0.5);
-            let mut c = sample_stops(stops, if reverse { 1.0 - t } else { t });
-            if dither {
-                // One quantisation step of monochromatic noise breaks 8-bit banding without speckle.
-                let n = (photocraft_color::dither_noise(x, y) - 0.5) / 255.0;
-                for ch in c.iter_mut().take(3) {
-                    *ch = (*ch + n).clamp(0.0, 1.0);
+    let color = |x: i32, y: i32| {
+        let t = geometry.sample(x as f32 + 0.5, y as f32 + 0.5);
+        let mut c = sample_stops(stops, if reverse { 1.0 - t } else { t });
+        if dither {
+            // One quantisation step of monochromatic noise breaks 8-bit banding without speckle.
+            let n = (photocraft_color::dither_noise(x, y) - 0.5) / 255.0;
+            for ch in c.iter_mut().take(3) {
+                *ch = (*ch + n).clamp(0.0, 1.0);
+            }
+        }
+        c
+    };
+    if selection.is_none() {
+        paint_gradient_full(s, area, opacity, blend_mode, color);
+        return;
+    }
+    composite_area(s, area, blend_mode, |x, y| opacity * selection.map_or(1.0, |m| m.sample_channel(x, y, 0)), color, false);
+}
+
+/// Paint directly into copy-on-write tiles. A full 8K canvas previously staged every tile as
+/// floats, kept all staged copies alive, then converted and wrote them back a second time.
+fn paint_gradient_full(s: &mut Surface, area: Rect, opacity: f32, blend_mode: BlendMode, color: impl Fn(i32, i32) -> [f32; 4] + Sync) {
+    if area.is_empty() || opacity <= 0.0 {
+        return;
+    }
+    let fmt = s.format();
+    let channels = fmt.channels();
+    let mut tiles = s.take_tiles(area);
+    let paint_tile = |(coord, tile): &mut (TileCoord, Arc<photocraft_raster::Tile>)| {
+        let rect = coord.rect().intersect(&area);
+        let bytes = Arc::make_mut(tile).bytes_mut();
+        let mut pixel = [0.0f32; 8];
+        let mut encoded = [0.0f32; 8];
+        for y in rect.y0..rect.y1 {
+            for x in rect.x0..rect.x1 {
+                let local_x = (x - coord.tx * TILE_SIZE) as usize;
+                let local_y = (y - coord.ty * TILE_SIZE) as usize;
+                let base = (local_y * TILE_SIZE as usize + local_x) * channels;
+                for (c, value) in pixel.iter_mut().enumerate().take(channels) {
+                    *value = read_sample(bytes, fmt.sample, base + c);
+                }
+                let backdrop = photocraft_raster::to_rgba(&fmt, &pixel[..channels]);
+                let result = blend::composite(blend_mode, backdrop, color(x, y), opacity);
+                from_rgba_into(&fmt, result, &mut encoded);
+                for (c, value) in encoded.iter().enumerate().take(channels) {
+                    write_sample(bytes, fmt.sample, base + c, *value);
                 }
             }
-            c
-        },
-        false,
-    );
+        }
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use rayon::prelude::*;
+        tiles.par_iter_mut().for_each(paint_tile);
+    }
+    #[cfg(target_arch = "wasm32")]
+    tiles.iter_mut().for_each(paint_tile);
+    s.put_tiles(tiles);
 }
 
 /// Paint bucket: fills the region similar to the seed pixel (on the layer's
@@ -245,6 +286,28 @@ mod tests {
         assert!(s.pixel(0, 0)[0] < 0.01 && s.pixel(10, 0)[0] > 0.99);
         assert!((s.pixel(5, 0)[0] - 0.5).abs() < 0.01);
         assert_eq!(s.pixel(5, 1)[3], 0.0, "outside the selection");
+    }
+
+    #[test]
+    fn full_gradient_matches_reference_across_tiles_and_formats() {
+        let area = Rect::new(2, 3, 302, 5);
+        let stops = [(0.0, [0.1, 0.4, 0.8, 0.7]), (1.0, [0.9, 0.2, 0.1, 0.6])];
+        for format in [PixelFormat::RGBA8, PixelFormat::RGBA16, PixelFormat::RGBA32F, PixelFormat::GRAY8, PixelFormat::CMYKA8] {
+            let mut actual = Surface::new(format);
+            actual.fill_rect(area, &vec![0.25; format.channels()]);
+            let mut expected = actual.clone();
+            paint_gradient(&mut actual, area, (3.0, 3.0), (301.0, 4.0), GradientShape::Linear, &stops, false, 0.65, BlendMode::Multiply, false, None);
+            let geometry = PreparedGradient::new(GradientShape::Linear, (3.0, 3.0), (301.0, 4.0));
+            composite_area(
+                &mut expected,
+                area,
+                BlendMode::Multiply,
+                |_, _| 0.65,
+                |x, y| sample_stops(&stops, geometry.sample(x as f32 + 0.5, y as f32 + 0.5)),
+                false,
+            );
+            assert_eq!(actual, expected, "format {format:?}");
+        }
     }
 
     #[test]

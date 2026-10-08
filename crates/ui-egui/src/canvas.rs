@@ -741,6 +741,27 @@ pub(crate) fn shown_as_document(app: &mut PhotocraftApp, doc: photocraft_doc::Do
     }
 }
 
+/// A live gradient's final preview is pixel-identical to its committed fill. Keep only caches
+/// that actually rendered that exact preview; other outputs still refresh the new revision.
+pub(crate) fn committed_gradient_preview(app: &mut PhotocraftApp, doc: photocraft_doc::DocId, preview_key: u64) {
+    let Some(st) = app.session.documents().iter().find(|st| st.doc.id == doc) else { return };
+    let (revision, document) = (st.revision, st.doc.clone());
+    let outputs: Vec<u32> = app.canvases.keys().filter(|k| k.0 == doc).map(|k| k.1).collect();
+    for out in outputs {
+        let (display, display_key) = canvas_display(app, &document, (out != 0 && out != GPU_OUTPUT).then_some(out));
+        let gpu_key = texture_key(display.as_deref());
+        let Some(cache) = app.canvases.get_mut(&(doc, out)) else { continue };
+        if cache.on_gpu && cache.preview_key ^ gpu_key == preview_key {
+            cache.preview_key = gpu_key;
+            cache.revision = revision;
+        }
+        if cache.texture.is_some() && cache.tex_preview_key ^ display_key == preview_key {
+            cache.tex_preview_key = display_key;
+            cache.tex_revision = revision;
+        }
+    }
+}
+
 /// How far beyond an edit's damage rect the composite can change: layer effects (shadows, glows,
 /// strokes, …) on the edited layer and on the groups around it reach that far.
 pub(crate) fn effect_reach(layers: &[photocraft_doc::Layer]) -> i32 {
