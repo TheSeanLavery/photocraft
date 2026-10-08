@@ -2408,3 +2408,9 @@ cameraRaw	Roughness	Неровность
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: PR: {prs}, коммиты: {commits}, строки +{added} / −{deleted} (Δ {delta}), двоичные файлы +{binAdded} / −{binDeleted}, {first} – {last}
 	Shape Operations	Операции с фигурами
 	New Layer	Новый слой
+	Square 1:1	Квадрат 1:1
+	Portrait 4:5	Портрет 4:5
+	Story 9:16	История 9:16
+	Full HD Portrait	Full HD, портрет
+	QHD 1440p	QHD 1440p
+	UHD 4K Portrait	UHD 4K, портрет

@@ -59,6 +59,9 @@ pub const CATEGORIES: &[(&str, &[Preset])] = &[
             ("iPad Pro 13\"", 2064, 2752, 72.0),
             ("Android 1080p", 1080, 1920, 72.0),
             ("Apple Watch 45mm", 396, 484, 72.0),
+            ("Square 1:1", 1080, 1080, 72.0),
+            ("Portrait 4:5", 1080, 1350, 72.0),
+            ("Story 9:16", 1080, 1920, 72.0),
         ],
     ),
     (
@@ -69,11 +72,36 @@ pub const CATEGORIES: &[(&str, &[Preset])] = &[
             ("UHD 4K", 3840, 2160, 72.0),
             ("DCI 4K", 4096, 2160, 72.0),
             ("UHD 8K", 7680, 4320, 72.0),
+            ("Full HD Portrait", 1080, 1920, 72.0),
+            ("QHD 1440p", 2560, 1440, 72.0),
+            ("UHD 4K Portrait", 2160, 3840, 72.0),
         ],
     ),
 ];
 
 const DEPTH_OPTIONS: &[(u64, &str, &str)] = &[(8, "8 bit", "Integer"), (16, "16 bit", "Integer"), (32, "32 bit (float)", "Floating point")];
+
+const ASPECT_RATIOS: &[(&str, &str, u32, u32)] = &[
+    ("custom", "Custom", 0, 0),
+    ("1:1", "1:1", 1, 1),
+    ("4:3", "4:3", 4, 3),
+    ("3:2", "3:2", 3, 2),
+    ("16:9", "16:9", 16, 9),
+    ("9:16", "9:16", 9, 16),
+    ("4:5", "4:5", 4, 5),
+    ("21:9", "21:9", 21, 9),
+];
+
+fn set_aspect_ratio(f: &mut Map<String, Value>, key: &str) {
+    if let Some((_, _, w, h)) = ASPECT_RATIOS.iter().find(|r| r.0 == key)
+        && *w > 0
+    {
+        let width = get_f(f, "width", 1920.0);
+        f.insert("height".into(), px_value((width * (*h as f32) / (*w as f32)).round()));
+        f.remove("__preset");
+    }
+    f.insert("__aspect".into(), json!(key));
+}
 
 /// Width/Height units: (key, label, units per inch; 0 = pixels).
 pub const UNITS: &[(&str, &str, f32)] =
@@ -107,6 +135,7 @@ pub fn apply_preset(f: &mut Map<String, Value>, p: &Preset) {
     f.insert("height".into(), json!(p.2));
     f.insert("resolution".into(), json!(p.3));
     f.insert("__preset".into(), json!(p.0));
+    f.insert("__aspect".into(), json!("custom"));
     // Print and photo presets are specified in inches, screen presets in pixels.
     f.insert("__unit".into(), json!(if p.3 >= 300.0 { "in" } else { "px" }));
 }
@@ -242,6 +271,8 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                 if widgets::value_field(ui, &mut w, 0.01..=300_000.0, "", 110.0).changed() {
                     f.insert("width".into(), px_value(from_unit(w, &unit, ppi)));
                     f.remove("__preset");
+                    let aspect = get_s(f, "__aspect", "custom");
+                    set_aspect_ratio(f, &aspect);
                 }
                 let opts: Vec<(String, &str)> = UNITS.iter().map(|u| (u.0.to_string(), u.1)).collect();
                 if widgets::dropdown(ui, "nd-unit", &mut unit, &opts, 120.0) {
@@ -254,6 +285,7 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                 if widgets::value_field(ui, &mut h, 0.01..=300_000.0, "", 110.0).changed() {
                     f.insert("height".into(), px_value(from_unit(h, &unit, ppi)));
                     f.remove("__preset");
+                    f.insert("__aspect".into(), json!("custom"));
                 }
                 ui.add_space(6.0);
                 small_label(ui, tl!("Orientation"));
@@ -262,9 +294,19 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                     if icons::button(ui, icon, 24.0, (h > w) == portrait, if portrait { "Portrait" } else { "Landscape" }).clicked() && (h > w) != portrait {
                         f.insert("width".into(), px_value(h));
                         f.insert("height".into(), px_value(w));
+                        f.insert("__aspect".into(), json!("custom"));
+                        f.remove("__preset");
                     }
                 }
             });
+            ui.add_space(4.0);
+            small_label(ui, tl!("Aspect Ratio"));
+            let mut aspect = get_s(f, "__aspect", "custom");
+            let ratios: Vec<(String, &str)> =
+                ASPECT_RATIOS.iter().map(|(key, label, _, _)| (key.to_string(), if *key == "custom" { tl!("Custom") } else { *label })).collect();
+            if widgets::dropdown(ui, "nd-aspect", &mut aspect, &ratios, 240.0) {
+                set_aspect_ratio(f, &aspect);
+            }
             ui.add_space(4.0);
             small_label(ui, tl!("Resolution"));
             ui.horizontal(|ui| {
@@ -279,6 +321,18 @@ pub fn body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                     f.insert("__resUnit".into(), json!(ru));
                 }
             });
+            let mut ppi_choice =
+                if [72, 96, 150, 300, 600].contains(&(get_f(f, "resolution", 72.0).round() as i32)) { get_f(f, "resolution", 72.0).round() as i32 } else { 0 };
+            if widgets::dropdown(
+                ui,
+                "nd-common-ppi",
+                &mut ppi_choice,
+                &[(0, tl!("Custom")), (72, "72 PPI"), (96, "96 PPI"), (150, "150 PPI"), (300, "300 PPI"), (600, "600 PPI")],
+                240.0,
+            ) && ppi_choice > 0
+            {
+                set_resolution(f, ppi_choice as f32);
+            }
             ui.add_space(4.0);
             small_label(ui, tl!("Color Mode"));
             ui.horizontal(|ui| {
@@ -374,6 +428,73 @@ mod tests {
         s.execute("file.new", p).unwrap();
         let d = &s.active().unwrap().doc;
         assert_eq!((d.size.width, d.size.height, d.resolution_dpi), (2480, 3508, 300.0));
+    }
+
+    #[test]
+    fn physical_size_changes_pixel_dimensions_with_resolution() {
+        let mut f = crate::state::UiState::new_document_fields();
+        f.insert("__unit".into(), json!("in"));
+        f.insert("width".into(), json!(720));
+        f.insert("height".into(), json!(360));
+        set_resolution(&mut f, 300.0);
+        let p = command_params(&f);
+        let mut s = photocraft_engine::Session::new();
+        s.execute("file.new", p).unwrap();
+        let d = &s.active().unwrap().doc;
+        assert_eq!((d.size.width, d.size.height, d.resolution_dpi), (3000, 1500, 300.0));
+    }
+
+    #[test]
+    fn aspect_ratio_selection_reaches_created_document() {
+        let mut f = crate::state::UiState::new_document_fields();
+        f.insert("width".into(), json!(1080));
+        set_aspect_ratio(&mut f, "9:16");
+        let mut s = photocraft_engine::Session::new();
+        s.execute("file.new", command_params(&f)).unwrap();
+        let d = &s.active().unwrap().doc;
+        assert_eq!((d.size.width, d.size.height), (1080, 1920));
+    }
+
+    #[test]
+    fn resolution_preserves_physical_size_in_each_unit() {
+        for unit in ["in", "cm", "mm", "pt", "pica"] {
+            let mut f = crate::state::UiState::new_document_fields();
+            f.insert("__unit".into(), json!(unit));
+            f.insert("width".into(), json!(720));
+            f.insert("height".into(), json!(360));
+            set_resolution(&mut f, 300.0);
+            assert_eq!((f["width"].as_u64(), f["height"].as_u64()), (Some(3000), Some(1500)), "{unit}");
+        }
+    }
+
+    #[test]
+    fn new_presets_follow_category_defaults_and_have_translations() {
+        let mobile = CATEGORIES.iter().find(|c| c.0 == "Mobile").unwrap().1;
+        let film = CATEGORIES.iter().find(|c| c.0 == "Film & Video").unwrap().1;
+        assert_eq!(mobile[0].0, "iPhone 16");
+        assert_eq!(film[0].0, "HDTV 1080p");
+        for name in ["Square 1:1", "Portrait 4:5", "Story 9:16"] {
+            assert!(mobile.iter().any(|p| p.0 == name));
+        }
+        for name in ["Full HD Portrait", "QHD 1440p", "UHD 4K Portrait"] {
+            assert!(film.iter().any(|p| p.0 == name));
+        }
+        for lang in crate::i18n::Lang::all().filter(|lang| lang.code() != "en") {
+            for name in ["Square 1:1", "Portrait 4:5", "Story 9:16", "Full HD Portrait", "QHD 1440p", "UHD 4K Portrait"] {
+                assert!(crate::i18n::has(lang, name), "{}: {name}", lang.code());
+            }
+            for name in ["Square 1:1", "Portrait 4:5", "Story 9:16", "Full HD Portrait", "UHD 4K Portrait"] {
+                assert_ne!(crate::i18n::tr(lang, name), name, "{}: {name}", lang.code());
+            }
+        }
+    }
+
+    #[test]
+    fn pixel_size_stays_fixed_when_only_ppi_changes() {
+        let mut f = crate::state::UiState::new_document_fields();
+        set_resolution(&mut f, 300.0);
+        assert_eq!((f["width"].as_u64(), f["height"].as_u64()), (Some(1920), Some(1080)));
+        assert_eq!(f["resolution"], 300.0);
     }
     /// The real dialog (#254): a typed size must reach `file.new`, however it is confirmed.
     mod dialog {
@@ -497,6 +618,21 @@ mod tests {
             type_into(&mut h, 1, "1.5");
             enter(&mut h);
             assert_eq!(created(&h), (600, 450, 300.0));
+        }
+
+        #[test]
+        fn changing_resolution_in_inches_preserves_physical_dimensions() {
+            let mut h = harness();
+            let mut f = fields(&h);
+            f.insert("__unit".into(), serde_json::json!("in"));
+            f.insert("width".into(), serde_json::json!(720));
+            f.insert("height".into(), serde_json::json!(360));
+            set_fields(&mut h, f);
+            type_into(&mut h, 2, "300");
+            let f = fields(&h);
+            assert_eq!((f["width"].as_u64(), f["height"].as_u64()), (Some(3000), Some(1500)));
+            enter(&mut h);
+            assert_eq!(created(&h), (3000, 1500, 300.0));
         }
 
         #[test]

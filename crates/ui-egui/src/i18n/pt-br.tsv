@@ -2572,3 +2572,9 @@ cameraRaw	Whites	Brancos
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} linhas (Δ {delta}), +{binAdded} / −{binDeleted} arquivos binários, {first} – {last}
 	Shape Operations	Operações de forma
 	New Layer	Nova camada
+	Square 1:1	Quadrado 1:1
+	Portrait 4:5	Retrato 4:5
+	Story 9:16	História 9:16
+	Full HD Portrait	Full HD vertical
+	QHD 1440p	QHD 1440p
+	UHD 4K Portrait	UHD 4K vertical

@@ -2111,3 +2111,10 @@ cameraRaw	Blending	混合
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}：{prs} 個 PR，{commits} 次提交，行 +{added} / −{deleted}（Δ {delta}），二進位檔 +{binAdded} / −{binDeleted}，{first} – {last}
 	Shape Operations	形狀運算
 	New Layer	新增圖層
+	Aspect Ratio	長寬比
+	Square 1:1	正方形 1:1
+	Portrait 4:5	直式 4:5
+	Story 9:16	限時動態 9:16
+	Full HD Portrait	Full HD 直式
+	QHD 1440p	QHD 1440p
+	UHD 4K Portrait	UHD 4K 直式

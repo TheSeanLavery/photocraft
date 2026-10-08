@@ -99,7 +99,9 @@ fn brush_cursor_preserves_preferences_and_large_tip_has_a_native_hotspot() {
     h.state_mut().session.tools.brush.size = 2000.0;
     h.step();
     assert!(h.output().platform_output.cursor_image.is_none());
-    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::Crosshair);
+    // Windows draws its own visible crosshair and hides the system cursor (#737).
+    let crosshair = if cfg!(target_os = "windows") { egui::CursorIcon::None } else { egui::CursorIcon::Crosshair };
+    assert_eq!(h.output().platform_output.cursor_icon, crosshair);
 }
 
 #[test]
@@ -171,7 +173,9 @@ fn alt_brush_shows_pipette_samples_and_restores_the_brush_on_release() {
     h.event(egui::Event::ModifiersChanged(Modifiers::ALT));
     h.step();
     assert!(h.output().platform_output.cursor_image.is_none());
-    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::Crosshair);
+    // Windows draws its own visible crosshair and hides the system cursor (#737).
+    let crosshair = if cfg!(target_os = "windows") { egui::CursorIcon::None } else { egui::CursorIcon::Crosshair };
+    assert_eq!(h.output().platform_output.cursor_icon, crosshair);
 }
 
 #[test]

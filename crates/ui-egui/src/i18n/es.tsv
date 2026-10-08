@@ -2205,3 +2205,10 @@ cameraRaw	Amount	Cantidad
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PR, {commits} commits, +{added} / −{deleted} líneas (Δ {delta}), +{binAdded} / −{binDeleted} archivos binarios, {first} – {last}
 	Shape Operations	Operaciones de forma
 	New Layer	Nueva capa
+	Aspect Ratio	Relación de aspecto
+	Square 1:1	Cuadrado 1:1
+	Portrait 4:5	Retrato 4:5
+	Story 9:16	Historia 9:16
+	Full HD Portrait	Full HD vertical
+	QHD 1440p	QHD 1440p
+	UHD 4K Portrait	UHD 4K vertical
