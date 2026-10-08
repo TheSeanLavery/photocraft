@@ -1,0 +1,10 @@
+Brush Settings spacing-preview screenshots
+Copyright 2026 PhotoCraft contributors
+
+These original screenshots were rendered offscreen with PhotoCraft's snapshot
+example using a blank synthetic document and the built-in brush engine. They
+contain no third-party artwork or personal photos.
+
+Licensed under either the MIT License or the Apache License, Version 2.0, at your
+option. The full license texts are in LICENSE-MIT and LICENSE-APACHE at the
+repository root.

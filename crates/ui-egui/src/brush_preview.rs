@@ -71,7 +71,10 @@ fn tip_shape_sig(h: &mut DefaultHasher, t: &TipShape) {
 /// Cheap signature of everything that changes a brush's stroke preview.
 pub fn preview_sig(b: &BrushSettings) -> u64 {
     let mut h = DefaultHasher::new();
-    js(&mut h, &(b.size, b.hardness, b.spacing, b.opacity, b.flow, b.pressure_size, b.pressure_opacity, b.erase, b.mode, b.angle, b.roundness));
+    js(
+        &mut h,
+        &(b.size, b.hardness, b.spacing, b.spacing_enabled, b.opacity, b.flow, b.pressure_size, b.pressure_opacity, b.erase, b.mode, b.angle, b.roundness),
+    );
     js(&mut h, &(b.flip_x, b.flip_y, b.aliased, b.noise, b.wet_edges, b.build_up, b.build_up_rate, b.protect_texture, b.seed));
     js(&mut h, &(&b.shape_dynamics, &b.scattering, &b.color_dynamics, &b.transfer, &b.pose, &b.smoothing));
     tip_shape_sig(&mut h, &b.tip);
@@ -286,6 +289,43 @@ mod tests {
         assert_ne!(base, preview_sig(&BrushSettings { texture: paint::Texture { enabled: true, ..Default::default() }, ..Default::default() }));
         c.retain(|_| false);
         assert!(c.is_empty());
+    }
+
+    #[test]
+    fn spacing_toggle_refreshes_cached_stroke() {
+        use photocraft_engine::Session;
+        use serde_json::json;
+
+        for (w, h) in [(220, 60), (488, 76)] {
+            let ctx = egui::Context::default();
+            let mut session = Session::new();
+            session.execute("tools.setBrush", json!({"reset": true, "brush": {"size": 6.0, "spacingEnabled": true}})).unwrap();
+            let render = |brush: &BrushSettings| stroke_texture(&ctx, "settings-strip", brush, w, h, Color32::WHITE);
+            let on = render(&session.tools.brush);
+            let on_pixels = preview_pixels(&session.tools.brush, w, h, [1.0; 4]);
+            assert_eq!(render(&session.tools.brush).id(), on.id());
+            assert_eq!(render_count(&ctx), 1);
+
+            session.execute("tools.setBrush", json!({"brush": {"spacingEnabled": false}})).unwrap();
+            assert_ne!(preview_pixels(&session.tools.brush, w, h, [1.0; 4]), on_pixels);
+            let off = render(&session.tools.brush);
+            assert_ne!(off.id(), on.id(), "spacing toggle must refresh the {w}x{h} preview");
+            assert_eq!(render_count(&ctx), 2);
+            assert_eq!(render(&session.tools.brush).id(), off.id());
+            assert_eq!(render_count(&ctx), 2);
+
+            session.execute("tools.setBrush", json!({"brush": {"spacingEnabled": true}})).unwrap();
+            let restored = render(&session.tools.brush);
+            assert_ne!(restored.id(), off.id());
+            assert_eq!(render_count(&ctx), 3);
+            assert_eq!(render(&session.tools.brush).id(), restored.id());
+            assert_eq!(render_count(&ctx), 3);
+
+            session.execute("tools.setBrush", json!({"brush": {"size": 7.0}})).unwrap();
+            assert_ne!(render(&session.tools.brush).id(), restored.id());
+            assert_eq!(render_count(&ctx), 4);
+            assert_eq!(with_cache(&ctx, |cache| cache.len()), 1);
+        }
     }
 
     #[test]
