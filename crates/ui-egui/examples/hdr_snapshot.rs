@@ -135,10 +135,12 @@ fn render(rs: &egui_wgpu::RenderState, ctx: &egui::Context, full: &egui::FullOut
     rx.recv()??;
     let bytes = buffer.slice(..).get_mapped_range()?;
     let values: Vec<[f32; 4]> = bytes
-        .chunks_exact(8)
+        .as_chunks::<8>()
+        .0
+        .iter()
         .map(|p| {
             let mut rgba = [0.0; 4];
-            for (v, b) in rgba.iter_mut().zip(p.chunks_exact(2)) {
+            for (v, b) in rgba.iter_mut().zip(p.as_chunks::<2>().0.iter()) {
                 *v = photocraft_codecs::f16::from_bits(u16::from_le_bytes([b[0], b[1]])).to_f32();
             }
             rgba
