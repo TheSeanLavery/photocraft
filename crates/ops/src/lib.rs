@@ -805,7 +805,7 @@ mod tests {
         assert_eq!(history.entries(), labels);
         assert!(!history.can_redo());
         history.clear();
-        history.record("A", original.clone());
+        history.record("A", original.clone(), LayerTarget::default());
         assert!(history.replace_resident(&original, Arc::new(Archive(Ok(original.clone())))));
         let restored = history.try_undo(current.clone()).unwrap().unwrap();
         assert!(Arc::ptr_eq(&restored, &original));
@@ -816,8 +816,8 @@ mod tests {
     fn replacement_deduplicates_and_stale_results_are_ignored() {
         let mut history = History::new(50);
         let original = Arc::new(base());
-        history.record("A", original.clone());
-        history.record("B", original.clone());
+        history.record("A", original.clone(), LayerTarget::default());
+        history.record("B", original.clone(), LayerTarget::default());
         assert!(history.spill_candidate().is_none(), "shared immediate undo allocation stays hot");
         assert!(history.replace_resident(&original, Arc::new(Archive(Ok(original.clone())))));
         assert_eq!(history.archived_states(), 2);
@@ -862,11 +862,11 @@ mod tests {
         let mut doc = base();
         doc.selection = Some(photocraft_doc::Surface::new(doc.pixel_format()));
         let doc = Arc::new(doc);
-        history.record("Select", doc.clone());
+        history.record("Select", doc.clone(), LayerTarget::default());
         assert!(history.replace_resident(&doc, Arc::new(Archive(Err("must not read".into())))));
         assert!(history.has_past_selection());
         assert_eq!(history.latest_selection_state(), Some(0));
-        history.record("Clear selection", Arc::new(base()));
+        history.record("Clear selection", Arc::new(base()), LayerTarget::default());
         assert_eq!(history.latest_selection_state(), Some(0), "skip newer no-selection states without loading archives");
         assert!(history.resident_state(0).is_none());
         assert!(history.try_state(0).is_err());
@@ -895,7 +895,7 @@ mod tests {
     fn explicit_budget_reduction_can_discard_final_cold_state() {
         let mut history = History::new(50);
         let doc = Arc::new(base());
-        history.record("A", doc.clone());
+        history.record("A", doc.clone(), LayerTarget::default());
         history.replace_resident(&doc, Arc::new(Archive(Err("must not load".into()))));
         assert!(!history.drop_oldest());
         assert!(history.discard_oldest());
@@ -910,12 +910,12 @@ mod tests {
         for label in ["A", "B", "C"] {
             edit(&mut history, &mut current, label, |doc| doc.name = label.into());
         }
-        current = history.undo(current).unwrap();
+        current = history.undo(current).unwrap().0;
         history.max_states = 1;
         assert_eq!(history.enforce_state_limit(), 2);
         assert_eq!(history.past_len(), 0);
         assert_eq!(history.redo_label(), Some("C"));
-        assert_eq!(history.redo(current).unwrap().name, "C");
+        assert_eq!(history.redo(current).unwrap().0.name, "C");
     }
     #[test]
     fn asynchronous_candidate_can_become_hot_after_navigation() {
@@ -926,8 +926,8 @@ mod tests {
             edit(&mut history, &mut current, label, |doc| doc.name = label.into());
         }
         assert!(!history.is_hot(&oldest));
-        current = history.undo(current).unwrap();
-        let _current = history.undo(current).unwrap();
+        current = history.undo(current).unwrap().0;
+        let _current = history.undo(current).unwrap().0;
         assert!(history.is_hot(&oldest));
         assert!(history.spill_candidate().is_none_or(|candidate| !Arc::ptr_eq(&candidate, &oldest)));
     }
