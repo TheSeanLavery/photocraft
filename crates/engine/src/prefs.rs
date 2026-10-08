@@ -284,6 +284,8 @@ pub struct Tools {
     pub right_click_with_painting_tools: RightClickPaint,
     /// Pen tablets: pressure, tilt and rotation reach the brush (off: a pen paints like a mouse).
     pub use_tablet_pressure: bool,
+    /// macOS Force Touch trackpad pressure controls brush size and opacity while dragging.
+    pub use_trackpad_pressure: bool,
 }
 
 impl Default for Tools {
@@ -300,6 +302,7 @@ impl Default for Tools {
             double_click_layer_mask_launches_select_and_mask: true,
             right_click_with_painting_tools: RightClickPaint::BrushPicker,
             use_tablet_pressure: true,
+            use_trackpad_pressure: false,
         }
     }
 }

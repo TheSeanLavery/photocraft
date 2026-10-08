@@ -225,7 +225,9 @@ fn main() -> eframe::Result {
     // loop returns.
     let stylus_feed = photocraft_ui_egui::stylus::StylusFeed::default();
     #[cfg(target_os = "macos")]
-    let _tablet = tablet::install_macos(&stylus_feed);
+    let trackpad_feed = photocraft_ui_egui::stylus::TrackpadFeed::default();
+    #[cfg(target_os = "macos")]
+    let _tablet = tablet::install_macos(&stylus_feed, &trackpad_feed);
 
     // Read the displays' ICC profiles while the window opens (colour-managed canvas; `None`
     // where the platform has no reader).
@@ -386,6 +388,10 @@ fn main() -> eframe::Result {
             // Tablet pressure/tilt/eraser (winit drops them): the macOS monitor installed above
             // and the X11 reader write into this feed.
             app.stylus.feed = stylus_feed;
+            #[cfg(target_os = "macos")]
+            {
+                app.stylus.trackpad_feed = trackpad_feed;
+            }
             #[cfg(target_os = "linux")]
             tablet::spawn_x11(&app.stylus.feed, display);
             // Paths on the command line (Linux/Windows file associations, `photocraft a.psd`).

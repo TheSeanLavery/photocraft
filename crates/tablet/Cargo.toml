@@ -21,7 +21,7 @@ todo = "warn"
 objc2 = "=0.6.4"
 block2 = "=0.6.2"
 objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSGeometry"] }
-objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "block2", "NSEvent"] }
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "block2", "NSEvent", "NSPressureConfiguration", "NSView", "NSWindow", "NSResponder"] }
 
 # Pure-Rust X11 client (no unsafe in the RustConnection path we use).
 [target.'cfg(target_os = "linux")'.dependencies]

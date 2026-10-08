@@ -20,6 +20,10 @@ cargo xtask parity                                         # Photoshop menu cove
 
 Image code is slow at `opt-level 0`, so the workspace profile builds dependencies at `opt-level 2`. Use `--release` for anything interactive.
 
+### Force Touch trackpad painting on macOS
+
+On a Force Touch Mac, enable **Edit › Preferences › Tools › Use Trackpad Pressure**. Select a brush preset with pressure-controlled size or opacity, then press and drag with the trackpad's primary button. PhotoCraft reads AppKit's pressure events during that drag. Pen tablet input remains separate; an ordinary mouse or trackpad without pressure support paints at full strength. The preference is off by default and is available through `prefs.set` at `tools.useTrackpadPressure` for automation.
+
 ## Fonts (craft-fonts)
 
 Font assets shared by the Crafting Apps live in [storytold/craft-fonts](https://github.com/storytold/craft-fonts), never in this repo: don't commit font files here (Inter and JetBrains Mono in `assets/fonts/` are the only exceptions; new fonts go to craft-fonts). The rules are in [`craftrules/standards/fonts.md`](../../craftrules/standards/fonts.md) ([on GitHub](https://github.com/storytold/craftrules/blob/main/standards/fonts.md)).

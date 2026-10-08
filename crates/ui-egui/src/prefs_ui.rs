@@ -1151,7 +1151,10 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
             let path = format!("{section}.{k}");
             // Settings nothing reads yet stay out of the dialog (issue #204); their stored values
             // pass through untouched.
-            if prefs::is_hidden(&path) || (section == "performance" && matches!(k.as_str(), "useGpu" | "gpuBackend" | "renderingMode")) {
+            if prefs::is_hidden(&path)
+                || (path == "tools.useTrackpadPressure" && !cfg!(target_os = "macos"))
+                || (section == "performance" && matches!(k.as_str(), "useGpu" | "gpuBackend" | "renderingMode"))
+            {
                 continue;
             }
             let v = obj.get(&k).cloned().unwrap_or(Value::Null);

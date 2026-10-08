@@ -972,6 +972,7 @@ impl PhotocraftApp {
 impl eframe::App for PhotocraftApp {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         i18n::set_current(i18n::Lang::from_pref(&self.session.prefs().interface.language));
+        self.stylus.trackpad_feed.set_enabled(self.session.prefs().tools.use_trackpad_pressure);
         if !self.styled {
             Self::setup_context(ctx, self.ui.theme);
             self.styled = true;

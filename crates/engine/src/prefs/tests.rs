@@ -23,6 +23,21 @@ fn defaults_match_photoshop() {
 }
 
 #[test]
+fn trackpad_pressure_mode_round_trips_and_defaults_off() {
+    let mut s = session();
+    assert!(!s.prefs().tools.use_trackpad_pressure);
+    s.execute("prefs.set", json!({"path": "tools.useTrackpadPressure", "value": true})).unwrap();
+    assert!(s.prefs().tools.use_trackpad_pressure);
+    let saved = s.prefs_to_json();
+    let mut restored = session();
+    restored.load_prefs_json(&saved).unwrap();
+    assert!(restored.prefs().tools.use_trackpad_pressure);
+    restored.execute("prefs.reset", json!({"path": "tools.useTrackpadPressure"})).unwrap();
+    assert!(!restored.prefs().tools.use_trackpad_pressure);
+    assert!(s.execute("prefs.set", json!({"path": "tools.useTrackpadPressure", "value": "yes"})).is_err());
+}
+
+#[test]
 fn get_set_reset_by_path() {
     let mut s = session();
     assert_eq!(s.execute("prefs.get", json!({"path": "performance.historyStates"})).unwrap(), json!(50));
