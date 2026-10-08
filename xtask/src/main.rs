@@ -5,6 +5,7 @@
 
 mod corpus;
 mod corpus_pins;
+mod i18n;
 mod i18n_coverage;
 mod ico;
 mod layers;
@@ -36,6 +37,8 @@ commands:
   stats [--exact] count tests and lines per crate (--exact: ask the test harness via `-- --list`)
   parity          Photoshop menu parity; rewrites docs/parity.md
   i18n-coverage   report stable UI translation coverage for registered languages
+  i18n [audit | check | migrate --dry-run|--apply | generate [--force]]
+                  inspect Rust UI calls and validate or generate Fluent catalogs
   perf [--quick] [--update-baseline] [--threshold PCT] [--bench NAME]... [--skip-build] [--reuse]
                   run the release benches, merge them by scenario id into target/perf/results.json,
                   check perf/budgets.toml and perf/baseline.json (non-zero on a broken budget or regression)
@@ -59,6 +62,7 @@ fn main() -> ExitCode {
         Some("stats") => stats::run(&root(), rest.contains(&"--exact")),
         Some("parity") => cmd_parity(),
         Some("i18n-coverage") => i18n_coverage::run(&root()),
+        Some("i18n") => i18n::run(&root(), &rest),
         Some("perf") => perf::run(&root(), &rest),
         Some("scorecard") => scorecard::run(&root(), &rest),
         Some("version") => version::run(&root(), &rest),
