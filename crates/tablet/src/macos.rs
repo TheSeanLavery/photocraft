@@ -369,7 +369,11 @@ fn read(e: &NSEvent) -> RawEvent {
     };
     let (device, entering) = if proximity { (e.pointingDeviceType().0, e.isEnteringProximity()) } else { (0, false) };
     let stage = if pressure_event { e.stage() } else { 0 };
-    RawEvent { kind, subtype, pressure, stage, tilt, rotation, device, entering }
+    // Apple documents this mask as the way for a painting app to distinguish a mouse click
+    // that will have a separate Force Touch pressure stream from a regular mouse click.
+    let pressure_capable =
+        kind == crate::appkit::event_type::LEFT_MOUSE_DOWN && (e.associatedEventsMask().0 & (1u64 << crate::appkit::event_type::PRESSURE)) != 0;
+    RawEvent { kind, subtype, pressure, pressure_capable, stage, tilt, rotation, device, entering }
 }
 
 fn is_mouse(kind: usize) -> bool {
@@ -583,6 +587,6 @@ pub(crate) mod tests {
         assert!(matches!(trackpad, TrackpadUpdate::Set(Some(p)) if (p - 0.3).abs() < 0.02));
 
         let up = event(CGEventType::LeftMouseUp, |_| {});
-        assert_eq!(state.handle_both(&read(&up)), (Update::Set(None), TrackpadUpdate::Set(None)));
+        assert_eq!(state.handle_both(&read(&up)), (Update::Set(None), TrackpadUpdate::Keep));
     }
 }

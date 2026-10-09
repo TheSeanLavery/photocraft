@@ -48,6 +48,10 @@ pub mod device {
 /// extremes (Qt maps AppKit tilt the same way).
 pub const TILT_DEGREES: f64 = 60.0;
 
+/// A visible light dab until AppKit delivers the first stage-1 pressure event. A mouse event's
+/// 0/1 pressure is not a Force Touch reading, and treating 1 as such makes a full-size first dab.
+const TRACKPAD_INITIAL_PRESSURE: f32 = 0.2;
+
 /// The tablet-related fields of one `NSEvent`, read as plain values.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RawEvent {
@@ -56,6 +60,8 @@ pub struct RawEvent {
     /// `subtype` (only meaningful for mouse events).
     pub subtype: i16,
     pub pressure: f32,
+    /// This mouse device can emit separate `PRESSURE` events (`associatedEventsMask`).
+    pub pressure_capable: bool,
     /// Pressure gesture stage, meaningful only for `PRESSURE` events.
     pub stage: isize,
     /// `tilt` (x, y), each -1..1.
@@ -138,25 +144,27 @@ impl State {
         }
         if e.kind == LEFT_MOUSE_UP {
             self.left_down = false;
-            return (Update::Set(None), TrackpadUpdate::Set(None));
+            // The UI may process this release in the same frame. Keep the last real pressure
+            // until it has finished the stroke, then the UI clears the feed.
+            return (Update::Set(None), TrackpadUpdate::Keep);
         }
         if e.kind == LEFT_MOUSE_DOWN {
             self.left_down = true;
             self.pen_active = false;
-            // Plain mice report 0 or 1. A fractional down reading lets the first dab use
-            // actual trackpad pressure; otherwise wait for the separate pressure event.
-            let pressure = fractional_pressure(e.pressure);
+            // Apple exposes whether this click can have a separate pressure stream. An ordinary
+            // mouse stays at full pressure; a Force Touch click starts light until its first
+            // stage-1 reading arrives.
+            let pressure = fractional_pressure(e.pressure).or_else(|| e.pressure_capable.then_some(TRACKPAD_INITIAL_PRESSURE));
             return (Update::Set(None), TrackpadUpdate::Set(pressure));
         }
         if e.kind == PRESSURE {
             if self.pen_active {
                 return (Update::Keep, TrackpadUpdate::Keep);
             }
-            if !self.left_down || e.stage <= 0 {
-                return (Update::Keep, TrackpadUpdate::Set(None));
-            }
-            if e.stage >= 2 {
-                return (Update::Keep, TrackpadUpdate::Set(Some(1.0)));
+            // Stage 0 is the release transition, and stage 2 has its own pressure curve.
+            // Neither is a stage-1 drawing sample; retain the last stage-1 value.
+            if !self.left_down || e.stage != 1 {
+                return (Update::Keep, TrackpadUpdate::Keep);
             }
             if let Some(pressure) = valid_pressure(e.pressure) {
                 return (Update::Keep, TrackpadUpdate::Set(Some(pressure)));
@@ -292,16 +300,31 @@ mod tests {
     fn trackpad_pressure_is_separate_from_pen_and_bounded_to_left_gesture() {
         let mut st = State::default();
         let pressure = |stage, pressure| RawEvent { kind: event_type::PRESSURE, stage, pressure, ..Default::default() };
-        assert_eq!(st.handle_both(&pressure(1, 0.4)), (Update::Keep, TrackpadUpdate::Set(None)));
+        assert_eq!(st.handle_both(&pressure(1, 0.4)), (Update::Keep, TrackpadUpdate::Keep));
         let down = RawEvent { kind: event_type::LEFT_MOUSE_DOWN, pressure: 0.25, ..Default::default() };
         assert_eq!(st.handle_both(&down), (Update::Set(None), TrackpadUpdate::Set(Some(0.25))));
         assert_eq!(st.handle_both(&pressure(1, 0.6)), (Update::Keep, TrackpadUpdate::Set(Some(0.6))));
         let drag = RawEvent { kind: event_type::LEFT_MOUSE_DRAGGED, pressure: 1.0, ..Default::default() };
         assert_eq!(st.handle_both(&drag), (Update::Set(None), TrackpadUpdate::Keep));
-        assert_eq!(st.handle_both(&pressure(2, 0.1)), (Update::Keep, TrackpadUpdate::Set(Some(1.0))));
-        assert_eq!(st.handle_both(&pressure(0, 0.0)), (Update::Keep, TrackpadUpdate::Set(None)));
-        assert_eq!(st.handle_both(&RawEvent { kind: event_type::LEFT_MOUSE_UP, ..Default::default() }), (Update::Set(None), TrackpadUpdate::Set(None)));
-        assert_eq!(st.handle_both(&pressure(1, 0.7)), (Update::Keep, TrackpadUpdate::Set(None)));
+        assert_eq!(st.handle_both(&pressure(2, 0.1)), (Update::Keep, TrackpadUpdate::Keep));
+        assert_eq!(st.handle_both(&pressure(0, 0.0)), (Update::Keep, TrackpadUpdate::Keep));
+        assert_eq!(st.handle_both(&RawEvent { kind: event_type::LEFT_MOUSE_UP, ..Default::default() }), (Update::Set(None), TrackpadUpdate::Keep));
+        assert_eq!(st.handle_both(&pressure(1, 0.7)), (Update::Keep, TrackpadUpdate::Keep));
+    }
+
+    #[test]
+    fn trackpad_edges_never_invent_full_pressure() {
+        let mut st = State::default();
+        let down = RawEvent { kind: event_type::LEFT_MOUSE_DOWN, pressure: 1.0, pressure_capable: true, ..Default::default() };
+        assert_eq!(st.handle_both(&down).1, TrackpadUpdate::Set(Some(TRACKPAD_INITIAL_PRESSURE)));
+        let pressure = |stage, pressure| RawEvent { kind: event_type::PRESSURE, stage, pressure, ..Default::default() };
+        assert_eq!(st.handle_both(&pressure(1, 0.35)).1, TrackpadUpdate::Set(Some(0.35)));
+        assert_eq!(st.handle_both(&pressure(2, 0.0)).1, TrackpadUpdate::Keep, "stage 2 uses a different curve");
+        assert_eq!(st.handle_both(&pressure(0, 0.0)).1, TrackpadUpdate::Keep, "release preserves the final drawing sample");
+        assert_eq!(st.handle_both(&RawEvent { kind: event_type::LEFT_MOUSE_UP, ..Default::default() }).1, TrackpadUpdate::Keep);
+        assert_eq!(st.handle_both(&down).1, TrackpadUpdate::Set(Some(TRACKPAD_INITIAL_PRESSURE)), "the next stroke starts light again");
+        let mouse = RawEvent { kind: event_type::LEFT_MOUSE_DOWN, pressure: 1.0, ..Default::default() };
+        assert_eq!(st.handle_both(&mouse).1, TrackpadUpdate::Set(None), "a regular mouse keeps its full-pressure fallback");
     }
 
     #[test]
