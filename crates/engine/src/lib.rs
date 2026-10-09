@@ -400,13 +400,22 @@ impl Session {
         if index >= self.docs.len() {
             return None;
         }
+        let active = self.active;
         smart_cmds::on_close(self, index);
         if let Some(id) = self.docs.get(index).map(|d| d.doc.id) {
             self.cancel_jobs_on(id);
             self.color.workbench.remove(&id);
         }
         let d = self.docs.remove(index);
-        self.active = if self.docs.is_empty() { None } else { Some(index.min(self.docs.len() - 1)) };
+        self.active = if self.docs.is_empty() {
+            None
+        } else {
+            Some(match active {
+                Some(i) if i < index => i,
+                Some(i) if i > index => i - 1,
+                _ => index.min(self.docs.len() - 1),
+            })
+        };
         self.history_cache.dirty = true;
         self.poll_history_cache();
         Some(d)
