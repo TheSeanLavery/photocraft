@@ -90,6 +90,13 @@ pub struct Tokens {
     pub radius_lg: f32,
     /// Classic theme draws 3D bevels instead of flat fills.
     pub bevel: bool,
+    /// Raised/sunken edge colors; runtime themes can tune all four bevel tones.
+    pub bevel_highlight: Color32,
+    pub bevel_light: Color32,
+    pub bevel_shadow: Color32,
+    pub bevel_dark: Color32,
+    /// One edge for the existing Classic theme, two nested edges for period controls.
+    pub bevel_width: f32,
     /// Pro (Photoshop-grammar) layout: tab strips, flat panels, checkboxes, pill buttons.
     pub pro: bool,
     /// Panel tab-strip background (Pro).
@@ -152,6 +159,11 @@ impl Tokens {
                 radius: 4.0,
                 radius_lg: 6.0,
                 bevel: false,
+                bevel_highlight: Color32::WHITE,
+                bevel_light: Color32::from_gray(223),
+                bevel_shadow: Color32::from_gray(64),
+                bevel_dark: Color32::BLACK,
+                bevel_width: 1.0,
                 pro: true,
                 tab_strip: Color32::from_rgb(38, 38, 38),
                 row_selected: Color32::from_rgb(82, 82, 82),
@@ -186,6 +198,11 @@ impl Tokens {
                 radius: 8.0,
                 radius_lg: 12.0,
                 bevel: false,
+                bevel_highlight: Color32::WHITE,
+                bevel_light: Color32::from_gray(223),
+                bevel_shadow: Color32::from_gray(64),
+                bevel_dark: Color32::BLACK,
+                bevel_width: 1.0,
                 pro: false,
                 tab_strip: Color32::TRANSPARENT,
                 row_selected: Color32::TRANSPARENT,
@@ -220,6 +237,11 @@ impl Tokens {
                 radius: 8.0,
                 radius_lg: 12.0,
                 bevel: false,
+                bevel_highlight: Color32::WHITE,
+                bevel_light: Color32::from_gray(223),
+                bevel_shadow: Color32::from_gray(64),
+                bevel_dark: Color32::BLACK,
+                bevel_width: 1.0,
                 pro: false,
                 tab_strip: Color32::TRANSPARENT,
                 row_selected: Color32::TRANSPARENT,
@@ -254,6 +276,11 @@ impl Tokens {
                 radius: 0.0,
                 radius_lg: 0.0,
                 bevel: true,
+                bevel_highlight: Color32::WHITE,
+                bevel_light: Color32::from_gray(223),
+                bevel_shadow: Color32::from_gray(64),
+                bevel_dark: Color32::BLACK,
+                bevel_width: 1.0,
                 pro: false,
                 tab_strip: Color32::from_rgb(212, 208, 200),
                 row_selected: Color32::from_rgb(10, 36, 106),
@@ -314,6 +341,11 @@ pub fn mono(size: f32) -> FontId {
 /// Apply a theme to egui's global style and publish its tokens.
 pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     let t = Tokens::for_kind(kind);
+    apply_tokens(ctx, t);
+}
+
+/// Apply resolved tokens to both shared widgets and stock egui controls in the same frame.
+pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
     ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-theme"), t));
     let mut v = if t.dark() { Visuals::dark() } else { Visuals::light() };
     v.panel_fill = t.chrome;
@@ -350,7 +382,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     ] {
         wv.bg_fill = bg;
         wv.weak_bg_fill = bg;
-        wv.bg_stroke = if t.bevel { Stroke::new(1.0, Color32::from_gray(64)) } else { Stroke::new(1.0, stroke) };
+        wv.bg_stroke = if t.bevel { Stroke::new(1.0, t.bevel_shadow) } else { Stroke::new(1.0, stroke) };
         wv.fg_stroke = Stroke::new(1.0, t.text);
         wv.corner_radius = r;
         wv.expansion = 0.0;
@@ -419,121 +451,108 @@ mod tests {
     }
 }
 
-/// Development feature: live design-token overrides.
-///
-/// Set `PHOTOCRAFT_THEME_FILE=/path/tokens.json` in a debug build; the file is polled and applied
-/// on change, so colours, radii and sizes can be tuned without recompiling. Keys are `Tokens` field
-/// names; values are `"#rrggbb"`, `"#rrggbbaa"` or numbers. Compiled out of release builds.
-#[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+/// Native release/debug theme-file adapter. Shared parsing also builds for WASM.
+/// Set `PHOTOCRAFT_THEME_FILE` to a versioned theme pack or legacy token file.
+#[cfg(not(target_arch = "wasm32"))]
 pub mod live {
-    use super::Tokens;
-    use egui::Color32;
-    use std::time::SystemTime;
+    use std::io::Read;
+    use std::path::PathBuf;
+    use std::time::{Duration, SystemTime};
+
+    use super::ThemeKind;
+    use crate::theme_pack::{MAX_THEME_BYTES, ThemePack};
 
     #[derive(Default)]
     pub struct LiveTokens {
-        path: Option<std::path::PathBuf>,
-        stamp: Option<SystemTime>,
+        path: Option<PathBuf>,
+        stamp: Option<(SystemTime, u64)>,
         last_check: f64,
+        kind: Option<ThemeKind>,
+        last_valid: Option<String>,
+        last_error: Option<String>,
+        pending_error: Option<String>,
     }
 
     impl LiveTokens {
         pub fn from_env() -> Self {
-            Self { path: std::env::var_os("PHOTOCRAFT_THEME_FILE").map(Into::into), ..Default::default() }
+            Self::from_path(std::env::var_os("PHOTOCRAFT_THEME_FILE").map(Into::into))
         }
 
-        /// Re-apply overrides if the file changed. Returns true when tokens were updated.
-        pub fn poll(&mut self, ctx: &egui::Context, kind: super::ThemeKind) -> bool {
-            let Some(path) = &self.path else { return false };
+        pub fn from_path(path: Option<PathBuf>) -> Self {
+            Self { path, last_check: f64::NEG_INFINITY, ..Default::default() }
+        }
+
+        /// A new diagnostic only; avoid replacing status every frame for an unchanged bad file.
+        pub fn take_error(&mut self) -> Option<String> {
+            self.pending_error.take()
+        }
+
+        /// The shell has rebuilt the base style; reapply the active file next frame,
+        /// even when the user selected the same built-in theme again.
+        pub fn invalidate(&mut self) {
+            self.kind = None;
+        }
+
+        pub fn poll(&mut self, ctx: &egui::Context, kind: ThemeKind) -> bool {
+            if self.path.is_none() {
+                return false;
+            }
             let now = ctx.input(|i| i.time);
-            if now - self.last_check < 0.4 {
-                ctx.request_repaint_after(std::time::Duration::from_millis(400));
+            let kind_changed = self.kind != Some(kind);
+            ctx.request_repaint_after(Duration::from_secs(2));
+            if !kind_changed && now - self.last_check < 2.0 {
                 return false;
             }
             self.last_check = now;
-            ctx.request_repaint_after(std::time::Duration::from_millis(400));
-            let Ok(meta) = std::fs::metadata(path) else { return false };
-            let stamp = meta.modified().ok();
-            if stamp == self.stamp {
-                return false;
-            }
-            self.stamp = stamp;
-            let Ok(text) = std::fs::read_to_string(path) else { return false };
-            match serde_json::from_str::<serde_json::Value>(&text) {
-                Ok(v) => {
-                    super::apply(ctx, kind);
-                    let mut t = Tokens::get(ctx);
-                    let unknown = apply_overrides(&mut t, &v);
-                    ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-theme"), t));
-                    if !unknown.is_empty() {
-                        log::warn!("unknown token keys: {unknown:?}");
-                    }
-                    true
+            self.kind = Some(kind);
+            match self.reload(ctx, kind, kind_changed) {
+                Ok(changed) => {
+                    self.last_error = None;
+                    changed
                 }
-                Err(e) => {
-                    log::warn!("theme file: {e}");
+                Err(error) => {
+                    if self.last_error.as_ref() != Some(&error) {
+                        self.pending_error = Some(error.clone());
+                        self.last_error = Some(error);
+                    }
+                    // A built-in selection must not discard the last valid file style just
+                    // because an editor has temporarily saved incomplete JSON.
+                    if kind_changed
+                        && let Some(text) = &self.last_valid
+                        && let Ok(pack) = ThemePack::parse_file(text, kind)
+                        && let Ok(resolved) = pack.resolve()
+                    {
+                        resolved.apply(ctx);
+                        return true;
+                    }
                     false
                 }
             }
         }
-    }
 
-    fn color(v: &serde_json::Value) -> Option<Color32> {
-        let s = v.as_str()?.trim_start_matches('#');
-        let b = |i: usize| u8::from_str_radix(s.get(i..i + 2)?, 16).ok();
-        match s.len() {
-            6 => Some(Color32::from_rgb(b(0)?, b(2)?, b(4)?)),
-            8 => Some(Color32::from_rgba_unmultiplied(b(0)?, b(2)?, b(4)?, b(6)?)),
-            _ => None,
-        }
-    }
-
-    /// Apply JSON overrides onto tokens; returns unknown keys.
-    pub fn apply_overrides(t: &mut Tokens, v: &serde_json::Value) -> Vec<String> {
-        let mut unknown = Vec::new();
-        let Some(obj) = v.as_object() else { return unknown };
-        for (k, val) in obj {
-            macro_rules! c {
-                ($($f:ident),*) => {
-                    match k.as_str() {
-                        $(stringify!($f) => { if let Some(c) = color(val) { t.$f = c; } })*
-                        "radius_sm" => { if let Some(x) = val.as_f64() { t.radius_sm = x as f32; } }
-                        "radius" => { if let Some(x) = val.as_f64() { t.radius = x as f32; } }
-                        "radius_lg" => { if let Some(x) = val.as_f64() { t.radius_lg = x as f32; } }
-                        _ => unknown.push(k.clone()),
-                    }
-                };
+        fn reload(&mut self, ctx: &egui::Context, kind: ThemeKind, force: bool) -> Result<bool, String> {
+            let Some(path) = &self.path else { return Ok(false) };
+            let metadata = std::fs::metadata(path).map_err(|e| format!("theme file: {e}"))?;
+            if !metadata.is_file() {
+                return Err("theme path must be a regular file".into());
             }
-            c!(
-                chrome,
-                canvas,
-                canvas_dot,
-                dock,
-                card,
-                card_border,
-                field,
-                field_border,
-                hover,
-                pressed,
-                text,
-                text_dim,
-                text_faint,
-                icon,
-                accent,
-                accent_soft,
-                accent_border,
-                accent_text,
-                separator,
-                shadow,
-                primary_bg,
-                primary_text,
-                danger,
-                warning,
-                tab_strip,
-                row_selected
-            );
+            if metadata.len() > MAX_THEME_BYTES as u64 {
+                return Err(format!("theme exceeds {MAX_THEME_BYTES} bytes"));
+            }
+            let stamp = (metadata.modified().map_err(|e| format!("theme file timestamp: {e}"))?, metadata.len());
+            if !force && self.stamp == Some(stamp) {
+                return Ok(false);
+            }
+            let file = std::fs::File::open(path).map_err(|e| format!("theme file: {e}"))?;
+            let mut text = String::new();
+            file.take((MAX_THEME_BYTES + 1) as u64).read_to_string(&mut text).map_err(|e| format!("theme file: {e}"))?;
+            let pack = ThemePack::parse_file(&text, kind)?;
+            let resolved = pack.resolve()?;
+            resolved.apply(ctx);
+            self.stamp = Some(stamp);
+            self.last_valid = Some(text);
+            Ok(true)
         }
-        unknown
     }
 
     #[cfg(test)]
@@ -541,12 +560,43 @@ pub mod live {
         use super::*;
 
         #[test]
-        fn overrides_apply_and_report_unknown() {
-            let mut t = Tokens::for_kind(super::super::ThemeKind::Pro);
-            let unknown = apply_overrides(&mut t, &serde_json::json!({"card": "#102030", "radius": 9, "nope": 1}));
-            assert_eq!(t.card, Color32::from_rgb(16, 32, 48));
-            assert_eq!(t.radius, 9.0);
-            assert_eq!(unknown, vec!["nope".to_string()]);
+        fn failed_save_retains_style_and_recovery_updates_all_controls() {
+            let path = std::env::temp_dir().join(format!("photocraft-theme-{}-{:?}.json", std::process::id(), std::thread::current().id()));
+            let ctx = egui::Context::default();
+            let mut live = LiveTokens::from_path(Some(path.clone()));
+            std::fs::write(&path, r##"{"card":"#102030"}"##).unwrap();
+            assert!(live.reload(&ctx, ThemeKind::Studio, true).unwrap());
+            let before = super::super::Tokens::get(&ctx);
+            std::fs::write(&path, "{partial").unwrap();
+            assert!(live.reload(&ctx, ThemeKind::Studio, true).is_err());
+            assert_eq!(super::super::Tokens::get(&ctx), before);
+            assert_eq!(ctx.global_style().visuals.window_fill, before.card);
+            std::fs::write(&path, r##"{"card":"#334455"}"##).unwrap();
+            assert!(live.reload(&ctx, ThemeKind::Studio, true).unwrap());
+            assert_eq!(ctx.global_style().visuals.window_fill, egui::Color32::from_rgb(51, 68, 85));
+            std::fs::remove_file(path).unwrap();
+        }
+
+        #[test]
+        fn selecting_the_same_base_reapplies_the_file_and_bad_edits_keep_the_last_valid_style() {
+            let path = std::env::temp_dir().join(format!("photocraft-theme-reselect-{}-{:?}.json", std::process::id(), std::thread::current().id()));
+            let ctx = egui::Context::default();
+            let mut live = LiveTokens::from_path(Some(path.clone()));
+            std::fs::write(&path, r##"{"card":"#102030"}"##).unwrap();
+            assert!(live.poll(&ctx, ThemeKind::Studio));
+            let expected = super::super::Tokens::get(&ctx);
+            super::super::apply(&ctx, ThemeKind::Studio);
+            live.invalidate();
+            assert!(live.poll(&ctx, ThemeKind::Studio));
+            assert_eq!(super::super::Tokens::get(&ctx), expected);
+            std::fs::write(&path, "{partial").unwrap();
+            super::super::apply(&ctx, ThemeKind::Studio);
+            live.invalidate();
+            assert!(live.poll(&ctx, ThemeKind::Studio));
+            assert_eq!(super::super::Tokens::get(&ctx), expected);
+            assert!(live.take_error().is_some());
+            assert!(live.take_error().is_none());
+            std::fs::remove_file(path).unwrap();
         }
     }
 }

@@ -11,11 +11,26 @@ pub fn surface(ui: &Ui, rect: Rect, fill: Color32, raised: bool) {
     let p = ui.painter();
     p.rect_filled(rect, t.radius_sm, fill);
     if t.bevel {
-        let (hi, lo) = if raised { (Color32::WHITE, Color32::from_gray(64)) } else { (Color32::from_gray(64), Color32::WHITE) };
-        p.line_segment([rect.left_bottom(), rect.left_top()], Stroke::new(1.0, hi));
-        p.line_segment([rect.left_top(), rect.right_top()], Stroke::new(1.0, hi));
-        p.line_segment([rect.right_top(), rect.right_bottom()], Stroke::new(1.0, lo));
-        p.line_segment([rect.right_bottom(), rect.left_bottom()], Stroke::new(1.0, lo));
+        let edge = |rect: Rect, hi, lo| {
+            p.line_segment([rect.left_bottom(), rect.left_top()], Stroke::new(1.0, hi));
+            p.line_segment([rect.left_top(), rect.right_top()], Stroke::new(1.0, hi));
+            p.line_segment([rect.right_top(), rect.right_bottom()], Stroke::new(1.0, lo));
+            p.line_segment([rect.right_bottom(), rect.left_bottom()], Stroke::new(1.0, lo));
+        };
+        if t.bevel_width >= 2.0 {
+            let (outer_hi, outer_lo, inner_hi, inner_lo) = if raised {
+                (t.bevel_light, t.bevel_dark, t.bevel_highlight, t.bevel_shadow)
+            } else {
+                (t.bevel_shadow, t.bevel_highlight, t.bevel_dark, t.bevel_light)
+            };
+            edge(rect, outer_hi, outer_lo);
+            if rect.width() >= 4.0 && rect.height() >= 4.0 {
+                edge(rect.shrink(1.0), inner_hi, inner_lo);
+            }
+        } else {
+            let (hi, lo) = if raised { (t.bevel_highlight, t.bevel_shadow) } else { (t.bevel_shadow, t.bevel_highlight) };
+            edge(rect, hi, lo);
+        }
     }
 }
 

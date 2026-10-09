@@ -59,7 +59,7 @@ If the device is lost while running (#243), every GPU entry point checks the dev
 | `PHOTOCRAFT_FX_NOCACHE=1` | Bypass the CPU layer-effect map cache (`compose::effect_maps`) |
 | `PHOTOCRAFT_CPU_COMPOSE=1` | Keep the wgpu canvas but composite on the CPU (compare GPU vs CPU renders, e.g. with the snapshot example) |
 | `PHOTOCRAFT_FX_TRACE=1` | Print the CPU time spent on GPU effect shapes and distance fields per rebuild |
-| `PHOTOCRAFT_THEME_FILE=tokens.json` | **Debug builds only:** live design-token overrides, re-read on change |
+| `PHOTOCRAFT_THEME_FILE=theme.json` | Native debug/release builds: validated runtime theme pack or legacy token overrides, re-read on change |
 
 ### Live design tokens
 
@@ -67,7 +67,9 @@ If the device is lost while running (#243), every GPU entry point checks the dev
 { "card": "#323232", "tab_strip": "#262626", "accent": "#378ef0", "radius": 4 }
 ```
 
-Keys are the field names of `theme::Tokens` (`crates/ui-egui/src/theme.rs`). Edit and save the file while the app runs to see changes immediately, with no recompile. This is compiled out of release builds.
+Keys are the field names of `theme::Tokens` (`crates/ui-egui/src/theme.rs`). Edit and save the file while the app runs to see changes without recompiling, including in release builds. Both shared widgets and standard egui controls receive the resolved values. Invalid edits retain the last valid style and report an error in the status bar. The active file is checked every two seconds; no checks are scheduled without a configured file.
+
+Versioned packs also support spacing and typography; see [Runtime theme files](themes.md). The file adapter is native-only; parsing and style application are shared with the WASM build.
 
 ## Driving the app programmatically
 

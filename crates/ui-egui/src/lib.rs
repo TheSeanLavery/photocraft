@@ -105,6 +105,7 @@ pub mod stroke_trail;
 pub mod stylus;
 mod tab_strip;
 pub mod theme;
+pub mod theme_pack;
 mod timeline_ui;
 pub mod tone;
 pub mod tool_feedback;
@@ -352,7 +353,7 @@ pub struct PhotocraftApp {
     pub background_jobs: bool,
     /// Background job bookkeeping: opening tabs, control replies waiting on a job.
     pub jobs: jobs_ui::JobsUi,
-    #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+    #[cfg(not(target_arch = "wasm32"))]
     live_tokens: theme::live::LiveTokens,
 }
 
@@ -424,7 +425,7 @@ impl PhotocraftApp {
             stylus: Default::default(),
             background_jobs: false,
             jobs: Default::default(),
-            #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+            #[cfg(not(target_arch = "wasm32"))]
             live_tokens: theme::live::LiveTokens::from_env(),
         };
         // Saved preferences (and recovered documents) are in place before the first frame.
@@ -820,9 +821,15 @@ impl eframe::App for PhotocraftApp {
         self.last_frame_time = now;
         self.sync_views();
         self.check_gpu(ctx);
-        #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
-        if self.live_tokens.poll(ctx, self.ui.theme) {
-            self.checker = None;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if self.live_tokens.poll(ctx, self.ui.theme) {
+                self.checker = None;
+                self.ui.status = "Theme reloaded".into();
+            }
+            if let Some(error) = self.live_tokens.take_error() {
+                self.ui.status = format!("Theme unchanged: {error}");
+            }
         }
         self.drain_control(ctx);
         if self.ui.text_edit.is_some() && self.ui.tool != state::Tool::Type {
@@ -997,6 +1004,8 @@ impl PhotocraftApp {
     pub fn set_theme(&mut self, ctx: &egui::Context, kind: theme::ThemeKind) {
         self.ui.theme = kind;
         theme::apply(ctx, kind);
+        #[cfg(not(target_arch = "wasm32"))]
+        self.live_tokens.invalidate();
         self.checker = None;
     }
 
