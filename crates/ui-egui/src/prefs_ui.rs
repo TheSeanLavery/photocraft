@@ -314,9 +314,11 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
     autosave(app);
     if let Some(error) = &app.prefs_rt.recovery_error {
         app.ui.status.clone_from(error);
+        app.ui.status_error = true;
     }
     if let Some(error) = app.prefs_rt.autosave_errors.values().next() {
         app.ui.status.clone_from(error);
+        app.ui.status_error = true;
     }
     if app.services.autosave.is_some() {
         let delay = if app.prefs_rt.pending_autosaves.is_empty() && app.prefs_rt.retiring.is_empty() { 1_000 } else { 100 };
@@ -511,6 +513,7 @@ fn autosave(app: &mut PhotocraftApp) {
                             && app.ui.status == error
                         {
                             app.ui.status = "Recovery checkpoint removed".into();
+                            app.ui.status_error = false;
                         }
                     }
                     Err(e) => {
@@ -532,10 +535,11 @@ fn autosave(app: &mut PhotocraftApp) {
                             && app.ui.status == error
                         {
                             app.ui.status = "Recovery checkpoint saved".into();
+                            app.ui.status_error = false;
                         }
                     }
                     Err(e) => {
-                        app.prefs_rt.retry_after.insert(id, now + 30_000.0);
+                        app.prefs_rt.retry_after.insert(id, now + 10_000.0);
                         app.prefs_rt.autosave_errors.insert(id, format!("Autosave failed: {e}. Your document remains open; save a copy or free disk space."));
                     }
                 }
@@ -591,7 +595,7 @@ fn autosave(app: &mut PhotocraftApp) {
                     app.prefs_rt.catch_up.remove(&doc.id);
                 }
                 Err(e) => {
-                    app.prefs_rt.retry_after.insert(doc.id, now + 30_000.0);
+                    app.prefs_rt.retry_after.insert(doc.id, now + 10_000.0);
                     app.prefs_rt.autosave_errors.insert(doc.id, format!("Autosave failed: {e}. Your document remains open; save a copy or free disk space."));
                 }
             }
