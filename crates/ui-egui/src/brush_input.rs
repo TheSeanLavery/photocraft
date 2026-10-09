@@ -68,6 +68,9 @@ pub fn route(app: &mut PhotocraftApp, response: &Response, xf: &ViewXform, tool:
         tool_event(app, event, modifiers);
         if matches!(event, ToolEvent::Up { .. }) {
             app.brush_input.owner = None;
+            // AppKit keeps the final stage-1 Force Touch sample through the mouse-up frame.
+            // Release it only after the brush has consumed that frame's events.
+            app.stylus.trackpad_feed.set(None);
         }
     }
     app.brush_input.defer_preview = false;
@@ -84,6 +87,7 @@ pub fn interrupt(app: &mut PhotocraftApp) {
     app.brush_input.defer_preview = false;
     app.brush_input.window_motion.reset();
     app.brush_input.raw_frame_time = None;
+    app.stylus.trackpad_feed.set(None);
     app.brush_resize = None;
     let Some((doc, tool)) = owner else { return };
     let previous = app.session.active().map(|st| st.doc.id);
@@ -244,6 +248,32 @@ mod tests {
     use egui::{Pos2, Rect, pos2};
 
     use super::*;
+
+    #[test]
+    fn release_frame_uses_last_trackpad_pressure_then_clears_it() {
+        use egui_kittest::Harness;
+        use serde_json::json;
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width": 128, "height": 128})).unwrap();
+        app.run("layer.new.layer", json!({})).unwrap();
+        app.run("prefs.set", json!({"path": "tools.useTrackpadPressure", "value": true})).unwrap();
+        app.ui.tool = Tool::Brush;
+        let mut h = Harness::builder().with_size(egui::vec2(1000.0, 800.0)).build_eframe(|_| app);
+        h.run_steps(3);
+        h.state_mut().stylus.trackpad_feed.set(Some(0.35));
+        let a = h.state().last_canvas_rect.center();
+        let b = a + egui::vec2(20.0, 0.0);
+        h.input_mut().events.extend([
+            Event::PointerMoved(a),
+            button(a, true, PointerButton::Primary),
+            Event::PointerMoved(b),
+            button(b, false, PointerButton::Primary),
+        ]);
+        h.step();
+        let points = h.state().session.journal.iter().rev().find(|(id, _)| id == "paint.stroke").unwrap().1["points"].as_array().unwrap();
+        assert!(points.iter().all(|point| (point[2].as_f64().unwrap() - 0.35).abs() < 1e-5), "release frame must not invent a full-pressure point");
+        assert_eq!(h.state().stylus.trackpad_feed.get(), None, "clear after the stroke consumes release");
+    }
 
     #[test]
     fn ignored_gestures_cannot_contaminate_the_next_paint_stroke() {
