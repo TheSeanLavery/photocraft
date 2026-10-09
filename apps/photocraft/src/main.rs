@@ -484,11 +484,11 @@ fn main() -> eframe::Result {
             // Where file drags and drops are (winit 0.30 doesn't say).
             app.services.cursor_pos = cursor::service(cc);
             app.services.screen_pick = screen_color::service(cc, app.services.is_wayland);
-            // Tablet pressure/tilt/eraser (winit drops them): the macOS monitor installed above
-            // and the X11 reader write into this feed.
-            app.stylus.feed = stylus_feed;
+            // The macOS monitor writes into its installed feed. Linux's X11 reader uses the
+            // app's default feed; Windows pen data arrives through winit.
             #[cfg(target_os = "macos")]
             {
+                app.stylus.feed = stylus_feed;
                 app.stylus.trackpad_feed = trackpad_feed;
             }
             #[cfg(target_os = "linux")]
