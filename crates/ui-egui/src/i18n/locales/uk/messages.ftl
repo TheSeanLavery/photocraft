@@ -261,7 +261,7 @@ ui-all-layers-bf480d822a927800 = Усі шари
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Усі шари без коригувань
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Усі клавіатурні скорочення скинуто до типових значень Photoshop.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Усі клавіатурні скорочення скинуто до типових значень PhotoCraft.
 
 ui-all-slices-c7482a9e09ce788d = Усі фрагменти
 
@@ -1145,6 +1145,10 @@ ui-color-overlay-e4ec9e391c16750a = Накладання кольору…
 
 ui-color-picker-ac18daa6e6202218 = Вибір кольору
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Вибір кольору (колір заливки)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Вибір кольору (колір обведення)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Вибір кольору (колір тексту)
 
 ui-color-priority-138e732eacbefb9e = Пріоритет кольору
@@ -1663,7 +1667,7 @@ ui-default-foreground-and-background-colors-01efcca3f666c2ec = Стандарт�
 
 ui-default-leaves-43252a94e18ce14c = Типове листя
 
-ui-default-photoshop-size-86c00542f2645621 = Типовий розмір Photoshop
+ui-default-photocraft-size-42e29dd35050952b = Типовий розмір PhotoCraft
 
 ui-default-printer-4c55958efe32b804 = Типовий принтер
 
@@ -2314,6 +2318,8 @@ ui-fill-23e109f273fcce34 = Заливка:
 ui-fill-363a0aa33870e306 = Заливка…
 
 ui-fill-9a017e8f907356c6 = Заливка
+
+ui-fill-color-61734769aae23385 = Колір заливки
 
 ui-fill-content-3ae9184569d9ebcb = Вміст заливки
 
@@ -2995,9 +3001,9 @@ ui-import-brushes-4b123336676f918a = Імпортувати пензлі…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Імпортувати пензлі… (.abr)
 
-ui-import-brushes-f9762f3f927323ca = Імпортувати пензлі
+ui-import-brushes-abr-bc61ea3383f9a612 = Імпортувати пензлі (.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Імпортувати пензлі Photoshop (.abr)
+ui-import-brushes-f9762f3f927323ca = Імпортувати пензлі
 
 ui-import-presets-09d2999d476d4eb6 = Імпортувати набори
 
@@ -3480,8 +3486,6 @@ ui-load-files-into-stack-7fd589d06abf047e = Завантажити файли у
 ui-load-files-into-stack-930178906e61106e = Завантажити файли у стос…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Завантажити контур як виділення
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Завантажити пензлі Photoshop (.abr)
 
 ui-load-selection-072d9465bd4fdf85 = Завантажити виділення
 
@@ -5854,6 +5858,8 @@ ui-stroke-395300372f89fcbf = Обведення
 ui-stroke-828b007bd6ed0c59 = Обведення…
 
 ui-stroke-catch-up-6f6524919c63b74e = Наздоганяння мазка
+
+ui-stroke-color-705a1554bb23c6c0 = Колір обведення
 
 ui-stroke-detail-818184affe3dd2fc = Деталі мазка
 

@@ -183,7 +183,7 @@ ui-all-layers-bf480d822a927800 = 所有圖層
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = 所有圖層（不含調整）
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = 所有快速鍵已重設為 Photoshop 預設值。
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = 所有快速鍵已重設為 PhotoCraft 預設值。
 
 ui-all-slices-c7482a9e09ce788d = 所有切片
 
@@ -779,6 +779,10 @@ ui-color-overlay-e4ec9e391c16750a = 顏色覆蓋…
 
 ui-color-picker-ac18daa6e6202218 = 檢色器
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = 檢色器（填滿顏色）
+
+ui-color-picker-stroke-color-aac3b03188866056 = 檢色器（筆畫顏色）
+
 ui-color-picker-text-color-6873936c7cbaceb3 = 檢色器（文字顏色）
 
 ui-color-priority-138e732eacbefb9e = 色彩優先
@@ -1119,7 +1123,7 @@ ui-default-colours-d-702fa2ae170283a6 = 預設顏色 (D)
 
 ui-default-features-5afc3e0f6e30c7ff = 預設功能
 
-ui-default-photoshop-size-86c00542f2645621 = 預設 Photoshop 尺寸
+ui-default-photocraft-size-42e29dd35050952b = 預設 PhotoCraft 尺寸
 
 ui-default-printer-4c55958efe32b804 = 預設印表機
 
@@ -1593,6 +1597,8 @@ ui-fill-363a0aa33870e306 = 填滿…
 
 ui-fill-9a017e8f907356c6 = 填滿
 
+ui-fill-color-61734769aae23385 = 填滿顏色
+
 ui-fill-content-3ae9184569d9ebcb = 填滿內容
 
 ui-fill-layer-ed1a89e942e1517f = 填滿圖層
@@ -2023,7 +2029,7 @@ ui-import-brushes-4b123336676f918a = 匯入筆刷…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = 匯入筆刷… (.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = 匯入 Photoshop 筆刷 (.abr)
+ui-import-brushes-abr-bc61ea3383f9a612 = 匯入筆刷 (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = 匯入預設集
 
@@ -2354,8 +2360,6 @@ ui-load-default-type-styles-0ebf6740df450e40 = 載入預設文字樣式
 ui-load-files-into-stack-930178906e61106e = 將檔案載入堆疊…
 
 ui-load-path-as-a-selection-4595274370f43a07 = 將路徑載入為選取範圍
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = 載入 Photoshop 筆刷 (.abr)
 
 ui-load-selection-9879fb5ae763e63b = 載入選取範圍…
 
@@ -3984,6 +3988,8 @@ ui-stroke-395300372f89fcbf = 筆畫
 ui-stroke-828b007bd6ed0c59 = 筆畫…
 
 ui-stroke-catch-up-6f6524919c63b74e = 筆畫追補
+
+ui-stroke-color-705a1554bb23c6c0 = 筆畫顏色
 
 ui-stroke-f205e2c5c77815ff = 筆畫：
 

@@ -251,7 +251,7 @@ ui-all-layers-bf480d822a927800 = すべてのレイヤー
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = すべてのレイヤー（色調補正なし）
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = すべてのショートカットを初期状態に戻しました。
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = すべてのショートカットを初期状態に戻しました。
 
 ui-all-slices-c7482a9e09ce788d = すべてのスライス
 
@@ -1127,6 +1127,10 @@ ui-color-overlay-e4ec9e391c16750a = カラーオーバーレイ…
 
 ui-color-picker-ac18daa6e6202218 = カラーピッカー
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = カラーピッカー（塗りつぶしカラー）
+
+ui-color-picker-stroke-color-aac3b03188866056 = カラーピッカー（線のカラー）
+
 ui-color-picker-text-color-6873936c7cbaceb3 = カラーピッカー（文字色）
 
 ui-color-priority-138e732eacbefb9e = カラー優先
@@ -1643,7 +1647,7 @@ ui-default-foreground-and-background-colors-01efcca3f666c2ec = 前景色と背�
 
 ui-default-leaves-43252a94e18ce14c = 既定の葉
 
-ui-default-photoshop-size-86c00542f2645621 = 既定サイズ
+ui-default-photocraft-size-42e29dd35050952b = PhotoCraft 既定サイズ
 
 ui-default-printer-4c55958efe32b804 = 既定のプリンター
 
@@ -2294,6 +2298,8 @@ ui-fill-23e109f273fcce34 = 塗り:
 ui-fill-363a0aa33870e306 = 塗りつぶし…
 
 ui-fill-9a017e8f907356c6 = 塗り
+
+ui-fill-color-61734769aae23385 = 塗りつぶしカラー
 
 ui-fill-content-3ae9184569d9ebcb = 塗りの内容
 
@@ -2961,9 +2967,9 @@ ui-import-brushes-4b123336676f918a = ブラシを読み込み…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = ブラシを読み込み…(.abr)
 
-ui-import-brushes-f9762f3f927323ca = ブラシを読み込み
+ui-import-brushes-abr-bc61ea3383f9a612 = ブラシ(.abr)を読み込み
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Photoshop ブラシ(.abr)を読み込み
+ui-import-brushes-f9762f3f927323ca = ブラシを読み込み
 
 ui-import-presets-09d2999d476d4eb6 = プリセットを読み込み
 
@@ -3446,8 +3452,6 @@ ui-load-files-into-stack-7fd589d06abf047e = ファイルをスタックに読み
 ui-load-files-into-stack-930178906e61106e = ファイルをスタックに読み込み…
 
 ui-load-path-as-a-selection-4595274370f43a07 = パスを選択範囲として読み込む
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Photoshop ブラシ(.abr)を読み込み
 
 ui-load-selection-072d9465bd4fdf85 = 選択範囲を読み込む
 
@@ -5788,6 +5792,8 @@ ui-stroke-395300372f89fcbf = 線
 ui-stroke-828b007bd6ed0c59 = 境界線を描く…
 
 ui-stroke-catch-up-6f6524919c63b74e = ストロークの追従
+
+ui-stroke-color-705a1554bb23c6c0 = 線のカラー
 
 ui-stroke-detail-818184affe3dd2fc = ストロークのディテール
 

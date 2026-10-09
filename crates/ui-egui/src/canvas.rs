@@ -2252,7 +2252,13 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                 None
             },
             output_headroom: app.gpu.as_ref().map_or(0.0, |g| {
-                if !g.hdr_surface() { 0.0 } else if app.ui.sdr_output || app.session.color.proof(doc.id).enabled { 1.0 } else { g.output_headroom() }
+                if !g.hdr_surface() {
+                    0.0
+                } else if app.ui.sdr_output || app.session.color.proof(doc.id).enabled {
+                    1.0
+                } else {
+                    g.output_headroom()
+                }
             }),
         };
         crate::gpu_canvas::GpuCanvas::paint(&painter, rect, params);
@@ -2281,7 +2287,13 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                 None
             },
             output_headroom: app.gpu.as_ref().map_or(0.0, |g| {
-                if !g.hdr_surface() { 0.0 } else if app.ui.sdr_output || app.session.color.proof(doc.id).enabled { 1.0 } else { g.output_headroom() }
+                if !g.hdr_surface() {
+                    0.0
+                } else if app.ui.sdr_output || app.session.color.proof(doc.id).enabled {
+                    1.0
+                } else {
+                    g.output_headroom()
+                }
             }),
         };
         crate::gpu_canvas::GpuCanvas::paint(&painter, rect, params);
@@ -2888,8 +2900,20 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                     let r = if cur.painting == PaintingCursor::NormalTip { (full * (0.5 + 0.5 * brush.hardness.clamp(0.0, 1.0))).max(1.0) } else { full };
                     match cur.painting {
                         PaintingCursor::Standard => egui::CursorIcon::Default,
-                        PaintingCursor::Precise => if cfg!(target_os = "macos") { egui::CursorIcon::Crosshair } else { crate::tool_cursor::crosshair(&painter, p, 6.0, 0.0) },
-                        _ if painting && cur.show_only_crosshair_while_painting => if cfg!(target_os = "macos") { egui::CursorIcon::Crosshair } else { crate::tool_cursor::crosshair(&painter, p, 5.0, 0.0) },
+                        PaintingCursor::Precise => {
+                            if cfg!(target_os = "macos") {
+                                egui::CursorIcon::Crosshair
+                            } else {
+                                crate::tool_cursor::crosshair(&painter, p, 6.0, 0.0)
+                            }
+                        }
+                        _ if painting && cur.show_only_crosshair_while_painting => {
+                            if cfg!(target_os = "macos") {
+                                egui::CursorIcon::Crosshair
+                            } else {
+                                crate::tool_cursor::crosshair(&painter, p, 5.0, 0.0)
+                            }
+                        }
                         // The Pencil: the square of whole pixels its dab fills, on the pixel grid.
                         _ if tool == Tool::Pencil => {
                             let ppp = painter.ctx().pixels_per_point();
@@ -3362,9 +3386,16 @@ fn transform_controls_bounds(app: &PhotocraftApp) -> Option<(photocraft_geom::Re
 /// A multi-layer selection gets one outline; Free Transform handles need one target.
 fn transform_controls_rect(app: &PhotocraftApp, xf: &ViewXform) -> Option<(Rect, bool)> {
     let (b, handles) = transform_controls_bounds(app)?;
-    let points = [xf.to_screen(b.x0 as f32, b.y0 as f32), xf.to_screen(b.x1 as f32, b.y0 as f32), xf.to_screen(b.x1 as f32, b.y1 as f32), xf.to_screen(b.x0 as f32, b.y1 as f32)];
+    let points = [
+        xf.to_screen(b.x0 as f32, b.y0 as f32),
+        xf.to_screen(b.x1 as f32, b.y0 as f32),
+        xf.to_screen(b.x1 as f32, b.y1 as f32),
+        xf.to_screen(b.x0 as f32, b.y1 as f32),
+    ];
     let mut rect = Rect::from_min_max(points[0], points[0]);
-    for p in points.into_iter().skip(1) { rect.extend_with(p); }
+    for p in points.into_iter().skip(1) {
+        rect.extend_with(p);
+    }
     Some((rect, handles))
 }
 
@@ -3403,7 +3434,9 @@ fn draw_transform_controls(app: &mut PhotocraftApp, painter: &egui::Painter, xf:
     let Some((r, handles)) = transform_controls_rect(app, xf) else { return };
     let accent = crate::theme::Tokens::get(painter.ctx()).accent;
     painter.rect_stroke(r, 0.0, Stroke::new(1.0, accent), egui::StrokeKind::Middle);
-    if !handles { return; }
+    if !handles {
+        return;
+    }
     for p in [r.left_top(), r.center_top(), r.right_top(), r.right_center(), r.right_bottom(), r.center_bottom(), r.left_bottom(), r.left_center()] {
         let h = Rect::from_center_size(p, vec2(7.0, 7.0));
         painter.rect_filled(h, 0.0, Color32::WHITE);

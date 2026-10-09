@@ -189,7 +189,7 @@ ui-all-layers-bf480d822a927800 = Alle Ebenen
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Alle Ebenen ohne Einstellungen
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Alle Kurzbefehle wurden auf die Photoshop-Standards zurückgesetzt.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Alle Kurzbefehle wurden auf die PhotoCraft-Standards zurückgesetzt.
 
 ui-all-slices-c7482a9e09ce788d = Alle Slices
 
@@ -809,6 +809,10 @@ ui-color-overlay-e4ec9e391c16750a = Farbüberlagerung…
 
 ui-color-picker-ac18daa6e6202218 = Farbwähler
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Farbwähler (Füllfarbe)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Farbwähler (Konturfarbe)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Farbwähler (Textfarbe)
 
 ui-color-priority-138e732eacbefb9e = Farbpriorität
@@ -1153,7 +1157,7 @@ ui-default-colours-d-702fa2ae170283a6 = Standardfarben (D)
 
 ui-default-features-5afc3e0f6e30c7ff = Standardfunktionen
 
-ui-default-photoshop-size-86c00542f2645621 = Standard-Photoshop-Größe
+ui-default-photocraft-size-42e29dd35050952b = Standard-PhotoCraft-Größe
 
 ui-default-printer-4c55958efe32b804 = Standarddrucker
 
@@ -1639,6 +1643,8 @@ ui-fill-363a0aa33870e306 = Füllen…
 
 ui-fill-9a017e8f907356c6 = Füllung
 
+ui-fill-color-61734769aae23385 = Füllfarbe
+
 ui-fill-content-3ae9184569d9ebcb = Füllinhalt
 
 ui-fill-layer-ed1a89e942e1517f = Füllebene
@@ -2084,7 +2090,7 @@ ui-import-brushes-4b123336676f918a = Pinsel importieren…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Pinsel importieren… (.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Photoshop-Pinsel (.abr) importieren
+ui-import-brushes-abr-bc61ea3383f9a612 = Pinsel (.abr) importieren
 
 ui-import-presets-09d2999d476d4eb6 = Vorgaben importieren
 
@@ -2419,8 +2425,6 @@ ui-load-default-type-styles-0ebf6740df450e40 = Standard-Textformate laden
 ui-load-files-into-stack-930178906e61106e = Dateien in Stapel laden…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Pfad als Auswahl laden
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Photoshop-Pinsel (.abr) laden
 
 ui-load-selection-072d9465bd4fdf85 = Auswahl laden
 
@@ -4115,6 +4119,8 @@ ui-stroke-395300372f89fcbf = Kontur
 ui-stroke-828b007bd6ed0c59 = Nachziehen…
 
 ui-stroke-catch-up-6f6524919c63b74e = Strich nachführen
+
+ui-stroke-color-705a1554bb23c6c0 = Konturfarbe
 
 ui-stroke-f205e2c5c77815ff = Kontur:
 

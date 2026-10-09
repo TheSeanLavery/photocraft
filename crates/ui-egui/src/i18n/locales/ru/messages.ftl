@@ -199,7 +199,7 @@ ui-all-layers-bf480d822a927800 = Все слои
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Все слои без коррекции
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Все комбинации клавиш сброшены к стандартным Photoshop.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Все комбинации клавиш сброшены к стандартным PhotoCraft.
 
 ui-all-slices-c7482a9e09ce788d = Все фрагменты
 
@@ -875,6 +875,10 @@ ui-color-overlay-e4ec9e391c16750a = Наложение цвета…
 
 ui-color-picker-ac18daa6e6202218 = Пипетка
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Палитра цветов (Цвет заливки)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Палитра цветов (Цвет обводки)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Палитра цветов (Цвет текста)
 
 ui-color-priority-138e732eacbefb9e = Приоритет цвета
@@ -1231,7 +1235,7 @@ ui-default-colours-d-702fa2ae170283a6 = Цвета по умолчанию (D)
 
 ui-default-features-5afc3e0f6e30c7ff = Возможности по умолчанию
 
-ui-default-photoshop-size-86c00542f2645621 = Размер Photoshop по умолчанию
+ui-default-photocraft-size-42e29dd35050952b = Размер PhotoCraft по умолчанию
 
 ui-default-printer-4c55958efe32b804 = Принтер по умолчанию
 
@@ -1743,6 +1747,8 @@ ui-fill-363a0aa33870e306 = Выполнить заливку…
 
 ui-fill-9a017e8f907356c6 = Заливка
 
+ui-fill-color-61734769aae23385 = Цвет заливки
+
 ui-fill-content-3ae9184569d9ebcb = Содержимое заливки
 
 ui-fill-layer-ed1a89e942e1517f = Слой-заливка
@@ -2217,7 +2223,7 @@ ui-import-bd7850245f5a79ee = Импорт
 
 ui-import-brushes-4b123336676f918a = Импортировать кисти…
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Импортировать кисти Photoshop (.abr)
+ui-import-brushes-abr-bc61ea3383f9a612 = Импортировать кисти (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = Импортировать наборы
 
@@ -4346,6 +4352,8 @@ ui-stroke-395300372f89fcbf = Мазок
 ui-stroke-828b007bd6ed0c59 = Обвести…
 
 ui-stroke-catch-up-6f6524919c63b74e = Догонять мазком
+
+ui-stroke-color-705a1554bb23c6c0 = Цвет обводки
 
 ui-stroke-f205e2c5c77815ff = Обводка:
 

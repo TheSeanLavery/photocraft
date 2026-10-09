@@ -191,7 +191,7 @@ ui-all-layers-bf480d822a927800 = Všechny vrstvy
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Všechny vrstvy bez korekcí
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Všechny zkratky byly obnoveny na výchozí hodnoty Photoshopu.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Všechny zkratky byly obnoveny na výchozí hodnoty PhotoCraftu.
 
 ui-all-slices-c7482a9e09ce788d = Všechny řezy
 
@@ -789,6 +789,10 @@ ui-color-overlay-e4ec9e391c16750a = Překrytí barvou…
 
 ui-color-picker-ac18daa6e6202218 = Výběr barvy
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Výběr barvy (Barva výplně)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Výběr barvy (Barva tahu)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Výběr barvy (Barva textu)
 
 ui-color-priority-138e732eacbefb9e = Priorita barev
@@ -1127,7 +1131,7 @@ ui-default-colours-d-702fa2ae170283a6 = Výchozí barvy (D)
 
 ui-default-features-5afc3e0f6e30c7ff = Výchozí funkce
 
-ui-default-photoshop-size-86c00542f2645621 = Výchozí velikost
+ui-default-photocraft-size-42e29dd35050952b = Výchozí velikost PhotoCraft
 
 ui-default-printer-4c55958efe32b804 = Výchozí tiskárna
 
@@ -1601,6 +1605,8 @@ ui-fill-363a0aa33870e306 = Vyplnit…
 
 ui-fill-9a017e8f907356c6 = Výplň
 
+ui-fill-color-61734769aae23385 = Barva výplně
+
 ui-fill-content-3ae9184569d9ebcb = Obsah výplně
 
 ui-fill-layer-ed1a89e942e1517f = Vrstva výplně
@@ -2035,7 +2041,7 @@ ui-import-brushes-4b123336676f918a = Importovat štětce…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Importovat štětce… (.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Importovat štětce Photoshopu (.abr)
+ui-import-brushes-abr-bc61ea3383f9a612 = Importovat štětce (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = Importovat přednastavení
 
@@ -2364,8 +2370,6 @@ ui-load-default-type-styles-0ebf6740df450e40 = Načíst výchozí styly textu
 ui-load-files-into-stack-930178906e61106e = Načíst soubory do zásobníku…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Načíst cestu jako výběr
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Načíst štětce Photoshopu (.abr)
 
 ui-load-selection-9879fb5ae763e63b = Načíst výběr…
 
@@ -4010,6 +4014,8 @@ ui-stroke-395300372f89fcbf = Tah
 ui-stroke-828b007bd6ed0c59 = Tah…
 
 ui-stroke-catch-up-6f6524919c63b74e = Dotahování tahu
+
+ui-stroke-color-705a1554bb23c6c0 = Barva tahu
 
 ui-stroke-f205e2c5c77815ff = Tah:
 

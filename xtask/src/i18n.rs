@@ -6,9 +6,7 @@ use std::path::{Path, PathBuf};
 use syn::spanned::Spanned;
 use syn::visit::{self, Visit};
 
-const LANGS: &[&str] = &[
-    "en", "ja", "zh-hans", "zh-hant", "es", "ru", "uk", "cs", "fr", "id", "ko", "pl", "de", "pt-br", "el", "nl", "it",
-];
+const LANGS: &[&str] = &["en", "ja", "zh-hans", "zh-hant", "es", "ru", "uk", "cs", "fr", "id", "ko", "pl", "de", "pt-br", "el", "nl", "it"];
 
 fn catalog_path(dir: &Path, lang: &str) -> PathBuf {
     let locale = match lang {

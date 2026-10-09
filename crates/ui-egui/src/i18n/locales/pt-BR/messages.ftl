@@ -245,7 +245,7 @@ ui-all-layers-bf480d822a927800 = Todas as camadas
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Todas as camadas sem ajustes
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Todos os atalhos foram redefinidos para os padrões do Photoshop.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Todos os atalhos foram redefinidos para os padrões do PhotoCraft.
 
 ui-all-slices-c7482a9e09ce788d = Todas as fatias
 
@@ -977,6 +977,10 @@ ui-color-overlay-e4ec9e391c16750a = Sobreposição de cores…
 
 ui-color-picker-ac18daa6e6202218 = Seletor de cores
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Seletor de cores (Cor de preenchimento)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Seletor de cores (Cor do traçado)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Seletor de cores (Cor do texto)
 
 ui-color-priority-138e732eacbefb9e = Prioridade de cor
@@ -1391,7 +1395,7 @@ ui-default-colours-d-702fa2ae170283a6 = Cores padrão (D)
 
 ui-default-features-5afc3e0f6e30c7ff = Recursos padrão
 
-ui-default-photoshop-size-86c00542f2645621 = Padrão do Photoshop
+ui-default-photocraft-size-42e29dd35050952b = Tamanho padrão do PhotoCraft
 
 ui-default-printer-4c55958efe32b804 = Impressora padrão
 
@@ -1949,6 +1953,8 @@ ui-fill-363a0aa33870e306 = Preencher…
 
 ui-fill-9a017e8f907356c6 = Preenchimento
 
+ui-fill-color-61734769aae23385 = Cor de preenchimento
+
 ui-fill-content-3ae9184569d9ebcb = Conteúdo do preenchimento
 
 ui-fill-layer-ed1a89e942e1517f = Camada de preenchimento
@@ -2472,7 +2478,7 @@ ui-import-brushes-4b123336676f918a = Importar pincéis…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Importar pincéis… (.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Importar pincéis do Photoshop (.abr)
+ui-import-brushes-abr-bc61ea3383f9a612 = Importar pincéis (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = Importar predefinições
 
@@ -2857,8 +2863,6 @@ ui-load-default-type-styles-0ebf6740df450e40 = Carregar estilos de texto padrão
 ui-load-files-into-stack-930178906e61106e = Carregar arquivos na pilha…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Carregar demarcador como seleção
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Carregar pincéis do Photoshop (.abr)
 
 ui-load-selection-072d9465bd4fdf85 = Carregar seleção
 
@@ -4803,6 +4807,8 @@ ui-stroke-395300372f89fcbf = Traçado
 ui-stroke-828b007bd6ed0c59 = Traçado…
 
 ui-stroke-catch-up-6f6524919c63b74e = Recuperação do traço
+
+ui-stroke-color-705a1554bb23c6c0 = Cor do traçado
 
 ui-stroke-f205e2c5c77815ff = Traçado:
 

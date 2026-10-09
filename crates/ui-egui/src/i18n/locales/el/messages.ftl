@@ -261,7 +261,7 @@ ui-all-layers-bf480d822a927800 = Όλα τα επίπεδα
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Όλα τα επίπεδα χωρίς προσαρμογές
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Όλες οι συντομεύσεις επανήλθαν στις προεπιλογές του Photoshop.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Όλες οι συντομεύσεις επανήλθαν στις προεπιλογές του PhotoCraft.
 
 ui-all-slices-c7482a9e09ce788d = Όλες οι τομές
 
@@ -1185,6 +1185,10 @@ ui-color-picker-9481adbac05b87f8 = Επιλογέας χρώματος
 
 ui-color-picker-ac18daa6e6202218 = Επιλογέας χρώματος
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Επιλογέας χρώματος (Χρώμα γεμίσματος)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Επιλογέας χρώματος (Χρώμα περιγράμματος)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Επιλογέας χρώματος (χρώμα κειμένου)
 
 ui-color-priority-138e732eacbefb9e = Προτεραιότητα χρώματος
@@ -1719,7 +1723,7 @@ ui-default-foreground-and-background-colors-01efcca3f666c2ec = Προεπιλε�
 
 ui-default-leaves-43252a94e18ce14c = Προεπιλεγμένα φύλλα
 
-ui-default-photoshop-size-86c00542f2645621 = Προεπιλεγμένο μέγεθος Photoshop
+ui-default-photocraft-size-42e29dd35050952b = Προεπιλεγμένο μέγεθος PhotoCraft
 
 ui-default-printer-4c55958efe32b804 = Προεπιλεγμένος εκτυπωτής
 
@@ -2429,6 +2433,8 @@ ui-fill-363a0aa33870e306 = Γέμισμα…
 
 ui-fill-9a017e8f907356c6 = Γέμισμα
 
+ui-fill-color-61734769aae23385 = Χρώμα γεμίσματος
+
 ui-fill-color-a51960033bb00a25 = Χρώμα γεμίσματος
 
 ui-fill-content-3ae9184569d9ebcb = Περιεχόμενο γεμίσματος
@@ -3136,13 +3142,13 @@ ui-import-brushes-4b123336676f918a = Εισαγωγή πινέλων…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Εισαγωγή πινέλων… (.abr)
 
+ui-import-brushes-abr-bc61ea3383f9a612 = Εισαγωγή πινέλων (.abr)
+
 ui-import-brushes-f9762f3f927323ca = Εισαγωγή πινέλων
 
 ui-import-image-61c370466f630c5f = Εισαγωγή εικόνας
 
 ui-import-options-c960239d00ab83e4 = Επιλογές εισαγωγής
-
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Εισαγωγή πινέλων Photoshop (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = Εισαγωγή προεπιλογών
 
@@ -3655,8 +3661,6 @@ ui-load-files-into-stack-7fd589d06abf047e = Φόρτωση αρχείων σε �
 ui-load-files-into-stack-930178906e61106e = Φόρτωση αρχείων σε στοίβα…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Φόρτωση διαδρομής ως επιλογής
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Φόρτωση πινέλων Photoshop (.abr)
 
 ui-load-selection-072d9465bd4fdf85 = Φόρτωση επιλογής
 
@@ -6169,6 +6173,8 @@ ui-stroke-395300372f89fcbf = Περίγραμμα
 ui-stroke-828b007bd6ed0c59 = Περίγραμμα…
 
 ui-stroke-catch-up-6f6524919c63b74e = Προσαρμογή πινελιάς στην κίνηση
+
+ui-stroke-color-705a1554bb23c6c0 = Χρώμα περιγράμματος
 
 ui-stroke-color-8bf2f4600f7ddd20 = Χρώμα περιγράμματος
 

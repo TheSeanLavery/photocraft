@@ -557,26 +557,34 @@ fn build() -> Vec<CommandSpec> {
             has_layer,
             crate::layer_multi_cmds::group_layers
         ),
-        cmd!("layer.duplicate", "Duplicate Layer…", ["Layer"], None, r##"{"layer":id?,"inPlace":bool=false} (no layer: every selected layer)"##, has_layer, |s, p| {
-            let in_place = p.get("inPlace").and_then(Value::as_bool).unwrap_or(false);
-            if crate::layer_multi_cmds::multi(s, p) {
-                return crate::layer_multi_cmds::duplicate_selected(s, in_place);
+        cmd!(
+            "layer.duplicate",
+            "Duplicate Layer…",
+            ["Layer"],
+            None,
+            r##"{"layer":id?,"inPlace":bool=false} (no layer: every selected layer)"##,
+            has_layer,
+            |s, p| {
+                let in_place = p.get("inPlace").and_then(Value::as_bool).unwrap_or(false);
+                if crate::layer_multi_cmds::multi(s, p) {
+                    return crate::layer_multi_cmds::duplicate_selected(s, in_place);
+                }
+                let id = layer_param(s, p)?;
+                let nid = s.edit("Duplicate Layer", |doc, active| {
+                    let mut dup = layer_copy(doc, id)?;
+                    if doc.layers.first().is_some_and(|b| b.id == id && b.name == "Background" && b.locks.transparency) {
+                        dup.locks = Default::default();
+                    }
+                    let nid = doc.insert_above(Some(id), dup);
+                    if !in_place {
+                        crate::artboard_cmds::place_copy(doc, nid)?;
+                    }
+                    *active = Some(nid);
+                    Ok(nid)
+                })?;
+                Ok(json!({ "layer": nid.0 }))
             }
-            let id = layer_param(s, p)?;
-            let nid = s.edit("Duplicate Layer", |doc, active| {
-                let mut dup = layer_copy(doc, id)?;
-                if doc.layers.first().is_some_and(|b| b.id == id && b.name == "Background" && b.locks.transparency) {
-                    dup.locks = Default::default();
-                }
-                let nid = doc.insert_above(Some(id), dup);
-                if !in_place {
-                    crate::artboard_cmds::place_copy(doc, nid)?;
-                }
-                *active = Some(nid);
-                Ok(nid)
-            })?;
-            Ok(json!({ "layer": nid.0 }))
-        }),
+        ),
         cmd!("layer.delete", "Delete Layer", ["Layer", "Delete"], None, r##"{"layer":id?} (no layer: every selected layer)"##, has_layer, |s, p| {
             if crate::layer_multi_cmds::multi(s, p) {
                 return crate::layer_multi_cmds::delete_selected(s);
@@ -1177,6 +1185,7 @@ fn build() -> Vec<CommandSpec> {
     v.extend(crate::distort_cmds::specs());
     v.extend(crate::analysis_cmds::specs());
     v.extend(crate::notes_cmds::specs());
+    v.extend(crate::history_cmds::specs());
     v.extend(crate::proof_sim::specs());
     v.extend(crate::hdr_cmds::specs());
     v.extend(crate::presets::specs());

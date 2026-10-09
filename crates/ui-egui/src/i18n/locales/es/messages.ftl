@@ -189,7 +189,7 @@ ui-all-layers-bf480d822a927800 = Todas las capas
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Todas las capas sin ajustes
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Se restablecieron todos los atajos a los valores predeterminados de Photoshop.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Se restablecieron todos los atajos a los valores predeterminados de PhotoCraft.
 
 ui-all-slices-c7482a9e09ce788d = Todas las secciones
 
@@ -817,6 +817,10 @@ ui-color-overlay-e4ec9e391c16750a = Superposición de color…
 
 ui-color-picker-ac18daa6e6202218 = Selector de color
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Selector de color (Color de relleno)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Selector de color (Color del trazo)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Selector de color (Color del texto)
 
 ui-color-priority-138e732eacbefb9e = Prioridad de color
@@ -1163,7 +1167,7 @@ ui-default-colours-d-702fa2ae170283a6 = Colores predeterminados (D)
 
 ui-default-features-5afc3e0f6e30c7ff = Funciones predeterminadas
 
-ui-default-photoshop-size-86c00542f2645621 = Tamaño predeterminado de Photoshop
+ui-default-photocraft-size-42e29dd35050952b = Tamaño predeterminado de PhotoCraft
 
 ui-default-printer-4c55958efe32b804 = Impresora predeterminada
 
@@ -1649,6 +1653,8 @@ ui-fill-363a0aa33870e306 = Rellenar…
 
 ui-fill-9a017e8f907356c6 = Relleno
 
+ui-fill-color-61734769aae23385 = Color de relleno
+
 ui-fill-content-3ae9184569d9ebcb = Contenido de relleno
 
 ui-fill-layer-ed1a89e942e1517f = Capa de relleno
@@ -2096,7 +2102,7 @@ ui-import-brushes-4b123336676f918a = Importar pinceles…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Importar pinceles… (.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Importar pinceles de Photoshop (.abr)
+ui-import-brushes-abr-bc61ea3383f9a612 = Importar pinceles (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = Importar preajustes
 
@@ -2433,8 +2439,6 @@ ui-load-default-type-styles-0ebf6740df450e40 = Cargar estilos de texto predeterm
 ui-load-files-into-stack-930178906e61106e = Cargar archivos en una pila…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Cargar el trazado como selección
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Cargar pinceles de Photoshop (.abr)
 
 ui-load-selection-072d9465bd4fdf85 = Cargar selección
 
@@ -4139,6 +4143,8 @@ ui-stroke-395300372f89fcbf = Trazo
 ui-stroke-828b007bd6ed0c59 = Contornear…
 
 ui-stroke-catch-up-6f6524919c63b74e = Poner al día del trazo
+
+ui-stroke-color-705a1554bb23c6c0 = Color del trazo
 
 ui-stroke-f205e2c5c77815ff = Trazo:
 

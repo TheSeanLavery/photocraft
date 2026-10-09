@@ -269,7 +269,7 @@ ui-all-layers-bf480d822a927800 = Alle lagen
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Alle lagen zonder aanpassingen
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Alle sneltoetsen zijn teruggezet naar de standaardwaarden van Photoshop.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Alle sneltoetsen zijn teruggezet naar de standaardwaarden van PhotoCraft.
 
 ui-all-slices-c7482a9e09ce788d = Alle segmenten
 
@@ -1193,6 +1193,10 @@ ui-color-picker-9481adbac05b87f8 = Kleurkiezer
 
 ui-color-picker-ac18daa6e6202218 = Kleurkiezer
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Kleurkiezer (vulkleur)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Kleurkiezer (lijnkleur)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Kleurkiezer (tekstkleur)
 
 ui-color-priority-138e732eacbefb9e = Kleurprioriteit
@@ -1727,7 +1731,7 @@ ui-default-foreground-and-background-colors-01efcca3f666c2ec = Standaard voorgro
 
 ui-default-leaves-43252a94e18ce14c = Standaardbladeren
 
-ui-default-photoshop-size-86c00542f2645621 = Standaardgrootte Photoshop
+ui-default-photocraft-size-42e29dd35050952b = Standaardgrootte PhotoCraft
 
 ui-default-printer-4c55958efe32b804 = Standaardprinter
 
@@ -2437,6 +2441,8 @@ ui-fill-363a0aa33870e306 = Vullen…
 
 ui-fill-9a017e8f907356c6 = Vulling
 
+ui-fill-color-61734769aae23385 = Vulkleur
+
 ui-fill-color-a51960033bb00a25 = Vulkleur
 
 ui-fill-content-3ae9184569d9ebcb = Vulinhoud
@@ -3144,13 +3150,13 @@ ui-import-brushes-4b123336676f918a = Penselen importeren…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Penselen importeren… (.abr)
 
+ui-import-brushes-abr-bc61ea3383f9a612 = Penselen (.abr) importeren
+
 ui-import-brushes-f9762f3f927323ca = Penselen importeren
 
 ui-import-image-61c370466f630c5f = Afbeelding importeren
 
 ui-import-options-c960239d00ab83e4 = Importopties
-
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Photoshop-penselen (.abr) importeren
 
 ui-import-presets-09d2999d476d4eb6 = Voorinstellingen importeren
 
@@ -3663,8 +3669,6 @@ ui-load-files-into-stack-7fd589d06abf047e = Bestanden in stapel laden
 ui-load-files-into-stack-930178906e61106e = Bestanden in stapel laden…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Pad laden als selectie
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Photoshop-penselen (.abr) laden
 
 ui-load-selection-072d9465bd4fdf85 = Selectie laden
 
@@ -6179,6 +6183,8 @@ ui-stroke-395300372f89fcbf = Lijn
 ui-stroke-828b007bd6ed0c59 = Omlijnen…
 
 ui-stroke-catch-up-6f6524919c63b74e = Streek inhalen
+
+ui-stroke-color-705a1554bb23c6c0 = Lijnkleur
 
 ui-stroke-color-8bf2f4600f7ddd20 = Lijnkleur
 

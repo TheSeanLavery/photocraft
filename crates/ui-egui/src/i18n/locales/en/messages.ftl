@@ -259,7 +259,7 @@ ui-all-layers-bf480d822a927800 = All Layers
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = All Layers No Adjustments
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = All shortcuts reset to Photoshop defaults.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = All shortcuts reset to PhotoCraft defaults.
 
 ui-all-slices-c7482a9e09ce788d = All Slices
 
@@ -1183,6 +1183,10 @@ ui-color-picker-9481adbac05b87f8 = Color Picker
 
 ui-color-picker-ac18daa6e6202218 = Color picker
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Color Picker (Fill Color)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Color Picker (Stroke Color)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Color Picker (Text Color)
 
 ui-color-priority-138e732eacbefb9e = Color Priority
@@ -1717,7 +1721,7 @@ ui-default-foreground-and-background-colors-01efcca3f666c2ec = Default Foregroun
 
 ui-default-leaves-43252a94e18ce14c = Default Leaves
 
-ui-default-photoshop-size-86c00542f2645621 = Default Photoshop Size
+ui-default-photocraft-size-42e29dd35050952b = Default PhotoCraft Size
 
 ui-default-printer-4c55958efe32b804 = Default printer
 
@@ -2427,6 +2431,8 @@ ui-fill-363a0aa33870e306 = Fill…
 
 ui-fill-9a017e8f907356c6 = Fill
 
+ui-fill-color-61734769aae23385 = Fill color
+
 ui-fill-color-a51960033bb00a25 = Fill Color
 
 ui-fill-content-3ae9184569d9ebcb = Fill Content
@@ -3134,13 +3140,13 @@ ui-import-brushes-4b123336676f918a = Import Brushes…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Import Brushes… (.abr)
 
+ui-import-brushes-abr-bc61ea3383f9a612 = Import brushes (.abr)
+
 ui-import-brushes-f9762f3f927323ca = Import Brushes
 
 ui-import-image-61c370466f630c5f = Import Image
 
 ui-import-options-c960239d00ab83e4 = Import Options
-
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Import Photoshop brushes (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = Import Presets
 
@@ -3653,8 +3659,6 @@ ui-load-files-into-stack-7fd589d06abf047e = Load Files into Stack
 ui-load-files-into-stack-930178906e61106e = Load Files into Stack…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Load path as a selection
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Load Photoshop brushes (.abr)
 
 ui-load-selection-072d9465bd4fdf85 = Load Selection
 
@@ -6169,6 +6173,8 @@ ui-stroke-395300372f89fcbf = Stroke
 ui-stroke-828b007bd6ed0c59 = Stroke…
 
 ui-stroke-catch-up-6f6524919c63b74e = Stroke Catch-up
+
+ui-stroke-color-705a1554bb23c6c0 = Stroke color
 
 ui-stroke-color-8bf2f4600f7ddd20 = Stroke Color
 

@@ -199,7 +199,7 @@ ui-all-layers-bf480d822a927800 = 모든 레이어
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = 모든 레이어(조정 제외)
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = 모든 단축키를 Photoshop 기본값으로 초기화했습니다.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = 모든 단축키를 PhotoCraft 기본값으로 초기화했습니다.
 
 ui-all-slices-c7482a9e09ce788d = 모든 분할 영역
 
@@ -957,6 +957,10 @@ ui-color-overlay-e4ec9e391c16750a = 색상 오버레이…
 
 ui-color-picker-ac18daa6e6202218 = 색상 피커
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = 색상 선택기 (채우기 색상)
+
+ui-color-picker-stroke-color-aac3b03188866056 = 색상 선택기 (획 색상)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = 색상 선택기 (텍스트 색상)
 
 ui-color-priority-138e732eacbefb9e = 색상 우선
@@ -1401,7 +1405,7 @@ ui-default-features-5afc3e0f6e30c7ff = 기본 기능
 
 ui-default-leaves-43252a94e18ce14c = 기본 잎
 
-ui-default-photoshop-size-86c00542f2645621 = Photoshop 기본 크기
+ui-default-photocraft-size-42e29dd35050952b = PhotoCraft 기본 크기
 
 ui-default-printer-4c55958efe32b804 = 기본 프린터
 
@@ -1968,6 +1972,8 @@ ui-fill-23e109f273fcce34 = 채우기:
 ui-fill-363a0aa33870e306 = 채우기…
 
 ui-fill-9a017e8f907356c6 = 채우기
+
+ui-fill-color-61734769aae23385 = 채우기 색상
 
 ui-fill-content-3ae9184569d9ebcb = 칠 내용
 
@@ -2557,9 +2563,9 @@ ui-import-brushes-4b123336676f918a = 브러시 가져오기…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = 브러시 가져오기… (.abr)
 
-ui-import-brushes-f9762f3f927323ca = 브러시 가져오기
+ui-import-brushes-abr-bc61ea3383f9a612 = 브러시 가져오기(.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Photoshop 브러시 가져오기(.abr)
+ui-import-brushes-f9762f3f927323ca = 브러시 가져오기
 
 ui-import-presets-09d2999d476d4eb6 = 사전 설정 가져오기
 
@@ -2990,8 +2996,6 @@ ui-load-files-into-stack-7fd589d06abf047e = 파일을 스택으로 불러오기
 ui-load-files-into-stack-930178906e61106e = 파일을 스택으로 불러오기…
 
 ui-load-path-as-a-selection-4595274370f43a07 = 패스를 선택 영역으로 불러오기
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Photoshop 브러시 불러오기(.abr)
 
 ui-load-selection-072d9465bd4fdf85 = 선택 영역 불러오기
 
@@ -5040,6 +5044,8 @@ ui-stroke-395300372f89fcbf = 획
 ui-stroke-828b007bd6ed0c59 = 획…
 
 ui-stroke-catch-up-6f6524919c63b74e = 획 따라잡기
+
+ui-stroke-color-705a1554bb23c6c0 = 획 색상
 
 ui-stroke-detail-818184affe3dd2fc = 획 세부 묘사
 

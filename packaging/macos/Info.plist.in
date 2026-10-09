@@ -78,7 +78,7 @@
       <key>UTTypeIdentifier</key>
       <string>com.adobe.photoshop-large-image</string>
       <key>UTTypeDescription</key>
-      <string>Photoshop Large Document</string>
+      <string>PSD Large Document</string>
       <key>UTTypeConformsTo</key>
       <array>
         <string>public.data</string>
@@ -124,7 +124,7 @@
     </dict>
     <dict>
       <key>CFBundleTypeName</key>
-      <string>Photoshop Document</string>
+      <string>PSD Document</string>
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>LSHandlerRank</key>

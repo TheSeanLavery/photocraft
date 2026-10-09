@@ -241,7 +241,7 @@ ui-all-layers-bf480d822a927800 = Tous les calques
 
 ui-all-layers-no-adjustments-ec9f521ee5d7479f = Tous les calques sans ajustements
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Tous les raccourcis ont été réinitialisés aux valeurs par défaut de Photoshop.
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Tous les raccourcis ont été réinitialisés aux valeurs par défaut de PhotoCraft.
 
 ui-all-slices-c7482a9e09ce788d = Toutes les tranches
 
@@ -963,6 +963,10 @@ ui-color-overlay-e4ec9e391c16750a = Superposition de couleur…
 
 ui-color-picker-ac18daa6e6202218 = Sélecteur de couleurs
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Sélecteur de couleurs (Couleur de remplissage)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Sélecteur de couleurs (Couleur du contour)
+
 ui-color-picker-text-color-6873936c7cbaceb3 = Sélecteur de couleurs (Couleur du texte)
 
 ui-color-priority-138e732eacbefb9e = Priorité aux couleurs
@@ -1377,7 +1381,7 @@ ui-default-colours-d-702fa2ae170283a6 = Couleurs par défaut (D)
 
 ui-default-features-5afc3e0f6e30c7ff = Fonctionnalités par défaut
 
-ui-default-photoshop-size-86c00542f2645621 = Taille Photoshop par défaut
+ui-default-photocraft-size-42e29dd35050952b = Taille PhotoCraft par défaut
 
 ui-default-printer-4c55958efe32b804 = Imprimante par défaut
 
@@ -1935,6 +1939,8 @@ ui-fill-363a0aa33870e306 = Remplir…
 
 ui-fill-9a017e8f907356c6 = Remplissage
 
+ui-fill-color-61734769aae23385 = Couleur de remplissage
+
 ui-fill-content-3ae9184569d9ebcb = Contenu du remplissage
 
 ui-fill-layer-ed1a89e942e1517f = Calque de remplissage
@@ -2452,7 +2458,7 @@ ui-import-brushes-4b123336676f918a = Importer des pinceaux…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Importer des pinceaux… (.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Importer des pinceaux Photoshop (.abr)
+ui-import-brushes-abr-bc61ea3383f9a612 = Importer des pinceaux (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = Importer des préréglages
 
@@ -2837,8 +2843,6 @@ ui-load-default-type-styles-0ebf6740df450e40 = Charger les styles de texte par d
 ui-load-files-into-stack-930178906e61106e = Charger des fichiers dans une pile…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Charger le tracé comme sélection
-
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Charger des pinceaux Photoshop (.abr)
 
 ui-load-selection-072d9465bd4fdf85 = Charger la sélection
 
@@ -4769,6 +4773,8 @@ ui-stroke-395300372f89fcbf = Contour
 ui-stroke-828b007bd6ed0c59 = Contourner…
 
 ui-stroke-catch-up-6f6524919c63b74e = Rattrapage du trait
+
+ui-stroke-color-705a1554bb23c6c0 = Couleur du contour
 
 ui-stroke-f205e2c5c77815ff = Contour :
 

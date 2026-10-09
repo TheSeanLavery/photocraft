@@ -265,7 +265,13 @@ fn real_canvas_backspace_and_right_click_retract_polygonal_points() {
 
     let state = h.state();
     let view = &state.ui.views[0];
-    let xf = ViewXform { rect: crate::rulers::content_rect(state, state.last_canvas_rect), zoom: view.zoom, center: view.center, flip: false, rotation: view.rotation };
+    let xf = ViewXform {
+        rect: crate::rulers::content_rect(state, state.last_canvas_rect),
+        zoom: view.zoom,
+        center: view.center,
+        flip: false,
+        rotation: view.rotation,
+    };
     let pos = xf.to_screen(155.0, 100.0);
     h.event(Event::PointerMoved(pos));
     h.event(Event::PointerButton { pos, button: PointerButton::Secondary, pressed: true, modifiers: Modifiers::ALT });

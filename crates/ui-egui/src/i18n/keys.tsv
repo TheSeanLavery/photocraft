@@ -133,7 +133,7 @@
 	All Layers No Adjustments	ui-all-layers-no-adjustments-ec9f521ee5d7479f
 	All Slices	ui-all-slices-c7482a9e09ce788d
 	All User Slices	ui-all-user-slices-b2feb6daf80bbf88
-	All shortcuts reset to Photoshop defaults.	ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf
+	All shortcuts reset to PhotoCraft defaults.	ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437
 	Allow agent control	ui-allow-agent-control-cc3d1921f8e24e1c
 	Allow scripts to connect	ui-allow-scripts-to-connect-10051c8a6884aca7
 	Alpha	ui-alpha-6dfd7ced24231d81
@@ -581,6 +581,8 @@
 	Color Overlay	ui-color-overlay-3030d1a2fc13394a
 	Color Overlay…	ui-color-overlay-e4ec9e391c16750a
 	Color Picker	ui-color-picker-9481adbac05b87f8
+	Color Picker (Fill Color)	ui-color-picker-fill-color-cf989f4d01ca0b61
+	Color Picker (Stroke Color)	ui-color-picker-stroke-color-aac3b03188866056
 	Color Picker (Text Color)	ui-color-picker-text-color-6873936c7cbaceb3
 	Color Priority	ui-color-priority-138e732eacbefb9e
 	Color Profile	ui-color-profile-997217f0823061a7
@@ -845,7 +847,7 @@
 	Default Features	ui-default-features-5afc3e0f6e30c7ff
 	Default Foreground and Background Colors	ui-default-foreground-and-background-colors-01efcca3f666c2ec
 	Default Leaves	ui-default-leaves-43252a94e18ce14c
-	Default Photoshop Size	ui-default-photoshop-size-86c00542f2645621
+	Default PhotoCraft Size	ui-default-photocraft-size-42e29dd35050952b
 	Default colours (D)	ui-default-colours-d-702fa2ae170283a6
 	Default printer	ui-default-printer-4c55958efe32b804
 	Default restored.	ui-default-restored-5dba279bbf11e35c
@@ -1203,6 +1205,7 @@
 	Fill Opacity	ui-fill-opacity-d2845a79e831f763
 	Fill Path	ui-fill-path-efc74479f9ba4931
 	Fill Screen	ui-fill-screen-610513f68e54eeee
+	Fill color	ui-fill-color-61734769aae23385
 	Fill new type layers with placeholder	ui-fill-new-type-layers-with-placeholder-5d979cdb113aafff
 	Fill path with foreground color	ui-fill-path-with-foreground-color-e0a40f352bac250b
 	Fill:	ui-fill-23e109f273fcce34
@@ -1549,10 +1552,10 @@
 	Import Brushes… (.abr)	ui-import-brushes-abr-a844dbcfa1f1fd72
 	Import Image	ui-import-image-61c370466f630c5f
 	Import Options	ui-import-options-c960239d00ab83e4
-	Import Photoshop brushes (.abr)	ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2
 	Import Presets	ui-import-presets-09d2999d476d4eb6
 	Import Settings	ui-import-settings-222b3fd5681d122f
 	Import Swatches…	ui-import-swatches-d6432c51430e3eba
+	Import brushes (.abr)	ui-import-brushes-abr-bc61ea3383f9a612
 	Imported	ui-imported-20ac5b157259f56f
 	Importing…	ui-importing-e3b389281dd1a852
 	Import…	ui-import-93f9356ee0cef73e
@@ -1796,7 +1799,6 @@
 	Load Default Type Styles	ui-load-default-type-styles-0ebf6740df450e40
 	Load Files into Stack	ui-load-files-into-stack-7fd589d06abf047e
 	Load Files into Stack…	ui-load-files-into-stack-930178906e61106e
-	Load Photoshop brushes (.abr)	ui-load-photoshop-brushes-abr-72def280fc39c975
 	Load Selection	ui-load-selection-072d9465bd4fdf85
 	Load Selection…	ui-load-selection-9879fb5ae763e63b
 	Load channel as selection	ui-load-channel-as-selection-c5ce81c14c20e99a
@@ -3025,6 +3027,7 @@
 	Stroke Pressure	ui-stroke-pressure-2bfccd5158f5956a
 	Stroke Size	ui-stroke-size-7c3c3ab017b739c4
 	Stroke Width	ui-stroke-width-541a606432d1e937
+	Stroke color	ui-stroke-color-705a1554bb23c6c0
 	Stroke path with brush	ui-stroke-path-with-brush-9c01cbb347fa04e2
 	Stroke:	ui-stroke-f205e2c5c77815ff
 	Strokes	ui-strokes-f20629c5c7788ea4
