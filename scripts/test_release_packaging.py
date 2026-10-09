@@ -24,6 +24,8 @@ class ReleasePackagingTests(unittest.TestCase):
             self.assertIn('-d "' + name + '=', source)
         for flag in ("-ext WixToolset.UI.wixext", "-ext WixToolset.Util.wixext", "-loc (Join-Path $PSScriptRoot 'photocraft.en-us.wxl')"):
             self.assertIn(flag, source)
+        workflow = (ROOT / ".github/workflows/native-packaging.yml").read_text()
+        self.assertIn("wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2", workflow)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="photocraft-packaging-test-")
