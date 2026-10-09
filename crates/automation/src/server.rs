@@ -226,12 +226,15 @@ pub struct MenuParams {
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct UiSetParams {
-    /// Fields for the control method `ui.set`: tool, panels, dock, dockTabs, dockWidth, colorPanel
+    /// Fields for the control method `ui.set`: tool, panels, dock, dockTabs, dockWidth,
+    /// toolbarColumns (1, 2, or null for automatic), toolbarFloating (bool),
+    /// toolbarPosition ([x, y]), colorPanel
     /// ({background: bool} picks which swatch the Color panel edits), maskTarget,
     /// vectorMaskTarget, selectionMode, zoom, center, rotation (view angle in degrees), fit, theme (pro, proMedium, studio,
     /// studioLight, classic), brushSection, brushTab, brushesView, brushPicker ([x, y] opens the
     /// Brush Preset picker there, null closes it), brushPickerView, brushSize, gradientBlendMode
-    /// (a blend mode name, for the Gradient tool), gradientClassic (bool), eyedropperSampleSize
+    /// (a blend mode name, for the Gradient tool), gradientClassic (bool), vectorMode,
+    /// penShapeOperation, hdrOutput, eyedropperSampleSize
     /// ("point" or 1, 3, 5, 11, 31, 51, 101), eyedropperSample (current, currentAndBelow, all,
     /// allNoAdjustments, currentAndBelowNoAdjustments), eyedropperRing (bool), cropOverlay (thirds,
     /// grid, diagonal, triangle, goldenRatio, goldenSpiral), cropOverlayShow (auto, always, never),
