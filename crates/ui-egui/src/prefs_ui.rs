@@ -244,9 +244,13 @@ fn display_scale(pref: prefs::UiScale, native: Option<f32>, monitor_px: Option<e
     let native = native.filter(|v| v.is_finite() && *v > 0.0).unwrap_or(1.0);
     match pref {
         prefs::UiScale::Auto => {
-            // A 4K display needs at least 200%; preserve larger system scales.
+            // Follow the system's scale, fractional ones included (125%, 150%, 175%: #1072).
+            // Only when the system reports no scaling at all (100%) does a 4K display fall back
+            // to 200%, since unscaled 4K controls are unreadably small (#225). Overriding a scale
+            // the user picked in their desktop settings left only "too small" or "too big".
+            let unscaled = (native - 1.0).abs() < 0.01;
             let is_4k = monitor_px.is_some_and(|s| s.x.is_finite() && s.y.is_finite() && s.x.min(s.y) >= 2160.0 && s.x.max(s.y) >= 3840.0);
-            if is_4k { native.max(2.0) } else { native }
+            if unscaled && is_4k { 2.0 } else { native }
         }
         fixed => fixed.name().parse::<f32>().map_or(1.0, |pct| pct / 100.0),
     }
@@ -1187,7 +1191,14 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
                 Value::Bool(b) => {
                     ui.label("");
                     let mut b = *b;
-                    crate::widgets::checkbox(ui, &mut b, &label);
+                    if path == "interface.systemTitleBar" && cfg!(all(not(target_arch = "wasm32"), not(target_os = "macos"))) {
+                        ui.vertical(|ui| {
+                            crate::widgets::checkbox(ui, &mut b, &label);
+                            ui.label(RichText::new(tl!("Applies at next launch.")).color(t.text_dim));
+                        });
+                    } else {
+                        crate::widgets::checkbox(ui, &mut b, &label);
+                    }
                     obj.insert(k, json!(b));
                 }
                 Value::String(s) if path == "interface.language" => {
@@ -1295,7 +1306,11 @@ fn shortcuts_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String
         ui.add(egui::TextEdit::singleline(&mut filter).desired_width(260.0).hint_text(tl!("command or shortcut")));
     });
     f.insert("filter".into(), json!(filter));
-    let mut overrides: BTreeMap<String, String> = f.get("overrides").and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
+    // A malformed map (set over automation) is left as it is, so OK rejects it instead of
+    // saving the empty map drawn in its place.
+    let parsed = f.get("overrides").map(|v| serde_json::from_value::<BTreeMap<String, String>>(v.clone()));
+    let overrides_ok = parsed.as_ref().is_none_or(Result::is_ok);
+    let mut overrides = parsed.and_then(Result::ok).unwrap_or_default();
     let mut hidden: Vec<String> = f.get("hidden").and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
     let mut colors: BTreeMap<String, String> = f.get("colors").and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
     let mut selected = f.get("selected").and_then(Value::as_str).unwrap_or("").to_string();
@@ -1440,7 +1455,9 @@ fn shortcuts_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String
     if !message.is_empty() {
         ui.label(RichText::new(&message).color(if message.contains("already in use") { t.warning } else { t.text_dim }));
     }
-    f.insert("overrides".into(), json!(overrides));
+    if overrides_ok {
+        f.insert("overrides".into(), json!(overrides));
+    }
     f.insert("hidden".into(), json!(hidden));
     f.insert("colors".into(), json!(colors));
     f.insert("selected".into(), json!(selected));
@@ -1511,7 +1528,7 @@ fn presets_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, 
         }
         // Load Photoshop brushes (.abr) into the library.
         if kind == "brushes" && ui.button(tl!("Load…")).on_hover_text(tl!("Import Photoshop brushes (.abr)")).clicked() {
-            app.open_dialog_file();
+            let _ = app.open_dialog_file();
         }
     });
     f.insert("kind".into(), json!(kind));
@@ -1574,15 +1591,28 @@ pub fn confirm(app: &mut PhotocraftApp, f: &Map<String, Value>) -> Result<Value,
             let overrides = f.get("overrides").cloned().unwrap_or(json!({}));
             // Shortcuts moved to another command are taken from their old owner (shell
             // commands included, which the engine doesn't know).
-            let mut ov: BTreeMap<String, String> = serde_json::from_value(overrides).unwrap_or_default();
+            // The map replaces every stored override, so a malformed one is an error, not "none".
+            let mut ov: BTreeMap<String, String> =
+                serde_json::from_value(overrides).map_err(|e| format!("overrides must map command IDs to shortcut strings: {e}"))?;
             let items = shortcut_items(app);
-            let changed: Vec<(String, String)> = ov.iter().filter(|(_, s)| !s.is_empty()).map(|(k, s)| (k.clone(), s.clone())).collect();
-            for (id, sc) in changed {
+            // Newly assigned shortcuts are checked first and take theirs from any holder, custom
+            // overrides included; unchanged overrides only take theirs from defaults.
+            let before = &app.session.prefs().shortcuts;
+            let mut todo: Vec<(String, String, bool)> =
+                ov.iter().filter(|(_, s)| !s.is_empty()).map(|(k, s)| (k.clone(), s.clone(), before.get(k) != Some(s))).collect();
+            todo.sort_by_key(|(_, _, new)| !new);
+            for (id, sc, new) in todo {
+                if ov.get(&id).is_some_and(String::is_empty) {
+                    continue; // taken by a newer assignment
+                }
+                let norm = prefs::normalize_shortcut(&sc);
                 for (other, _, _, def) in &items {
-                    if *other != id
-                        && !ov.contains_key(other)
-                        && def.as_deref().and_then(prefs::normalize_shortcut).as_deref() == prefs::normalize_shortcut(&sc).as_deref()
-                    {
+                    let held = match ov.get(other) {
+                        Some(s) if new => Some(s.as_str()),
+                        Some(_) => None,
+                        None => def.as_deref(),
+                    };
+                    if *other != id && held.and_then(prefs::normalize_shortcut) == norm {
                         ov.insert(other.clone(), String::new());
                     }
                 }
@@ -1597,17 +1627,19 @@ pub fn confirm(app: &mut PhotocraftApp, f: &Map<String, Value>) -> Result<Value,
         "presetsIO" => {
             let kinds: Vec<&str> = ["brushes", "customShapes"].into_iter().filter(|k| f.get(*k).and_then(Value::as_bool).unwrap_or(true)).collect();
             if f.get("action").and_then(Value::as_str) == Some("import") {
-                let (name, bytes) = app.pick_file_bytes().ok_or_else(|| "cancelled".to_string())??;
-                let text = String::from_utf8(bytes).map_err(|_| format!("{name} is not a preset file"))?;
-                app.run("edit.presets.exportImportPresets", json!({"action": "import", "kinds": kinds, "data": text}))
+                app.pick_file_bytes(move |app, name, bytes| {
+                    let text = String::from_utf8(bytes).map_err(|_| format!("{name} is not a preset file"))?;
+                    app.run("edit.presets.exportImportPresets", json!({"action": "import", "kinds": kinds, "data": text}))
+                })
             } else {
                 let out = app.run("edit.presets.exportImportPresets", json!({"action": "export", "kinds": kinds}))?;
                 let text = serde_json::to_string_pretty(&out["data"]).map_err(|e| e.to_string())?;
-                let path = app.services.pick_save.as_mut().and_then(|p| p("Presets.pcpresets")).ok_or("cancelled")?;
-                let write = app.services.write.as_mut().ok_or("no writer configured")?;
-                write(&path, text.as_bytes())?;
-                app.ui.status = format!("Exported presets to {path}");
-                Ok(json!({"path": path}))
+                app.pick_save("Presets.pcpresets", move |app, path| {
+                    let write = app.services.write.as_mut().ok_or("no writer configured")?;
+                    write(&path, text.as_bytes())?;
+                    app.ui.status = format!("Exported presets to {path}");
+                    Ok(json!({"path": path}))
+                })
             }
         }
         "mismatch" => {
@@ -1871,12 +1903,20 @@ mod tests {
     }
 
     #[test]
-    fn auto_scale_detects_4k_and_preserves_larger_system_dpi() {
+    fn auto_scale_detects_4k_and_preserves_system_scale() {
         use prefs::UiScale::Auto;
         for size in [vec2(3840.0, 2160.0), vec2(4096.0, 2160.0), vec2(2160.0, 3840.0)] {
             assert_eq!(display_scale(Auto, Some(1.0), Some(size)), 2.0);
-            for dpi in [1.25, 1.5, 2.0] {
-                assert_eq!(display_scale(Auto, Some(dpi), Some(size)), 2.0);
+            // A fractional system scale is the user's choice and is kept as is (#1072).
+            for dpi in [1.25, 1.5, 1.75, 2.0, 2.5] {
+                assert_eq!(display_scale(Auto, Some(dpi), Some(size)), dpi);
+            }
+        }
+        // Below 100% is a system choice too, even on 4K.
+        assert_eq!(display_scale(Auto, Some(0.75), Some(vec2(3840.0, 2160.0))), 0.75);
+        for size in [vec2(1920.0, 1080.0), vec2(2560.0, 1440.0)] {
+            for dpi in [1.25, 1.5, 1.75] {
+                assert_eq!(display_scale(Auto, Some(dpi), Some(size)), dpi);
             }
         }
         assert_eq!(display_scale(Auto, Some(3.0), Some(vec2(3840.0, 2160.0))), 3.0);
@@ -1910,7 +1950,10 @@ mod tests {
                 step(vec2(3840.0, 2160.0), 1.0, 2.0);
             }
             step(vec2(1920.0, 1080.0), 1.0, 1.0);
-            step(vec2(3840.0, 2160.0), 1.5, 2.0);
+            step(vec2(3840.0, 2160.0), 1.5, 1.5);
+            step(vec2(3840.0, 2160.0), 1.25, 1.25);
+            step(vec2(2560.0, 1440.0), 1.75, 1.75);
+            step(vec2(3840.0, 2160.0), 1.0, 2.0);
         }
         for (pref, expected) in [("200", 2.0), ("125", 1.25), ("150", 1.5), ("100", 1.0), ("auto", 1.5)] {
             app.run("prefs.set", json!({"values": {"interface.uiScale": pref}})).unwrap();
@@ -2001,10 +2044,14 @@ mod tests {
         let values = prefs::Preferences::default().to_json();
         assert!(has_visible_fields(&values, "general"));
         assert!(has_visible_fields(&values, "fileHandling"));
-        // Every setting of these sections is still unimplemented.
-        for section in ["type", "enhancedControls", "rawDefaults", "integrations"] {
+        // These sections now each have implemented controls.
+        for section in ["type", "enhancedControls", "rawDefaults"] {
+            assert!(has_visible_fields(&values, section), "{section}");
+        }
+        for section in ["integrations"] {
             assert!(!has_visible_fields(&values, section), "{section}");
         }
+        assert!(prefs::is_hidden("type.smartQuotes"));
         assert!(has_visible_fields(&values, "scratchDisks"));
         assert!(!prefs::is_hidden("scratchDisks.disks"));
         assert!(!prefs::is_hidden("scratchDisks.budgetMb"));
@@ -2150,6 +2197,62 @@ mod tests {
         assert_eq!(restarted.session.prefs().interface.ui_font_size, prefs::UiFontSize::Large);
     }
 
+    #[cfg(all(not(target_arch = "wasm32"), not(target_os = "macos")))]
+    #[test]
+    fn system_title_bar_explains_next_launch_and_preserves_apply_and_cancel() {
+        use egui_kittest::{Harness, kittest::Queryable};
+
+        let (mut app, store) = app_with_store();
+        app.run("prefs.set", json!({"values": {"interface.language": "en"}})).unwrap();
+        app.custom_titlebar = true;
+        let id = open_preferences(&mut app, "interface");
+        let mut h = Harness::builder().with_size(vec2(1280.0, 800.0)).build_eframe(move |cc| {
+            PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+            app
+        });
+        h.run_steps(4);
+        h.get_by_label("System title bar").scroll_to_me();
+        h.run_steps(4);
+        h.get_by_label("Applies at next launch.");
+        for desired in [true, false] {
+            h.get_by_label("System title bar").click();
+            h.run_steps(4);
+            assert_eq!(h.state().ui.dialogs.iter().find(|d| d.id == id).unwrap().fields["values"]["interface"]["systemTitleBar"], desired);
+            assert_eq!(h.state().session.prefs().interface.system_title_bar, !desired, "the draft is not applied yet");
+            h.get_by_label("Applies at next launch.");
+            h.get_by_label("Apply").click();
+            h.run_steps(4);
+            assert_eq!(h.state().session.prefs().interface.system_title_bar, desired);
+            assert_eq!(stored(&store)["interface"]["systemTitleBar"], desired);
+            assert!(h.state().custom_titlebar, "do not change the current window or restart it");
+            let (reloaded, _) = app_with_saved(store.lock().unwrap().clone());
+            assert_eq!(reloaded.session.prefs().interface.system_title_bar, desired);
+            h.get_by_label("Applies at next launch.");
+        }
+        h.get_by_label("System title bar").click();
+        h.run_steps(4);
+        h.get_by_label("Cancel").click();
+        h.run_steps(4);
+        assert!(h.state().ui.dialogs.iter().all(|d| d.id != id));
+        assert!(!h.state().session.prefs().interface.system_title_bar);
+        assert_eq!(stored(&store)["interface"]["systemTitleBar"], false);
+        assert!(h.state().custom_titlebar);
+    }
+
+    #[test]
+    fn next_launch_notice_does_not_mark_unrelated_interface_preferences() {
+        use egui_kittest::{Harness, kittest::Queryable};
+        let obj = json!({"showTooltips": true}).as_object().unwrap().clone();
+        let mut h =
+            Harness::new_ui_state(|ui, obj: &mut Map<String, Value>| section_fields(ui, "interface", obj, &[], crate::i18n::Lang::from_pref("en")), obj);
+        h.run_steps(4);
+        assert!(h.query_by_label("Applies at next launch.").is_none());
+        h.get_by_label("Show tooltips").click();
+        h.run_steps(4);
+        assert_eq!(h.state()["showTooltips"], false);
+        assert!(h.query_by_label("Applies at next launch.").is_none());
+    }
+
     #[test]
     fn preferences_confirm_after_apply_commits_later_edits() {
         let (mut app, _) = app_with_store();
@@ -2213,6 +2316,62 @@ mod tests {
         assert!(items.iter().any(|i| i.id == "layer.new.layer" && i.shortcut.as_deref() == Some("Cmd+O")));
         assert!(items.iter().any(|i| i.id == "file.open" && i.shortcut.is_none()));
         assert_eq!(shortcut_text(egui::Key::K, egui::Modifiers { command: true, shift: true, ..Default::default() }).as_deref(), Some("Cmd+Shift+K"));
+
+        // Re-assigning a shortcut already held by a custom override takes it from the override.
+        let id2 = crate::menus::invoke(&mut app, &ctx, "edit.keyboardShortcuts", json!({})).unwrap()["dialog"].as_u64().unwrap();
+        let mut cur_overrides = app.session.prefs().shortcuts.clone();
+        cur_overrides.insert("layer.new.group".into(), "Cmd+O".into());
+        app.ui.dialog_mut(id2).unwrap().fields.insert("overrides".into(), json!(cur_overrides));
+        crate::dialogs::confirm(&mut app, id2).unwrap();
+        assert_eq!(effective_shortcut(&app, "layer.new.group", None).as_deref(), Some("Cmd+O"));
+        assert_eq!(effective_shortcut(&app, "layer.new.layer", None), None, "taken from layer.new.layer override");
+
+        // OK with nothing changed keeps every shortcut where it is.
+        let id3 = crate::menus::invoke(&mut app, &ctx, "edit.keyboardShortcuts", json!({})).unwrap()["dialog"].as_u64().unwrap();
+        let unchanged = app.session.prefs().shortcuts.clone();
+        app.ui.dialog_mut(id3).unwrap().fields.insert("overrides".into(), json!(unchanged));
+        crate::dialogs::confirm(&mut app, id3).unwrap();
+        assert_eq!(app.session.prefs().shortcuts, unchanged);
+
+        // Giving the shortcut back to Layer › New › Layer takes it from the group override; a
+        // cleared override (empty) holds nothing and is left alone.
+        let id4 = crate::menus::invoke(&mut app, &ctx, "edit.keyboardShortcuts", json!({})).unwrap()["dialog"].as_u64().unwrap();
+        let mut ov = app.session.prefs().shortcuts.clone();
+        ov.insert("layer.new.layer".into(), "Cmd+O".into());
+        app.ui.dialog_mut(id4).unwrap().fields.insert("overrides".into(), json!(ov));
+        crate::dialogs::confirm(&mut app, id4).unwrap();
+        assert_eq!(effective_shortcut(&app, "layer.new.layer", None).as_deref(), Some("Cmd+O"));
+        assert_eq!(effective_shortcut(&app, "layer.new.group", None), None, "taken back from the group");
+        assert_eq!(effective_shortcut(&app, "file.open", Some("Cmd+O")), None, "File › Open stays cleared");
+    }
+
+    #[test]
+    fn shortcut_dialog_rejects_malformed_overrides() {
+        // #956: a non-map `overrides` was read as "no overrides" and wiped every custom shortcut.
+        let (mut app, _) = app_with_store();
+        let ctx = egui::Context::default();
+        app.run("edit.keyboardShortcuts", json!({"set": {"file.new": "Ctrl+Shift+N"}})).unwrap();
+        let before = app.session.prefs().shortcuts.clone();
+        assert!(!before.is_empty());
+        for bad in [json!("bogus"), json!(["file.new"]), json!({"file.new": 5})] {
+            let id = crate::menus::invoke(&mut app, &ctx, "edit.keyboardShortcuts", json!({})).unwrap()["dialog"].as_u64().unwrap();
+            app.ui.dialog_mut(id).unwrap().fields.insert("overrides".into(), bad.clone());
+            assert!(crate::dialogs::confirm(&mut app, id).is_err(), "{bad} accepted");
+            assert_eq!(app.session.prefs().shortcuts, before, "{bad} changed the shortcuts");
+        }
+
+        // Drawing the open dialog keeps the malformed value for OK to reject, instead of
+        // replacing it with the empty map it shows.
+        let id = crate::menus::invoke(&mut app, &ctx, "edit.keyboardShortcuts", json!({})).unwrap()["dialog"].as_u64().unwrap();
+        app.ui.dialog_mut(id).unwrap().fields.insert("overrides".into(), json!("bogus"));
+        let mut h = egui_kittest::Harness::builder().with_size(vec2(1280.0, 800.0)).build_eframe(move |cc| {
+            PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+            app
+        });
+        h.run_steps(4);
+        assert_eq!(h.state().ui.dialogs.iter().find(|d| d.id == id).unwrap().fields["overrides"], json!("bogus"));
+        assert!(crate::dialogs::confirm(h.state_mut(), id).is_err());
+        assert_eq!(h.state().session.prefs().shortcuts, before);
     }
 
     #[test]

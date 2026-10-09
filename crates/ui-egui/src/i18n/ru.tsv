@@ -24,6 +24,12 @@
 	Layer	Слой
 	Type	Текст
 	Select	Выделение
+	Selected	Выбранные
+	Scope	Область
+	Top Left	Верхний левый
+	Top Right	Верхний правый
+	Bottom Left	Нижний левый
+	Bottom Right	Нижний правый
 	Filter	Фильтр
 	View	Просмотр
 	Window	Окно
@@ -945,6 +951,11 @@
 	New Layer from Brush	Новый слой из кисти
 	Rename Brush…	Переименовать кисть…
 	Delete Brush	Удалить кисть
+	Import Brushes…	Импортировать кисти…
+	List view	Вид списком
+	Grid view	Вид сеткой
+	New Brush Preset…	Новый набор параметров кисти…
+	Brush Preset Options	Параметры наборов кистей
 	New Brush	Новая кисть
 	Create new brush from these settings	Создать новую кисть из этих параметров
 	Reset the brush to the defaults	Сбросить кисть к значениям по умолчанию
@@ -1368,6 +1379,7 @@
 	Keyboard Shortcuts and Menus	Комбинации клавиш и меню
 	Menus	Меню
 	More panels	Ещё панели
+	More documents	Ещё документы
 	Collapse All Groups	Свернуть все группы
 	Expand All Groups	Развернуть все группы
 	Collapse	Свернуть
@@ -1381,9 +1393,12 @@
 	BLANK DOCUMENT PRESETS ({n})	НАБОРЫ ПУСТЫХ ДОКУМЕНТОВ ({n})
 	Create a new document or open an existing file.	Создайте новый документ или откройте существующий файл.
 	Drop an image or PSD anywhere to open it.	Перетащите изображение или PSD в любое место окна, чтобы открыть.
-	Use File › Open to open an image.	Чтобы открыть изображение, выберите Файл › Открыть.
+	Use File › Open, or paste a copied image with {paste}.	Выберите Файл › Открыть или вставьте скопированное изображение с помощью {paste}.
 	Native file drag-and-drop is unavailable	Нативное перетаскивание файлов в Wayland недоступно
-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run PhotoCraft under XWayland with `WAYLAND_DISPLAY= photocraft`.	Нативное перетаскивание файлов в Wayland пока не поддерживается. Откройте файл через Файл › Открыть или запустите PhotoCraft в XWayland с `WAYLAND_DISPLAY= photocraft`.
+	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	Нативное перетаскивание файлов в Wayland пока не поддерживается. Откройте файл через Файл › Открыть или скопируйте изображение в файловом менеджере и вставьте его с помощью {paste}.
+	To drop files, start PhotoCraft under XWayland: `{command}`	Чтобы перетаскивать файлы, запустите PhotoCraft в XWayland: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	Или выберите в Настройки › Производительность › Дисплейный сервер Linux значение X11: PhotoCraft будет всегда запускаться в XWayland.
+	Edit › Paste	Редактирование › Вставить
 	Photo	Фото
 	Print	Печать
 	Art & Illustration	Искусство и иллюстрация
@@ -1440,7 +1455,6 @@
 	Cancel transform (Esc)	Отменить трансформацию (Esc)
 	Cancel warp (Esc)	Отменить деформацию (Esc)
 	Do you want to save the changes you made to “{name}” before closing?	Сохранить изменения в документе «{name}» перед закрытием?
-	Do you want to save you made to “{name}” before quitting?	Сохранить изменения в документе «{name}» перед выходом?
 	Revert “{name}” to the last saved version? Your changes will be lost.	Вернуть «{name}» к последней сохранённой версии? Изменения будут потеряны.
 	{key} to subtract	{key} — вычесть
 	↑↓ navigate   {key} run   esc close	↑↓ переход   {key} выполнить   esc закрыть
@@ -1517,10 +1531,11 @@
 	Click to fill similar colours	Щёлкните, чтобы залить похожие цвета
 	Click to add text	Щёлкните, чтобы добавить текст
 	Drag (lasso) or click points (polygonal) · {add} add · {sub} subtract	Перетащите (лассо) или щёлкайте точки (многоугольное) · {add} добавить · {sub} вычесть
-	Drag a crop box · drag inside to move · edges resize ({ratio} ratio, {centre} centre) · Space moves while drawing · {commit} commits · Esc cancels	Выделите рамку кадрирования · перетащите внутри для перемещения · края меняют размер ({ratio} пропорции, {centre} центр) · Space двигает при рисовании · {commit} применить · Esc отмена
+	Drag a crop box · drag inside to move · edges resize ({ratio} ratio, {centre} centre) · Space moves while drawing · arrows nudge · X swaps orientation · {commit} commits · Esc cancels	Выделите рамку кадрирования · перетащите внутри для перемещения · края меняют размер ({ratio} пропорции, {centre} центр) · Space двигает при рисовании · стрелки сдвигают · X меняет ориентацию · {commit} применить · Esc отмена
 	{mode} Color · {bits} bit	{mode}, {bits} бит
 	Drag to move the layer	Перетащите, чтобы переместить слой
 	Fit Screen	По размеру экрана
+	Fill Screen	Заполнить экран
 	Scrubby Zoom	Масштаб перетаскиванием
 	Auto Erase	Автостирание
 	Color Adaptation	Адаптация цвета
@@ -1637,6 +1652,7 @@
 	Measure	Измерить
 	Heal	Восстановление
 	Off	Выкл
+	Symmetry Off	Без симметрии
 	Heal Off	Восстановление выкл
 	Heal On	Восстановление вкл
 	Heal Auto	Автовосстановление
@@ -1653,6 +1669,8 @@
 	Divide	Разделить
 	Result	Результат
 	New Document	Новый документ
+	Preset Name	Имя набора
+	No saved presets yet.	Сохранённых наборов пока нет.
 	New Channel	Новый канал
 	Selection	Выделение
 	Save Selection	Сохранить выделение
@@ -2077,6 +2095,9 @@
 	Stroke	Мазок
 	Stroke Catch-up	Догонять мазком
 	Stroke:	Обводка:
+	Location:	Расположение:
+	Inside	Внутри
+	Outside	Снаружи
 	Tetrahedral	Тетраэдрическая
 	Texture Each Tip	Текстура на каждый отпечаток
 	The current gradient (pick one in Window › Gradients)	Текущий градиент (выберите в Окно › Градиенты)
@@ -2164,6 +2185,8 @@
 	Font preview	Предпросмотр шрифтов
 	Full size tip	Весь диаметр кисти
 	GPU backend	Бэкенд GPU
+	Linux display server	Дисплейный сервер Linux
+	X11	X11
 	Gamut warning color	Цвет предупреждения об охвате
 	Gamut warning opacity	Непрозрачность предупреждения об охвате
 	General	Основные
@@ -2198,6 +2221,7 @@
 	Maximize psd compatibility	Максимальная совместимость PSD
 	Medium gray	Средне-серая
 	Memory usage mb	Память (МБ)
+	Low resolution previews	Превью в низком разрешении
 	Metal	Metal
 	Missing glyph protection	Защита от отсутствующих глифов
 	Modern	Современный
@@ -2205,6 +2229,7 @@
 	Never	Никогда
 	Normal tip	Контур кисти (50%)
 	Open as smart object	Открывать как смарт-объект
+	Open in camera raw	Открывать в Camera Raw
 	Open documents as tabs	Открывать документы во вкладках
 	OpenGL	OpenGL
 	Orange	Оранжевая
@@ -2246,6 +2271,7 @@
 	Show slice numbers	Показывать номера фрагментов
 	Show tooltips	Показывать подсказки
 	Show bounding box when dragging layer	Показывать рамку при перетаскивании слоя
+	System title bar	Системная строка заголовка
 	Show transformation values	Показывать значения трансформации
 	Slice color	Цвет фрагмента
 	Smart guide color	Цвет умных направляющих
@@ -2285,6 +2311,7 @@
 	No path to make a selection from: draw one with the Pen tool or select one in the Paths panel.	Нет контура для создания выделения: нарисуйте его инструментом «Перо» или выберите на панели «Контуры».
 	Cancel opening	Отменить открытие
 	Cancelled opening {name}	Открытие {name} отменено
+	Developing {name}	Обработка {name}
 	Cancelled {label}	{label}: отменено
 	Esc to cancel	Esc — отмена
 	Opening {name}	Открытие {name}
@@ -2323,6 +2350,7 @@
 cameraRaw	Light	Свет
 # Camera Raw: contextual controls and window title
 	Camera Raw Filter ({layer})	Фильтр Camera Raw ({layer})
+	Camera Raw ({name})	Camera Raw ({name})
 	Aqua	Голубой
 cameraRaw	Amount	Интенсивность
 cameraRaw	Blacks	Чёрные
@@ -2347,6 +2375,7 @@ cameraRaw	Roughness	Неровность
 	Patch Tool	Заплатка
 	Patch:	Заплатка:
 	Lasso around an area, then drag the selection	Обведите область лассо, затем перетащите выделение
+	Now drag the selection onto another area	Теперь перетащите выделение на другую область
 	Edit Type	Редактировать текст
 
 
@@ -2376,6 +2405,7 @@ cameraRaw	Roughness	Неровность
 	Magnetic Lasso Tool	Магнитное лассо
 	Frequency	Частота
 	Use tablet pressure to change pen width	Использовать нажим планшета для изменения ширины пера
+
 
 # About ▸ Contributors / Models (credits, craftrules standards/contributors.md)
 	About	О программе
@@ -2408,6 +2438,133 @@ cameraRaw	Roughness	Неровность
 	% of all commits	% от всех коммитов
 	Lines +/−	Строки +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: PR: {prs}, коммиты: {commits}, строки +{added} / −{deleted} (Δ {delta}), двоичные файлы +{binAdded} / −{binDeleted}, {first} – {last}
+
+# Swatches panel
+	Create new swatch	Создать новый образец
+	New Swatch…	Новый образец…
+	New Swatch Group…	Новая группа образцов…
+	Import Swatches…	Импортировать образцы…
+	Replace Swatches…	Заменить образцы…
+	Export Swatches…	Экспортировать образцы…
+	Export Swatches for Exchange…	Экспортировать образцы для обмена…
+	Reset Swatches	Восстановить образцы
+	Add to Swatches	Добавить в образцы
+# Layer Style > Blending Options (Advanced Blending)
+	Blend If:	Изображение если:
+	Channels:	Каналы:
+	Knockout	Просвечивание
+	Apply At Canvas Bounds	Применить эффект на границах холста
+
+# Shared screen eyedropper and text Color Picker (#1128).
+	Color Picker (Text Color)	Палитра цветов (Цвет текста)
+	Pick screen color	Выбрать цвет на экране
+	Sample a pixel anywhere on the screen	Выберите пиксель в любом месте экрана
+	Click to pick · Esc to cancel	Щелчок — выбрать · Esc — отменить
+	Pick a screen pixel or press Esc to cancel	Выберите пиксель на экране или нажмите Esc для отмены
+	Scroll to zoom	Колесо — изменить масштаб
+	Show/Hide All Panels	Показать/скрыть все панели
+	Show/Hide Panels	Показать/скрыть панели
+	Could not open	Не удалось открыть
+	{path}: the path is not valid Unicode; rename the file and open it again.	{path}: путь не является допустимым Unicode; переименуйте файл и откройте его снова.
+
+# Fill dialog, layer style contours and Image Size
+	Contents:	Содержимое:
+	Custom Pattern:	Свой узор:
+	Foreground Color	Основной цвет
+	Color…	Цвет…
+	50% Gray	50% серого
+	{size} (was {old})	{size} (было {old})
+	Cone	Конус
+	Cone (Inverted)	Конус (инвертированный)
+	Domed	Купол
+	Domed (Inverted)	Купол (инвертированный)
+	Diagonal (Descending)	Диагональ (нисходящая)
+	Linear	Линейный
+
+	Red Eye Tool	Инструмент «Красные глаза»
+	Pupil Size	Размер зрачка
+	Darken Amount	Степень затемнения
+	Click a red pupil to neutralize it	Щёлкните по красному зрачку, чтобы убрать блик
+	open source	открытый исходный код
+	…and {n} more	…и ещё {n}
+
+	Eyedroppers:	Пипетки:
+	Set Black Point	Задать точку чёрного
+	Set Neutral Gray Point	Задать нейтральную серую точку
+	Set White Point	Задать точку белого
+	Unavailable in this color mode	Недоступно в этом цветовом режиме
+	Selection Preview:	Просмотр выделения:
+	Black Matte	На чёрном фоне
+	White Matte	На белом фоне
+	Quick Mask	Быстрая маска
+
+# Layer colour labels.
+	Seafoam	Морская пена
+	Indigo	Индиго
+	Fuchsia	Фуксия
+	Violet	Фиолетовый
+	Large document: redrawing on the CPU	Большой документ: перерисовка на CPU
+	This redraw took {seconds} s on the CPU.	Эта перерисовка на CPU заняла {seconds} с.
+	Edits that change the whole document, such as a layer's blend mode, opacity or visibility, redraw all of it.	Правки, затрагивающие весь документ, например режим наложения, непрозрачность или видимость слоя, перерисовывают его целиком.
+	Its layers don't fit the GPU memory budget. Raising Memory usage in Preferences › Performance raises the budget, up to a quarter of this computer's memory.	Слои не помещаются в бюджет памяти GPU. Увеличение параметра «Память» в разделе Настройки › Производительность повышает бюджет, но не больше четверти памяти этого компьютера.
+	The GPU compositor wasn't used: {reason}	Компоновщик GPU не использовался: {reason}
+fontWeight	Thin	Тонкий
+fontWeight	ExtraLight	Особо светлый
+fontWeight	Light	Светлый
+fontWeight	Regular	Обычный
+fontWeight	Medium	Средний
+fontWeight	SemiBold	Полужирный
+fontWeight	Bold	Жирный
+fontWeight	ExtraBold	Особо жирный
+fontWeight	Black	Чёрный
+fontWeight	Italic	Курсив
+
+# Pattern Stamp tool
+	Pattern Stamp Tool	Инструмент узорный штамп
+	Impressionist	Импрессионист
+	Rotate View Tool	Инструмент поворота вида
+	Reset View	Сбросить вид
+	Drag around the centre to rotate the view  ·  Shift constrains to 15°	Перетащите вокруг центра, чтобы повернуть вид  ·  Shift фиксирует шаг 15°
+
+# Painting symmetry presets.
+	Dual Axis	Две оси
+	Diagonal	Диагональная
+	Transform Symmetry	Трансформировать симметрию
+	Set painting symmetry options	Настроить параметры симметричного рисования
+
+# Eyedropper Sample Size and Sample (#1649).
+	Point Sample	Точечная выборка
+	3 by 3 Average	Среднее 3 × 3
+	5 by 5 Average	Среднее 5 × 5
+	11 by 11 Average	Среднее 11 × 11
+	31 by 31 Average	Среднее 31 × 31
+	51 by 51 Average	Среднее 51 × 51
+	101 by 101 Average	Среднее 101 × 101
+	Sample Size:	Размер выборки:
+	All Layers No Adjustments	Все слои без коррекции
+	Current & Below No Adjustments	Текущий и ниже без коррекции
+	Show Sampling Ring	Показать кольцо выборки
+	Click to sample the foreground colour  ·  {key}-click for background	Клик — взять основной цвет  ·  {key}-клик — фоновый цвет
+
+# Color Picker warnings
+	Out of gamut for printing: click for the nearest printable colour	Вне цветового охвата печати: щёлкните, чтобы выбрать ближайший печатаемый цвет
+	Not a web colour: click for the nearest web colour	Не веб-цвет: щёлкните, чтобы выбрать ближайший веб-цвет
+	Color to Alpha…	Цвет в альфа-канал…
+	Transparency Threshold	Порог прозрачности
+	Opacity Threshold	Порог непрозрачности
+	Rule of Thirds	Правило третей
+	Triangle	Треугольник
+	Golden Ratio	Золотое сечение
+	Golden Spiral	Золотая спираль
+	Auto Show Overlay	Показывать перекрытие автоматически
+	Always Show Overlay	Всегда показывать перекрытие
+	Never Show Overlay	Никогда не показывать перекрытие
+	Cycle Overlay	Сменить перекрытие
+	Cycle Orientation	Сменить ориентацию
+	Set the overlay options for the Crop tool	Задать параметры перекрытия для инструмента «Рамка»
+	Alt-click went to the desktop, which moves windows with Alt-drag. Set its window-move key to Super, or latch Alt in Window › Modifier Keys.	Alt+щелчок перехватило окружение рабочего стола: оно перемещает окна через Alt+перетаскивание. Назначьте для перемещения окон клавишу Super или зафиксируйте Alt в меню Окно › Клавиши-модификаторы.
+
+# Fork integration
 	Shape Operations	Операции с фигурами
 	New Layer	Новый слой
 	Square 1:1	Квадрат 1:1
@@ -2416,22 +2573,16 @@ cameraRaw	Roughness	Неровность
 	Full HD Portrait	Full HD, портрет
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K, портрет
-
-# Undo cache budgets
 	Memory budget (MiB)	Лимит памяти (МиБ)
 	Undo disk budget (MiB)	Лимит диска для отмены (МиБ)
 	Budget mb	Лимит (МиБ)
 	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Лимит памяти общий для пикселей документа, встроенных данных и истории отмены. Память выделяется по мере необходимости; остальные нужды приложения требуют дополнительной памяти.
 	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	Место на диске для отмены используется только по мере необходимости, до этого лимита. Ноль отключает дисковый кэш. Пути рабочих дисков применяются со следующего сеанса кэша.
 	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Версия для браузера хранит историю отмены в памяти. Настройки рабочих дисков применяются к настольному приложению.
-
 	HDR Output	Вывод HDR
 	HDR Workbench	Панель HDR
 	Export SDR Preview…	Экспортировать предпросмотр SDR…
-
-# Integrated controls and HDR
 	Click to change columns; drag the title bar to move	Нажмите, чтобы изменить число столбцов; перетащите строку заголовка для перемещения
 	Click to change columns; drag to detach Tools	Нажмите, чтобы изменить число столбцов; перетащите, чтобы открепить инструменты
 	Dock Tools on the left	Закрепить инструменты слева
 	Use trackpad pressure	Использовать давление на трекпаде
-	Apply At Canvas Bounds	Применить эффект на границах холста

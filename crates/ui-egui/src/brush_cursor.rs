@@ -136,7 +136,9 @@ pub(crate) fn eyedropper(ctx: &Context, pos: egui::Pos2) -> egui::CursorIcon {
         });
         if let Some(image) = image {
             ctx.set_cursor_image(Some(image));
-            return egui::CursorIcon::Crosshair; // visible fallback for non-winit integrations
+            // The cursor lifecycle keeps a bitmap only while the requested icon is None;
+            // it installs a crosshair fallback for backends without bitmap cursors.
+            return egui::CursorIcon::None;
         }
     }
     crate::icons::cursor(ctx, "pipette", pos, egui::vec2(2.0, 22.0) / 24.0, 20.0);
@@ -171,7 +173,7 @@ mod tests {
             assert!(image.rgba.as_chunks::<4>().0.iter().any(|p| p[0] < 80 && p[3] > 100));
         }
         let ctx = Context::default();
-        eyedropper(&ctx, egui::pos2(10.0, 10.0));
+        assert_eq!(eyedropper(&ctx, egui::pos2(10.0, 10.0)), egui::CursorIcon::None);
         let first = ctx.output(|o| o.cursor_image.clone()).unwrap();
         eyedropper(&ctx, egui::pos2(80.0, 60.0));
         let moved = ctx.output(|o| o.cursor_image.clone()).unwrap();
@@ -186,6 +188,24 @@ mod tests {
             let png = photocraft_codecs::encode(&image, photocraft_codecs::Format::Png, &Default::default()).unwrap();
             std::fs::write(dir.join("pipette-cursor.png"), png).unwrap();
         }
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn native_cursor_survives_canvas_cursor_lifecycle() {
+        let ctx = Context::default();
+        ctx.add_plugin(crate::tool_cursor::CursorLifecycle);
+        let mut brush = ctx.run_ui(Default::default(), |ui| {
+            assert!(show(ui.ctx(), 8.0, false));
+            ui.ctx().set_cursor_icon(egui::CursorIcon::None);
+        });
+        assert!(brush.platform_output.cursor_image.is_some());
+        brush.textures_delta.clear();
+        let mut pipette = ctx.run_ui(Default::default(), |ui| {
+            ui.ctx().set_cursor_icon(eyedropper(ui.ctx(), egui::pos2(12.0, 12.0)));
+        });
+        assert!(pipette.platform_output.cursor_image.is_some());
+        pipette.textures_delta.clear();
     }
 
     #[test]

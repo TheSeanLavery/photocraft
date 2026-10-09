@@ -112,7 +112,7 @@ fn pixel_layer(s: &Session) -> std::result::Result<LayerId, String> {
     let id = d.active_layer.ok_or("no active layer")?;
     let l = d.doc.layer(id).ok_or("no active layer")?;
     if !matches!(l.content, LayerContent::Raster(_)) {
-        return Err(format!("active layer is a {} layer, not a pixel layer", l.content.kind_name()));
+        return Err(format!("active layer is {} {} layer, not a pixel layer", l.content.article(), l.content.kind_name()));
     }
     let locks = d.doc.effective_locks(id);
     if locks.all || locks.pixels {
@@ -264,6 +264,11 @@ fn purge(s: &mut Session, what: &str) -> Result<Value> {
             freed += fx;
             items.push("effect cache");
         }
+        let masks = photocraft_compose::masks::purge_cache();
+        if masks > 0 {
+            freed = freed.saturating_add(masks);
+            items.push("mask cache");
+        }
     }
     s.edit_state.fade = None;
     let msg = if items.is_empty() { "nothing to purge".to_string() } else { format!("purged {}", items.join(", ")) };
@@ -280,9 +285,9 @@ fn can_purge_histories(s: &Session) -> std::result::Result<(), String> {
     if s.documents().iter().any(|d| d.history.can_undo() || d.history.can_redo()) { Ok(()) } else { Err("no history to purge".into()) }
 }
 fn can_purge_all(s: &Session) -> std::result::Result<(), String> {
-    can_purge_histories(s)
-        .or_else(|_| can_purge_clipboard(s))
-        .or_else(|_| if photocraft_compose::effect_cache_bytes() > 0 { Ok(()) } else { Err("nothing to purge".into()) })
+    can_purge_histories(s).or_else(|_| can_purge_clipboard(s)).or_else(|_| {
+        if photocraft_compose::effect_cache_bytes() > 0 || photocraft_compose::masks::cache_bytes() > 0 { Ok(()) } else { Err("nothing to purge".into()) }
+    })
 }
 
 // ------------------------------------------------------------------ Content-Aware Fill
@@ -341,12 +346,13 @@ fn content_aware_fill_as(s: &mut Session, p: &Value, cmd: &'static str, label: &
     if hb.is_empty() {
         return Err(bad(cmd, "the selection is outside the canvas"));
     }
-    let ext = hb.width().max(hb.height()) as i32;
+    // The canvas is at most i32 wide, so the extent fits; saturate anyway rather than wrap (#963).
+    let ext = i32::try_from(hb.width().max(hb.height())).unwrap_or(i32::MAX);
     let sampling = str_or(p, "sampling", "auto").to_string();
     let custom_mask: Option<Surface> = p.get("channel").and_then(|v| channel_mask(&doc, v)).cloned();
     let custom_rect = if p.get("area").is_some() { Some(rect_param(p, "area", cmd)?) } else { None };
     let window = match sampling.as_str() {
-        "auto" => hb.inflate((ext * 3 / 4).max(32)),
+        "auto" => hb.inflate(crate::fill_cmds::sampling_margin(hb)),
         "rectangular" => hb.inflate(int(p, "margin").map_or(ext.max(16), |m| m.clamp(0, 100_000) as i32)),
         "custom" => {
             let r = match (custom_rect, custom_mask.as_ref()) {
@@ -359,6 +365,13 @@ fn content_aware_fill_as(s: &mut Session, p: &Value, cmd: &'static str, label: &
         other => return Err(bad(cmd, format!("unknown sampling `{other}` (auto|rectangular|custom)"))),
     }
     .intersect(&doc.bounds());
+    // The worker reads the whole sampling window into several image and mask buffers. Reject
+    // hostile extents before any allocation or width*height arithmetic can overflow.
+    const MAX_FILL_PIXELS: u64 = 64_000_000;
+    let pixels = u64::from(window.width()).checked_mul(u64::from(window.height()));
+    if pixels.is_none_or(|n| n > MAX_FILL_PIXELS) {
+        return Err(bad(cmd, "sampling window is too large for Content-Aware fill"));
+    }
     let opts = FillOptions {
         color_adaptation: color_level(str_or(p, "colorAdaptation", "default")),
         rotations: rotation_level(str_or(p, "rotationAdaptation", "none")),

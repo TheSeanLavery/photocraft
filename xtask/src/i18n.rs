@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 use syn::spanned::Spanned;
 use syn::visit::{self, Visit};
 
-const LANGS: &[&str] = &["en", "ja", "zh-hans", "zh-hant", "es", "ru", "cs", "fr", "id", "ko", "de", "pt-br", "it"];
+const LANGS: &[&str] = &[
+    "en", "ja", "zh-hans", "zh-hant", "es", "ru", "uk", "cs", "fr", "id", "ko", "pl", "de", "pt-br", "el", "nl", "it",
+];
 
 fn catalog_path(dir: &Path, lang: &str) -> PathBuf {
     let locale = match lang {
@@ -179,7 +181,7 @@ fn fluent_text(input: &str) -> String {
 fn plural_categories(lang: &str) -> &'static [&'static str] {
     match lang {
         "ja" | "zh-hans" | "zh-hant" | "id" | "ko" => &["other"],
-        "ru" => &["one", "few", "many"],
+        "ru" | "uk" | "pl" => &["one", "few", "many"],
         "cs" => &["one", "few", "other"],
         _ => &["one", "other"],
     }

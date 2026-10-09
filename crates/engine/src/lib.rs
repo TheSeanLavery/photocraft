@@ -21,11 +21,13 @@ pub mod build_info;
 mod canvas_geom;
 pub mod channel_cmds;
 pub mod color_cmds;
+pub mod color_to_alpha_cmds;
 pub mod commands;
 pub mod comps_cmds;
 pub mod cutout_cmds;
 pub mod display_color;
 pub mod distort_cmds;
+pub mod document_preset_cmds;
 pub mod edit_cmds;
 pub mod edit_menu_cmds;
 pub mod eraser_cmds;
@@ -38,15 +40,18 @@ pub mod filters_ext;
 pub mod float_cmds;
 mod frame_cmds;
 pub mod fx_view_cmds;
+pub mod fx_visibility_cmds;
 pub mod gallery_cmds;
 pub mod gradient_fill_cmds;
 pub mod group_view_cmds;
+pub mod hidden_target;
 pub mod hdr_cmds;
 mod history_cache;
 pub mod image_cmds;
 pub mod inspect;
 pub mod jobs;
 pub mod layer_copy_cmds;
+pub mod layer_label_cmds;
 pub mod layer_menu_cmds;
 pub mod layer_multi_cmds;
 pub mod layer_nav_cmds;
@@ -71,8 +76,10 @@ pub mod preset_store;
 pub mod presets;
 pub mod print_cmds;
 pub mod proof_sim;
+pub mod redeye_cmds;
 pub mod render_cmds;
 pub mod retouch_cmds;
+pub mod sample_cmds;
 pub mod select_extra_cmds;
 pub mod selection_cmds;
 pub mod slice_cmds;
@@ -80,6 +87,7 @@ pub mod smart_cmds;
 pub mod smartselect_cmds;
 pub mod snap;
 pub mod stamp_cmds;
+pub mod swatch_cmds;
 pub mod symmetry_cmds;
 mod timeline_cmds;
 pub mod transform_cmds;
@@ -92,6 +100,7 @@ pub mod type_styles_cmds;
 mod variables_cmds;
 pub mod vector_cmds;
 mod video_cmds;
+pub use video_cmds::render_video_with;
 pub mod vp_cmds;
 pub mod warp_cmds;
 pub mod web_cmds;
@@ -152,11 +161,13 @@ pub struct DocState {
     pub active_layer: Option<LayerId>,
     /// Every selected layer in the Layers panel (⌘/⇧-click), in selection order. Like
     /// `active_layer`, selecting is not a history step, but undo and redo restore the layers each
-    /// state targeted when it was created; see [`DocState::selected_layers`].
+    /// state targeted when the next step was taken; see [`DocState::selected_layers`].
     pub selected_layers: Vec<LayerId>,
     /// Anchor of ⇧-click range selection (the last plainly or ⌘-clicked layer).
     pub layer_anchor: Option<LayerId>,
     pub path: Option<String>,
+    /// An Affinity document (or its preview) must not acquire the native source as its Save path.
+    pub source_read_only: bool,
     /// Increments on every change; UIs re-render when it moves.
     pub revision: u64,
     pub saved_revision: u64,
@@ -168,8 +179,8 @@ pub struct DocState {
     pub channel_view: channel_cmds::ChannelView,
     /// Select › Isolate Layers: the Layers panel lists only these layers (empty = off; view state).
     pub isolated_layers: Vec<LayerId>,
-    /// Painting symmetry axis made from the selected path (tool state, not document pixels).
-    pub symmetry_path: Option<symmetry_cmds::SymmetryAxis>,
+    /// Painting symmetry preset or sampled path (tool state, not document pixels).
+    pub symmetry: Option<symmetry_cmds::PaintingSymmetry>,
     /// Layers panel: layers whose effects list is collapsed under their row (the fx triangle;
     /// view state, not history). Effects lists start open.
     pub fx_collapsed: Vec<LayerId>,
@@ -193,13 +204,14 @@ impl DocState {
             selected_layers: active_layer.into_iter().collect(),
             layer_anchor: active_layer,
             path,
+            source_read_only: false,
             revision: 1,
             saved_revision: 1,
             last_damage: None,
             coalesce: None,
             channel_view: Default::default(),
             isolated_layers: Vec::new(),
-            symmetry_path: None,
+            symmetry: None,
             fx_collapsed: Vec::new(),
             show_only: None,
             floating: None,
@@ -272,8 +284,9 @@ pub struct Session {
     coalesce_request: Option<String>,
     /// Pixels copied with Edit › Copy / Cut (shared by all documents, like Photoshop).
     pub clipboard: Option<edit_cmds::Clip>,
-    /// Layer › Layer Style › Copy Layer Style: effects, blend mode and fill opacity.
-    pub style_clipboard: Option<(photocraft_doc::Effects, photocraft_color::BlendMode, f32)>,
+    /// Layer › Layer Style › Copy Layer Style: effects, blend mode, fill opacity and the Advanced
+    /// Blending switches.
+    pub style_clipboard: Option<(photocraft_doc::Effects, photocraft_color::BlendMode, f32, photocraft_doc::AdvancedBlending)>,
     /// Shape path context menu: copied vector fill and stroke styles.
     pub path_fill_clipboard: Option<photocraft_doc::Fill>,
     pub path_stroke_clipboard: Option<photocraft_doc::ShapeStroke>,
@@ -447,6 +460,9 @@ impl Session {
         let restrict = self.color_restrict;
         let st = self.active_mut().ok_or(EngineError::NoDocument)?;
         let before = st.doc.clone();
+        // Selecting layers is not a step, so the state this edit leaves behind targets what was
+        // selected just before it (#1356): undoing a stroke keeps the painted layer active.
+        let prior = st.layer_target();
         let mut doc = (*before).clone();
         let mut active = st.active_layer;
         let r = f(&mut doc, &mut active)?;
@@ -457,17 +473,23 @@ impl Session {
         st.active_layer = active;
         fix_selection(st);
         channel_cmds::fix_view(st);
+        // An edit that changes no pixels (a selection, guides, a layer's name) leaves the canvas
+        // as it is; anything else recomposites the whole document unless the command reports
+        // its own damage after this. A new lasso selection on a large document used to cost a
+        // full recomposite (seconds on the CPU path, #1773).
+        let unchanged = layer_multi_cmds::same_pixels(&before, &st.doc);
         let key = self.coalesce_request.clone();
         let st = self.active_mut().ok_or(EngineError::NoDocument)?;
         let layers = st.layer_target();
         if key.is_none() || st.coalesce != key || !st.history.can_undo() {
+            st.history.set_current_layers(prior);
             st.history.record(label, before, layers);
         } else {
             st.history.set_current_layers(layers);
         }
         st.coalesce = key;
         st.revision += 1;
-        st.last_damage = None;
+        st.last_damage = if unchanged { Some(photocraft_geom::Rect::EMPTY) } else { None };
         self.history_cache.dirty = true;
         self.poll_history_cache();
         Ok(r)
@@ -527,13 +549,19 @@ impl Session {
         }
         let Some(st) = self.active_mut() else { return Ok(false) };
         let restored = if redo { st.history.try_redo(st.doc.clone()) } else { st.history.try_undo(st.doc.clone()) }.map_err(EngineError::Other)?;
-        let Some(doc) = restored else { return Ok(false) };
+        let Some(mut doc) = restored else { return Ok(false) };
+        let damage = layer_multi_cmds::step_damage(&st.doc, &doc);
+        // Save As changes the document's file identity outside history. Undo must not restore
+        // the old untitled name from an earlier snapshot.
+        if st.path.is_some() && doc.name != st.doc.name {
+            Arc::make_mut(&mut doc).name = st.doc.name.clone();
+        }
         st.coalesce = None;
         st.doc = doc;
         let layers = st.history.current_layers().clone();
         restore_target(st, layers);
         st.revision += 1;
-        st.last_damage = None;
+        st.last_damage = damage;
         self.history_cache.dirty = true;
         self.poll_history_cache();
         Ok(true)
@@ -577,5 +605,7 @@ pub(crate) fn fix_selection(st: &mut DocState) {
     }
 }
 
+#[cfg(test)]
+mod fill_layer_mode_tests;
 #[cfg(test)]
 mod tests;

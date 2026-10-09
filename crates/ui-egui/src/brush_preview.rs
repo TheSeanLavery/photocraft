@@ -117,7 +117,9 @@ pub fn preview_pixels(b: &BrushSettings, w: u32, h: u32, color: [f32; 4]) -> Vec
             let s = i as f64 / n as f64;
             let x = 10.0 + s * (w as f64 - 20.0);
             let y = h as f64 / 2.0 - (s * std::f64::consts::TAU).sin() * h as f64 * 0.22;
-            StrokePoint::new(x, y, (s * std::f64::consts::PI).sin().max(0.05) as f32)
+            // Spacing Off follows stroke time; give the synthetic preview a realistic clock.
+            // Untimed points deliberately fall back to distance spacing in the paint engine.
+            StrokePoint { time: s * 500.0, ..StrokePoint::new(x, y, (s * std::f64::consts::PI).sin().max(0.05) as f32) }
         })
         .collect();
     let fmt = PixelFormat::new(ColorMode::Rgb, SampleType::U8, true);

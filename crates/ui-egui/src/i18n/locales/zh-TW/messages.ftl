@@ -3,6 +3,10 @@
 
 ui-100-b99e3955e3a3aaad = 100%
 
+ui-101-by-101-average-f0636a75b4938275 = 101 × 101 平均
+
+ui-11-by-11-average-538d383a16a69bb7 = 11 × 11 平均
+
 ui-125-a935b755da9ad666 = 125%
 
 ui-150-e4edd655fc2bffc6 = 150%
@@ -23,6 +27,8 @@ ui-200-0474234cf06e07be = 200%
 
 ui-250-d924c64cd7e61f65 = 250%
 
+ui-3-by-3-average-400d4f87bb7a72ef = 3 × 3 平均
+
 ui-3-up-horizontal-4c23efd3482104f6 = 3 欄水平
 
 ui-3-up-stacked-bd2af67dd88044db = 3 欄堆疊
@@ -34,6 +40,8 @@ ui-3-x-3-d62a922e1140f045 = 3 × 3
 ui-30-frames-30-fps-86855c252e2336e2 = 30 影格 @ 30 fps
 
 ui-300-a47499467194a093 = 300%
+
+ui-31-by-31-average-f49ec39b911d80e3 = 31 × 31 平均
 
 ui-32-bit-float-22185f2c23877e20 = 32 位元（浮點）
 
@@ -47,7 +55,13 @@ ui-4-up-d91fc73e02cd5199 = 4 欄
 
 ui-4-x-4-7f4ba0051d29e745 = 4 × 4
 
+ui-5-by-5-average-393c80f9d8845bab = 5 × 5 平均
+
 ui-5-x-5-7e182dd7405b6905 = 5 × 5
+
+ui-50-gray-da82e26ee3dda904 = 50% 灰色
+
+ui-51-by-51-average-f8031ef2f1c3a59f = 51 × 51 平均
 
 ui-6-up-e29c4f2bcc87fe2f = 6 欄
 
@@ -107,6 +121,8 @@ ui-add-to-sample-0cd5c503d0859b13 = 加入取樣
 
 ui-add-to-selection-key-6677aa2346964f55 = 加入選取範圍 ({ $key })
 
+ui-add-to-swatches-3781607eddbada31 = 加入色票
+
 ui-add-variable-c4a401c42d0911dd = + 新增變數
 
 ui-add-vector-mask-528ac69ac105b1fb = 增加向量遮色片
@@ -165,6 +181,8 @@ ui-all-caps-bd95058f066e700f = 全部大寫
 
 ui-all-layers-bf480d822a927800 = 所有圖層
 
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = 所有圖層（不含調整）
+
 ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = 所有快速鍵已重設為 Photoshop 預設值。
 
 ui-all-slices-c7482a9e09ce788d = 所有切片
@@ -179,11 +197,15 @@ ui-alt-18c9177e5dc52d62 = Alt
 
 ui-alt-click-to-define-a-source-point-to-cl-2228e77de216e323 = 按 Alt 鍵並按一下以定義仿製來源點
 
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Alt 按一下被桌面環境攔截了，它用 Alt 拖曳來移動視窗。請把桌面的視窗移動鍵改為 Super，或在 視窗 › 輔助鍵 中鎖定 Alt。
+
 ui-altitude-074742fe1fc6d631 = 高度
 
 ui-always-708f9a0c043b4c2e = 一律
 
 ui-always-create-smart-objects-when-placing-f474351a9f48ed99 = 置入時一律建立智慧型物件
+
+ui-always-show-overlay-b6be473be8ad3beb = 永遠顯示覆蓋
 
 ui-always-use-pressure-for-opacity-1e9578afcf0ee902 = 一律以壓力控制不透明度
 
@@ -198,6 +220,8 @@ ui-analysis-2c20cd1b6a7a0ec1 = 分析
 ui-anamorphic-2-1-2-726f0be505a8bb59 = 變形 2:1 (2)
 
 ui-anchor-a0ad95217456f9d4 = 錨點：
+
+ui-and-n-more-6e37845d39302347 = …以及另外 { $n } 項
 
 ui-android-1080p-d0218ca5b0b425f9 = Android 1080p
 
@@ -226,6 +250,8 @@ ui-appearance-layer-style-eb9a62f511fc8d0a = 外觀 (圖層樣式)
 ui-apple-watch-45mm-b51f9e5f0f31c08f = Apple Watch 45mm
 
 ui-applies-at-next-launch-d3533a97eceb1f8c = 下次啟動時套用。
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = 套用效果至版面邊界
 
 ui-apply-auto-tone-adf66ec80e3a0b08 = 套用自動色調
 
@@ -305,6 +331,8 @@ ui-auto-show-hidden-panels-10d979553ed266c2 = 自動顯示隱藏的面板
 
 ui-auto-show-home-screen-c05e3fe894f84850 = 自動顯示首頁畫面
 
+ui-auto-show-overlay-59ff23a3b368166d = 自動顯示覆蓋
+
 ui-auto-tone-b0ded0d3730faa94 = 自動色調
 
 ui-automate-846f7a3e78fb3639 = 自動
@@ -379,6 +407,10 @@ ui-bitmap-d55ea07f32437944 = 點陣圖
 
 ui-black-49e5cb1e3f075426 = 黑色
 
+ui-black-87de58185ee7e143 = 黑體
+
+ui-black-matte-7c051e0b8e0c064b = 黑色背景
+
 ui-black-point-compensation-0384ce18be7270ee = 黑點補償
 
 ui-black-white-3409104e8d55c181 = 黑白
@@ -392,6 +424,8 @@ ui-blacks-98cc796519744c6f = 黑色
 ui-blacks-98e3ce467d3c07f8 = 黑色色階
 
 ui-blank-document-presets-n-d0e843aa86912c17 = 空白文件預設集 ({ $n })
+
+ui-blend-if-47ff5afa1385a85d = 混合範圍:
 
 ui-blend-if-7ad2aba688940595 = 混合範圍
 
@@ -421,6 +455,8 @@ ui-blur-tool-82c3cb0310f74d48 = 模糊工具
 
 ui-bold-9841d4b252180f48 = 粗體
 
+ui-bold-98d37886cf62c4a3 = 粗體
+
 ui-border-63cb7a79f7bde62f = 邊界…
 
 ui-both-9826b0b252010a64 = 兩者
@@ -430,6 +466,10 @@ ui-both-axes-435ce184a29db821 = 兩軸
 ui-bottom-bada204837504c00 = 下
 
 ui-bottom-edges-80ce9c3631b189f2 = 底端邊緣
+
+ui-bottom-left-a4a6bc5593eb6541 = 左下
+
+ui-bottom-right-2acd3cb673e6fda2 = 右下
 
 ui-box-blur-2b37bcd95ec2938f = 方框模糊…
 
@@ -456,6 +496,8 @@ ui-brush-name-17e105a3dae09884 = 筆刷名稱
 ui-brush-picker-93597b7bd47683ad = 筆刷選擇器
 
 ui-brush-pose-3617230f221ac6a6 = 筆刷姿勢
+
+ui-brush-preset-options-ae5d75337b0c67ae = 筆刷預設集選項
 
 ui-brush-preset-picker-6265db6aad998442 = 筆刷預設集選擇器
 
@@ -502,6 +544,8 @@ ui-camera-raw-filter-29ed3a1dc4186978 = Camera Raw 濾鏡…
 ui-camera-raw-filter-layer-1be4a91af7462ff0 = Camera Raw 濾鏡（{ $layer }）
 
 ui-camera-raw-isn-t-open-99ad694093e909ed = Camera Raw 未開啟
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw（{ $name }）
 
 ui-cancel-any-current-edits-esc-42764b5a3f8f4c7f = 取消目前所有編輯 (Esc)
 
@@ -569,6 +613,8 @@ ui-channel-mixer-ec1e80a50b4c99b3 = 色版混合器
 
 ui-channels-44d502bc3e71fbb7 = 色版
 
+ui-channels-67ef32de1bae7097 = 色版:
+
 ui-character-daf6ff1f129c38e6 = 字元
 
 ui-character-panel-9998e052a1533dd0 = 字元面板
@@ -613,6 +659,8 @@ ui-clear-slices-0ed5aadb7420a613 = 清除切片
 
 ui-clear-smart-filters-48da550cf14de2ca = 清除智慧型濾鏡
 
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = 按一下紅色瞳孔以消除反光
+
 ui-click-corner-drag-smooth-click-first-poi-1551d2e2b2e3984d = 按一下：轉角 · 拖曳：平滑 · 按一下第一點：閉合 · { $key } 完成 · Esc 取消
 
 ui-click-select-anchor-drag-move-anchor-han-acc6bd478a1d5ab3 = 按一下：選取錨點 · 拖曳：移動錨點、把手或線段 · { $shift }-按一下：增加 · { $alt }-按一下：整個子路徑
@@ -627,9 +675,15 @@ ui-click-to-add-text-b78b2772a89f1954 = 按一下以新增文字
 
 ui-click-to-apply-key-click-to-clear-overri-e66d3fc7065013f5 = 按一下套用，{ $key }+按一下清除覆寫，連按兩下開啟樣式選項
 
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = 點按以變更欄數；拖曳標題列以移動
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = 點按以變更欄數；拖曳以分離工具列
+
 ui-click-to-edit-the-gradient-14e67844a427ffaf = 按一下以編輯漸層
 
 ui-click-to-fill-similar-colours-d4ad82ceb74861df = 按一下以填滿相近顏色
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = 按一下選取 · Esc 取消
 
 ui-click-to-restore-the-current-colour-a3089de9e10e7d4e = 按一下以還原目前顏色
 
@@ -681,6 +735,10 @@ ui-color-73a9475ddd11219c = 顏色：
 
 ui-color-8beb3c381fb2f1ce = 顏色
 
+ui-color-a13d112d0512855e = 顏色…
+
+ui-color-adaptation-f7d5eb50532ba5ff = 顏色適應
+
 ui-color-balance-681e6e384510defe = 色彩平衡
 
 ui-color-balance-ad09dbcdb8757cee = 色彩平衡…
@@ -721,6 +779,8 @@ ui-color-overlay-e4ec9e391c16750a = 顏色覆蓋…
 
 ui-color-picker-ac18daa6e6202218 = 檢色器
 
+ui-color-picker-text-color-6873936c7cbaceb3 = 檢色器（文字顏色）
+
 ui-color-priority-138e732eacbefb9e = 色彩優先
 
 ui-color-range-de2ef764aea15ae1 = 顏色範圍…
@@ -734,6 +794,8 @@ ui-color-space-295320d7c66be8c4 = 色彩空間
 ui-color-swatches-ac06e00181a24994 = 顏色和色票
 
 ui-color-table-0f9a9c9eee34022e = 色彩表…
+
+ui-color-to-alpha-5a172092ca34c10d = 顏色轉為 Alpha…
 
 ui-colorize-cc4a832f61eb6438 = 色彩化
 
@@ -771,6 +833,10 @@ ui-concise-d7b424e8b03095f1 = 簡潔
 
 ui-conditional-mode-change-d54fc31ea7bbaf9c = 條件式模式變更…
 
+ui-cone-83c7f5ac8fb13c68 = 錐形
+
+ui-cone-inverted-07c75939642bd114 = 錐形（反轉）
+
 ui-conform-a4f74ad00fa62f5f = 符合
 
 ui-consolidate-all-to-tabs-8d663391c5754a08 = 全部合併至標籤頁
@@ -794,6 +860,8 @@ ui-content-aware-fill-needs-a-selection-on-a-da74ef5ec81c2a5f = 內容感知填�
 ui-content-aware-move-tool-2b8963bbe66001be = 內容感知移動工具
 
 ui-content-aware-scale-379439a63f8f33a9 = 內容感知縮放
+
+ui-contents-b5e5b9d3f6d35ec1 = 內容：
 
 ui-contextual-alternates-faff0187fc6570f3 = 前後關聯替代字
 
@@ -854,6 +922,8 @@ ui-corner-crop-marks-0bf86b15940411ea = 角落裁切標記
 ui-corner-radius-97bd53a5d5687970 = 圓角半徑
 
 ui-correction-07f5c477ab7d049f = 校正
+
+ui-could-not-open-05042bf852b9a743 = 無法開啟
 
 ui-could-not-transform-the-layer-is-empty-bc5f9720a6d7e4d4 = 無法變形：圖層是空的
 
@@ -927,6 +997,8 @@ ui-create-new-style-from-the-selected-layer-538e544b12b2bb51 = 從所選圖層�
 
 ui-create-new-style-from-the-selected-type-683f13baccb54adf = 新增樣式（基於所選文字）
 
+ui-create-new-swatch-df52baa4652be53b = 建立新色票
+
 ui-create-new-tool-preset-7d4d468ee6c87460 = 建立新工具預設集
 
 ui-create-texture-6370025c65a11dd4 = 建立紋理
@@ -957,6 +1029,8 @@ ui-current-3a9c9b05372393f0 = 目前
 
 ui-current-below-1799f701288bc2cb = 目前及以下
 
+ui-current-below-no-adjustments-ad3ef5ddcba453be = 目前及以下（不含調整）
+
 ui-current-layer-530d0a7523724bb5 = 目前圖層
 
 ui-current-path-e40850189ad141b7 = 目前路徑
@@ -985,6 +1059,8 @@ ui-custom-dark-d02136fca4cc1968 = 自訂深色
 
 ui-custom-light-d0c46f600e83cca8 = 自訂淺色
 
+ui-custom-pattern-b1725fbbdb358844 = 自訂圖樣：
+
 ui-custom-pixel-aspect-ratio-07f72205d30e0a49 = 自訂像素外觀比例…
 
 ui-custom-shape-tool-183aa3c7f0ae0715 = 自訂形狀工具
@@ -998,6 +1074,10 @@ ui-cyan-097690ac4a1ce224 = 青色
 ui-cyan-red-90bb919c7ee7207e = 青色  ·  紅色
 
 ui-cyans-315a2bc1ef1499d5 = 青色系
+
+ui-cycle-orientation-d47100e364dd1ce9 = 循環切換方向
+
+ui-cycle-overlay-cd2523de1e12bc5b = 循環切換覆蓋
 
 ui-cycle-screen-mode-42f43477ff963284 = 循環切換螢幕模式
 
@@ -1014,6 +1094,8 @@ ui-dark-1f7295a06447be87 = 深色
 ui-dark-gray-18764f09bb370c3a = 深灰
 
 ui-darken-a1fc662b2b849eb8 = 變暗
+
+ui-darken-amount-4ff87ddb9162ea14 = 變暗程度
 
 ui-darker-color-7874c6c27c279e1b = 顏色變暗
 
@@ -1062,6 +1144,8 @@ ui-dehaze-622eced1257d8a96 = 去除霧霾
 ui-delete-af3196ad6b727abc = 刪除
 
 ui-delete-all-empty-layers-261b6232e0a29af4 = 刪除所有空白圖層
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = 刪除並填滿選取範圍
 
 ui-delete-brush-817c814f80208444 = 刪除筆刷
 
@@ -1145,6 +1229,12 @@ ui-detailed-24dd2bea4b55d99f = 詳細
 
 ui-details-b0d022b6f9b30237 = 詳細資訊
 
+ui-developing-name-3ca6c158e9e9f235 = 正在處理 { $name }
+
+ui-diagonal-6308486872486528 = 對角線
+
+ui-diagonal-descending-b3d2c399a327a7d9 = 對角線（下降）
+
 ui-diameter-81bc689924f8c26e = 直徑：
 
 ui-diamond-da3fa4d1e0537eed = 菱形
@@ -1219,6 +1309,8 @@ ui-doc-flat-layered-d1f0265a090cb9bd = 文件：{ $flat }/{ $layered }
 
 ui-doc-w-h-px-50fdf406f12771ce = 文件：{ $w } × { $h } px
 
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = 將工具列停駐在左側
+
 ui-document-a97acad20fc7786a = 文件
 
 ui-document-bounds-22aa4578ff3193ff = 文件邊界
@@ -1230,6 +1322,10 @@ ui-document-profile-8f7f063165cf89c3 = 文件描述檔
 ui-document-sizes-17c963a4cb02f2c4 = 文件尺寸
 
 ui-dodge-tool-adf6f6943af6246c = 加亮工具
+
+ui-domed-6b80f3fc40f5c94c = 圓頂
+
+ui-domed-inverted-3a1408397cf5ea60 = 圓頂（反轉）
 
 ui-don-t-save-f65079b9d9723570 = 不儲存
 
@@ -1244,6 +1340,8 @@ ui-double-click-layer-mask-launches-select-a-22efb608b3f5aa5f = 按兩下圖層�
 ui-down-9707b0a0a788f20b = 下
 
 ui-drag-a-rectangle-around-the-object-697b9c2e08d6e422 = 在物件周圍拖曳出矩形
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = 繞中心拖曳以旋轉檢視  ·  Shift 限制為 15°
 
 ui-drag-on-the-image-to-add-a-constraint-sh-dbf9e334d0848ca1 = 在影像上拖曳以新增限制線；按住 Shift 可限制水平/垂直；按右鍵可刪除。
 
@@ -1268,6 +1366,8 @@ ui-drop-shadow-373d11d86ce48f4a = 陰影
 ui-drop-shadow-78382b6090e1266a = 陰影…
 
 ui-drop-shadow-f8503ec97aa9876a = 陰影
+
+ui-dual-axis-1c45b5825da6a58e = 雙軸
 
 ui-dual-brush-2f0c9c277dcf4fe1 = 雙筆刷
 
@@ -1307,11 +1407,15 @@ ui-edit-in-quick-mask-mode-q-db7789a2b660e3cc = 在快速遮色片模式下編�
 
 ui-edit-in-standard-mode-q-bbbe310f07228224 = 在標準模式下編輯 (Q)
 
+ui-edit-paste-3f6b4ca340b0bccc = 「編輯 › 貼上」
+
 ui-edit-pins-0e5874a633e4c081 = 編輯圖釘
 
 ui-edit-toolbar-a11e5956c01bb540 = 編輯工具列…
 
 ui-edit-type-226542c47a158ee1 = 編輯文字
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = 變更整份文件的編輯（例如圖層的混合模式、不透明度或可見度）會重繪整份文件。
 
 ui-effect-cache-mb-b8602a7895e3baab = 效果快取 (MB)
 
@@ -1411,6 +1515,10 @@ ui-export-sdr-preview-a2e7aebcb62b91d6 = 匯出 SDR 預覽…
 
 ui-export-selected-measurements-csv-0eb0251cb8ea2998 = 匯出所選測量 (CSV)
 
+ui-export-swatches-429d4e913cd22171 = 匯出色票…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = 匯出色票以供交換…
+
 ui-exposure-96cd8f1e31d26ade = 曝光度…
 
 ui-exposure-and-gamma-8513b6bf2c39f106 = 曝光度與 Gamma
@@ -1427,6 +1535,10 @@ ui-extra-large-914d919288053da8 = 特大
 
 ui-extrabold-d797c053724b9c04 = 特粗
 
+ui-extrabold-fd6396c3deb95c21 = 特粗
+
+ui-extralight-0704360f6be0647a = 特細
+
 ui-extralight-bfbec65b923f0ded = 特細
 
 ui-extras-0a7175b08c4cd3b0 = 顯示額外內容
@@ -1436,6 +1548,8 @@ ui-extrude-f6557151eaa73968 = 突出…
 ui-eyedropper-3a95c584b91b510c = 滴管
 
 ui-eyedropper-tool-582fc790d038817e = 滴管工具
+
+ui-eyedroppers-9220889b81a1f1b5 = 滴管：
 
 ui-facet-ce1f6333d33623e6 = 切面
 
@@ -1488,6 +1602,8 @@ ui-fill-new-type-layers-with-placeholder-5d979cdb113aafff = 以預留位置文�
 ui-fill-opacity-d2845a79e831f763 = 填滿不透明度
 
 ui-fill-path-with-foreground-color-e0a40f352bac250b = 以前景色填滿路徑
+
+ui-fill-screen-610513f68e54eeee = 填滿螢幕
 
 ui-film-video-560f45773f06554c = 電影與視訊
 
@@ -1593,6 +1709,8 @@ ui-font-size-895dad4ca5641c1b = 字體大小
 
 ui-foreground-background-jitter-a3277e3862e2de93 = 前景/背景快速變換
 
+ui-foreground-color-c4236e6fb45a0975 = 前景色
+
 ui-foreground-fff61f5769e5eef6 = 前景
 
 ui-foreground-to-background-4fba9c133f9b2f4d = 前景到背景
@@ -1622,6 +1740,8 @@ ui-frequency-b3a6c0ac1faacbc7 = 頻率
 ui-from-4a340a8f62ba79f3 = 從
 
 ui-from-transparency-72b17acb155833bb = 從透明度
+
+ui-fuchsia-8d83defd7f0120fc = 紫紅色
 
 ui-full-hd-portrait-39a9f8c4e7cf39c5 = Full HD 直式
 
@@ -1672,6 +1792,10 @@ ui-glow-color-772e4e38cbf4d5a1 = 光暈顏色
 ui-glyphs-6bbe184f5faf7aa4 = 字符
 
 ui-glyphs-panel-87f62f44dbffad6a = 字符面板
+
+ui-golden-ratio-ff69929862f02a2d = 黃金比例
+
+ui-golden-spiral-5757498b8af1d487 = 黃金螺旋
 
 ui-gpu-acceleration-could-not-continue-your-975aa8647d798084 = GPU 加速無法繼續。您的文件未變更。
 
@@ -1903,7 +2027,11 @@ ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = 匯入 Photoshop 筆刷 (.abr
 
 ui-import-presets-09d2999d476d4eb6 = 匯入預設集
 
+ui-import-swatches-d6432c51430e3eba = 匯入色票…
+
 ui-imported-20ac5b157259f56f = 已匯入
+
+ui-impressionist-838b2d95b3fe039e = 印象派
 
 ui-inches-36cac13fc3a9f4bf = 英吋
 
@@ -1926,6 +2054,8 @@ ui-indexed-color-0faa4bcde55c476b = 索引色
 ui-indexed-color-e2738c7c72cbcf55 = 索引色…
 
 ui-indexed-e432355755eef58c = 索引色
+
+ui-indigo-5c3d440918ff0f31 = 靛藍色
 
 ui-info-5c048676e8ce02cb = 資訊
 
@@ -1991,6 +2121,10 @@ ui-isolate-layers-96a991a1f2af455a = 隔離圖層
 
 ui-italic-8b147cdb6dfb1a83 = 斜體
 
+ui-italic-affc1f243d43a170 = 斜體
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = 圖層超出 GPU 記憶體預算。在 偏好設定 › 效能 中提高記憶體使用量可增加預算，最多為本機記憶體的四分之一。
+
 ui-join-the-artcraft-discord-d3ced290104ae3f3 = 加入 ArtCraft Discord…
 
 ui-join-us-on-discord-e753e5c5ad79996e = 加入我們的 Discord
@@ -2023,6 +2157,8 @@ ui-keyboard-shortcuts-and-menus-dcc10360cc30a6b4 = 鍵盤快速鍵和選單
 
 ui-kind-8a583c65ea499095 = 種類
 
+ui-knockout-114fcb275f7f7673 = 去底色
+
 ui-kurtosis-ca8d45264309b563 = 峰度
 
 ui-lab-ba646e7e288e912e = Lab
@@ -2048,6 +2184,8 @@ ui-language-e2c202f6847daf21 = 語言
 ui-language-options-82440e7bfffbd467 = 語言選項
 
 ui-large-ba7eea47bc48e27a = 大
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = 大型文件：正在以 CPU 重繪
 
 ui-large-tabs-350b94c02256667a = 大型索引標籤
 
@@ -2137,6 +2275,8 @@ ui-light-70bd780571c98a39 = 淺色
 
 ui-light-91417d2bc909cb4c = 光線
 
+ui-light-b8b902e993554a24 = 細體
+
 ui-light-gray-90925fdbdadb1af0 = 淺灰
 
 ui-lighten-ec047e5803ae908e = 變亮
@@ -2193,6 +2333,8 @@ ui-link-width-and-height-4f6db69f8fed488d = 連結寬度和高度
 
 ui-link-with-layer-ad56115c85c3cd48 = 與圖層連結
 
+ui-linux-display-server-e35271f31f95faac = Linux 顯示伺服器
+
 ui-liquify-e3ac8d1623d1f490 = 液化…
 
 ui-liquify-is-not-open-b8565caf511d21fb = 液化未開啟
@@ -2218,6 +2360,10 @@ ui-load-photoshop-brushes-abr-72def280fc39c975 = 載入 Photoshop 筆刷 (.abr)
 ui-load-selection-9879fb5ae763e63b = 載入選取範圍…
 
 ui-localized-color-clusters-f881bf339dfd0b0e = 局部色彩群集
+
+ui-location-297949d1a95f2298 = 位置
+
+ui-location-d83b1142cca7d946 = 位置：
 
 ui-lock-3868ab5ee29314b8 = 鎖定
 
@@ -2252,6 +2398,8 @@ ui-login-prs-prs-commits-commits-added-dele-996e2b281989f2ff = @{ $login }：{ $
 ui-lorem-ipsum-2c0543a14119c706 = Lorem Ipsum
 
 ui-lossless-6d3d4f23fd266529 = 無損
+
+ui-low-resolution-previews-250ad01d7da7418c = 低解析度預覽
 
 ui-lowercase-extension-764b510e00dc8f45 = 副檔名小寫
 
@@ -2332,6 +2480,8 @@ ui-median-8a4a432f80729ec5 = 中和：
 ui-median-b139c265acfc1003 = 中和…
 
 ui-median-b93c3b35a9c8f19d = 中和
+
+ui-medium-9ccd01b2e5f752af = 中等
 
 ui-medium-b9135835a9a61dd0 = 中
 
@@ -2429,6 +2579,8 @@ ui-monitor-rgb-b273d3d571b853c4 = 顯示器 RGB
 
 ui-monochrome-910b1c7880814a4a = 單色
 
+ui-more-documents-702166de66a88b90 = 更多文件
+
 ui-more-panels-179b83bbde5b401d = 更多面板
 
 ui-more-points-5c45ec96f2353d79 = 更多點
@@ -2487,7 +2639,7 @@ ui-name-options-7816ca8286c5a7c4 = { $name } 選項
 
 ui-name-properties-5e4cf3189af3bfd7 = { $name } 內容
 
-ui-native-file-drag-and-drop-is-not-support-fc05bb70233ffab1 = Wayland 尚未支援原生檔案拖放。請使用「檔案 › 開啟」，或透過 `WAYLAND_DISPLAY= photocraft` 在 XWayland 下執行 PhotoCraft。
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Wayland 尚未支援原生檔案拖放。請使用「檔案 › 開啟」，或在檔案管理員中複製影像後使用 { $paste } 貼上。
 
 ui-native-file-drag-and-drop-is-unavailable-c005b509d62fed44 = Wayland 不支援原生檔案拖放
 
@@ -2505,6 +2657,8 @@ ui-neutrals-d91575343a5749d7 = 中間色
 
 ui-never-79b1a901034168fb = 永不
 
+ui-never-show-overlay-62e4d50ec1f95088 = 永不顯示覆蓋
+
 ui-new-a846017e1e12163f = 新增
 
 ui-new-adjustment-layer-464434a38030994f = 新增調整圖層
@@ -2512,6 +2666,8 @@ ui-new-adjustment-layer-464434a38030994f = 新增調整圖層
 ui-new-be4f217ebbcb229f = 新增
 
 ui-new-blank-video-layer-ea35461303ae9a0f = 新增空白視訊圖層
+
+ui-new-brush-preset-9a813a7c947ca0f2 = 新增筆刷預設集…
 
 ui-new-dcb118c21cbce3d9 = 新增…
 
@@ -2544,6 +2700,10 @@ ui-new-size-3009d7560f681644 = 新尺寸
 ui-new-smart-object-via-copy-5e9e49000e79ae76 = 以拷貝新增智慧型物件
 
 ui-new-style-a7c91bf676fef79e = 新增樣式…
+
+ui-new-swatch-35500735beac1287 = 新增色票…
+
+ui-new-swatch-group-d508820c8747faca = 新增色票群組…
 
 ui-new-type-layer-54492c36fedddb70 = 新增文字圖層
 
@@ -2593,6 +2753,8 @@ ui-no-presets-of-this-type-e63b6fe12705a975 = 沒有此類型的預設集。
 
 ui-no-properties-5e9fb4da28181271 = 沒有內容
 
+ui-no-saved-presets-yet-70f97356610163a1 = 尚無已儲存的預設集。
+
 ui-no-tool-presets-d36fc42f8a32fad0 = 沒有工具預設集。
 
 ui-noise-abd7cd31052e10cb = 雜訊
@@ -2605,6 +2767,8 @@ ui-normal-63acd193c4316f68 = 正常
 
 ui-normal-tip-a57b8ea3cf7dfb65 = 一般筆尖
 
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = 不是網頁顏色：按一下以使用最接近的網頁顏色
+
 ui-not-in-dictionary-d8ff41d4854e2225 = 不在字典中：
 
 ui-note-tool-875c484cda5ed52f = 註解工具
@@ -2612,6 +2776,8 @@ ui-note-tool-875c484cda5ed52f = 註解工具
 ui-notes-c54c5e311372a994 = 註解
 
 ui-notes-f6acff3081c34a40 = 註解…
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = 現在將選取範圍拖曳到另一個區域
 
 ui-ntsc-colors-320223f7ddebd6fd = NTSC 色彩
 
@@ -2641,6 +2807,8 @@ ui-opacity-b3b2ce99002fac62 = 不透明度：
 
 ui-opacity-jitter-e9730861bc70adf2 = 不透明度快速變換
 
+ui-opacity-threshold-3dbc5455a6a96857 = 不透明度臨界值
+
 ui-open-109cf946d8c85fc3 = 開啟
 
 ui-open-a-document-to-define-variables-52664c82c5fa930a = 請開啟文件以定義變數。
@@ -2657,7 +2825,11 @@ ui-open-documents-as-tabs-498095855e674b1d = 以索引標籤開啟文件
 
 ui-open-feb00cb3f872449d = 開啟…
 
+ui-open-in-camera-raw-c438bf24dab93647 = 在 Camera Raw 中開啟
+
 ui-open-recent-fd5c6c7def1d08a2 = 最近開啟的檔案
+
+ui-open-source-65fefae8d3d63fa4 = 開源
 
 ui-opengl-c155bc2323d0d700 = OpenGL
 
@@ -2677,6 +2849,8 @@ ui-option-click-to-define-a-source-point-to-5b5ee481f271b16b = 按住 Option 並
 
 ui-options-5493ee7052dcf71b = 選項
 
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = 或將 偏好設定 › 效能 › Linux 顯示伺服器 設為 X11：PhotoCraft 之後一律在 XWayland 下啟動。
+
 ui-orange-30b0f96deed67be5 = 橙色
 
 ui-ordinals-55b1c642d8cd83bd = 序數字
@@ -2694,6 +2868,8 @@ ui-other-66741785e8efeb5b = 其他
 ui-other-9d71ccbd3d854465 = 其他…
 
 ui-out-of-gamut-e75871a707c6856c = 超出色域
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = 超出列印色域：按一下以使用最接近的可列印顏色
 
 ui-outer-bevel-7d01a8c0865cf836 = 外斜角
 
@@ -2775,6 +2951,8 @@ ui-path-blur-17d53d9b965cbb17 = 路徑模糊…
 
 ui-path-selection-tool-39aa008c0a0b4e3c = 路徑選取工具
 
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }：路徑不是有效的 Unicode；請重新命名檔案後再開啟。
+
 ui-paths-d61b178bcbc28c11 = 路徑
 
 ui-paths-to-illustrator-7b78c4233ba0c2a5 = 路徑轉 Illustrator…
@@ -2790,6 +2968,10 @@ ui-pattern-overlay-2c00f373e33ea06b = 圖樣覆蓋
 ui-pattern-preview-e36e994295eca6bf = 圖樣預視
 
 ui-pattern-size-8bca37fd672238e4 = 圖樣大小
+
+ui-pattern-stamp-3def986c64c12dcc = 圖案圖章
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = 圖案圖章工具
 
 ui-patterns-1d6dc3afda393884 = 圖樣
 
@@ -2843,6 +3025,10 @@ ui-photomerge-a0b725f6319fdadd = Photomerge…
 
 ui-picas-1e454e45dcd42f55 = 派卡
 
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = 選取螢幕像素或按 Esc 取消
+
+ui-pick-screen-color-b1eefd560cdcf751 = 選取螢幕顏色
+
 ui-picture-frame-cd0cafd49c6db476 = 相框…
 
 ui-pillow-emboss-544b918b74b575a5 = 枕狀浮雕
@@ -2895,6 +3081,8 @@ ui-plug-ins-2eee7753de7072ae = 增效模組…
 
 ui-png-96c6af7e141c41aa = PNG
 
+ui-point-sample-10f1da74f87660f7 = 取樣點
+
 ui-point-size-5970a5e09d9eb10c = 點大小
 
 ui-pointillize-e5acd49400517880 = 點狀化…
@@ -2939,6 +3127,8 @@ ui-preserve-details-deace1e3bdc77b51 = 保留細節
 
 ui-preserve-luminosity-5f89a70110304460 = 保留明度
 
+ui-preserve-transparency-ec3f87e2963c04bb = 保留透明區域
+
 ui-preset-1b0ab5e5f92d1576 = 預設集：
 
 ui-preset-8682ad9e3f8afd88 = 預設集
@@ -2946,6 +3136,8 @@ ui-preset-8682ad9e3f8afd88 = 預設集
 ui-preset-details-fe13485ede717ede = 預設集詳細資料
 
 ui-preset-manager-6c6eb4dfeb15b971 = 預設集管理員…
+
+ui-preset-name-a0b4d9aa9b88ec7b = 預設集名稱
 
 ui-preset-type-32c84557b4de0f10 = 預設集類型
 
@@ -3026,6 +3218,8 @@ ui-proximity-match-f0257a471ff21229 = 鄰近符合
 ui-psd-9722d07e146ad86a = PSD
 
 ui-pulled-string-mode-d7af51e1cb413a79 = 拉線模式
+
+ui-pupil-size-a21b8b198e346afe = 瞳孔大小
 
 ui-puppet-warp-42fd3ea1b1bd5e75 = 操控彎曲
 
@@ -3117,6 +3311,10 @@ ui-rectangular-marquee-tool-68c135809033d309 = 矩形選取畫面工具
 
 ui-red-88116e7e0c857056 = 紅色
 
+ui-red-eye-96b14bb055bf9143 = 紅眼
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = 紅眼工具
+
 ui-redefine-style-by-current-selection-49d130f0e168560a = 依目前選取項目重新定義樣式
 
 ui-redo-bb0ef92f46bdb0db = 重做
@@ -3130,6 +3328,8 @@ ui-reflected-5a58ced77d64b0ed = 反射
 ui-reflected-gradient-6c5e3c479dbe643b = 反射性漸層
 
 ui-registration-marks-3a37216f2ea991e4 = 對齊標記
+
+ui-regular-182bf85491dfe61c = 常規
 
 ui-regular-919edb23c43e78f9 = 標準
 
@@ -3195,11 +3395,15 @@ ui-replace-contents-9ff6031ca8edd123 = 取代內容…
 
 ui-replace-footage-c9fc761dd7955682 = 取代素材…
 
+ui-replace-swatches-22ed7dc765dad82d = 取代色票…
+
 ui-report-an-issue-4db5116de1dae62d = 回報問題…
 
 ui-resample-13091491b016ab24 = 重新取樣
 
 ui-reselect-8b42ed709f761c0e = 重新選取
+
+ui-reset-28450354f52cb7ae = 重設
 
 ui-reset-alignment-de99ce443912a85f = 重設對齊
 
@@ -3209,6 +3413,8 @@ ui-reset-gpu-backend-c242574510e63df8 = 重設 GPU 後端
 
 ui-reset-section-1555592178eaa045 = 重設區段
 
+ui-reset-swatches-99689ab8ada5eb9a = 重設色票
+
 ui-reset-the-brush-to-the-defaults-665697e36177d7c5 = 將筆刷重設為預設值
 
 ui-reset-to-default-dd87022c4b5251b6 = 重設為預設
@@ -3216,6 +3422,8 @@ ui-reset-to-default-dd87022c4b5251b6 = 重設為預設
 ui-reset-to-defaults-122368e92de6e29f = 重設為預設值
 
 ui-reset-transform-c6a67438b8b36cb2 = 重設變形
+
+ui-reset-view-c0bdf39ad3792a63 = 重設檢視
 
 ui-reset-workspace-d7c759652b7ff2db = 重設工作區
 
@@ -3285,6 +3493,10 @@ ui-rotate-90-clockwise-6d6765d354cdf40d = 順時針旋轉 90°
 
 ui-rotate-90-counter-clockwise-dfd03fea27330629 = 逆時針旋轉 90°
 
+ui-rotate-view-db81b0d3c1a858dd = 旋轉檢視
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = 旋轉檢視工具
+
 ui-rotate-view-with-trackpad-3c15038ce738e009 = 以觸控板旋轉檢視
 
 ui-rotation-b6243111448bc781 = 旋轉
@@ -3297,6 +3509,8 @@ ui-roundness-6a42c9613dbb06d8 = 圓度：
 
 ui-roundness-jitter-b4200a8afa26003c = 圓度快速變換
 
+ui-rule-of-thirds-a9efcd425580c820 = 三等分
+
 ui-ruler-tool-5ffeee07041b5b45 = 尺標工具
 
 ui-rulers-2b9b8e7aabe7e62e = 尺標
@@ -3305,11 +3519,15 @@ ui-rulers-grids-9cd93d2b76f5663d = 尺標與格點
 
 ui-same-folder-66e0883669b7042f = 同一資料夾
 
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = 在螢幕任意位置取樣像素
+
 ui-sample-all-layers-fd67756ff1544318 = 取樣全部圖層
 
 ui-sample-bd8090f687415b75 = 取樣：
 
 ui-sample-foreground-colour-801c387e6c80ec96 = 取樣：前景色
+
+ui-sample-size-84705069550bbf3c = 取樣大小：
 
 ui-sampled-colors-1f5ee4fbce9c06e5 = 取樣的顏色
 
@@ -3353,9 +3571,13 @@ ui-save-in-background-5b7c5c7e1adad12f = 在背景儲存
 
 ui-save-pixel-aspect-ratio-e5a86b374fc86001 = 儲存像素外觀比例
 
+ui-save-preset-2328ef2728084c33 = 儲存預設…
+
 ui-save-selection-8e7ebec6daa582b4 = 儲存選取範圍…
 
 ui-save-selection-as-channel-096dcaa2c6049ae3 = 將選取範圍儲存為色版
+
+ui-saved-5eaa631947aa180a = 已儲存
 
 ui-scale-5453592a5af14dff = 縮放
 
@@ -3366,6 +3588,8 @@ ui-scale-to-fit-media-8d19640c9604eb6f = 縮放以符合媒體
 ui-scatter-0083f819f7085cc3 = 散佈
 
 ui-scattering-0fbe477093686f35 = 散佈
+
+ui-scope-8765632a779d5bdd = 範圍
 
 ui-scratch-disks-5b9608a9904fb227 = 暫存磁碟…
 
@@ -3387,7 +3611,11 @@ ui-script-events-manager-9b68ea8921c19d4a = 指令碼事件管理員…
 
 ui-scripts-98ffef4200bb8b61 = 指令碼
 
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = 捲動以縮放
+
 ui-scrubby-slider-acceleration-4df9378eec0d56f0 = 擦洗式滑桿加速
+
+ui-seafoam-ebe537921cc90f2b = 海沫色
 
 ui-search-308efd5af041d729 = 搜尋…
 
@@ -3431,9 +3659,13 @@ ui-select-text-to-apply-a-character-style-7b4786ca1b3b0a6e = 選取文字以套�
 
 ui-select-top-layer-c7f72dd94f5c4dd9 = 選取最上層圖層
 
+ui-selected-3ee82e06f8c5ee8e = 已選取
+
 ui-selection-89b473d8a650a4cb = 選取範圍
 
 ui-selection-edges-10f0b5fc33c11b21 = 選取範圍邊緣
+
+ui-selection-preview-a4f0a0102c940143 = 選取範圍預視：
 
 ui-selections-4e4591229b07e4a8 = 選取範圍
 
@@ -3444,6 +3676,8 @@ ui-selective-color-45e0a6dc7bb0a040 = 選取顏色…
 ui-selective-color-68c4fe8ed142ab94 = 選取顏色
 
 ui-semibold-44807ca6c9eff932 = 半粗體
+
+ui-semibold-f43621cc0429d1c1 = 半粗
 
 ui-send-backward-d37960b7d2f8771e = 後移
 
@@ -3457,9 +3691,13 @@ ui-set-additional-smoothing-options-99f0aaea54a2e922 = 設定其他平滑化選�
 
 ui-set-background-color-876066fdd53af1ec = 設定背景色
 
+ui-set-black-point-3a2fd412fb7bf324 = 設定黑點
+
 ui-set-foreground-color-ab148f6fba123d15 = 設定前景色
 
 ui-set-measurement-scale-4b8d433a1e169e29 = 設定測量比例…
+
+ui-set-neutral-gray-point-80347a56d69ad333 = 設定中性灰點
 
 ui-set-painting-symmetry-options-8e98ad5d74801895 = 設定繪畫對稱選項
 
@@ -3467,7 +3705,11 @@ ui-set-shape-fill-type-219ecb592293d193 = 設定形狀填滿類型
 
 ui-set-shape-stroke-type-a38ffaf96d142f94 = 設定形狀筆畫類型
 
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = 設定裁切工具的覆蓋選項
+
 ui-set-the-text-color-cb86a3068f3cd2c6 = 設定文字顏色
+
+ui-set-white-point-526c42ac4bcf95ae = 設定白點
 
 ui-settings-cf6eec6fc8e57e62 = 設定…
 
@@ -3539,6 +3781,10 @@ ui-show-font-names-in-english-61d1f0cd73a666f2 = 以英文顯示字體名稱
 
 ui-show-guides-42fe99c6ca434d17 = 顯示參考線
 
+ui-show-hide-all-panels-240e4d824315700b = 顯示/隱藏所有面板
+
+ui-show-hide-panels-f43db26049aad092 = 顯示/隱藏面板
+
 ui-show-lab-color-readouts-3667678fd9563967 = 顯示 Lab 色彩讀值
 
 ui-show-mask-bb7af932dfbcbc66 = 顯示遮色片
@@ -3554,6 +3800,8 @@ ui-show-or-hide-the-notes-panel-bcab173de052593d = 顯示或隱藏註解面板
 ui-show-overlay-2b962662d8b5b07e = 顯示覆蓋
 
 ui-show-red-at-3-o-clock-9e2376b0aca2f277 = 將紅色顯示在三點鐘方向
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = 顯示取樣環
 
 ui-show-selected-region-b0ccb659eb616a65 = 顯示選取區域
 
@@ -3584,6 +3832,8 @@ ui-size-16021b2387e0b7d6 = 大小
 ui-size-464c095fe2d88604 = 大小：
 
 ui-size-jitter-930feff1bfab4a70 = 大小快速變換
+
+ui-size-was-old-41f38564856f8aff = { $size }（原為 { $old }）
 
 ui-skew-24d96b238f94890d = 傾斜
 
@@ -3805,11 +4055,15 @@ ui-switch-theme-0b4c282fc8089a4a = 切換主題
 
 ui-switched-to-cpu-rendering-266cbbc4f8316341 = 已改用 CPU 渲染
 
+ui-symmetry-off-f51a8e00f2b6ab64 = 關閉對稱
+
 ui-system-cb0a7d2969f9fa5e = 系統
 
 ui-system-info-2b64529f1a15bad2 = 系統資訊…
 
 ui-system-info-b9782be2507c2422 = 系統資訊
+
+ui-system-title-bar-b81774202f7af861 = 系統標題列
 
 ui-table-e0f5d309b0015c11 = 表格
 
@@ -3837,15 +4091,21 @@ ui-texture-each-tip-13b3a9738709601a = 為每個筆尖套用紋理
 
 ui-the-current-gradient-pick-one-in-window-g-98e4325b38ed895f = 目前的漸層 (請在 視窗 › 漸層 挑選)
 
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = 未使用 GPU 合成器：{ $reason }
+
 ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = 文件像素、嵌入資料與復原歷程共用記憶體上限。記憶體依需求增加；應用程式的其他記憶體另行使用。
 
 ui-theme-dd3b8e572fff4d90 = 主題
 
 ui-these-settings-aren-t-available-in-photo-62584644c52c9f5a = 這些設定在 PhotoCraft 中尚未提供。
 
+ui-thin-24348b0f6db9a923 = 極細
+
 ui-thin-c145211da00c0a28 = 極細
 
 ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = 瀏覽器版將復原歷程保存在記憶體中。暫存磁碟設定適用於桌面應用程式。
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = 此次 CPU 重繪耗時 { $seconds } 秒。
 
 ui-threshold-37814356fd67177a = 臨界值…
 
@@ -3883,6 +4143,8 @@ ui-tiny-b98ce71d9bf0fc91 = 極小
 
 ui-titling-alternates-e71af003a54be91f = 標題替代字
 
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = 若要拖放檔案，請在 XWayland 下啟動 PhotoCraft：`{ $command }`
+
 ui-toggle-count-group-visibility-a8b8977f8cce2fd1 = 切換計算群組可見度
 
 ui-toggle-last-state-2bcc1769eddf4498 = 切換最後狀態
@@ -3915,6 +4177,10 @@ ui-top-7622187e02308d3e = 上
 
 ui-top-edges-98f1a227efff9ac0 = 頂端邊緣
 
+ui-top-left-35db253aba562917 = 左上
+
+ui-top-right-9a12cffd0398f888 = 右上
+
 ui-total-1879317f42087d47 = 總計：
 
 ui-touch-gestures-45c4b4b0d4e2cad2 = 觸控手勢
@@ -3935,17 +4201,23 @@ ui-transform-again-on-a-copy-6551fe558ac26832 = 複製並再次變形
 
 ui-transform-selection-7fd8ab33590e86b7 = 變形選取範圍
 
+ui-transform-symmetry-308ef5a329d1f431 = 變形對稱軸
+
 ui-transparency-eb207d2209c87129 = 透明度
 
 ui-transparency-gamut-95fb3030d7d6ee09 = 透明和色域
 
 ui-transparency-gamut-ffad1074b11dfbff = 透明和色域…
 
+ui-transparency-threshold-d681456c819197c6 = 透明度臨界值
+
 ui-transparent-a757aaf321914e7b = 透明
 
 ui-trap-6caa6b7e5fcbd054 = 補漏白…
 
 ui-tree-773807562a90937d = 樹…
+
+ui-triangle-2af10d61da454203 = 三角形
 
 ui-triangle-tool-6e94c7252b8d1d2b = 三角形工具
 
@@ -3974,6 +4246,8 @@ ui-uhd-4k-portrait-d52f839571d5640a = UHD 4K 直式
 ui-ui-font-size-50259308b290514b = 介面字體大小
 
 ui-ui-scale-1e1a04f2617db42f = 介面縮放
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = 此色彩模式無法使用
 
 ui-underline-9197a0635d04a901 = 底線
 
@@ -4023,7 +4297,7 @@ ui-use-default-2576facc5f89bb0f = 使用預設值
 
 ui-use-esc-to-commit-e1598c8a658934e5 = 使用 Esc 確認
 
-ui-use-file-open-to-open-an-image-2bbc42fe3569238f = 使用「檔案 › 開啟」開啟影像。
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = 請使用「檔案 › 開啟」，或使用 { $paste } 貼上複製的影像。
 
 ui-use-global-light-66eb87d40446c5c1 = 使用全域光
 
@@ -4042,6 +4316,8 @@ ui-use-tablet-pressure-00db4939c100804d = 使用繪圖板壓力
 ui-use-tablet-pressure-to-change-pen-width-f9e994c47450ebe5 = 使用繪圖板壓力以變更鋼筆寬度
 
 ui-use-the-embedded-profile-instead-of-the-w-b02d078da80fffa8 = 使用內嵌描述檔 (而非工作空間)
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = 使用觸控板壓力
 
 ui-username-a61beb67a6f8b107 = 使用者名稱
 
@@ -4095,6 +4371,8 @@ ui-view-options-b92a3701e2c81690 = 檢視選項
 
 ui-vignetting-fb47c91b049cbe4a = 暈影
 
+ui-violet-2882bc397b2e28dc = 紫羅蘭色
+
 ui-violet-orange-8d5548d2947ea07a = 紫色、橙色
 
 ui-visibility-9c5e3cc2b47c1d7b = 可見度
@@ -4143,6 +4421,8 @@ ui-white-balance-as-shot-7a2ad0385cd5067e = 白平衡：原始拍攝
 
 ui-white-bed13266c4c1f028 = 白色
 
+ui-white-matte-93f44761248dcc3d = 白色背景
+
 ui-whites-f640782b80ec9b72 = 白色色階
 
 ui-whites-ff68ffa0558b6aa1 = 白色
@@ -4182,6 +4462,8 @@ ui-workspace-654419423126d8e4 = 工作區
 ui-workspace-807fbd6866246d70 = 工作區…
 
 ui-world-ready-3d73486af33f4936 = 全球通用
+
+ui-x11-52a9397deddd2397 = X11
 
 ui-yellow-blue-cbeeae4c68dac970 = 黃色  ·  藍色
 

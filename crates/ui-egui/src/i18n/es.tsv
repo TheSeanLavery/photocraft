@@ -17,6 +17,12 @@
 	Layer	Capa
 	Type	Texto
 	Select	Selección
+	Selected	Seleccionadas
+	Scope	Alcance
+	Top Left	Superior izquierda
+	Top Right	Superior derecha
+	Bottom Left	Inferior izquierda
+	Bottom Right	Inferior derecha
 	Filter	Filtro
 	View	Ver
 	Window	Ventana
@@ -975,11 +981,14 @@
 	Draw with the Pen tool (P) or make a work path from a selection.	Dibuja con la herramienta Pluma (P) o crea un trazado de trabajo a partir de una selección.
 	Drop an image or PSD anywhere to open it.	Suelte una imagen o un PSD en cualquier lugar para abrirlo.
 	Native file drag-and-drop is unavailable	El arrastrar y soltar archivos de forma nativa no está disponible en Wayland
-	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or run PhotoCraft under XWayland with `WAYLAND_DISPLAY= photocraft`.	El arrastrar y soltar archivos de forma nativa aún no está disponible en Wayland. Usa Archivo › Abrir o ejecuta PhotoCraft bajo XWayland con `WAYLAND_DISPLAY= photocraft`.
+	Native file drag-and-drop is not supported on Wayland yet. Use File › Open, or copy the image in your file manager and paste it with {paste}.	El arrastrar y soltar archivos de forma nativa aún no está disponible en Wayland. Usa Archivo › Abrir, o copia la imagen en tu gestor de archivos y pégala con {paste}.
+	To drop files, start PhotoCraft under XWayland: `{command}`	Para soltar archivos, inicia PhotoCraft bajo XWayland: `{command}`
+	Or set Preferences › Performance › Linux display server to X11: PhotoCraft then always starts under XWayland.	O establece Preferencias › Rendimiento › Servidor de pantalla de Linux en X11: PhotoCraft se iniciará siempre bajo XWayland.
+	Edit › Paste	Edición › Pegar
 	Duplicate Layers…	Duplicar capas…
 	Duplicate style	Duplicar estilo
 	Edit Toolbar…	Editar barra de herramientas…
-	Use File › Open to open an image.	Usa Archivo › Abrir para abrir una imagen.
+	Use File › Open, or paste a copied image with {paste}.	Usa Archivo › Abrir, o pega una imagen copiada con {paste}.
 	Edit in Quick Mask Mode  (Q)	Editar en modo de máscara rápida  (Q)
 	Edit in Standard Mode  (Q)	Editar en modo estándar  (Q)
 	Effects	Efectos
@@ -1014,6 +1023,7 @@
 	Fisheye	Ojo de pez
 	Fit	Encajar
 	Fit Screen	Encajar en pantalla
+	Fill Screen	Rellenar pantalla
 	Fit in View	Encajar en la vista
 	Fixed	Fijo
 	Fixed Ratio	Relación fija
@@ -1342,6 +1352,7 @@
 	Set background color	Establecer el color de fondo
 	Set foreground color	Establecer el color frontal
 	Set painting symmetry options	Establecer opciones de simetría de pintura
+	Symmetry Off	Simetría desactivada
 	Set shape fill type	Establecer el tipo de relleno de la forma
 	Set shape stroke type	Establecer el tipo de trazo de la forma
 	Set the text color	Establecer el color del texto
@@ -1383,6 +1394,8 @@
 	Stroke	Trazo
 	Stroke Catch-up	Poner al día del trazo
 	Stroke:	Trazo:
+	Location	Ubicación
+	Location:	Ubicación:
 	Style	Estilo
 	Style Options	Opciones de estilo
 	Style Options…	Opciones de estilo…
@@ -1461,6 +1474,9 @@
 	↑↓ navigate   {key} run   esc close	↑↓ navegar   {key} ejecutar   esc cerrar
 	Version {version}	Versión {version}
 	New Document	Documento nuevo
+	Save Preset…	Guardar ajuste preestablecido…
+	Preset Name	Nombre del ajuste preestablecido
+	No saved presets yet.	Todavía no hay ajustes preestablecidos guardados.
 	Error	Error
 	Command	Comando
 
@@ -1801,12 +1817,14 @@
 	Maximize psd compatibility	Maximizar la compatibilidad de PSD
 	Medium gray	Gris medio
 	Memory usage mb	Uso de memoria (MB)
+	Low resolution previews	Previsualizaciones de baja resolución
 	Missing glyph protection	Protección de glifos faltantes
 	Modern	Moderno
 	Nearest neighbor	Vecino más cercano
 	Never	Nunca
 	Normal tip	Punta normal
 	Open as smart object	Abrir como objeto inteligente
+	Open in camera raw	Abrir en Camera Raw
 	Open documents as tabs	Abrir los documentos como pestañas
 	Overscroll	Sobredesplazamiento
 	Performance	Rendimiento
@@ -1844,6 +1862,7 @@
 	Show slice numbers	Mostrar los números de sección
 	Show tooltips	Mostrar las descripciones emergentes
 	Show bounding box when dragging layer	Mostrar el cuadro delimitador al arrastrar la capa
+	System title bar	Barra de título del sistema
 	Show transformation values	Mostrar los valores de transformación
 	Slice color	Color de las secciones
 	Smart guide color	Color de las guías inteligentes
@@ -1927,6 +1946,7 @@
 	System Info…	Información del sistema…
 	System Info	Información del sistema
 	More panels	Más paneles
+	More documents	Más documentos
 	These settings aren't available in PhotoCraft yet.	Estos ajustes aún no están disponibles en PhotoCraft.
 	Graphics	Gráficos
 	Reset GPU Backend	Restablecer el backend de GPU
@@ -1955,6 +1975,8 @@
 	Brush Settings…  (F5): every option of this brush	Ajustes del pincel…  (F5): todas las opciones de este pincel
 	Rename Brush…	Cambiar el nombre del pincel…
 	Delete Brush	Eliminar pincel
+	New Brush Preset…	Nuevo preajuste de pincel…
+	Brush Preset Options	Opciones de preajustes de pincel
 	Group name	Nombre del grupo
 	Brush name	Nombre del pincel
 	Grid view	Vista de cuadrícula
@@ -1996,6 +2018,8 @@
 	CPU (no GPU acceleration)	CPU (sin aceleración por GPU)
 	DirectX 12	DirectX 12
 	GPU backend	Backend de GPU
+	Linux display server	Servidor de pantalla de Linux
+	X11	X11
 	Metal	Metal
 	OpenGL	OpenGL
 	Use tablet pressure	Usar la presión de la tableta
@@ -2004,6 +2028,7 @@
 	No path to make a selection from: draw one with the Pen tool or select one in the Paths panel.	No hay ningún trazado para crear una selección: dibuje uno con la herramienta Pluma o seleccione uno en el panel Trazados.
 	Cancel opening	Cancelar apertura
 	Cancelled opening {name}	Se canceló la apertura de {name}
+	Developing {name}	Revelando {name}
 	Cancelled {label}	Se canceló {label}
 	Esc to cancel	Esc para cancelar
 	Opening {name}	Abriendo {name}
@@ -2073,7 +2098,7 @@
 	Pixel	Píxel
 	Adjustment	Ajuste
 	Drag (lasso) or click points (polygonal) · {add} add · {sub} subtract	Arrastre (lazo) o haga clic en los puntos (poligonal) · {add} añadir · {sub} restar
-	Drag a crop box · drag inside to move · edges resize ({ratio} ratio, {centre} centre) · Space moves while drawing · {commit} commits · Esc cancels	Arrastre un marco de recorte · arrastre dentro para mover · los bordes cambian el tamaño ({ratio} proporción, {centre} centro) · Espacio mueve mientras dibuja · {commit} aplica · Esc cancela
+	Drag a crop box · drag inside to move · edges resize ({ratio} ratio, {centre} centre) · Space moves while drawing · arrows nudge · X swaps orientation · {commit} commits · Esc cancels	Arrastre un marco de recorte · arrastre dentro para mover · los bordes cambian el tamaño ({ratio} proporción, {centre} centro) · Espacio mueve mientras dibuja · flechas desplazan · X cambia orientación · {commit} aplica · Esc cancela
 	{mode} Color · {bits} bit	Color {mode} · {bits} bits
 	Scrubby Zoom	Zoom por arrastre
 	Auto Erase	Borrado automático
@@ -2128,6 +2153,7 @@
 cameraRaw	Light	Luz
 # Camera Raw: contextual controls and window title
 	Camera Raw Filter ({layer})	Filtro Camera Raw ({layer})
+	Camera Raw ({name})	Camera Raw ({name})
 cameraRaw	Lights	Tonos claros
 cameraRaw	Darks	Tonos oscuros
 cameraRaw	Red	Rojos
@@ -2145,6 +2171,7 @@ cameraRaw	Amount	Cantidad
 	Patch Tool	Herramienta Parche
 	Patch:	Parche:
 	Lasso around an area, then drag the selection	Rodee un área con el lazo y arrastre la selección
+	Now drag the selection onto another area	Ahora arrastre la selección a otra área
 	Edit Type	Editar texto
 
 
@@ -2173,6 +2200,7 @@ cameraRaw	Amount	Cantidad
 	Magnetic Lasso Tool	Herramienta Lazo magnético
 	Frequency	Frecuencia
 	Use tablet pressure to change pen width	Usar la presión de la tableta para cambiar la anchura del lápiz
+
 
 # About ▸ Contributors / Models (credits, craftrules standards/contributors.md)
 	About	Acerca de
@@ -2205,6 +2233,133 @@ cameraRaw	Amount	Cantidad
 	% of all commits	% de todos los commits
 	Lines +/−	Líneas +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{binAdded} / −{binDeleted} binary assets, {first} – {last}	@{login}: {prs} PR, {commits} commits, +{added} / −{deleted} líneas (Δ {delta}), +{binAdded} / −{binDeleted} archivos binarios, {first} – {last}
+
+# Swatches panel
+	Create new swatch	Crear una muestra nueva
+	New Swatch…	Muestra nueva…
+	New Swatch Group…	Grupo de muestras nuevo…
+	Import Swatches…	Importar muestras…
+	Replace Swatches…	Reemplazar muestras…
+	Export Swatches…	Exportar muestras…
+	Export Swatches for Exchange…	Exportar muestras para intercambio…
+	Reset Swatches	Restablecer muestras
+	Add to Swatches	Añadir a muestras
+# Layer Style > Blending Options (Advanced Blending)
+	Blend If:	Combinar si:
+	Channels:	Canales:
+	Knockout	Cobertura
+	Apply At Canvas Bounds	Aplicar efecto en los límites del lienzo
+
+# Shared screen eyedropper and text Color Picker (#1128).
+	Color Picker (Text Color)	Selector de color (Color del texto)
+	Pick screen color	Elegir color de pantalla
+	Sample a pixel anywhere on the screen	Tomar un píxel en cualquier lugar de la pantalla
+	Click to pick · Esc to cancel	Clic para elegir · Esc para cancelar
+	Pick a screen pixel or press Esc to cancel	Elige un píxel de pantalla o pulsa Esc para cancelar
+	Scroll to zoom	Desplaza para ampliar
+	Show/Hide All Panels	Mostrar/ocultar todos los paneles
+	Show/Hide Panels	Mostrar/ocultar paneles
+	Could not open	No se pudo abrir
+	{path}: the path is not valid Unicode; rename the file and open it again.	{path}: la ruta no es Unicode válido; cambia el nombre del archivo y vuelve a abrirlo.
+
+# Fill dialog, layer style contours and Image Size
+	Contents:	Contenido:
+	Custom Pattern:	Patrón personalizado:
+	Foreground Color	Color frontal
+	Color…	Color…
+	50% Gray	Gris al 50%
+	{size} (was {old})	{size} (antes {old})
+	Cone	Cono
+	Cone (Inverted)	Cono (invertido)
+	Domed	Abovedado
+	Domed (Inverted)	Abovedado (invertido)
+	Diagonal (Descending)	Diagonal (descendente)
+
+	Red Eye Tool	Herramienta Ojos rojos
+	Red Eye	Ojos rojos
+	Pupil Size	Tamaño de pupila
+	Darken Amount	Cantidad de oscurecimiento
+	Click a red pupil to neutralize it	Haga clic en una pupila roja para corregirla
+	open source	código abierto
+	…and {n} more	…y {n} más
+
+	Eyedroppers:	Cuentagotas:
+	Set Black Point	Definir punto negro
+	Set Neutral Gray Point	Definir punto gris neutro
+	Set White Point	Definir punto blanco
+	Unavailable in this color mode	No disponible en este modo de color
+	Selection Preview:	Previsualización de selección:
+	Black Matte	Fondo negro
+	White Matte	Fondo blanco
+
+# Layer colour labels.
+	Seafoam	Espuma de mar
+	Indigo	Índigo
+	Fuchsia	Fucsia
+	Violet	Violeta
+	Reset	Restaurar
+	Large document: redrawing on the CPU	Documento grande: redibujando en la CPU
+	This redraw took {seconds} s on the CPU.	Este redibujado en la CPU tardó {seconds} s.
+	Edits that change the whole document, such as a layer's blend mode, opacity or visibility, redraw all of it.	Las ediciones que cambian todo el documento, como el modo de fusión, la opacidad o la visibilidad de una capa, lo redibujan por completo.
+	Its layers don't fit the GPU memory budget. Raising Memory usage in Preferences › Performance raises the budget, up to a quarter of this computer's memory.	Las capas no caben en el presupuesto de memoria de la GPU. Aumentar Uso de memoria en Preferencias › Rendimiento amplía el presupuesto, hasta una cuarta parte de la memoria de este equipo.
+	The GPU compositor wasn't used: {reason}	No se usó el compositor de GPU: {reason}
+fontWeight	Thin	Ultrafina
+fontWeight	ExtraLight	Extrafina
+fontWeight	Light	Fina
+fontWeight	Regular	Normal
+fontWeight	Medium	Medio
+fontWeight	SemiBold	Seminegrita
+fontWeight	Bold	Negrita
+fontWeight	ExtraBold	Extranegra
+fontWeight	Black	Ultraniegra
+fontWeight	Italic	Cursiva
+
+# Pattern Stamp tool
+	Pattern Stamp Tool	Herramienta Sello de motivo
+	Pattern Stamp	Sello de motivo
+	Impressionist	Impresionista
+	Rotate View	Rotar vista
+	Rotate View Tool	Herramienta Rotar vista
+	Reset View	Restablecer vista
+	Drag around the centre to rotate the view  ·  Shift constrains to 15°	Arrastre alrededor del centro para rotar la vista  ·  Mayús fija a 15°
+
+# Painting symmetry presets.
+	Dual Axis	Doble eje
+	Diagonal	Diagonal
+	Transform Symmetry	Transformar simetría
+
+# Eyedropper Sample Size and Sample (#1649).
+	Point Sample	Muestra puntual
+	3 by 3 Average	Promedio de 3 × 3
+	5 by 5 Average	Promedio de 5 × 5
+	11 by 11 Average	Promedio de 11 × 11
+	31 by 31 Average	Promedio de 31 × 31
+	51 by 51 Average	Promedio de 51 × 51
+	101 by 101 Average	Promedio de 101 × 101
+	Sample Size:	Tamaño de muestra:
+	All Layers No Adjustments	Todas las capas sin ajustes
+	Current & Below No Adjustments	Actual e inferiores sin ajustes
+	Show Sampling Ring	Mostrar anillo de muestreo
+
+# Color Picker warnings
+	Out of gamut for printing: click for the nearest printable colour	Fuera de la gama de impresión: haga clic para el color imprimible más cercano
+	Not a web colour: click for the nearest web colour	No es un color web: haga clic para el color web más cercano
+	Color to Alpha…	Color a alfa…
+	Transparency Threshold	Umbral de transparencia
+	Opacity Threshold	Umbral de opacidad
+	Rule of Thirds	Regla de los tercios
+	Triangle	Triángulo
+	Golden Ratio	Proporción áurea
+	Golden Spiral	Espiral áurea
+	Auto Show Overlay	Mostrar superposición automáticamente
+	Always Show Overlay	Mostrar siempre la superposición
+	Never Show Overlay	No mostrar nunca la superposición
+	Cycle Overlay	Alternar superposición
+	Cycle Orientation	Alternar orientación
+	Set the overlay options for the Crop tool	Definir las opciones de superposición de la herramienta Recortar
+	Alt-click went to the desktop, which moves windows with Alt-drag. Set its window-move key to Super, or latch Alt in Window › Modifier Keys.	El Alt+clic lo recibió el escritorio, que mueve ventanas con Alt+arrastrar. Cambia su tecla para mover ventanas a Super o bloquea Alt en Ventana › Teclas modificadoras.
+
+# Fork integration
 	Shape Operations	Operaciones de forma
 	New Layer	Nueva capa
 	Aspect Ratio	Relación de aspecto
@@ -2214,22 +2369,16 @@ cameraRaw	Amount	Cantidad
 	Full HD Portrait	Full HD vertical
 	QHD 1440p	QHD 1440p
 	UHD 4K Portrait	UHD 4K vertical
-
-# Undo cache budgets
 	Memory budget (MiB)	Límite de memoria (MiB)
 	Undo disk budget (MiB)	Límite de disco para deshacer (MiB)
 	Budget mb	Límite (MiB)
 	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	El límite de memoria se comparte entre los píxeles del documento, los datos incrustados y el historial de deshacer. Crece según se necesita; la demás memoria de la aplicación es adicional.
 	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	El espacio en disco para deshacer crece solo cuando se necesita, hasta este límite. Cero desactiva la caché en disco. Las rutas temporales se aplican a la siguiente sesión de caché.
 	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Esta versión del navegador conserva el historial de deshacer en memoria. Los ajustes de disco temporal se aplican a la aplicación de escritorio.
-
 	HDR Output	Salida HDR
 	HDR Workbench	Banco de trabajo HDR
 	Export SDR Preview…	Exportar vista previa SDR…
-
-# Integrated controls and HDR
 	Click to change columns; drag the title bar to move	Haz clic para cambiar las columnas; arrastra la barra de título para mover
 	Click to change columns; drag to detach Tools	Haz clic para cambiar las columnas; arrastra para separar Herramientas
 	Dock Tools on the left	Acoplar Herramientas a la izquierda
 	Use trackpad pressure	Usar la presión del trackpad
-	Apply At Canvas Bounds	Aplicar efecto en los límites del lienzo

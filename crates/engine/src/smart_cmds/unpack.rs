@@ -160,6 +160,7 @@ pub(super) fn convert_to_layers(s: &mut Session, p: &Value) -> Result<Value> {
     let doc = &st.doc;
     let so = doc.layer(id).ok_or(EngineError::NoLayer(id))?;
     let sm = smart(doc, id)?;
+    super::authorize_source(s, "layer.smartObjects.convertToLayers", &sm.source)?;
     let mut layers = contents(doc, sm, intent, bpc)?;
     place(doc, sm, &mut layers)?;
     let discarded = sm.smart_filters.len();

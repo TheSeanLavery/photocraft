@@ -42,7 +42,7 @@ fn raw_curve_reaches_real_paint_commands_at_all_depths_and_with_smoothing() {
 
 #[test]
 fn raw_stream_keeps_endpoints_and_rejects_ambiguous_or_interrupted_intervals() {
-    let xf = ViewXform { rect: egui::Rect::from_min_max(pos2(0.0, 0.0), pos2(100.0, 100.0)), zoom: 1.0, center: [50.0; 2], flip: false };
+    let xf = ViewXform { rect: egui::Rect::from_min_max(pos2(0.0, 0.0), pos2(100.0, 100.0)), zoom: 1.0, center: [50.0; 2], flip: false, rotation: 0.0 };
     let a = pos2(20.0, 20.0);
     let b = pos2(32.0, 20.0);
     // Replay one stream through the old OS-only route and the added relative-motion route.
@@ -92,7 +92,7 @@ fn raw_stream_keeps_endpoints_and_rejects_ambiguous_or_interrupted_intervals() {
 
 #[test]
 fn wayland_batched_absolute_positions_do_not_compress_a_raw_curve() {
-    let xf = ViewXform { rect: egui::Rect::from_min_max(pos2(0.0, 0.0), pos2(100.0, 100.0)), zoom: 1.0, center: [50.0; 2], flip: false };
+    let xf = ViewXform { rect: egui::Rect::from_min_max(pos2(0.0, 0.0), pos2(100.0, 100.0)), zoom: 1.0, center: [50.0; 2], flip: false, rotation: 0.0 };
     let a = pos2(20.0, 20.0);
     let b = pos2(32.0, 20.0);
     let c = pos2(44.0, 20.0);

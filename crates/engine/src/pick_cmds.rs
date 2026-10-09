@@ -1,6 +1,6 @@
-//! Move tool Auto-Select: pick the topmost visible layer with pixels at a canvas point (Photoshop's
-//! options bar "Auto-Select: Layer | Group", ⌘-click with the Move tool, and the canvas right-click
-//! layer list).
+//! Move tool Auto-Select: pick the topmost visible, not fully locked layer with pixels at a canvas
+//! point (Photoshop's options bar "Auto-Select: Layer | Group", ⌘-click with the Move tool, and the
+//! canvas right-click layer list).
 
 use photocraft_doc::{Document, LayerContent, LayerId};
 use serde_json::{Value, json};
@@ -32,6 +32,17 @@ pub fn layers_at(doc: &Document, x: i32, y: i32) -> Vec<LayerId> {
         }) {
             continue;
         }
+        // An artboard clips its layers to the board (#1531): pixels past its edge aren't shown,
+        // so they can't be picked. The board itself is hit anywhere on it, below its layers
+        // (the walk lists them first), as a Photoshop click on an empty spot selects the board.
+        let board = path.first().and_then(|i| doc.layers.get(*i)).and_then(|t| t.artboard());
+        if board.is_some_and(|a| !a.rect.contains(x, y)) {
+            continue;
+        }
+        if l.artboard().is_some() {
+            out.push(l.id);
+            continue;
+        }
         if matches!(l.content, LayerContent::Group(_) | LayerContent::Adjustment(_)) {
             continue;
         }
@@ -42,9 +53,12 @@ pub fn layers_at(doc: &Document, x: i32, y: i32) -> Vec<LayerId> {
     out
 }
 
-/// The outermost group containing `id` (the layer itself when it isn't in a group).
+/// The outermost group containing `id` (the layer itself when it isn't in a group). An artboard
+/// is not a group here: Group mode stops at the outermost group on the board.
 fn top_group(doc: &Document, id: LayerId) -> LayerId {
-    doc.walk().iter().find(|(_, _, l)| l.id == id).and_then(|(path, _, _)| doc.layer_at(&path[..1])).map_or(id, |l| l.id)
+    let Some((path, _, _)) = doc.walk().into_iter().find(|(_, _, l)| l.id == id) else { return id };
+    let depth = if path.get(..1).and_then(|p| doc.layer_at(p)).is_some_and(|t| t.artboard().is_some()) { 2 } else { 1 };
+    path.get(..depth).and_then(|p| doc.layer_at(p)).map_or(id, |l| l.id)
 }
 
 fn pick(s: &mut Session, p: &Value) -> Result<Value> {
@@ -56,7 +70,9 @@ fn pick(s: &mut Session, p: &Value) -> Result<Value> {
         let names: Vec<Value> = hits.iter().filter_map(|id| doc.layer(*id)).map(|l| json!({"layer": l.id.0, "name": l.name})).collect();
         return Ok(json!({ "layers": names }));
     }
-    let Some(&hit) = hits.first() else { return Ok(json!({ "layer": null })) };
+    // Like Photoshop, Auto-Select clicks through a fully locked layer (its own Lock All or a
+    // locked group's) to the layer under it (#1641). The right-click list above still shows it.
+    let Some(&hit) = hits.iter().find(|id| !doc.effective_locks(**id).all) else { return Ok(json!({ "layer": null })) };
     let target = if p.get("target").and_then(Value::as_str) == Some("group") { top_group(&doc, hit) } else { hit };
     if p.get("select").and_then(Value::as_bool).unwrap_or(true) {
         let mode = p.get("mode").and_then(Value::as_str).unwrap_or("replace");
