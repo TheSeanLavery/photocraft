@@ -74,6 +74,20 @@ fn move_group_reorders() {
     assert_eq!(l.order()[0], Group::Color);
 }
 
+#[test]
+fn detached_panel_rect_persists_and_bad_geometry_is_rejected() {
+    let mut layout = DockLayout::default();
+    layout.detach(Group::Layers, Pos2::new(42.0, 77.0));
+    assert_eq!(layout.float_rect(Group::Layers).unwrap().min, Pos2::new(42.0, 77.0));
+    let json = serde_json::to_value(&layout).unwrap();
+    let restored: DockLayout = serde_json::from_value(json).unwrap();
+    assert_eq!(restored.float_rect(Group::Layers), layout.float_rect(Group::Layers));
+    layout.floating.insert(Group::Color, [f32::NAN, 1.0, 300.0, 250.0]);
+    assert!(layout.float_rect(Group::Color).is_none());
+    layout.dock(Group::Layers);
+    assert!(layout.float_rect(Group::Layers).is_none());
+}
+
 fn app_with_layers() -> (PhotocraftApp, photocraft_doc::LayerId, photocraft_doc::LayerId) {
     let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
     app.run("file.new", json!({"width": 200, "height": 150})).unwrap();
@@ -267,6 +281,34 @@ fn double_clicking_a_tab_collapses_and_dragging_a_strip_reorders() {
     let layers = rect_of(&h, Group::Layers);
     drag(&mut h, Pos2::new(layers.right() - 60.0, layers.top() + 13.0), Pos2::new(layers.right() - 60.0, 790.0));
     assert_eq!(h.state().ui.dock.order().first(), Some(&Group::Layers));
+}
+
+#[test]
+fn dragging_group_out_of_dock_detaches_it_without_losing_tabs() {
+    let (app, _, _) = app_with_layers();
+    let mut h = harness(app, vec2(1200.0, 800.0), ThemeKind::ProMedium);
+    let color = rect_of(&h, Group::Color);
+    let strip = Pos2::new(color.right() - 32.0, color.top() + 13.0);
+    drag(&mut h, strip, Pos2::new(600.0, 200.0));
+    assert!(h.state().ui.dock.float_rect(Group::Color).is_some());
+    assert!(!last_rects(&h.ctx).iter().any(|(g, _)| *g == Group::Color));
+    assert!(h.state().ui.panels.color);
+    h.state_mut().ui.dock.dock(Group::Color);
+    h.run_steps(3);
+    assert!(last_rects(&h.ctx).iter().any(|(g, _)| *g == Group::Color));
+}
+
+#[test]
+fn floating_corner_grip_resizes_the_panel() {
+    let (mut app, _, _) = app_with_layers();
+    app.ui.dock.detach(Group::Color, Pos2::new(220.0, 120.0));
+    let mut h = harness(app, vec2(1200.0, 800.0), ThemeKind::ProMedium);
+    let before = h.state().ui.dock.float_rect(Group::Color).unwrap();
+    let grip = before.right_bottom() - vec2(11.0, 11.0);
+    drag(&mut h, grip, grip + vec2(60.0, 45.0));
+    let after = h.state().ui.dock.float_rect(Group::Color).unwrap();
+    assert!(after.width() > before.width(), "corner drag grows width: {before:?} to {after:?}");
+    assert!(after.height() > before.height(), "corner drag grows height: {before:?} to {after:?}");
 }
 
 #[test]
