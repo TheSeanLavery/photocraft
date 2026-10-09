@@ -47,6 +47,33 @@ pub fn prefs_file() -> Option<PathBuf> {
     config_dir().map(|d| d.join("preferences.json"))
 }
 
+fn themes_file() -> Option<PathBuf> {
+    config_dir().map(|d| d.join("Themes").join("library.json"))
+}
+
+fn read_themes(path: &Path) -> Result<Option<String>, String> {
+    use std::io::Read;
+    let file = match std::fs::File::open(path) {
+        Ok(file) => file,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e.to_string()),
+    };
+    let limit = photocraft_ui_egui::themes::MAX_LIBRARY_BYTES;
+    let metadata = file.metadata().map_err(|e| e.to_string())?;
+    if !metadata.is_file() {
+        return Err("theme library must be a regular file".into());
+    }
+    if metadata.len() > limit as u64 {
+        return Err(format!("theme library exceeds {limit} bytes"));
+    }
+    let mut text = String::new();
+    file.take((limit + 1) as u64).read_to_string(&mut text).map_err(|e| e.to_string())?;
+    if text.len() > limit {
+        return Err(format!("theme library exceeds {limit} bytes"));
+    }
+    Ok(Some(text))
+}
+
 /// The brush preset store (one file per preset group plus tip bitmaps; see
 /// `photocraft_engine::preset_store`).
 pub fn presets_dir() -> Option<PathBuf> {
@@ -145,6 +172,8 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         }),
         load_prefs: Some(Box::new(|| std::fs::read_to_string(prefs_file()?).ok())),
         save_prefs: Some(Box::new(|text: &str| write_atomic(&prefs_file().ok_or("no config directory")?, text.as_bytes()))),
+        load_themes: Some(Box::new(|| read_themes(&themes_file().ok_or("no config directory")?))),
+        save_themes: Some(Box::new(|text| write_atomic(&themes_file().ok_or("no config directory")?, text.as_bytes()))),
         // Crash recovery: background incremental .pcraft saves into the recovery directory.
         autosave: Some(Box::new(move |doc: &Arc<Document>, revision: u64, path: Option<&str>| {
             let dir = recovery_dir().ok_or("no config directory")?;
@@ -242,4 +271,24 @@ pub fn export_flat(doc: &Document, path: &str) -> Result<Vec<u8>, String> {
         _ => img,
     };
     photocraft_codecs::encode(&img, format, &EncodeOptions::default()).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod theme_storage_tests {
+    use super::*;
+
+    #[test]
+    fn theme_library_reads_are_bounded_and_missing_storage_is_distinct_from_bad_storage() {
+        let path = std::env::temp_dir().join(format!("photocraft-theme-library-{}-{:?}.json", std::process::id(), std::thread::current().id()));
+        assert_eq!(read_themes(&path).unwrap(), None);
+        write_atomic(&path, br#"{"version":1,"packs":[]}"#).unwrap();
+        assert_eq!(read_themes(&path).unwrap().as_deref(), Some(r#"{"version":1,"packs":[]}"#));
+        let file = std::fs::File::create(&path).unwrap();
+        file.set_len((photocraft_ui_egui::themes::MAX_LIBRARY_BYTES + 1) as u64).unwrap();
+        assert!(read_themes(&path).is_err());
+        drop(file);
+        std::fs::write(&path, [0xff, 0xfe]).unwrap();
+        assert!(read_themes(&path).is_err());
+        std::fs::remove_file(path).unwrap();
+    }
 }

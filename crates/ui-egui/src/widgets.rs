@@ -384,11 +384,15 @@ pub fn hue_stops() -> Vec<Color32> {
 
 /// A compact labelled dropdown in the studio style.
 pub fn dropdown<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, options: &[(T, &str)], width: f32) -> bool {
+    let t = Tokens::get(ui.ctx());
     let label = options.iter().find(|(v, _)| v == current).map(|(_, l)| tl!(l)).unwrap_or("—");
     let mut changed = false;
     egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon).show_ui(ui, |ui| {
         for (v, l) in options {
-            if ui.selectable_label(v == current, tl!(l)).clicked() {
+            let selected = v == current;
+            let text = egui::RichText::new(tl!(l));
+            let text = if selected && t.bevel { text.color(t.accent_text) } else { text };
+            if ui.selectable_label(selected, text).clicked() {
                 *current = v.clone();
                 changed = true;
             }
@@ -465,6 +469,32 @@ pub fn fmt_num2(v: f64) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn classic_dropdown_selected_text_uses_the_runtime_selection_color() {
+        use egui_kittest::kittest::Queryable;
+        let resolved = crate::theme_pack::ThemePack::parse(r##"{"version":1,"id":"test","name":"Test","base":"classic","colors":{"accent_text":"#E9F0FA"}}"##)
+            .unwrap()
+            .resolve()
+            .unwrap();
+        let mut current = 0;
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(320.0, 240.0)).build_ui(move |ui| {
+            resolved.apply(ui.ctx());
+            super::dropdown(ui, "selection-color", &mut current, &[(0, "Selected Entry"), (1, "Other Entry")], 200.0);
+        });
+        h.run_steps(2);
+        h.get_by_value("Selected Entry").click();
+        h.run_steps(2);
+        assert!(
+            h.output().shapes.iter().any(|clipped| match &clipped.shape {
+                egui::epaint::Shape::Text(text) =>
+                    text.galley.job.text == "Selected Entry"
+                        && text.galley.job.sections.iter().any(|section| section.format.color == egui::Color32::from_rgb(233, 240, 250)),
+                _ => false,
+            }),
+            "selected popup glyphs must use the configured foreground rather than black"
+        );
+    }
+
     #[test]
     fn two_decimal_numbers_trim_zeros() {
         assert_eq!(super::fmt_num2(1.05), "1.05");

@@ -1990,3 +1990,12 @@
 	Details	Detalles
 
 	Rendering mode	Modo de renderizado
+
+# Runtime theme library
+	List Themes	Lista de temas
+	Theme Details	Detalles del tema
+	Select Theme	Seleccionar tema
+	Import Theme…	Importar tema…
+	Export Theme…	Exportar tema…
+	Remove Theme	Eliminar tema
+	Theme id	ID del tema

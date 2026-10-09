@@ -50,6 +50,12 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("window.theme.studio", "Studio Theme", &["Window", "Theme"], None),
     ("window.theme.studioLight", "Studio Light Theme", &["Window", "Theme"], None),
     ("window.theme.classic", "Classic Theme", &["Window", "Theme"], None),
+    ("window.theme.list", "List Themes", &[], None),
+    ("window.theme.get", "Theme Details", &[], None),
+    ("window.theme.select", "Select Theme", &[], None),
+    ("window.theme.import", "Import Theme…", &[], None),
+    ("window.theme.export", "Export Theme…", &[], None),
+    ("window.theme.remove", "Remove Theme", &[], None),
     ("edit.search", "Search…", &["Edit"], Some("Cmd+K")),
     ("help.discord", "Join the ArtCraft Discord…", &["Help"], None),
     ("help.website", "PhotoCraft Website", &["Help"], None),
@@ -283,6 +289,7 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
             app.set_theme(ctx, k);
             Ok(Value::Null)
         }
+        id if id.starts_with("window.theme.") => crate::themes::command(app, ctx, id.trim_start_matches("window.theme."), &params),
         "edit.search" => {
             app.ui.palette_open = !app.ui.palette_open;
             Ok(Value::Null)

@@ -24,7 +24,6 @@ use crate::theme::{ThemeKind, Tokens};
 pub struct Runtime {
     loaded: bool,
     saved_rev: u64,
-    theme_pref: Option<Theme>,
     next_autosave_ms: f64,
     autosaved: HashMap<DocId, u64>,
     log_len: usize,
@@ -67,7 +66,7 @@ pub fn pasteboard_color(app: &PhotocraftApp) -> Option<Color32> {
     })
 }
 
-fn theme_kind(t: Theme) -> ThemeKind {
+pub(crate) fn theme_kind(t: Theme) -> ThemeKind {
     match t {
         Theme::Pro => ThemeKind::Pro,
         Theme::ProMedium => ThemeKind::ProMedium,
@@ -77,7 +76,7 @@ fn theme_kind(t: Theme) -> ThemeKind {
     }
 }
 
-fn theme_pref(k: ThemeKind) -> Theme {
+pub(crate) fn theme_pref(k: ThemeKind) -> Theme {
     match k {
         ThemeKind::Pro => Theme::Pro,
         ThemeKind::ProMedium => Theme::ProMedium,
@@ -100,6 +99,12 @@ pub fn load(app: &mut PhotocraftApp) {
         && let Err(e) = app.session.load_prefs_json(&text)
     {
         app.ui.status = format!("Preferences were reset: {e}");
+    }
+    // Normalize before recording the loaded revision or opening a preferences draft.
+    // Migration must not look like a user edit or cause a redundant save on the first frame.
+    if app.session.prefs().interface.theme_id.is_empty() {
+        let id = theme_kind(app.session.prefs().interface.theme).id();
+        app.session.prefs.edit(|p| p.interface.theme_id = id.into());
     }
     crate::dock::restore(app);
     app.sync_recent();
@@ -187,19 +192,7 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
         load(app);
     }
     sync_display_scale(app, ctx);
-    // Interface theme: a preference change applies to the UI; a theme picked from the Window
-    // menu is stored as the preference.
-    let pref = app.session.prefs().interface.theme;
-    if app.prefs_rt.theme_pref != Some(pref) {
-        app.prefs_rt.theme_pref = Some(pref);
-        if app.ui.theme != theme_kind(pref) {
-            app.set_theme(ctx, theme_kind(pref));
-        }
-    } else if theme_pref(app.ui.theme) != pref {
-        let t = theme_pref(app.ui.theme);
-        app.session.prefs.edit(|p| p.interface.theme = t);
-        app.prefs_rt.theme_pref = Some(t);
-    }
+    crate::themes::sync(app, ctx);
     presets_store(app);
     sync_tooltips(app, ctx);
     app.sync_recent();
@@ -611,7 +604,7 @@ pub fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Valu
     match f.get("__prefsui").and_then(Value::as_str).unwrap_or("") {
         "prefs" => {
             f.insert("__gpuInfo".into(), json!(app.perf.gpu_info.lines()));
-            prefs_body(ui, f);
+            prefs_body(ui, f, &app.theme_rt.catalog);
         }
         "shortcuts" => shortcuts_body(app, ui, f),
         "presets" => presets_body(app, ui, f),
@@ -660,7 +653,7 @@ fn color_of(s: &str) -> Color32 {
 }
 
 /// Preferences: section list on the left, the section's settings on the right.
-fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
+fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>, catalog: &crate::themes::Catalog) {
     let t = Tokens::get(ui.ctx());
     let mut section = f.get("section").and_then(Value::as_str).unwrap_or("general").to_string();
     let mut values = f.get("values").cloned().unwrap_or(Value::Null);
@@ -680,7 +673,7 @@ fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                     ui.painter().rect_filled(rect, t.radius_sm, t.hover);
                 }
                 let color = if sel {
-                    t.text
+                    if t.bevel { t.accent_text } else { t.text }
                 } else if empty {
                     t.text_faint
                 } else {
@@ -712,7 +705,7 @@ fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                     ui.add_space(4.0);
                     ui.label(RichText::new(tl!("These settings aren't available in PhotoCraft yet.")).color(t.text_faint));
                 } else if let Some(obj) = values.get_mut(&section).and_then(Value::as_object_mut) {
-                    section_fields(ui, &section, obj, &order, lang);
+                    section_fields(ui, &section, obj, &order, lang, catalog);
                     if section == "performance" {
                         gpu_status_rows(ui, f.get("__gpuInfo"), obj);
                     }
@@ -790,7 +783,7 @@ fn has_visible_fields(values: &Value, section: &str) -> bool {
 
 /// Generic editor for a section's fields: checkboxes, dropdowns for choices, colour swatches,
 /// number fields with the preference's range, text fields.
-fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>, order: &[String], lang: crate::i18n::Lang) {
+fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>, order: &[String], lang: crate::i18n::Lang, catalog: &crate::themes::Catalog) {
     let t = Tokens::get(ui.ctx());
     if section == "performance" {
         rendering_mode_row(ui, obj);
@@ -802,7 +795,10 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
             let path = format!("{section}.{k}");
             // Settings nothing reads yet stay out of the dialog (issue #204); their stored values
             // pass through untouched.
-            if prefs::is_hidden(&path) || (section == "performance" && matches!(k.as_str(), "useGpu" | "gpuBackend" | "renderingMode")) {
+            if path == "interface.themeId"
+                || prefs::is_hidden(&path)
+                || (section == "performance" && matches!(k.as_str(), "useGpu" | "gpuBackend" | "renderingMode"))
+            {
                 continue;
             }
             let v = obj.get(&k).cloned().unwrap_or(Value::Null);
@@ -814,6 +810,29 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
                     let mut b = *b;
                     crate::widgets::checkbox(ui, &mut b, &label);
                     obj.insert(k, json!(b));
+                }
+                Value::String(s) if path == "interface.theme" => {
+                    ui.label(RichText::new(tl!(&label)).color(t.text_dim));
+                    let legacy = Theme::parse(s).unwrap_or_default();
+                    let mut current = obj.get("themeId").and_then(Value::as_str).filter(|id| !id.is_empty()).unwrap_or(theme_kind(legacy).id()).to_string();
+                    // Legacy agents can edit only the enum in a draft. Show that pending
+                    // choice; prefs.set normalizes its stable ID when the draft is applied.
+                    if catalog.get(&current).and_then(|pack| pack.resolve().ok()).is_some_and(|resolved| resolved.tokens.kind != theme_kind(legacy)) {
+                        current = theme_kind(legacy).id().into();
+                    }
+                    let choices: Vec<(String, String)> = catalog
+                        .list()
+                        .into_iter()
+                        .filter_map(|entry| Some((entry.get("id")?.as_str()?.to_string(), entry.get("name")?.as_str()?.to_string())))
+                        .collect();
+                    let pairs: Vec<(String, &str)> = choices.iter().map(|(id, name)| (id.clone(), name.as_str())).collect();
+                    if crate::widgets::dropdown(ui, "pref-theme", &mut current, &pairs, 220.0)
+                        && let Some(pack) = catalog.get(&current)
+                        && let Ok(resolved) = pack.resolve()
+                    {
+                        obj.insert("themeId".into(), json!(current));
+                        obj.insert(k, json!(theme_pref(resolved.tokens.kind).name()));
+                    }
                 }
                 Value::String(s) if path == "interface.language" => {
                     ui.label(RichText::new(tl!(&label)).color(t.text_dim));

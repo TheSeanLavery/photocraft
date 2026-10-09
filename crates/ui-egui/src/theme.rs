@@ -25,6 +25,15 @@ pub enum ThemeKind {
 }
 
 impl ThemeKind {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Pro => "builtin.pro",
+            Self::ProMedium => "builtin.proMedium",
+            Self::Studio => "builtin.studio",
+            Self::StudioLight => "builtin.studioLight",
+            Self::Classic => "builtin.classic",
+        }
+    }
     pub const ALL: [ThemeKind; 5] = [ThemeKind::Pro, ThemeKind::ProMedium, ThemeKind::Studio, ThemeKind::StudioLight, ThemeKind::Classic];
     pub fn label(self) -> &'static str {
         match self {

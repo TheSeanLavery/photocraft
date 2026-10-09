@@ -173,11 +173,14 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
         // Preferences live in the browser's localStorage.
         load_prefs: Some(Box::new(|| local_storage()?.get_item(PREFS_KEY).ok().flatten())),
         save_prefs: Some(Box::new(|text: &str| local_storage().ok_or("no localStorage")?.set_item(PREFS_KEY, text).map_err(|e| format!("{e:?}")))),
+        load_themes: Some(Box::new(|| local_storage().ok_or("no localStorage")?.get_item(THEMES_KEY).map_err(|e| format!("{e:?}")))),
+        save_themes: Some(Box::new(|text| local_storage().ok_or("no localStorage")?.set_item(THEMES_KEY, text).map_err(|e| format!("{e:?}")))),
         ..Default::default()
     }
 }
 
 const PREFS_KEY: &str = "photocraft.preferences";
+const THEMES_KEY: &str = "photocraft.themes";
 
 fn local_storage() -> Option<web_sys::Storage> {
     web_sys::window()?.local_storage().ok().flatten()

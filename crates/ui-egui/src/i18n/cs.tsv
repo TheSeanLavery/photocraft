@@ -2004,3 +2004,12 @@
 	Details	Podrobnosti
 
 	Rendering mode	Režim vykreslování
+
+# Runtime theme library
+	List Themes	Seznam motivů
+	Theme Details	Podrobnosti motivu
+	Select Theme	Vybrat motiv
+	Import Theme…	Importovat motiv…
+	Export Theme…	Exportovat motiv…
+	Remove Theme	Odstranit motiv
+	Theme id	ID motivu

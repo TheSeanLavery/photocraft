@@ -1986,3 +1986,12 @@
 	Details	詳細資訊
 
 	Rendering mode	渲染模式
+
+# Runtime theme library
+	List Themes	主題清單
+	Theme Details	主題詳細資料
+	Select Theme	選取主題
+	Import Theme…	匯入主題…
+	Export Theme…	匯出主題…
+	Remove Theme	移除主題
+	Theme id	主題 ID

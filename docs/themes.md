@@ -70,6 +70,25 @@ Legacy flat token files continue to work. They inherit the currently selected bu
 Legacy numeric keys are `radius_sm`, `radius`, and `radius_lg`; all other keys must be known
 color tokens. Their values undergo the same validation as versioned packs.
 
-The schema and resolved style work on native and WASM targets. The environment-variable file
-adapter is native-only. Theme Manager, browser import/persistence, external theme selection,
+## Saved theme library
+
+Custom packs have stable IDs independent of their display names. Native builds store the
+validated library at `Themes/library.json` beneath the existing configuration directory,
+including portable mode. The web app uses `photocraft.themes` in browser local storage.
+Libraries are limited to 64 custom packs and 4 MiB. Built-in IDs (`builtin.*`) are reserved.
+
+`interface.themeId` stores the selected ID. Existing preferences with only `interface.theme`
+are normalized from that built-in choice during loading. The original enum remains the
+fallback. A missing selected pack uses that fallback, retains the requested ID, and recovers
+if the pack becomes available again. Selecting a legacy enum through `prefs.set` still works.
+
+Preferences → Interface → Theme lists built-ins and imported themes by name. Agent commands
+can import and select packs; see [Control protocol](control-protocol.md). Importing an existing
+ID requires `replace:true`. Failed library saves preserve the in-memory catalog; failed
+selection saves preserve the working appearance and preference. Without platform storage
+services (for example in an offscreen harness), changes are session-only and command responses
+report `persisted:false`.
+
+The environment-variable file adapter is native-only and applies after the selected library
+theme as an explicit live override. Theme Manager, browser file-picker import/download,
 historical widget styles and font selection are subsequent parts of the theme-engine work.

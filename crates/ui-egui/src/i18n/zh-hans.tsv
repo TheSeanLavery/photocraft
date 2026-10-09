@@ -1888,3 +1888,12 @@
 	Brush picker	画笔选择器
 	Erase	擦除
 	Right click with painting tools	使用绘画工具时右键单击
+
+# Runtime theme library
+	List Themes	主题列表
+	Theme Details	主题详情
+	Select Theme	选择主题
+	Import Theme…	导入主题…
+	Export Theme…	导出主题…
+	Remove Theme	删除主题
+	Theme id	主题 ID

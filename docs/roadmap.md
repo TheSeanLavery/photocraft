@@ -43,6 +43,11 @@ their #209–#211 targets (first baseline, taken on a heavily loaded machine), a
 nudge scenario crashes the GPU compositor; the open area issues' checklists (#203–#220) are
 almost entirely missing or partial.
 
+**Preference audit update (2026-10-09):** the current scorecard counts 60 unused preferences
+out of 135. The runtime theme registry adds one consumed preference (`interface.themeId`),
+with migration from the existing built-in theme choice. This changes the preference audit;
+it does not establish historical-theme visual fidelity or Photoshop workflow parity.
+
 **Bottom line.** Two days after 0.2.0 we had merged ~96 PRs and closed ~48 issues, but **real
 Photoshop parity is still well below 50%**. The biggest gaps are AI, missing tools, professional
 workflow depth and the plug-in ecosystem. Most fixes since 0.2.0 have passed our tests but have
@@ -134,4 +139,3 @@ Each milestone has a **definition of done (DoD)** and must leave `main` green on
 | **M10** | Smart features | `ml` (ort native / ort-web on the web), Select Subject/Object/Sky, Remove BG, Remove tool, content-aware fill, healing, AI denoise, RAW develop | Quality benchmarks on a public dataset; timing budgets |
 | **M11** | Automation + formats | MCP server, batch, scripting, remaining formats (JP2, DICOM, DPX…), C2PA | An agent completes 10 scripted edit tasks via MCP |
 | **M12** | Pro parity | CMYK/Lab UI, print, HDR display, photomerge/HDR merge, timeline, layer comps, artboards, symmetry, neural filters | `xtask parity` ≥ 90% of Photoshop menu checklist |
-

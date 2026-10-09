@@ -1994,3 +1994,12 @@
 	Details	詳細
 
 	Rendering mode	レンダリングモード
+
+# Runtime theme library
+	List Themes	テーマ一覧
+	Theme Details	テーマの詳細
+	Select Theme	テーマを選択
+	Import Theme…	テーマを読み込み…
+	Export Theme…	テーマを書き出し…
+	Remove Theme	テーマを削除
+	Theme id	テーマID

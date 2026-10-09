@@ -106,6 +106,7 @@ pub mod stylus;
 mod tab_strip;
 pub mod theme;
 pub mod theme_pack;
+pub mod themes;
 mod timeline_ui;
 pub mod tone;
 pub mod tool_feedback;
@@ -167,6 +168,8 @@ pub type Inbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<u8>)>>>;
 pub type LoadTextFn = Box<dyn FnMut() -> Option<String>>;
 /// Persist the preferences text.
 pub type SaveTextFn = Box<dyn FnMut(&str) -> Result<(), String>>;
+/// Load the bounded theme library; distinguish missing storage from malformed/unreadable data.
+pub type LoadThemesFn = Box<dyn FnMut() -> Result<Option<String>, String>>;
 /// Autosave a document snapshot for crash recovery: (snapshot, revision, original path).
 pub type AutosaveFn = Box<dyn FnMut(&std::sync::Arc<Document>, u64, Option<&str>) -> Result<(), String>>;
 /// Drop the recovery data of a document (by `DocId` value) once it is saved or closed.
@@ -210,6 +213,8 @@ pub struct Services {
     /// the web (see `prefs_ui`).
     pub load_prefs: Option<LoadTextFn>,
     pub save_prefs: Option<SaveTextFn>,
+    pub load_themes: Option<LoadThemesFn>,
+    pub save_themes: Option<SaveTextFn>,
     /// Crash-recovery autosave (Preferences › File Handling) and recovery at launch.
     pub autosave: Option<AutosaveFn>,
     pub discard_autosave: Option<DiscardAutosaveFn>,
@@ -341,6 +346,7 @@ pub struct PhotocraftApp {
     pub perf: gpu_canvas::Perf,
     /// Preferences, autosave and snapping runtime state (see `prefs_ui`, `snap_ui`).
     pub(crate) prefs_rt: prefs_ui::Runtime,
+    pub(crate) theme_rt: themes::Runtime,
     /// Close, Revert or Exit parked behind the unsaved-changes prompt (see `discard_ui`).
     pub(crate) discard: Option<discard_ui::Prompt>,
     /// Set once the user has agreed to quit, so the resulting close request goes through.
@@ -420,6 +426,7 @@ impl PhotocraftApp {
             started: None,
             perf: Default::default(),
             prefs_rt: Default::default(),
+            theme_rt: Default::default(),
             discard: None,
             allow_close: false,
             stylus: Default::default(),
@@ -430,6 +437,7 @@ impl PhotocraftApp {
         };
         // Saved preferences (and recovered documents) are in place before the first frame.
         prefs_ui::load(&mut app);
+        themes::load(&mut app);
         // File › Scripts › Script Events Manager: "Start Application".
         photocraft_engine::automate_cmds::fire_event(&mut app.session, "startApplication");
         app
@@ -821,16 +829,6 @@ impl eframe::App for PhotocraftApp {
         self.last_frame_time = now;
         self.sync_views();
         self.check_gpu(ctx);
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            if self.live_tokens.poll(ctx, self.ui.theme) {
-                self.checker = None;
-                self.ui.status = "Theme reloaded".into();
-            }
-            if let Some(error) = self.live_tokens.take_error() {
-                self.ui.status = format!("Theme unchanged: {error}");
-            }
-        }
         self.drain_control(ctx);
         if self.ui.text_edit.is_some() && self.ui.tool != state::Tool::Type {
             type_tool::commit(self);
@@ -847,6 +845,16 @@ impl eframe::App for PhotocraftApp {
         self.collect_screenshots(ctx);
         self.issue_screenshots(ctx);
         prefs_ui::tick(self, ctx);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if self.live_tokens.poll(ctx, self.ui.theme) {
+                self.checker = None;
+                self.ui.status = "Theme reloaded".into();
+            }
+            if let Some(error) = self.live_tokens.take_error() {
+                self.ui.status = format!("Theme unchanged: {error}");
+            }
+        }
         // A window bigger than its display (1440 × 900 on 1366 × 768) runs under the taskbar:
         // maximize it into the work area once (#315).
         work_area::fit_window(ctx);
@@ -1003,6 +1011,11 @@ impl PhotocraftApp {
 
     pub fn set_theme(&mut self, ctx: &egui::Context, kind: theme::ThemeKind) {
         self.ui.theme = kind;
+        self.ui.theme_id = kind.id().into();
+        self.session.prefs.edit(|p| {
+            p.interface.theme = prefs_ui::theme_pref(kind);
+            p.interface.theme_id = kind.id().into();
+        });
         theme::apply(ctx, kind);
         #[cfg(not(target_arch = "wasm32"))]
         self.live_tokens.invalidate();

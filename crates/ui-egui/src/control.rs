@@ -141,6 +141,7 @@ pub fn handle(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest
         }
         "ui.menu.list" => ok(serde_json::to_value(crate::menus::menu_items(app)).unwrap_or_default()),
         "ui.inspect" => ok(inspect(app, ctx)),
+        method if method.starts_with("ui.theme.") => wrap(crate::themes::command(app, ctx, method.trim_start_matches("ui.theme."), p)),
         "ui.set" => {
             if let Some(t) = s("tool") {
                 match Tool::from_name(t) {
@@ -500,6 +501,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "dialogs": dialogs,
         "windows": app.ui.windows,
         "theme": app.ui.theme,
+        "themeId": app.ui.theme_id,
         "status": app.ui.status,
         "statusError": app.ui.status_error,
         "notices": app.ui.notices,

@@ -1,5 +1,34 @@
 # Control protocol
 
+## Runtime themes
+
+Theme appearance is shell state. The following methods also work through `engine.execute`
+with command IDs `window.theme.<action>` and the same parameters:
+
+| Method | Parameters | Result |
+|---|---|---|
+| `ui.theme.list` | none | Actual `selected` ID, persisted `requested` ID, theme metadata |
+| `ui.theme.get` | `id` | Validated versioned pack |
+| `ui.theme.import` | `json` string, optional `replace` boolean | Imported ID and storage availability |
+| `ui.theme.select` | `id` | Selected ID and preference storage availability |
+| `ui.theme.export` | `id` | ID and portable `json` string |
+| `ui.theme.remove` | `id` | Removed ID; built-ins and the selected theme cannot be removed |
+
+`ui.inspect` includes `themeId` for the actual resolved theme and the existing `theme` built-in
+base. Preferences expose the requested ID at `interface.themeId`, with `interface.theme` as
+the fallback. Unknown IDs, invalid JSON/schema/values, oversized input, duplicate IDs without
+`replace:true`, and persistence errors return structured errors without replacing the working
+theme. Built-in IDs are reserved; use a custom ID when importing an edited export.
+
+Example:
+
+```json
+{"id":1,"method":"ui.theme.import","params":{"json":"{\"version\":1,\"id\":\"custom.silver\",\"name\":\"Silver\",\"base\":\"classic\",\"colors\":{\"card\":\"#C0C0C0\"}}"}}
+{"id":2,"method":"ui.theme.select","params":{"id":"custom.silver"}}
+```
+
+## Transport and authentication
+
 The desktop app listens on `127.0.0.1:<port>` (loopback only). Start it with a token file so the credential is not exposed in the process command line:
 
 ```sh

@@ -2272,3 +2272,12 @@
 	GPU	GPU
 
 	Rendering mode	Режим отрисовки
+
+# Runtime theme library
+	List Themes	Список тем
+	Theme Details	Сведения о теме
+	Select Theme	Выбрать тему
+	Import Theme…	Импортировать тему…
+	Export Theme…	Экспортировать тему…
+	Remove Theme	Удалить тему
+	Theme id	ID темы
