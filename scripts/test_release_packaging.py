@@ -22,6 +22,8 @@ class ReleasePackagingTests(unittest.TestCase):
         for name in ("DisplayVersion", "BannerBmp", "DialogBmp"):
             self.assertIn("$(var." + name + ")", template)
             self.assertIn('-d "' + name + '=', source)
+        for flag in ("-ext WixToolset.UI.wixext", "-ext WixToolset.Util.wixext", "-loc (Join-Path $PSScriptRoot 'photocraft.en-us.wxl')"):
+            self.assertIn(flag, source)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="photocraft-packaging-test-")
