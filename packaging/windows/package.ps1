@@ -175,7 +175,8 @@ $Msi = Join-Path $Dist "photocraft-$Version-windows-$Arch.msi"
 & (Join-Path $PSScriptRoot 'check-icons.ps1')
 Invoke-Native 'wix build' {
   wix build (Join-Path $PSScriptRoot 'photocraft.wxs') -arch $Arch `
-    -d "Version=$MsiVersion" -d "BinDir=$Stage" -d "IconPath=$(Join-Path $Root 'assets\app-icon\photocraft.ico')" `
+    -d "Version=$MsiVersion" -d "DisplayVersion=$Version" -d "BinDir=$Stage" -d "IconPath=$(Join-Path $Root 'assets\app-icon\photocraft.ico')" `
+    -d "BannerBmp=$Banner" -d "DialogBmp=$Dialog" `
     @FontLicenseArgs -o $Msi
 }
 Invoke-Native 'MSI shortcut icon validation (ICE50)' {

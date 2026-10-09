@@ -16,6 +16,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReleasePackagingTests(unittest.TestCase):
+    def test_windows_installer_art_and_display_version_are_bound(self):
+        source = (ROOT / "packaging/windows/package.ps1").read_text()
+        template = (ROOT / "packaging/windows/photocraft.wxs").read_text()
+        for name in ("DisplayVersion", "BannerBmp", "DialogBmp"):
+            self.assertIn("$(var." + name + ")", template)
+            self.assertIn('-d "' + name + '=', source)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="photocraft-packaging-test-")
         self.addCleanup(self.temp.cleanup)
