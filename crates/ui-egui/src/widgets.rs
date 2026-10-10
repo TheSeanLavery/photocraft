@@ -316,19 +316,25 @@ pub fn toggle(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
 /// Big white primary button.
 pub fn primary_button(ui: &mut Ui, label: &str, min_width: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    button_impl(ui, label, min_width, t.primary_bg, t.primary_text, true)
+    button_impl(ui, label, min_width, t.primary_bg, t.primary_text, true, None)
 }
 
 pub fn secondary_button(ui: &mut Ui, label: &str, min_width: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    button_impl(ui, label, min_width, t.field, t.text, false)
+    button_impl(ui, label, min_width, t.field, t.text, false, None)
 }
 
-fn button_impl(ui: &mut Ui, label: &str, min_width: f32, bg: Color32, fg: Color32, primary: bool) -> Response {
+/// A compact chrome action that fits a bar without changing dialog button metrics.
+pub fn chrome_button(ui: &mut Ui, label: &str, height: f32) -> Response {
+    let t = Tokens::get(ui.ctx());
+    button_impl(ui, label, 0.0, t.field, t.text, false, Some(height))
+}
+
+fn button_impl(ui: &mut Ui, label: &str, min_width: f32, bg: Color32, fg: Color32, primary: bool, height: Option<f32>) -> Response {
     let t = Tokens::get(ui.ctx());
     let layout = theme::LayoutTokens::get(ui.ctx());
     let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), crate::theme_fonts::control(ui.ctx(), layout.button_font_size, false), fg);
-    let h = layout.button_height;
+    let h = height.filter(|h| h.is_finite()).unwrap_or(layout.button_height).max(galley.size().y + 4.0);
     let size = vec2((galley.size().x + layout.button_padding_x * 2.0).max(min_width), h);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
     // Painted text: name the button for accessibility (and so tests and agents can find it).

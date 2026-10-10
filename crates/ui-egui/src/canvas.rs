@@ -929,17 +929,25 @@ fn tabs(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let mut close = None;
     let (mut focus_open, mut cancel_open) = (None, None);
     let focused_open = app.jobs.focus.is_some();
-    egui::Frame::NONE.fill(t.canvas).inner_margin(egui::Margin { left: 8, right: 8, top: 6, bottom: 4 }).show(ui, |ui| {
+    let historical = t.appearance != crate::theme::Appearance::Modern;
+    let layout = crate::theme::LayoutTokens::get(ui.ctx());
+    let margin =
+        if historical { egui::Margin::symmetric(layout.panel_padding.round() as i8, 2) } else { egui::Margin { left: 8, right: 8, top: 6, bottom: 4 } };
+    egui::Frame::NONE.fill(t.canvas).inner_margin(margin).show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 4.0;
             for (i, st) in app.session.documents().iter().enumerate() {
                 let sel = Some(i) == active && !focused_open;
                 let name = format!("{}{}", st.doc.name, if st.is_dirty() { " *" } else { "" });
                 let meta = format!("{}/{}", mode_label(&st.doc), st.doc.depth.bits());
-                let name_g = ui.painter().layout_no_wrap(name, crate::theme::medium(12.5), t.text);
+                let name_g = ui.painter().layout_no_wrap(
+                    name,
+                    if historical { crate::theme_fonts::control(ui.ctx(), layout.tab_font_size, false) } else { crate::theme::medium(12.5) },
+                    t.text,
+                );
                 let meta_g = ui.painter().layout_no_wrap(meta, egui::FontId::proportional(10.5), t.text_faint);
                 let w = name_g.size().x + meta_g.size().x + 44.0;
-                let (r, resp) = ui.allocate_exact_size(egui::vec2(w, 26.0), Sense::click());
+                let (r, resp) = ui.allocate_exact_size(egui::vec2(w, layout.document_tab_height), Sense::click());
                 if sel {
                     ui.painter().rect_filled(r, t.radius_sm, t.card);
                     ui.painter().rect_stroke(r, t.radius_sm, Stroke::new(1.0, t.card_border), egui::StrokeKind::Inside);
@@ -965,10 +973,14 @@ fn tabs(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             // Files opening in the background: a tab with a progress underline; × cancels.
             for (job, name, frac) in crate::jobs_ui::open_tabs(app) {
                 let sel = app.jobs.focus == Some(job);
-                let name_g = ui.painter().layout_no_wrap(name, crate::theme::medium(12.5), t.text);
+                let name_g = ui.painter().layout_no_wrap(
+                    name,
+                    if historical { crate::theme_fonts::control(ui.ctx(), layout.tab_font_size, false) } else { crate::theme::medium(12.5) },
+                    t.text,
+                );
                 let meta_g = ui.painter().layout_no_wrap(format!("{:.0}%", frac * 100.0), egui::FontId::proportional(10.5), t.text_faint);
                 let w = name_g.size().x + meta_g.size().x + 44.0;
-                let (r, resp) = ui.allocate_exact_size(egui::vec2(w, 26.0), Sense::click());
+                let (r, resp) = ui.allocate_exact_size(egui::vec2(w, layout.document_tab_height), Sense::click());
                 if sel {
                     ui.painter().rect_filled(r, t.radius_sm, t.card);
                     ui.painter().rect_stroke(r, t.radius_sm, Stroke::new(1.0, t.card_border), egui::StrokeKind::Inside);

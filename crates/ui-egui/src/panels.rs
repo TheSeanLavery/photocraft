@@ -60,11 +60,14 @@ pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let w1 = bx + f32::from(m) * 2.0;
     // Photoshop switches to a double-column toolbar only when one column doesn't fit.
     let slots: usize = TOOL_SECTIONS.iter().map(|g| g.len()).sum();
-    let double = toolbar_needs_double(slots, TOOL_SECTIONS.len(), bx, t.pro, ui.available_rect_before_wrap().height());
+    let historical = t.appearance != theme::Appearance::Modern;
+    let double = historical || toolbar_needs_double(slots, TOOL_SECTIONS.len(), bx, t.pro, ui.available_rect_before_wrap().height());
     let w = if double { w1 + bx + 2.0 } else { w1 };
-    egui::Panel::left("toolbar").resizable(false).exact_size(w).frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(m, 8))).show(
-        ui,
-        |ui| {
+    egui::Panel::left("toolbar")
+        .resizable(false)
+        .exact_size(w)
+        .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(m, if historical { m } else { 8 })))
+        .show(ui, |ui| {
             if t.pro {
                 let r = ui.max_rect();
                 ui.painter().line_segment([r.right_top() + vec2(m as f32, -8.0), r.right_bottom() + vec2(m as f32, 8.0)], Stroke::new(1.0, t.separator));
@@ -88,16 +91,16 @@ pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 mesh.add_triangle(0, 2, 3);
                 ui.painter().add(mesh);
             }
-            ui.spacing_mut().item_spacing = vec2(2.0, 3.0);
+            ui.spacing_mut().item_spacing = vec2(2.0, if historical { layout.row_gap } else { 3.0 });
             let flyout_id = egui::Id::new("tool-flyout");
             let mut slot_index = 0usize;
             for (si, section) in TOOL_SECTIONS.iter().enumerate() {
                 // Photoshop 2026 draws one uninterrupted column (no group dividers).
                 if si > 0 && !t.pro {
-                    ui.add_space(4.0);
+                    ui.add_space(if historical { layout.panel_gap } else { 4.0 });
                     let (r, _) = ui.allocate_exact_size(vec2(if double { bx * 2.0 + 2.0 } else { bx }, 1.0), Sense::hover());
                     ui.painter().line_segment([r.left_center() + vec2(8.0, 0.0), r.right_center() - vec2(8.0, 0.0)], Stroke::new(1.0, t.separator));
-                    ui.add_space(4.0);
+                    ui.add_space(if historical { layout.panel_gap } else { 4.0 });
                 }
                 let rows: Vec<&[&[Tool]]> = if double { section.chunks(2).collect() } else { section.chunks(1).collect() };
                 for row in rows {
@@ -142,7 +145,7 @@ pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                                                 .fold(0.0f32, f32::max);
                                             let fw = (label_w + 42.0 + 40.0).max(180.0);
                                             for &item in slot.iter() {
-                                                let (r, ir) = ui.allocate_exact_size(vec2(fw, 26.0), Sense::click());
+                                                let (r, ir) = ui.allocate_exact_size(vec2(fw, if historical { bx } else { 26.0 }), Sense::click());
                                                 if ir.hovered() {
                                                     ui.painter().rect_filled(r, 3.0, t.hover);
                                                 }
@@ -232,8 +235,7 @@ pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     }
                 });
             }
-        },
-    );
+        });
 }
 
 /// Does the toolbar need two columns? Height of one column (header, tool slots, Edit Toolbar,
@@ -422,7 +424,8 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     crate::chrome_ui::home_button(app, ui);
                     widgets::vline(ui, 22.0);
                 }
-                let _ = icons::button(ui, icons::tool_icon(app.ui.tool), if t.pro { 26.0 } else { 28.0 }, !t.pro, tl!(app.ui.tool.label()));
+                let tool_size = if t.appearance != theme::Appearance::Modern { layout.options_bar_height - 2.0 } else if t.pro { 26.0 } else { 28.0 };
+                let _ = icons::button(ui, icons::tool_icon(app.ui.tool), tool_size, !t.pro, tl!(app.ui.tool.label()));
                 if t.pro {
                     let (r, _) = ui.allocate_exact_size(vec2(10.0, 20.0), Sense::hover());
                     icons::paint(ui, r, "chevron-down", 10.0, t.text_faint);
@@ -708,7 +711,7 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                             if icons::button(
                                 ui,
                                 "check",
-                                26.0,
+                                if t.appearance != theme::Appearance::Modern { icon_size } else { 26.0 },
                                 false,
                                 &crate::i18n::fmt(tl!("Commit current crop operation  ({key})"), &[("key", &crate::shortcuts::pretty("Enter"))]),
                             )
@@ -716,7 +719,7 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                             {
                                 crate::canvas::commit_crop(app);
                             }
-                            if icons::button(ui, "ban", 26.0, false, tl!("Cancel current crop operation  (Esc)")).clicked() {
+                            if icons::button(ui, "ban", if t.appearance != theme::Appearance::Modern { icon_size } else { 26.0 }, false, tl!("Cancel current crop operation  (Esc)")).clicked() {
                                 app.ui.crop_rect = None;
                             }
                         });
@@ -897,7 +900,12 @@ pub fn status_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if app.session.active().is_some()
                         && !t.pro
-                        && widgets::secondary_button(ui, tl!("Fit"), 0.0).clicked()
+                        && (if t.appearance != theme::Appearance::Modern {
+                            widgets::chrome_button(ui, tl!("Fit"), theme::LayoutTokens::get(ui.ctx()).status_bar_height - 2.0)
+                        } else {
+                            widgets::secondary_button(ui, tl!("Fit"), 0.0)
+                        })
+                        .clicked()
                         && let Some(i) = app.session.active_index()
                     {
                         app.ui.views[i].fit_pending = true;
@@ -920,14 +928,27 @@ pub fn right_dock(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         dock_panels(app, ui, &p, &t);
     }
     // Narrow icon rail (always visible): shows, expands or collapses panel groups.
-    let rb = theme::LayoutTokens::get(ui.ctx()).rail_button_size;
-    let rw = rb + if t.pro { 8.0 } else { 12.0 };
-    egui::Panel::right("rail").resizable(false).exact_size(rw).frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(4, 8))).show(
-        ui,
-        |ui| {
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let historical = t.appearance != theme::Appearance::Modern;
+    let rb = layout.rail_button_size;
+    let rw = rb
+        + if historical {
+            layout.toolbar_padding * 2.0
+        } else if t.pro {
+            8.0
+        } else {
+            12.0
+        };
+    let rail_margin = if historical { layout.toolbar_padding.round() as i8 } else { 4 };
+    egui::Panel::right("rail")
+        .resizable(false)
+        .exact_size(rw)
+        .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(rail_margin, if historical { rail_margin } else { 8 })))
+        .show(ui, |ui| {
             let r = ui.max_rect();
-            ui.painter().line_segment([r.left_top() - vec2(6.0, 8.0), r.left_bottom() + vec2(-6.0, 8.0)], Stroke::new(1.0, t.separator));
-            ui.spacing_mut().item_spacing.y = 4.0;
+            let edge = if historical { vec2(f32::from(rail_margin), f32::from(rail_margin)) } else { vec2(6.0, 8.0) };
+            ui.painter().line_segment([r.left_top() - edge, r.left_bottom() + vec2(-edge.x, edge.y)], Stroke::new(1.0, t.separator));
+            ui.spacing_mut().item_spacing.y = if historical { layout.row_gap } else { 4.0 };
             use crate::dock::Group;
             let entries: [(&str, &str, Group); 5] = [
                 ("sliders-horizontal", tl!("Properties"), Group::Properties),
@@ -944,8 +965,7 @@ pub fn right_dock(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     crate::dock::rail_click(app, g, docked);
                 }
             }
-        },
-    );
+        });
     if !t.pro {
         dock_panels(app, ui, &p, &t);
     }
@@ -982,7 +1002,14 @@ fn dock_panels(app: &mut PhotocraftApp, ui: &mut egui::Ui, p: &crate::state::Pan
     if shown.is_empty() {
         return;
     }
-    let margin = if t.pro { 2 } else { 8 };
+    let historical = t.appearance != theme::Appearance::Modern;
+    let margin = if historical {
+        theme::LayoutTokens::get(ui.ctx()).panel_padding.round() as i8
+    } else if t.pro {
+        2
+    } else {
+        8
+    };
     let mut panel = egui::Panel::right("dock").resizable(true).default_size(if t.pro { 290.0 } else { 300.0 }).size_range(DOCK_WIDTH);
     if let Some(w) = ui.ctx().data_mut(|d| d.remove_temp::<f32>(dock_width_id())) {
         panel = panel.exact_size(w);
@@ -1196,19 +1223,23 @@ const SWATCHES: [[u8; 3]; 40] = [
 
 fn swatches(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
-    let cols = 10;
-    let gap = 4.0;
-    let w = ui.available_width();
-    let cell = ((w - gap * (cols as f32 - 1.0)) / cols as f32).floor();
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let sized = layout.swatch_size > 0.0;
+    let gap = if sized { 1.0 } else { 4.0 };
+    let w = ui.available_width().max(1.0);
+    let cols = if sized { (((w + gap) / (layout.swatch_size + gap)).floor() as usize).clamp(1, SWATCHES.len()) } else { 10 };
+    let available_cell = ((w - gap * (cols as f32 - 1.0)) / cols as f32).floor().max(1.0);
+    let cell = if sized { layout.swatch_size.min(available_cell) } else { available_cell };
+    let radius = if t.appearance != theme::Appearance::Modern { 0.0 } else { 4.0 };
     let rows = SWATCHES.len().div_ceil(cols);
     let (area, _) = ui.allocate_exact_size(vec2(w, rows as f32 * (cell + gap)), Sense::hover());
     for (i, s) in SWATCHES.iter().enumerate() {
         let (cx, cy) = ((i % cols) as f32, (i / cols) as f32);
         let r = Rect::from_min_size(area.min + vec2(cx * (cell + gap), cy * (cell + gap)), Vec2::splat(cell));
         let resp = ui.interact(r, ui.id().with(("sw", i)), Sense::click());
-        ui.painter().rect_filled(r, 4.0, Color32::from_rgb(s[0], s[1], s[2]));
+        ui.painter().rect_filled(r, radius, Color32::from_rgb(s[0], s[1], s[2]));
         if resp.hovered() {
-            ui.painter().rect_stroke(r, 4.0, Stroke::new(1.5, t.text), StrokeKind::Outside);
+            ui.painter().rect_stroke(r, radius, Stroke::new(1.5, t.text), StrokeKind::Outside);
         }
         let c = [s[0] as f32 / 255.0, s[1] as f32 / 255.0, s[2] as f32 / 255.0, 1.0];
         if resp.clicked() {
@@ -1579,7 +1610,9 @@ fn layer_row(
     let selected = row.selected;
     let t = Tokens::get(ctx);
     // Photoshop's default (medium) thumbnails: 32 pt rows.
-    let row_h = if t.pro { 32.0 } else { 46.0 };
+    let layout = theme::LayoutTokens::get(ctx);
+    let historical = t.appearance != theme::Appearance::Modern;
+    let row_h = layout.layer_row_height;
     let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), row_h), Sense::click_and_drag());
     layer_drag_and_drop(ctx, ui, l, rect, &resp, actions);
     // Rows are painted: name them for screen readers and UI tests.
@@ -1620,7 +1653,7 @@ fn layer_row(
         + if l.is_group() { crate::layer_tree_ui::TRIANGLE_W } else { 0.0 }
         + if l.clipped { 12.0 } else { 0.0 }
         + crate::layer_row_ui::reserved_width(l);
-    let ts = crate::mask_thumbs_ui::thumb_size(l, if t.pro { 24.0 } else { 34.0 }, rect.width() - others);
+    let ts = crate::mask_thumbs_ui::thumb_size(l, layout.layer_thumbnail_size, rect.width() - others);
     let fixed = others + ts + 6.0 + crate::mask_thumbs_ui::width(l, ts);
     x += 28.0 + crate::layer_row_ui::indent(depth, rect.width(), fixed);
     let toggled = crate::layer_tree_ui::disclosure(ui, rect, &mut x, l, actions);
@@ -1653,11 +1686,17 @@ fn layer_row(
     let fx_open = app.session.active().is_none_or(|d| !d.fx_collapsed.contains(&l.id));
     let (name_right, indicators, fx_toggled) = crate::layer_row_ui::indicators(ui, &painter, rect, x, l, fx_open, actions);
     let name_color = if l.visible { t.text } else { t.text_faint };
-    let font = if selected && !t.pro { theme::medium(13.0) } else { egui::FontId::proportional(if t.pro { 12.0 } else { 13.0 }) };
+    let font = if historical {
+        crate::theme_fonts::control(ctx, layout.tab_font_size, false)
+    } else if selected && !t.pro {
+        theme::medium(13.0)
+    } else {
+        egui::FontId::proportional(if t.pro { 12.0 } else { 13.0 })
+    };
     // Photoshop before 2026 set the Background layer's name in italics; 2026 sets it upright.
     let italic = !t.pro && l.name == "Background" && l.locks.transparency;
     // Photoshop rows show only the name; the kind sub-label is a Studio-theme addition.
-    let is_pixel = t.pro || matches!(l.content, LayerContent::Raster(_));
+    let is_pixel = t.pro || historical || matches!(l.content, LayerContent::Raster(_));
     let name_rect = crate::layer_row_ui::truncated(&painter, &l.name, font, name_color, italic, name_right - x).map(|galley| {
         let text_pos = pos2(x, rect.center().y - galley.size().y / 2.0 - if is_pixel { 0.0 } else { 7.0 });
         let r = Rect::from_min_size(text_pos, galley.size());
@@ -2236,12 +2275,14 @@ fn brush_preset_chip(
     presets: &[photocraft_engine::paint::BrushPreset],
 ) -> Option<crate::brush_picker::Pick> {
     let t = Tokens::get(ui.ctx());
-    let (r, resp) = ui.allocate_exact_size(vec2(44.0, 30.0), Sense::click());
+    let historical = t.appearance != theme::Appearance::Modern;
+    let height = if historical { (theme::LayoutTokens::get(ui.ctx()).options_bar_height - 2.0).min(30.0) } else { 30.0 };
+    let (r, resp) = ui.allocate_exact_size(vec2(44.0, height), Sense::click());
     if resp.hovered() {
         ui.painter().rect_filled(r, t.radius_sm, t.hover);
     }
-    let c = pos2(r.left() + 14.0, r.top() + 11.0);
-    brush_tip(ui.painter(), c, 7.0, b.hardness, Color32::WHITE);
+    let c = pos2(r.left() + 14.0, r.top() + if historical { height * 0.36 } else { 11.0 });
+    brush_tip(ui.painter(), c, if historical { (height * 0.23).min(7.0) } else { 7.0 }, b.hardness, Color32::WHITE);
     ui.painter().text(pos2(c.x, r.bottom() - 5.0), Align2::CENTER_CENTER, format!("{}", b.size.round() as i64), egui::FontId::proportional(9.5), t.text_dim);
     icons::paint(ui, Rect::from_center_size(pos2(r.right() - 9.0, c.y), vec2(10.0, 10.0)), "chevron-down", 9.0, t.text_faint);
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Brush Preset picker")));

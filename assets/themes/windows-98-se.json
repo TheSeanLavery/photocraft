@@ -52,16 +52,16 @@
       18
     ],
     "fieldHeight": 20,
-    "tabHeight": 22,
-    "panelPadding": 4,
-    "panelGap": 3,
-    "rowGap": 3,
-    "titleBarHeight": 22,
-    "optionsBarHeight": 30,
-    "statusBarHeight": 24,
-    "toolButtonSize": 26,
-    "toolbarPadding": 4,
-    "railButtonSize": 24,
+    "tabHeight": 20,
+    "panelPadding": 2,
+    "panelGap": 2,
+    "rowGap": 2,
+    "titleBarHeight": 18,
+    "optionsBarHeight": 24,
+    "statusBarHeight": 22,
+    "toolButtonSize": 22,
+    "toolbarPadding": 2,
+    "railButtonSize": 20,
     "preferenceSpacing": [
       8,
       4
@@ -69,7 +69,13 @@
     "menuMargin": 2,
     "dialogMargin": 10,
     "buttonHeight": 23,
-    "scrollBarWidth": 16
+    "scrollBarWidth": 16,
+    "menuBarHeight": 18,
+    "documentTabHeight": 20,
+    "layerRowHeight": 28,
+    "layerThumbnailSize": 20,
+    "swatchSize": 16,
+    "colorPanelHeight": 110
   },
   "typography": {
     "small": 10,

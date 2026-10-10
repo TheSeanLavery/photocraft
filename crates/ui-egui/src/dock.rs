@@ -358,10 +358,24 @@ fn strips_id() -> egui::Id {
 /// group's tab content.
 pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut body: impl FnMut(&mut PhotocraftApp, &mut egui::Ui, Group, usize)) {
     let t = Tokens::get(ui.ctx());
-    let strip = if t.pro { 28.0 } else { 40.0 };
+    let metrics = crate::theme::LayoutTokens::get(ui.ctx());
+    let strip = if t.appearance != crate::theme::Appearance::Modern {
+        metrics.tab_height + metrics.panel_padding * 2.0
+    } else if t.pro {
+        28.0
+    } else {
+        40.0
+    };
     let order: Vec<Group> = app.ui.dock.order().into_iter().filter(|g| shown.contains(g)).collect();
     let area = ui.available_rect_before_wrap();
-    let heights = app.ui.dock.heights_for(&order, area.height(), strip);
+    // Theme defaults affect only groups the user has not resized; preview never writes them.
+    let heights = if metrics.color_panel_height > 0.0 && !app.ui.dock.heights.contains_key(&Group::Color) {
+        let mut layout = app.ui.dock.clone();
+        layout.heights.insert(Group::Color, metrics.color_panel_height);
+        layout.heights_for(&order, area.height(), strip)
+    } else {
+        app.ui.dock.heights_for(&order, area.height(), strip)
+    };
     let locked = app.session.prefs().workspace_locked;
     let rects = rects_after_layout(&heights, area);
     let mut actions: Vec<Action> = Vec::new();

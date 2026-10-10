@@ -72,12 +72,18 @@ reproduction; dedicated historical control rendering is still being built.
   `controlSize` pair 8–128 points; `sliderWidth` and `dropdownWidth` 16–1024 points;
   `iconWidth` 8–64 points. `bevelWidth` accepts 1–2; 2 draws nested raised/sunken edges
   in shared bevel surfaces, while 1 preserves the existing Classic appearance.
-- App-drawn geometry: `buttonHeight`, `fieldHeight`, `tabHeight`, `titleBarHeight`,
+- App-drawn geometry: `buttonHeight`, `fieldHeight`, `tabHeight`, `titleBarHeight`, `menuBarHeight`, `documentTabHeight`,
   `optionsBarHeight`, `statusBarHeight`, `toolButtonSize`, `railButtonSize` accept 16–96 points.
   `panelPadding`, `panelGap`, `rowGap`, `toolbarPadding`, `menuMargin`, `dialogMargin` accept
   0–32 points; `preferenceSpacing` is a horizontal/vertical pair, each 0–32 points.
   `buttonPadding` also controls horizontal padding in custom buttons. Defaults preserve existing
   themes. Buttons, numeric fields and tabs grow when needed to fit the configured type size.
+  Historical bars also grow to contain their fields and labels. `layerRowHeight` accepts
+  24–96 points; `layerThumbnailSize` accepts 8–64 and is capped to fit the row with a
+  four-point border allowance. `swatchSize` accepts 8–48 points and lays out a compact
+  wrapping grid; omitted, the existing automatic grid is preserved. `colorPanelHeight`
+  accepts 80–600 points and supplies the initial Color group height without overwriting
+  user-resized heights or saving preview dimensions.
 - `typography.family`: optional registered UI family: `Inter`, `JetBrains Mono`,
   `Microsoft Sans Serif`, `Geneva`, `Chicago`, or `Charcoal`. Native builds read these faces
   from known installed-font locations, with bounded reads and parsing; no font files enter

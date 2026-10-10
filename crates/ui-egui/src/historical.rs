@@ -108,11 +108,12 @@ pub fn button(ui: &Ui, rect: Rect, response: &Response, primary: bool, galley: A
             }
         }
         Appearance::Platinum | Appearance::System6 => {
+            let inset = ((rect.height() - galley.size().y - 2.0) / 2.0).clamp(1.0, 4.0);
             let r = if primary {
                 p.rect_stroke(rect, 8.0, Stroke::new(if t.appearance == Appearance::System6 { 3.0 } else { 2.0 }, t.text), StrokeKind::Inside);
-                rect.shrink(4.0)
+                rect.shrink(inset)
             } else {
-                rect.shrink(4.0)
+                rect.shrink(inset)
             };
             let fill = if down { t.text } else { t.chrome };
             p.rect_filled(r, 5.0, fill);
@@ -215,6 +216,19 @@ pub fn tab(ui: &Ui, rect: Rect, active: bool, galley: Arc<egui::Galley>) -> bool
     if t.appearance == Appearance::System6 {
         ui.painter().rect_filled(r, 0.0, if active { t.accent } else { t.chrome });
         ui.painter().rect_stroke(r, 0.0, Stroke::new(1.0, t.text), StrokeKind::Inside);
+    } else if t.appearance == Appearance::Platinum {
+        let slope = (r.height() * 0.35).min(r.width() * 0.2);
+        let left = r.left_top() + vec2(slope, 0.0);
+        let right = r.right_top() - vec2(slope, 0.0);
+        ui.painter().add(Shape::convex_polygon(vec![r.left_bottom(), left, right, r.right_bottom()], t.chrome, Stroke::NONE));
+        ui.painter().line_segment([r.left_bottom(), left], Stroke::new(1.0, t.bevel_dark));
+        ui.painter().line_segment([left, right], Stroke::new(1.0, t.bevel_dark));
+        ui.painter().line_segment([right, r.right_bottom()], Stroke::new(1.0, t.bevel_dark));
+        ui.painter().line_segment([r.left_bottom() + vec2(2.0, -1.0), left + vec2(1.0, 1.0)], Stroke::new(1.0, t.bevel_highlight));
+        ui.painter().line_segment([left + vec2(1.0, 1.0), right + vec2(-1.0, 1.0)], Stroke::new(1.0, t.bevel_highlight));
+        if !active {
+            ui.painter().line_segment([r.left_bottom(), r.right_bottom()], Stroke::new(1.0, t.bevel_shadow));
+        }
     } else {
         let corners = vec![
             r.left_bottom(),
@@ -333,7 +347,7 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut Ui) -> bool {
         }
     });
     egui::Panel::top("historical-menu")
-        .exact_size(20.0)
+        .exact_size(theme::LayoutTokens::get(ui.ctx()).menu_bar_height)
         .frame(egui::Frame::NONE.fill(if t.appearance == Appearance::Windows98 { t.chrome } else { t.field }).inner_margin(egui::Margin::symmetric(5, 0)))
         .show(ui, |ui| {
             ui.horizontal_centered(|ui| {

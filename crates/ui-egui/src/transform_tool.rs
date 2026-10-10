@@ -938,7 +938,12 @@ fn warp_options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, w: &Warp) {
             ("edit.transform.splitWarpHorizontally", "Horizontal"),
             ("edit.transform.removeWarpSplit", tl!("Remove")),
         ] {
-            if crate::widgets::secondary_button(ui, label, 0.0).clicked()
+            if (if crate::theme::Tokens::get(ui.ctx()).appearance != crate::theme::Appearance::Modern {
+                crate::widgets::chrome_button(ui, label, crate::theme::LayoutTokens::get(ui.ctx()).options_bar_height - 2.0)
+            } else {
+                crate::widgets::secondary_button(ui, label, 0.0)
+            })
+            .clicked()
                 && let Err(e) = split(app, id, None)
             {
                 app.ui.status = e;

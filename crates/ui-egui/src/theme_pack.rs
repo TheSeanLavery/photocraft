@@ -50,6 +50,12 @@ pub struct Geometry {
     pub panel_padding: Option<f32>,
     pub panel_gap: Option<f32>,
     pub row_gap: Option<f32>,
+    pub menu_bar_height: Option<f32>,
+    pub document_tab_height: Option<f32>,
+    pub layer_row_height: Option<f32>,
+    pub layer_thumbnail_size: Option<f32>,
+    pub swatch_size: Option<f32>,
+    pub color_panel_height: Option<f32>,
     pub title_bar_height: Option<f32>,
     pub options_bar_height: Option<f32>,
     pub status_bar_height: Option<f32>,
@@ -161,10 +167,16 @@ impl ThemePack {
         }
         validate_number("iconWidth", g.icon_width, 8.0, 64.0)?;
         validate_number("scrollBarWidth", g.scroll_bar_width, 12.0, 32.0)?;
+        validate_number("layerRowHeight", g.layer_row_height, 24.0, 96.0)?;
+        validate_number("layerThumbnailSize", g.layer_thumbnail_size, 8.0, 64.0)?;
+        validate_number("swatchSize", g.swatch_size, 8.0, 48.0)?;
+        validate_number("colorPanelHeight", g.color_panel_height, 80.0, 600.0)?;
         for (name, value) in [
             ("buttonHeight", g.button_height),
             ("fieldHeight", g.field_height),
             ("tabHeight", g.tab_height),
+            ("menuBarHeight", g.menu_bar_height),
+            ("documentTabHeight", g.document_tab_height),
             ("titleBarHeight", g.title_bar_height),
             ("optionsBarHeight", g.options_bar_height),
             ("statusBarHeight", g.status_bar_height),
@@ -228,6 +240,12 @@ impl ResolvedTheme {
             panel_padding,
             panel_gap,
             row_gap,
+            menu_bar_height,
+            document_tab_height,
+            layer_row_height,
+            layer_thumbnail_size,
+            swatch_size,
+            color_panel_height,
             title_bar_height,
             options_bar_height,
             status_bar_height,
@@ -252,6 +270,14 @@ impl ResolvedTheme {
         layout.button_height = layout.button_height.max(layout.button_font_size + 6.0);
         layout.field_height = layout.field_height.max(layout.field_font_size + 8.0);
         layout.tab_height = layout.tab_height.max(layout.tab_font_size + 6.0);
+        layout.document_tab_height = layout.document_tab_height.max(layout.tab_font_size + 6.0);
+        layout.layer_row_height = layout.layer_row_height.max(layout.tab_font_size + 6.0);
+        layout.layer_thumbnail_size = layout.layer_thumbnail_size.min(layout.layer_row_height - 4.0);
+        if self.tokens.appearance != crate::theme::Appearance::Modern {
+            layout.menu_bar_height = layout.menu_bar_height.max(layout.tab_font_size + 6.0);
+            layout.options_bar_height = layout.options_bar_height.max(layout.field_height + 2.0).max(layout.tab_font_size + 6.0);
+            layout.status_bar_height = layout.status_bar_height.max(layout.field_height + 2.0).max(layout.tab_font_size + 4.0);
+        }
         layout.apply(ctx);
         crate::theme_fonts::set(ctx, self.typography.family.as_deref());
         ctx.global_style_mut(|s| {
@@ -398,6 +424,36 @@ mod tests {
         }
     }
 
+    #[test]
+    fn chrome_metrics_round_trip_validate_and_restore_modern_defaults() {
+        let ctx = egui::Context::default();
+        for id in crate::historical::IDS {
+            let mut pack = crate::historical::preset(id).unwrap();
+            pack.geometry.menu_bar_height = Some(17.0);
+            pack.geometry.document_tab_height = Some(19.0);
+            pack.geometry.layer_row_height = Some(26.0);
+            pack.geometry.layer_thumbnail_size = Some(64.0);
+            let text = serde_json::to_string(&pack).unwrap();
+            let restored = ThemePack::parse(&text).unwrap();
+            assert_eq!(restored, pack);
+            restored.resolve().unwrap().apply(&ctx);
+            let layout = crate::theme::LayoutTokens::get(&ctx);
+            assert_eq!(layout.menu_bar_height, 17.0_f32.max(layout.tab_font_size + 6.0));
+            assert_eq!(layout.document_tab_height, 19.0);
+            assert_eq!(layout.layer_row_height, 26.0);
+            assert_eq!(layout.layer_thumbnail_size, 22.0);
+            pack.geometry.layer_row_height = Some(23.0);
+            assert!(pack.resolve().is_err());
+            pack.geometry.layer_row_height = Some(26.0);
+            pack.geometry.document_tab_height = Some(f32::NAN);
+            assert!(pack.resolve().is_err());
+        }
+        crate::theme::apply(&ctx, ThemeKind::Classic);
+        let layout = crate::theme::LayoutTokens::get(&ctx);
+        assert_eq!(layout.document_tab_height, 26.0);
+        assert_eq!(layout.layer_row_height, 46.0);
+        assert_eq!(layout.layer_thumbnail_size, 34.0);
+    }
     #[test]
     fn updates_stock_controls_and_custom_tokens_together() {
         let mut pack = fixture();
