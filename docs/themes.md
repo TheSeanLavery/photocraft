@@ -304,8 +304,14 @@ unfilled upstream placeholders, documented without inventing a copyright year.
 `typography.family` accepts `W95FA`. If Microsoft Sans Serif is unavailable and this
 provider is present, its compatibility request resolves to W95FA; an installed Microsoft
 Sans Serif remains preferred. An unavailable explicit W95FA request uses installed
-Microsoft Sans Serif, otherwise Inter. Theme Manager reports the actual face. Point sizes
-remain raw pending detailed raster calibration. Degree and Unicode ellipsis use the
+Microsoft Sans Serif, otherwise Inter. Theme Manager reports the actual face. When the
+Microsoft Sans Serif compatibility request resolves to W95FA, font sizes receive a
+12.5/11 correction (the default 11 becomes 12.5 logical points), matching the recreation's
+approximately 80-unit grid in a 1000-unit em. This applies consistently to standard egui
+text and custom controls without accumulating across theme reapplication. An installed
+Microsoft face, Inter fallback, and explicit W95FA point sizes remain unchanged. This is a
+raster calibration of the recreation, not a claim of identical original bitmap metrics.
+Degree and Unicode ellipsis use the
 existing glyph fallback because the recreation lacks them. The runtime provider reads
 external fonts; restart to load newly added font bytes. The optional build input below
 can instead make these two recreations available without a runtime checkout.
@@ -339,5 +345,21 @@ are shared. About PhotoCraft exposes the complete embedded notices under
 “Historical UI font licenses.” Builds without this input omit that section.
 
 The browser artifact must still pass the 24 MiB packaging limit after Trunk optimization;
-the size of the font files alone does not prove that limit. W95FA point-size calibration
-and separate historical font roles remain follow-up work.
+the size of the font files alone does not prove that limit. Separate historical font roles
+and weights remain follow-up work.
+
+
+The Windows sizing reference is the archived [Microsoft font guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-fonts),
+which specifies 8 point MS Shell Dlg for earlier Windows versions and maps it to MS Sans Serif
+on Windows 95/98. These printer points are not interchangeable with egui logical points.
+W95FA is a scalable recreation as described by [its publisher](https://fontsarena.com/w95fa-by-alina-sava/).
+The selected correction comes from the actual recreation's outline grid and offscreen
+comparisons at 100/150/200 percent, with the original [Windows 98 SE Display Properties](https://guidebookgallery.org/pics/gui/settings/appearance/win98se-1-1.png)
+used as a visual reference. Captions and bold roles still need separate treatment.
+
+
+The ignored `windows_recreation_alias_renders_compact_chrome_at_three_scales` UI test
+requires the bundled subset. It models the browser's missing-Microsoft-font resolution
+in a native offscreen harness and checks the 18/18/24 caption/menu/options metrics.
+Set `PHOTOCRAFT_THEME_FONT_EVIDENCE` to a caller-owned directory to save its three PNGs.
+This fixture does not replace fresh-browser runtime acceptance.

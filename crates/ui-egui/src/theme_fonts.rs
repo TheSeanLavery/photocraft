@@ -222,9 +222,21 @@ fn chicago_recreation_alias(ctx: &Context, font: &FontId) -> bool {
             .is_some_and(|families| families.resolved.iter().any(|(requested, actual)| requested == "Chicago" && actual == "Chicago Kare"))
 }
 
+/// W95FA's approximately 80-unit cells in its 1000-unit em fit one logical
+/// pixel at 12.5 points. Correct the 11-point compatibility default only when
+/// it resolves to the recreation; explicit W95FA sizes remain raw.
+fn windows_recreation_alias(ctx: &Context, font: &FontId) -> bool {
+    matches!(&font.family, FontFamily::Name(name) if name.as_ref() == "Microsoft Sans Serif")
+        && ctx
+            .data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families")))
+            .is_some_and(|families| families.resolved.iter().any(|(requested, actual)| requested == "Microsoft Sans Serif" && actual == "W95FA"))
+}
+
 pub(crate) fn calibrated(ctx: &Context, mut font: FontId) -> FontId {
     if chicago_recreation_alias(ctx, &font) {
         font.size *= 4.0 / 3.0;
+    } else if windows_recreation_alias(ctx, &font) {
+        font.size *= 12.5 / 11.0;
     }
     font
 }
@@ -319,6 +331,81 @@ mod tests {
         assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 12.0);
         crate::theme::apply(&ctx, crate::theme::ThemeKind::Classic);
         assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 12.5);
+    }
+
+    #[test]
+    fn windows_recreation_calibrates_only_the_compatibility_alias() {
+        let ctx = Context::default();
+        let pack = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap().resolve().unwrap();
+        let set_actual = |actual: &str| {
+            ctx.data_mut(|d| {
+                d.insert_temp(
+                    egui::Id::new("theme-font-families"),
+                    Families { resolved: Arc::new(vec![("Microsoft Sans Serif".into(), actual.into()), ("W95FA".into(), "W95FA".into())]) },
+                );
+            });
+        };
+        set_actual("W95FA");
+        for _ in 0..3 {
+            pack.apply(&ctx);
+            assert!((control(&ctx, 11.0, false).size - 12.5).abs() < 0.001);
+            assert!((number(&ctx, 11.0).size - 12.5).abs() < 0.001);
+            assert!((ctx.global_style().text_styles[&egui::TextStyle::Body].size - 12.5).abs() < 0.001);
+            assert_eq!(crate::theme::LayoutTokens::get(&ctx).menu_bar_height, 18.0);
+        }
+        set(&ctx, Some("W95FA"));
+        assert_eq!(control(&ctx, 11.0, false).size, 11.0);
+        for actual in ["Microsoft Sans Serif", "Inter"] {
+            set_actual(actual);
+            pack.apply(&ctx);
+            assert_eq!(control(&ctx, 11.0, false).size, 11.0);
+            assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 11.0);
+        }
+        crate::theme::apply(&ctx, crate::theme::ThemeKind::Classic);
+        assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 12.5);
+    }
+
+    #[test]
+    #[ignore = "requires bundled W95FA; optional PHOTOCRAFT_THEME_FONT_EVIDENCE captures PNGs"]
+    fn windows_recreation_alias_renders_compact_chrome_at_three_scales() {
+        for scale in [1.0, 1.5, 2.0] {
+            let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1280.0, 900.0)).with_pixels_per_point(scale).wgpu().build_eframe(|cc| {
+                crate::PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+                crate::PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default())
+            });
+            h.run_steps(4);
+            let ctx = h.ctx.clone();
+            let mut fonts = ctx.fonts(|f| f.definitions().clone());
+            assert!(fonts.font_data.contains_key("W95FA"));
+            // Model WASM's missing-Microsoft-font resolution on this native host.
+            fonts.font_data.remove("Microsoft Sans Serif");
+            fonts.families.insert(FontFamily::Name("Microsoft Sans Serif".into()), vec!["W95FA".into(), "Inter".into()]);
+            ctx.set_fonts(fonts);
+            ctx.data_mut(|d| {
+                d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(vec![("Microsoft Sans Serif".into(), "W95FA".into())]) });
+            });
+            h.run_steps(4);
+            for (method, params) in [
+                ("engine.execute", serde_json::json!({"command":"file.new","params":{"width":640,"height":480,"mode":"rgb","depth":8,"background":"white"}})),
+                ("ui.theme.select", serde_json::json!({"id":"builtin.windows-98-se"})),
+            ] {
+                let (request, _) = crate::control::ControlRequest::new(method, params);
+                let outcome = crate::control::handle(h.state_mut(), &ctx, &request);
+                assert!(matches!(outcome, crate::control::Outcome::Done(ref v) if v.get("ok") == Some(&serde_json::Value::Bool(true))));
+                h.run_steps(4);
+            }
+            assert_eq!(status(&ctx), Some(("Microsoft Sans Serif".into(), "W95FA".into())));
+            assert!((control(&ctx, 11.0, false).size - 12.5).abs() < 0.001);
+            let layout = crate::theme::LayoutTokens::get(&ctx);
+            assert_eq!(layout.title_bar_height, 18.0);
+            assert_eq!(layout.menu_bar_height, 18.0);
+            assert_eq!(layout.options_bar_height, 24.0);
+            if let Some(directory) = std::env::var_os("PHOTOCRAFT_THEME_FONT_EVIDENCE") {
+                let directory = std::path::PathBuf::from(directory);
+                std::fs::create_dir_all(&directory).unwrap();
+                h.render().unwrap().save(directory.join(format!("alias-{scale}x.png"))).unwrap();
+            }
+        }
     }
 
     #[test]
