@@ -290,3 +290,21 @@ Dock sizing: `geometry.dockGroupHeights` and `dockGroupCompactHeights` are six l
 `colors.row_selected_text` controls the text and icon color on selected History and preset list rows. Built-in modern themes keep their previous text color; Windows98 and System6 use white and Platinum uses black. This is independent of ordinary `text` and the selection background (`row_selected`, or `accent_soft` for Classic History).
 
 Historical custom sliders use editable `geometry.sliderThumbSize` (width/height8–32 points) and `sliderTrackHeight` (2–12 points). Layout grows for larger thumbs and reserves endpoint clearance; modern slider appearance retains its existing sizing. Arrow keys change1percent of the range (Shift:10percent), Home/End select endpoints, and disabled sliders reject keyboard changes. Colors and focus come from theme tokens. Platinum uses a pointed indicator based on [Apple Mac OS8 HIG, Sliders and Tick Marks, pages34–35](https://dev.os9.ca/techpubs/mac/pdf/HIGOS8Guidelines.pdf). System6 is a clean-room monochrome adaptation, not a claim that System6 standardized this exact slider widget.
+
+### Optional Windows font recreation
+
+Native builds can load unmodified W95FA from
+`PHOTOCRAFT_THEME_FONTS_DIR=/absolute/path/to/craft-fonts`, at
+`fonts/w95fa/W95FA-Regular.otf`, or `W95FA-Regular.otf` / `W95FA.otf` in known installed-font directories, including Windows system and per-user font locations.
+Reads and actual family identity are validated as for Chicago Kare. W95FA is Alina Sava /
+FontsArena's OFL-licensed recreation of MS Sans Serif, not Microsoft's original font.
+The original archive license and attribution remain in craft-fonts; its OFL header includes
+unfilled upstream placeholders, documented without inventing a copyright year.
+
+`typography.family` accepts `W95FA`. If Microsoft Sans Serif is unavailable and this
+provider is present, its compatibility request resolves to W95FA; an installed Microsoft
+Sans Serif remains preferred. An unavailable explicit W95FA request uses installed
+Microsoft Sans Serif, otherwise Inter. Theme Manager reports the actual face. Point sizes
+remain raw pending detailed raster calibration. Degree and Unicode ellipsis use the
+existing glyph fallback because the recreation lacks them. This does not bundle fonts
+into PhotoCraft or add font bytes to browser builds. Restart to load newly added font bytes.

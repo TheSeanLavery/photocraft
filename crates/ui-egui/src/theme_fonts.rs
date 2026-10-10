@@ -2,7 +2,7 @@
 use egui::{Context, FontData, FontDefinitions, FontFamily, FontId};
 use std::sync::Arc;
 
-pub const FAMILIES: [&str; 7] = ["Inter", "JetBrains Mono", "Microsoft Sans Serif", "Geneva", "Chicago", "Charcoal", "Chicago Kare"];
+pub const FAMILIES: [&str; 8] = ["Inter", "JetBrains Mono", "Microsoft Sans Serif", "Geneva", "Chicago", "Charcoal", "Chicago Kare", "W95FA"];
 
 #[derive(Clone, Debug)]
 struct Families {
@@ -11,13 +11,26 @@ struct Families {
 
 pub(crate) fn install(ctx: &Context, fonts: &mut FontDefinitions) {
     let mut resolved: Vec<(String, String)> = vec![("Inter".into(), "Inter".into()), ("JetBrains Mono".into(), "JetBrainsMono".into())];
-    for family in ["Microsoft Sans Serif", "Geneva", "Chicago Kare"] {
+    for family in ["Microsoft Sans Serif", "Geneva", "Chicago Kare", "W95FA"] {
         let loaded = load(family);
         if let Some(data) = loaded {
             fonts.font_data.insert(family.into(), Arc::new(data));
         }
-        let actual = if fonts.font_data.contains_key(family) { family } else { "Inter" };
+        let actual = if fonts.font_data.contains_key(family) {
+            family
+        } else if family == "W95FA" && fonts.font_data.contains_key("Microsoft Sans Serif") {
+            "Microsoft Sans Serif"
+        } else {
+            "Inter"
+        };
         resolved.push((family.into(), actual.into()));
+    }
+    if fonts.font_data.contains_key("W95FA") {
+        for (requested, actual) in &mut resolved {
+            if requested == "Microsoft Sans Serif" && actual == "Inter" {
+                *actual = "W95FA".into();
+            }
+        }
     }
     let mac = if fonts.font_data.contains_key("Geneva") { "Geneva" } else { "Inter" };
     // The supplied machine may not contain these historical faces. Never silently claim them.
@@ -51,12 +64,14 @@ fn load(family: &str) -> Option<FontData> {
     static CHICAGO: OnceLock<Option<FontData>> = OnceLock::new();
     static CHARCOAL: OnceLock<Option<FontData>> = OnceLock::new();
     static CHICAGO_KARE: OnceLock<Option<FontData>> = OnceLock::new();
+    static W95FA: OnceLock<Option<FontData>> = OnceLock::new();
     let cache = match family {
         "Microsoft Sans Serif" => &WINDOWS,
         "Geneva" => &GENEVA,
         "Chicago" => &CHICAGO,
         "Charcoal" => &CHARCOAL,
         "Chicago Kare" => &CHICAGO_KARE,
+        "W95FA" => &W95FA,
         _ => return None,
     };
     cache.get_or_init(|| read_font(family)).clone()
@@ -92,6 +107,27 @@ fn read_font(family: &str) -> Option<FontData> {
         if let Some(home) = std::env::var_os("HOME") {
             let root = PathBuf::from(home);
             candidates.push(root.join(if cfg!(target_os = "macos") { "Library/Fonts" } else { ".local/share/fonts" }).join("ChicagoKare-Regular.ttf"));
+        }
+    }
+    if family == "W95FA" {
+        if let Some(root) = std::env::var_os("PHOTOCRAFT_THEME_FONTS_DIR") {
+            candidates.insert(0, PathBuf::from(root).join("fonts/w95fa/W95FA-Regular.otf"));
+        }
+        let mut directories =
+            vec![PathBuf::from("/System/Library/Fonts"), PathBuf::from("/System/Library/Fonts/Supplemental"), PathBuf::from("/Library/Fonts")];
+        if let Some(home) = std::env::var_os("HOME") {
+            directories.push(PathBuf::from(home).join(if cfg!(target_os = "macos") { "Library/Fonts" } else { ".local/share/fonts" }));
+        }
+        if let Some(root) = std::env::var_os("WINDIR") {
+            directories.push(PathBuf::from(root).join("Fonts"));
+        }
+        if let Some(root) = std::env::var_os("LOCALAPPDATA") {
+            directories.push(PathBuf::from(root).join("Microsoft/Windows/Fonts"));
+        }
+        for directory in directories {
+            for file in ["W95FA-Regular.otf", "W95FA.otf"] {
+                candidates.push(directory.join(file));
+            }
         }
     }
     candidates.iter().find_map(|path| read_installed_font(path, family))
@@ -237,6 +273,64 @@ mod tests {
         set(&ctx, Some("Chicago Kare"));
         assert_eq!(status(&ctx), Some(("Chicago Kare".into(), "Chicago Kare".into())));
         assert_eq!(control(&ctx, 12.0, false).size, 12.0);
+    }
+
+    #[test]
+    fn explicit_w95fa_theme_family_renders_with_the_available_provider_or_fallback() {
+        let mut pack = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap();
+        pack.typography.family = Some("W95FA".into());
+        let pack = pack.resolve().unwrap();
+        let mut initialized = false;
+        let mut h = egui_kittest::Harness::builder().build_ui(|ui| {
+            if !initialized {
+                crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                initialized = true;
+                return;
+            }
+            ui.label("100° … File Edit");
+        });
+        pack.apply(&h.ctx);
+        h.run_steps(3);
+        let (requested, actual) = status(&h.ctx).unwrap();
+        assert_eq!(requested, "W95FA");
+        assert!(["W95FA", "Microsoft Sans Serif", "Inter"].contains(&actual.as_str()));
+        let font = control(&h.ctx, 11.0, false);
+        assert_eq!(font.size, 11.0);
+        assert!(h.ctx.fonts_mut(|fonts| fonts.has_glyphs(&font, "100° … File Edit")));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    #[ignore = "requires W95FA in PHOTOCRAFT_THEME_FONTS_DIR"]
+    fn configured_windows_recreation_keeps_its_identity_and_symbol_fallback() {
+        let mut initialized = false;
+        let mut h = egui_kittest::Harness::builder().build_ui(|ui| {
+            if !initialized {
+                crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                initialized = true;
+                return;
+            }
+            set(ui.ctx(), Some("W95FA"));
+            ui.label(egui::RichText::new("100° … File Edit").font(control(ui.ctx(), 11.0, false)));
+        });
+        h.run_steps(3);
+        assert_eq!(status(&h.ctx), Some(("W95FA".into(), "W95FA".into())));
+        assert_eq!(control(&h.ctx, 11.0, false).size, 11.0);
+        let font = control(&h.ctx, 11.0, false);
+        assert!(h.ctx.fonts_mut(|fonts| fonts.has_glyphs(&font, "100° … File Edit")));
+        set(&h.ctx, Some("Microsoft Sans Serif"));
+        let expected = if load("Microsoft Sans Serif").is_some() { "Microsoft Sans Serif" } else { "W95FA" };
+        assert_eq!(status(&h.ctx), Some(("Microsoft Sans Serif".into(), expected.into())));
+        let shape = h
+            .output()
+            .shapes
+            .iter()
+            .find_map(|s| match &s.shape {
+                egui::epaint::Shape::Text(t) if t.galley.job.text == "100° … File Edit" => Some(t),
+                _ => None,
+            })
+            .unwrap();
+        assert!(shape.galley.rows.iter().flat_map(|r| &r.glyphs).all(|g| g.advance_width > 0.0));
     }
 
     #[cfg(not(target_arch = "wasm32"))]
