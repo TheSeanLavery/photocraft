@@ -97,6 +97,15 @@ impl Group {
         }
     }
 
+    /// Some panel toolbars have a real minimum width before their controls wrap badly.
+    pub fn min_float_width(self) -> f32 {
+        match self {
+            Group::Layers => 450.0,
+            Group::Color => 330.0,
+            _ => 320.0,
+        }
+    }
+
     pub fn tabs(self, pro: bool) -> &'static [&'static str] {
         match self {
             // Photoshop Essentials: Color | Swatches | Gradients | Patterns.
@@ -168,6 +177,8 @@ pub struct DockLayout {
     /// Names of tabs hidden by Close (not positions: Color/Swatches swap with the theme).
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub hidden_tabs: BTreeMap<Group, Vec<String>>,
+    /// Detached panel groups and their last on-screen x, y, width and height in points.
+    pub floating: BTreeMap<Group, [f32; 4]>,
 }
 
 /// Gap between groups; it is also the splitter's grab area.
@@ -176,6 +187,24 @@ pub const GAP: f32 = 6.0;
 const MAX_HEIGHT: f32 = 4000.0;
 
 impl DockLayout {
+    pub fn float_rect(&self, group: Group) -> Option<Rect> {
+        let [x, y, w, h] = *self.floating.get(&group)?;
+        if ![x, y, w, h].iter().all(|v| v.is_finite()) {
+            return None;
+        }
+        Some(Rect::from_min_size(pos2(x.max(0.0), y.max(0.0)), vec2(w.clamp(group.min_float_width(), 900.0), h.clamp(group.min_height(), 1000.0))))
+    }
+
+    pub fn detach(&mut self, group: Group, at: egui::Pos2) {
+        if at.x.is_finite() && at.y.is_finite() {
+            self.floating.insert(group, [at.x.max(0.0), at.y.max(0.0), group.min_float_width(), group.default_height().max(220.0)]);
+        }
+    }
+
+    pub fn dock(&mut self, group: Group) {
+        self.floating.remove(&group);
+    }
+
     /// Visible tabs, retaining their original indices for commands and panel bodies.
     pub fn visible_tabs(&self, group: Group, pro: bool) -> Vec<(usize, &'static str)> {
         let hidden = self.hidden_tabs.get(&group);
@@ -354,6 +383,7 @@ enum Action {
     Close(Group),
     CloseTab(Group, usize),
     Move(Group, Option<Group>),
+    Detach(Group, egui::Pos2),
 }
 
 /// Rects of the groups drawn last frame (screen points), for tests and automation.
@@ -458,7 +488,11 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
             && resp.strip.drag_stopped()
             && let Some(p) = ui.ctx().pointer_interact_pos()
         {
-            actions.push(Action::Move(g, drop_before(&order, &rects, g, p.y)));
+            if !area.expand(16.0).contains(p) {
+                actions.push(Action::Detach(g, p));
+            } else {
+                actions.push(Action::Move(g, drop_before(&order, &rects, g, p.y)));
+            }
         }
         if dragging == Some(g) {
             ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
@@ -484,6 +518,10 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
             }
             if ui.add_enabled(!locked && pos + 1 < order.len(), egui::Button::new(tl!("Move Group Down"))).clicked() {
                 actions.push(Action::Move(g, order.get(pos + 2).copied()));
+                ui.close();
+            }
+            if ui.add_enabled(!locked, egui::Button::new(tl!("Detach Panel Group"))).clicked() {
+                actions.push(Action::Detach(g, resp.strip.rect.left_top() + vec2(-120.0, 28.0)));
                 ui.close();
             }
             ui.separator();
@@ -544,6 +582,105 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
                     app.ui.dock.move_group(g, before);
                 }
             }
+            Action::Detach(g, pos) => app.ui.dock.detach(g, pos),
+        }
+    }
+}
+
+/// Draw detached groups above the canvas. Native egui windows supply edge and corner resize,
+/// and their title bars move the complete tab group. The painted corner tells users it resizes.
+pub fn show_floating(app: &mut PhotocraftApp, ctx: &egui::Context, mut body: impl FnMut(&mut PhotocraftApp, &mut egui::Ui, Group, usize)) {
+    let t = Tokens::get(ctx);
+    let groups: Vec<Group> = app.ui.dock.floating.keys().copied().collect();
+    let locked = app.session.prefs().workspace_locked;
+    for g in groups {
+        if !g.shown(&app.ui.panels) {
+            continue;
+        }
+        let Some(rect) = app.ui.dock.float_rect(g) else { continue };
+        let mut dock_back = false;
+        let mut close = false;
+        let mut resize_delta = egui::Vec2::ZERO;
+        let title = g.tabs(t.pro).first().copied().unwrap_or(g.key());
+        let response = egui::Window::new(title)
+            .id(egui::Id::new(("floating-dock", g.key())))
+            .order(egui::Order::Middle)
+            .current_pos(rect.min)
+            .fixed_size(rect.size())
+            .movable(!locked)
+            .collapsible(false)
+            .title_bar(true)
+            .frame(egui::Frame::NONE.fill(t.dock).stroke(Stroke::new(1.0, t.separator)).inner_margin(egui::Margin::same(6)))
+            .show(ctx, |ui| {
+                // A window's first-frame available rect is the viewport, not its requested
+                // size. Bound the card explicitly or a Layers list makes it fill the screen.
+                let body_width = (rect.width() - 12.0).max(238.0);
+                let body_height = (rect.height() - 38.0).max(g.min_height());
+                ui.set_max_width(body_width);
+                ui.set_width(body_width);
+                ui.set_max_height(body_height);
+                ui.set_height(body_height);
+                ui.horizontal(|ui| {
+                    if ui.small_button(tl!("Dock")).on_hover_text(tl!("Dock this panel group on the right")).clicked() {
+                        dock_back = true;
+                    }
+                    if ui.small_button("×").on_hover_text(tl!("Close panel group")).clicked() {
+                        close = true;
+                    }
+                });
+                let before = *g.tab_mut(&mut app.ui.dock_tabs);
+                let visible = app.ui.dock.visible_tabs(g, t.pro);
+                let indices: Vec<usize> = visible.iter().map(|(i, _)| *i).collect();
+                let names: Vec<&str> = visible.iter().map(|(_, name)| *name).collect();
+                if !names.is_empty() {
+                    let mut sel = indices.iter().position(|i| *i == before).unwrap_or(0);
+                    widgets::card_ex(ui, g.key(), &names, &mut sel, false, |ui, selected| {
+                        if let Some(&tab) = indices.get(selected) {
+                            if g.scrolls_itself(tab) {
+                                body(app, ui, g, tab);
+                            } else {
+                                egui::ScrollArea::vertical().id_salt(("float-scroll", g.key(), tab)).show(ui, |ui| body(app, ui, g, tab));
+                            }
+                        }
+                    });
+                    if let Some(&picked) = indices.get(sel) {
+                        *g.tab_mut(&mut app.ui.dock_tabs) = picked;
+                    }
+                }
+                // Three short diagonal strokes are a discoverable corner resize affordance.
+                let corner = ui.max_rect().right_bottom() - vec2(5.0, 5.0);
+                let handle = Rect::from_min_max(corner - vec2(23.0, 23.0), corner + vec2(5.0, 5.0));
+                let grip = ui.interact(handle, ui.id().with(("floating-resize", g.key())), if locked { Sense::hover() } else { Sense::drag() });
+                if grip.hovered() || grip.dragged() {
+                    ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeNwSe);
+                }
+                if grip.dragged() {
+                    resize_delta = grip.drag_delta();
+                }
+                for n in 0..3 {
+                    let d = 6.0 + n as f32 * 5.0;
+                    ui.painter().line_segment([corner - vec2(d, 0.0), corner - vec2(0.0, d)], Stroke::new(2.0, t.accent));
+                }
+            });
+        if let Some(inner) = response {
+            let r = inner.response.rect;
+            if r.is_positive() && [r.min.x, r.min.y, r.width(), r.height()].iter().all(|v| v.is_finite()) {
+                app.ui.dock.floating.insert(
+                    g,
+                    [
+                        r.min.x,
+                        r.min.y,
+                        (rect.width() + resize_delta.x).clamp(g.min_float_width(), 900.0),
+                        (rect.height() + resize_delta.y).clamp(g.min_height(), 1000.0),
+                    ],
+                );
+            }
+        }
+        if dock_back {
+            app.ui.dock.dock(g);
+        }
+        if close {
+            *g.shown_mut(&mut app.ui.panels) = false;
         }
     }
 }

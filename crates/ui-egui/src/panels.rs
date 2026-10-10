@@ -1352,7 +1352,7 @@ pub fn right_dock(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             ];
             for (icon, name, g) in entries {
                 // Studio floats Properties outside the dock.
-                let docked = t.pro || g != Group::Properties;
+                let docked = (t.pro || g != Group::Properties) && !app.ui.dock.floating.contains_key(&g);
                 let on = g.shown(&p) && !(docked && app.ui.dock.is_collapsed(g));
                 if icons::rail_button(ui, icon, rb, on, name).clicked() {
                     crate::dock::rail_click(app, g, docked);
@@ -1363,6 +1363,7 @@ pub fn right_dock(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     if !t.pro {
         dock_panels(app, ui, &p, &t);
     }
+    crate::dock::show_floating(app, ui.ctx(), dock_body);
     crate::dock::persist(app, ui.ctx());
 }
 
@@ -1391,7 +1392,7 @@ fn dock_panels(app: &mut PhotocraftApp, ui: &mut egui::Ui, p: &crate::state::Pan
         (Group::Layers, p.layers),
     ]
     .into_iter()
-    .filter_map(|(g, on)| on.then_some(g))
+    .filter_map(|(g, on)| (on && !app.ui.dock.floating.contains_key(&g)).then_some(g))
     .collect();
     if shown.is_empty() {
         return;
@@ -2450,7 +2451,7 @@ fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
 /// Floating Properties card anchored to the canvas' top-right corner.
 pub fn properties_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
     // Pro (Photoshop) docks Properties; Studio floats it over the canvas.
-    if !app.ui.panels.properties || Tokens::get(ctx).pro {
+    if !app.ui.panels.properties || Tokens::get(ctx).pro || app.ui.dock.floating.contains_key(&crate::dock::Group::Properties) {
         return;
     }
     let Some(st) = app.session.active() else { return };
