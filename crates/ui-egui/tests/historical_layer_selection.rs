@@ -142,7 +142,10 @@ fn historical_layer_selection_is_readable_and_nested_controls_remain_interactive
                             assert_eq!(foreground(&h, name), Some(expected_text), "{theme} {scale} {width} {state} {name}");
                             if historical {
                                 let eye = Rect::from_min_size(pos2(row.row.left() + 6.0, row.row.center().y - 11.0), vec2(22.0, 22.0));
-                                assert!(ink(&h, eye, tokens.row_selected_text), "{theme}: eye {eye:?}");
+                                // Hidden layers keep their clickable eye column empty on main.
+                                if id != hidden {
+                                    assert!(ink(&h, eye, tokens.row_selected_text), "{theme}: eye {eye:?}");
+                                }
                                 for (_, r) in &row.indicators {
                                     assert!(ink(&h, *r, tokens.row_selected_text), "{theme}: indicator {r:?}");
                                 }
