@@ -288,6 +288,47 @@ pub fn export_flat(doc: &Document, path: &str) -> Result<Vec<u8>, String> {
     photocraft_codecs::encode(&img, format, &EncodeOptions::default()).map_err(|e| e.to_string())
 }
 
+fn block_on<T>(future: impl Future<Output = T>) -> T {
+    struct Unpark(std::thread::Thread);
+    impl std::task::Wake for Unpark {
+        fn wake(self: Arc<Self>) {
+            self.0.unpark();
+        }
+    }
+    let waker = std::task::Waker::from(Arc::new(Unpark(std::thread::current())));
+    let mut cx = std::task::Context::from_waker(&waker);
+    let mut future = std::pin::pin!(future);
+    loop {
+        if let std::task::Poll::Ready(value) = future.as_mut().poll(&mut cx) {
+            return value;
+        }
+        // Spurious wake-ups just poll again.
+        std::thread::park();
+    }
+}
+
+fn show_save_destination(suggested: &str, frame: &eframe::Frame, ctx: &egui::Context, tx: std::sync::mpsc::Sender<Option<String>>) {
+    let mut panel = rfd::AsyncFileDialog::new().set_parent(frame);
+    if let Some((name, extensions)) = save_filters(suggested).first() {
+        panel = panel.add_filter(*name, extensions);
+    }
+    if let Some(name) = Path::new(suggested).file_name() {
+        panel = panel.set_file_name(name.to_string_lossy());
+    }
+    if let Some(dir) = Path::new(suggested).parent().filter(|p| !p.as_os_str().is_empty()) {
+        panel = panel.set_directory(dir);
+    }
+    let future = panel.save_file();
+    let ctx = ctx.clone();
+    if let Err(error) = std::thread::Builder::new().name("save destination".into()).spawn(move || {
+        let answer = block_on(future).map(|file| file.path().to_string_lossy().into_owned());
+        let _ = tx.send(answer);
+        ctx.request_repaint();
+    }) {
+        log::error!("could not wait for save destination: {error}");
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -485,46 +526,5 @@ mod tests {
         std::fs::write(&bin, tga_1x1()).unwrap();
         assert_eq!(image_from_files(&[tga]), Some((1, 1, vec![255, 0, 0, 255])));
         assert!(image_from_files(&[bin]).is_none());
-    }
-}
-
-fn block_on<T>(future: impl Future<Output = T>) -> T {
-    struct Unpark(std::thread::Thread);
-    impl std::task::Wake for Unpark {
-        fn wake(self: Arc<Self>) {
-            self.0.unpark();
-        }
-    }
-    let waker = std::task::Waker::from(Arc::new(Unpark(std::thread::current())));
-    let mut cx = std::task::Context::from_waker(&waker);
-    let mut future = std::pin::pin!(future);
-    loop {
-        if let std::task::Poll::Ready(value) = future.as_mut().poll(&mut cx) {
-            return value;
-        }
-        // Spurious wake-ups just poll again.
-        std::thread::park();
-    }
-}
-
-fn show_save_destination(suggested: &str, frame: &eframe::Frame, ctx: &egui::Context, tx: std::sync::mpsc::Sender<Option<String>>) {
-    let mut panel = rfd::AsyncFileDialog::new().set_parent(frame);
-    if let Some((name, extensions)) = save_filters(suggested).first() {
-        panel = panel.add_filter(*name, extensions);
-    }
-    if let Some(name) = Path::new(suggested).file_name() {
-        panel = panel.set_file_name(name.to_string_lossy());
-    }
-    if let Some(dir) = Path::new(suggested).parent().filter(|p| !p.as_os_str().is_empty()) {
-        panel = panel.set_directory(dir);
-    }
-    let future = panel.save_file();
-    let ctx = ctx.clone();
-    if let Err(error) = std::thread::Builder::new().name("save destination".into()).spawn(move || {
-        let answer = block_on(future).map(|file| file.path().to_string_lossy().into_owned());
-        let _ = tx.send(answer);
-        ctx.request_repaint();
-    }) {
-        log::error!("could not wait for save destination: {error}");
     }
 }
