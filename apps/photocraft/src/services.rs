@@ -6,8 +6,10 @@ use photocraft_doc::{Document, Layer, Size};
 use photocraft_geom::Rect;
 use photocraft_ui_egui::Services;
 use std::cell::RefCell;
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::Arc;
 
 /// Everything File › Open reads: PhotoCraft and Photoshop documents, flat images, and Photoshop
 /// brushes (.abr) and gradients (.grd), which go to the preset libraries.
@@ -16,24 +18,10 @@ const OPEN_EXTS: &[&str] = &[
     "pfm", "heic", "heif", "hif", "dng", "cr2", "cr3", "nef", "nrw", "arw", "pef", "orf", "rw2", "raf", "abr", "grd",
 ];
 
-/// File › Save As formats: (filter name, extensions). The filter matching the suggested name's
-/// extension comes first, so a .pcraft document saves as .pcraft by default and everything else
-/// keeps defaulting to Photoshop.
-const SAVE_FILTERS: &[(&str, &[&str])] = &[
-    ("Photoshop", &["psd", "psb"]),
-    ("PhotoCraft", &["pcraft"]),
-    ("PNG", &["png"]),
-    ("JPEG", &["jpg"]),
-    ("WebP", &["webp"]),
-    ("TIFF", &["tif"]),
-    ("Targa", &["tga"]),
-    ("OpenEXR", &["exr"]),
-];
-
-/// [`SAVE_FILTERS`] with the one for `suggested`'s extension first.
+/// Writable save formats with the suggested extension first.
 fn save_filters(suggested: &str) -> Vec<(&'static str, &'static [&'static str])> {
     let ext = Path::new(suggested).extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
-    let mut v = SAVE_FILTERS.to_vec();
+    let mut v: Vec<_> = photocraft_ui_egui::save_formats::document_formats().into_iter().map(|f| (f.name, f.extensions)).collect();
     if let Some(i) = v.iter().position(|(_, exts)| exts.contains(&ext.as_str())) {
         let f = v.remove(i);
         v.insert(0, f);
@@ -162,10 +150,13 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
                 .pick_files()
                 .map(|paths| paths.into_iter().map(|path| path.to_string_lossy().into_owned()).collect())
         })),
+        choose_save_format: cfg!(target_os = "macos"),
+        save_destination: Some(Box::new(show_save_destination)),
         pick_save: Some(Box::new(|suggested: &str| {
             let p = std::path::Path::new(suggested);
             let mut d = rfd::FileDialog::new();
-            for (name, exts) in save_filters(suggested) {
+            let filters = save_filters(suggested);
+            for (name, exts) in filters.into_iter().take(if cfg!(target_os = "macos") { 1 } else { usize::MAX }) {
                 d = d.add_filter(name, exts);
             }
             if let Some(name) = p.file_name() {
@@ -299,6 +290,18 @@ pub fn export_flat(doc: &Document, path: &str) -> Result<Vec<u8>, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn every_writable_codec_has_a_native_save_filter() {
+        let filters = super::save_filters("Untitled.psd");
+        for format in photocraft_codecs::Format::ALL {
+            for ext in format.extensions() {
+                assert_eq!(filters.iter().any(|(_, exts)| exts.contains(ext)), format.caps().write, "{ext}");
+            }
+        }
+        assert_eq!(super::save_filters("large.psb")[0].0, "Large Document (PSB)");
+        assert_eq!(super::save_filters("image.bmp")[0].0, "BMP");
+        assert_eq!(super::save_filters("image.TIFF")[0].0, "TIFF");
+    }
     use super::*;
     use photocraft_engine::Session;
     use photocraft_format::list_recovery;
@@ -482,5 +485,46 @@ mod tests {
         std::fs::write(&bin, tga_1x1()).unwrap();
         assert_eq!(image_from_files(&[tga]), Some((1, 1, vec![255, 0, 0, 255])));
         assert!(image_from_files(&[bin]).is_none());
+    }
+}
+
+fn block_on<T>(future: impl Future<Output = T>) -> T {
+    struct Unpark(std::thread::Thread);
+    impl std::task::Wake for Unpark {
+        fn wake(self: Arc<Self>) {
+            self.0.unpark();
+        }
+    }
+    let waker = std::task::Waker::from(Arc::new(Unpark(std::thread::current())));
+    let mut cx = std::task::Context::from_waker(&waker);
+    let mut future = std::pin::pin!(future);
+    loop {
+        if let std::task::Poll::Ready(value) = future.as_mut().poll(&mut cx) {
+            return value;
+        }
+        // Spurious wake-ups just poll again.
+        std::thread::park();
+    }
+}
+
+fn show_save_destination(suggested: &str, frame: &eframe::Frame, ctx: &egui::Context, tx: std::sync::mpsc::Sender<Option<String>>) {
+    let mut panel = rfd::AsyncFileDialog::new().set_parent(frame);
+    if let Some((name, extensions)) = save_filters(suggested).first() {
+        panel = panel.add_filter(*name, extensions);
+    }
+    if let Some(name) = Path::new(suggested).file_name() {
+        panel = panel.set_file_name(name.to_string_lossy());
+    }
+    if let Some(dir) = Path::new(suggested).parent().filter(|p| !p.as_os_str().is_empty()) {
+        panel = panel.set_directory(dir);
+    }
+    let future = panel.save_file();
+    let ctx = ctx.clone();
+    if let Err(error) = std::thread::Builder::new().name("save destination".into()).spawn(move || {
+        let answer = block_on(future).map(|file| file.path().to_string_lossy().into_owned());
+        let _ = tx.send(answer);
+        ctx.request_repaint();
+    }) {
+        log::error!("could not wait for save destination: {error}");
     }
 }

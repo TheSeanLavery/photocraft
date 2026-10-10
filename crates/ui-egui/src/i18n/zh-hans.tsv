@@ -2173,3 +2173,8 @@ cameraRaw	Blending	混合
 
 	Collaboration…	协作…
 	Collaboration View Settings	协作视图设置
+
+# Save format chooser
+	Continue	继续
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	此格式会保存拼合后的图像。要保留可编辑的文档，请使用“保存副本”。
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm 根据图像位深度和通道选择子类型。

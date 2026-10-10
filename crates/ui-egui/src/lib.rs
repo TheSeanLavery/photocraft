@@ -115,6 +115,8 @@ pub mod rasterize_prompt;
 pub mod retouch_ui;
 mod rgb_histogram;
 pub mod rulers;
+mod save_choice;
+pub mod save_formats;
 pub mod scrollbars;
 pub mod shortcut_dispatch;
 pub mod shortcuts;
@@ -276,6 +278,8 @@ pub struct Services {
     pub pick_open_paths: Option<PickOpenPathsFn>,
     /// Show a "save file" dialog; returns a path/name to write.
     pub pick_save: Option<PickSaveFn>,
+    pub choose_save_format: bool,
+    pub save_destination: Option<save_choice::DestinationFn>,
     /// Write bytes to a path (native) or trigger a download (web).
     pub write: Option<WriteFn>,
     /// File access used only by control/MCP requests. Interactive dialogs keep
@@ -328,6 +332,7 @@ pub struct Services {
 pub type CollaborationFrameHook = Box<dyn FnMut(&mut PhotocraftApp)>;
 
 pub struct PhotocraftApp {
+    pub(crate) save_choice: Option<save_choice::Pending>,
     collaboration_frame_hook: Option<CollaborationFrameHook>,
     pub session: Session,
     pub ui: UiState,
@@ -520,6 +525,7 @@ impl PhotocraftApp {
             opacity_keys: None,
             control_rx: None,
             pending_screenshots: Vec::new(),
+            save_choice: None,
             queued_screenshots: Vec::new(),
             input_waiters: Vec::new(),
             live_adjust: None,
@@ -1122,7 +1128,7 @@ impl eframe::App for PhotocraftApp {
         raw_input.events.extend(self.take_synthetic_step());
     }
 
-    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         // Bitmap cursor output is sticky in egui; clear it when no canvas claims the pointer.
         ctx.set_cursor_image(None);
@@ -1191,6 +1197,7 @@ impl eframe::App for PhotocraftApp {
             read(MouseMotion::EndFrame, ctx.zoom_factor());
         }
         self.automation_input = false;
+        self.show_save_choice(&ctx, frame);
         native_menu::sync(self, &ctx);
         self.perf.frame(gpu_canvas::now_ms() - t0);
         // Synthetic input is injected one press/release step per frame: keep frames coming until

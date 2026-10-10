@@ -2597,3 +2597,8 @@ cameraRaw	Whites	Brancos
 
 	Collaboration…	Colaboração…
 	Collaboration View Settings	Configurações de visualização da colaboração
+
+# Save format chooser
+	Continue	Continuar
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Este formato salva uma imagem achatada. Use Salvar uma cópia para manter o documento editável.
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm escolhe o subtipo com base na profundidade de bits e nos canais da imagem.
