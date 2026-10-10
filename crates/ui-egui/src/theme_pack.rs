@@ -335,6 +335,12 @@ impl ResolvedTheme {
         }
         layout.apply(ctx);
         crate::theme_fonts::set(ctx, self.typography.family.as_deref());
+        // Read family resolution before acquiring the global style lock.
+        let font_scale = self
+            .typography
+            .family
+            .as_ref()
+            .map_or(1.0, |family| crate::theme_fonts::calibrated(ctx, FontId::new(1.0, egui::FontFamily::Name(family.clone().into()))).size);
         ctx.global_style_mut(|s| {
             if self.tokens.appearance != crate::theme::Appearance::Modern {
                 s.visuals.handle_shape = egui::style::HandleShape::Rect { aspect_ratio: 0.6 };
@@ -390,6 +396,9 @@ impl ResolvedTheme {
                     let font = s.text_styles.get(&style).cloned().unwrap_or_else(|| FontId::proportional(size));
                     s.text_styles.insert(style, FontId::new(size, font.family));
                 }
+            }
+            for font in s.text_styles.values_mut() {
+                font.size *= font_scale;
             }
         });
         ctx.request_repaint();

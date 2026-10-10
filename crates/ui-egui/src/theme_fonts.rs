@@ -6,7 +6,7 @@ pub const FAMILIES: [&str; 7] = ["Inter", "JetBrains Mono", "Microsoft Sans Seri
 
 #[derive(Clone, Debug)]
 struct Families {
-    resolved: Vec<(String, String)>,
+    resolved: Arc<Vec<(String, String)>>,
 }
 
 pub(crate) fn install(ctx: &Context, fonts: &mut FontDefinitions) {
@@ -40,7 +40,7 @@ pub(crate) fn install(ctx: &Context, fonts: &mut FontDefinitions) {
         stack.extend(fallback.iter().cloned());
         fonts.families.insert(FontFamily::Name(requested.clone().into()), stack);
     }
-    ctx.data_mut(|d| d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved }));
+    ctx.data_mut(|d| d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(resolved) }));
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -131,7 +131,7 @@ fn load(_: &str) -> Option<FontData> {
 
 pub fn status(ctx: &Context) -> Option<(String, String)> {
     let requested: String = ctx.data(|d| d.get_temp(egui::Id::new("theme-font-family")))?;
-    let actual = ctx.data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families")))?.resolved.into_iter().find(|(name, _)| name == &requested)?.1;
+    let actual = ctx.data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families")))?.resolved.iter().find(|(name, _)| name == &requested)?.1.clone();
     Some((requested, actual))
 }
 
@@ -146,9 +146,32 @@ pub(crate) fn set(ctx: &Context, family: Option<&str>) {
     });
 }
 
+/// Chicago Kare's 64-unit grid in a 1024-unit em needs 16 points for one
+/// logical pixel per grid cell. Only the Chicago compatibility alias uses this
+/// calibration; explicitly selected Chicago Kare keeps its raw point sizes.
+fn chicago_recreation_alias(ctx: &Context, font: &FontId) -> bool {
+    matches!(&font.family, FontFamily::Name(name) if name.as_ref() == "Chicago")
+        && ctx
+            .data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families")))
+            .is_some_and(|families| families.resolved.iter().any(|(requested, actual)| requested == "Chicago" && actual == "Chicago Kare"))
+}
+
+pub(crate) fn calibrated(ctx: &Context, mut font: FontId) -> FontId {
+    if chicago_recreation_alias(ctx, &font) {
+        font.size *= 4.0 / 3.0;
+    }
+    font
+}
+
+/// Single-line chrome uses the recreation's em box rather than its extra 0.2-em
+/// interline gap. Glyph advances and raster size still use the calibrated font.
+pub(crate) fn chrome_line_height(ctx: &Context, font: &FontId) -> Option<f32> {
+    chicago_recreation_alias(ctx, font).then_some(font.size)
+}
+
 pub(crate) fn control(ctx: &Context, size: f32, bold: bool) -> FontId {
     if let Some(name) = ctx.data(|d| d.get_temp::<String>(egui::Id::new("theme-font-family"))) {
-        FontId::new(size, FontFamily::Name(name.into()))
+        calibrated(ctx, FontId::new(size, FontFamily::Name(name.into())))
     } else if bold {
         crate::theme::semibold(size)
     } else {
@@ -163,6 +186,35 @@ pub(crate) fn number(ctx: &Context, size: f32) -> FontId {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn chicago_recreation_calibrates_alias_styles_without_double_scaling() {
+        let ctx = Context::default();
+        ctx.data_mut(|d| {
+            d.insert_temp(
+                egui::Id::new("theme-font-families"),
+                Families { resolved: Arc::new(vec![("Chicago".into(), "Chicago Kare".into()), ("Chicago Kare".into(), "Chicago Kare".into())]) },
+            )
+        });
+        let pack = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/system-6.json")).unwrap().resolve().unwrap();
+        for _ in 0..3 {
+            pack.apply(&ctx);
+            assert_eq!(control(&ctx, 12.0, false).size, 16.0);
+            assert_eq!(number(&ctx, 12.0).size, 16.0);
+            assert_eq!(chrome_line_height(&ctx, &control(&ctx, 12.0, false)), Some(16.0));
+            assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 16.0);
+            assert_eq!(crate::theme::LayoutTokens::get(&ctx).caption_font_size, 12.0);
+        }
+        set(&ctx, Some("Chicago Kare"));
+        assert_eq!(control(&ctx, 12.0, false).size, 12.0);
+        assert_eq!(chrome_line_height(&ctx, &control(&ctx, 12.0, false)), None);
+        ctx.data_mut(|d| d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(vec![("Chicago".into(), "Geneva".into())]) }));
+        pack.apply(&ctx);
+        assert_eq!(control(&ctx, 12.0, false).size, 12.0);
+        assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 12.0);
+        crate::theme::apply(&ctx, crate::theme::ThemeKind::Classic);
+        assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 12.5);
+    }
 
     #[test]
     fn actual_font_identity_is_required_even_for_recreations() {
@@ -181,8 +233,10 @@ mod tests {
         crate::theme::install_fonts(&ctx);
         set(&ctx, Some("Chicago"));
         assert_eq!(status(&ctx), Some(("Chicago".into(), "Chicago Kare".into())));
+        assert_eq!(control(&ctx, 12.0, false).size, 16.0);
         set(&ctx, Some("Chicago Kare"));
         assert_eq!(status(&ctx), Some(("Chicago Kare".into(), "Chicago Kare".into())));
+        assert_eq!(control(&ctx, 12.0, false).size, 12.0);
     }
 
     #[cfg(not(target_arch = "wasm32"))]

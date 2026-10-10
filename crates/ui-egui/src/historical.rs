@@ -432,7 +432,7 @@ pub fn window_caption(ui: &mut Ui, title: &str) -> Option<(Response, bool)> {
 fn caption_height(ui: &Ui) -> f32 {
     let layout = theme::LayoutTokens::get(ui.ctx());
     let font = crate::theme_fonts::control(ui.ctx(), layout.caption_font_size, true);
-    let text_height = ui.fonts_mut(|fonts| fonts.row_height(&font));
+    let text_height = crate::tab_strip::elided(ui, "Hg", font, Tokens::get(ui.ctx()).text, f32::INFINITY).size().y;
     layout.title_bar_height.max(text_height + 2.0)
 }
 
@@ -610,7 +610,8 @@ mod tests {
                     }
                     if let Some((response, _)) = window_caption(ui, "PhotoCraft caption") {
                         let font = crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).caption_font_size, true);
-                        *measured = (response.rect.height(), ui.fonts_mut(|fonts| fonts.row_height(&font)));
+                        let galley = crate::tab_strip::elided(ui, "PhotoCraft caption", font, Tokens::get(ui.ctx()).text, ui.available_width());
+                        *measured = (response.rect.height(), galley.size().y);
                     }
                 },
                 (0.0_f32, 0.0_f32),

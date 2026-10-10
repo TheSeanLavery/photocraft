@@ -272,6 +272,14 @@ Restart to load a newly added font; theme definitions and metrics remain live-ed
 
 `typography.family` accepts `Chicago Kare` explicitly. A `Chicago` request uses it when
 original Chicago is absent, and Theme Manager reports the actual recreation name.
+The Chicago compatibility alias calibrates this recreation by 4/3 across stock text styles
+and custom control fonts (nominal 12 renders at raw 16 points), matching its 64-unit pixel
+grid in a 1024-unit em. Explicit Chicago Kare sizes stay raw; installed original Chicago
+and other fallbacks are not scaled. Reapplying themes does not compound the correction.
+Calibrated captions, buttons, radio labels and elided tabs use the em height for single-line layout, omitting
+the recreation's extra interline gap so the default caption remains 18 logical points.
+Numeric fields retain native editing and measure the font row with a one-point vertical
+inset when calibrated, keeping the editable text and hit area inside the painted field.
 Chicago Kare is Duane King's MIT-licensed recreation, not Apple's original font.
 Font bytes and their license/manifest/attribution live in craft-fonts, never PhotoCraft.
 Browser builds still report their bundled fallback until a separate runtime font delivery

@@ -155,13 +155,22 @@ pub fn pill_tab(ui: &mut Ui, label: &str, selected: bool) -> Response {
 /// Monospace numeric field with a dimmed unit suffix, Photoshop style. Drag to scrub.
 pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive<f32>, suffix: &str, width: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    let (rect, _) = ui.allocate_exact_size(vec2(width, theme::LayoutTokens::get(ui.ctx()).field_height), Sense::hover());
+    let metrics = theme::LayoutTokens::get(ui.ctx());
+    let font = crate::theme_fonts::number(ui.ctx(), metrics.field_font_size);
+    let calibrated = crate::theme_fonts::chrome_line_height(ui.ctx(), &font).is_some();
+    let vertical_padding = if calibrated { 1.0 } else { 2.0 };
+    let height = if calibrated {
+        metrics.field_height.max(ui.painter().layout_no_wrap("0".into(), font.clone(), t.text).size().y + 2.0 * vertical_padding)
+    } else {
+        metrics.field_height
+    };
+    let (rect, _) = ui.allocate_exact_size(vec2(width, height), Sense::hover());
     surface(ui, rect, t.field, false);
     if !t.bevel {
         ui.painter().rect_stroke(rect, t.radius_sm, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
     }
     let suffix_w = if suffix.is_empty() { 0.0 } else { 16.0 };
-    let field = Rect::from_min_max(rect.min + vec2(4.0, 2.0), rect.max - vec2(4.0 + suffix_w, 2.0));
+    let field = Rect::from_min_max(rect.min + vec2(4.0, vertical_padding), rect.max - vec2(4.0 + suffix_w, vertical_padding));
     // Small ranges (gamma 0.01–9.99, 0–1 centres) need two decimals and a finer drag, like Photoshop.
     let fine = range.end() - range.start() <= 10.0;
     // new_child (not scope_builder): a scope would move the parent cursor back to the child rect.
@@ -174,7 +183,7 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
             ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::NONE;
             ui.style_mut().visuals.widgets.hovered.bg_stroke = Stroke::NONE;
             ui.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::TRANSPARENT;
-            ui.style_mut().override_font_id = Some(crate::theme_fonts::number(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).field_font_size));
+            ui.style_mut().override_font_id = Some(font);
             // DragValue is a button internally: its stock minimum/padding must fit our painted field.
             ui.spacing_mut().interact_size.y = field.height();
             ui.spacing_mut().button_padding.y = 0.0;
@@ -378,7 +387,7 @@ pub fn chrome_button(ui: &mut Ui, label: &str, height: f32) -> Response {
 fn button_impl(ui: &mut Ui, label: &str, min_width: f32, bg: Color32, fg: Color32, primary: bool, height: Option<f32>) -> Response {
     let t = Tokens::get(ui.ctx());
     let layout = theme::LayoutTokens::get(ui.ctx());
-    let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), crate::theme_fonts::control(ui.ctx(), layout.button_font_size, false), fg);
+    let galley = crate::tab_strip::elided(ui, tl!(label), crate::theme_fonts::control(ui.ctx(), layout.button_font_size, false), fg, f32::INFINITY);
     let h = height.filter(|h| h.is_finite()).unwrap_or(layout.button_height).max(galley.size().y + 4.0);
     let size = vec2((galley.size().x + layout.button_padding_x * 2.0).max(min_width), h);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
@@ -504,10 +513,12 @@ pub fn radio(ui: &mut Ui, on: bool, label: &str) -> Response {
     if t.appearance == theme::Appearance::Modern {
         return ui.radio(on, tl!(label));
     }
-    let galley = ui.painter().layout_no_wrap(
-        tl!(label).to_owned(),
+    let galley = crate::tab_strip::elided(
+        ui,
+        tl!(label),
         crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).button_font_size, false),
         t.text,
+        f32::INFINITY,
     );
     let mark_size = if t.appearance == theme::Appearance::Windows98 { 13.0 } else { 12.0 };
     let (rect, response) = ui.allocate_exact_size(vec2(mark_size + 5.0 + galley.size().x, 18.0_f32.max(galley.size().y)), Sense::click());
@@ -609,6 +620,32 @@ pub fn fmt_num2(v: f64) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn historical_numeric_text_fits_its_painted_field_at_all_scales() {
+        for source in [
+            include_str!("../../../assets/themes/windows-98-se.json"),
+            include_str!("../../../assets/themes/mac-os-9-1.json"),
+            include_str!("../../../assets/themes/system-6.json"),
+        ] {
+            for scale in [1.0, 1.5, 2.0] {
+                let pack = crate::theme_pack::ThemePack::parse(source).unwrap().resolve().unwrap();
+                let mut initialized = false;
+                let mut value = 100.0;
+                let mut h = egui_kittest::Harness::builder().with_pixels_per_point(scale).build_ui(|ui| {
+                    if !initialized {
+                        crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                        initialized = true;
+                        return;
+                    }
+                    pack.apply(ui.ctx());
+                    let field = ui.scope(|ui| super::value_field(ui, &mut value, 0.0..=999.0, "%", 78.0));
+                    assert!(field.response.rect.contains_rect(field.inner.rect), "{scale}: {:?} outside {:?}", field.inner.rect, field.response.rect);
+                });
+                h.run_steps(3);
+            }
+        }
+    }
+
     #[test]
     fn historical_dropdown_long_labels_fit_requested_width_and_keep_selection() {
         use egui_kittest::kittest::Queryable;
