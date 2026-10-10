@@ -162,3 +162,39 @@ fn selected_history_labels_use_the_theme_foreground_at_all_scales() {
         }
     }
 }
+
+#[test]
+fn historical_floating_properties_fit_and_visibility_controls_still_dispatch() {
+    for id in ["builtin.windows-98-se", "builtin.mac-os-9-1", "builtin.system-6"] {
+        for scale in [1.0, 1.5, 2.0] {
+            let mut h = Harness::builder().with_size(egui::vec2(1280.0, 900.0)).with_pixels_per_point(scale).build_eframe(|cc| {
+                PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+                let mut app = PhotocraftApp::new(Session::new(), Services::default());
+                app.run("file.new", json!({"width":640,"height":480})).unwrap();
+                app.run("layer.newAdjustmentLayer.brightnessContrast", json!({})).unwrap();
+                app.ui.panels.properties = true;
+                app
+            });
+            h.run_steps(4);
+            let ctx = h.ctx.clone();
+            let (request, _) = ControlRequest::new("ui.theme.select", json!({"id":id}));
+            let Outcome::Done(result) = handle(h.state_mut(), &ctx, &request) else { panic!("did not complete") };
+            assert_eq!(result.get("ok"), Some(&json!(true)));
+            h.run_steps(6);
+            let rect = ctx.memory(|m| m.area_rect(egui::Id::new("properties-card"))).unwrap();
+            assert!(rect.width() <= LayoutTokens::get(&ctx).dock_width + 2.0, "{id} {scale}: {rect:?}");
+            for label in ["Use Legacy", "Adjustment visible", "Clip to layer below", "Reset to defaults"] {
+                let control = h.get_by_label(label).rect();
+                assert!(rect.contains_rect(control), "{id} {scale} {label}: {control:?} vs {rect:?}");
+            }
+            let layer_id = h.state().session.active().unwrap().active_layer.unwrap();
+            let visible = h.state().session.active().unwrap().doc.layer(layer_id).unwrap().visible;
+            h.get_by_label("Adjustment visible").click();
+            h.run_steps(4);
+            assert_ne!(h.state().session.active().unwrap().doc.layer(layer_id).unwrap().visible, visible);
+            h.get_by_label("Close").click();
+            h.run_steps(4);
+            assert!(!h.state().ui.panels.properties);
+        }
+    }
+}

@@ -19,7 +19,7 @@ pub fn preset(id: &str) -> Option<ThemePack> {
     ThemePack::parse(text).ok()
 }
 
-fn bevel(ui: &Ui, rect: Rect, fill: Color32, raised: bool, t: Tokens) {
+pub(crate) fn bevel(ui: &Ui, rect: Rect, fill: Color32, raised: bool, t: Tokens) {
     let p = ui.painter();
     p.rect_filled(rect, 0.0, fill);
     let pairs = if raised {

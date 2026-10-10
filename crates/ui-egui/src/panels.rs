@@ -2007,37 +2007,56 @@ pub fn properties_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
     let layer = layer.clone();
     let t = Tokens::get(ctx);
     let canvas = app.last_canvas_rect;
-    let width = 320.0;
-    let pos = pos2(canvas.right() - width - 12.0, canvas.top() + 44.0);
+    let historical = t.appearance != theme::Appearance::Modern;
+    let metrics = theme::LayoutTokens::get(ctx);
+    let padding = if historical { metrics.panel_padding.round() as i8 } else { 14 };
+    let width = if historical { metrics.dock_width } else { 320.0 };
+    let pos = if historical {
+        pos2((canvas.right() - width - metrics.panel_gap).max(canvas.left()), canvas.top() + metrics.panel_gap)
+    } else {
+        pos2(canvas.right() - width - 12.0, canvas.top() + 44.0)
+    };
     let frame = egui::Frame::NONE
         .fill(t.card)
         .stroke(Stroke::new(1.0, t.card_border))
         .corner_radius(CornerRadius::same(t.radius_lg as u8))
-        .shadow(egui::Shadow { offset: [0, 12], blur: 36, spread: 0, color: t.shadow })
-        .inner_margin(egui::Margin::same(14));
+        .shadow(if historical { egui::Shadow::NONE } else { egui::Shadow { offset: [0, 12], blur: 36, spread: 0, color: t.shadow } })
+        .inner_margin(egui::Margin::same(padding));
     // A floating panel (Order::Middle like other panels, so menus, popups and dialogs stay above
     // it), anchored to the canvas corner and dragged by its title off the part being worked on.
     let card_id = egui::Id::new("properties-card");
     let offset: egui::Vec2 = ctx.data(|m| m.get_temp(card_id)).unwrap_or_default();
     let mut drag = egui::Vec2::ZERO;
+    let mut grip_height = 40.0;
     let shown = egui::Area::new(card_id).order(egui::Order::Middle).fixed_pos(pos + offset).show(ctx, |ui| {
-        frame.show(ui, |ui| {
-            ui.set_width(width - 28.0);
-            let title = ui.horizontal(|ui| {
-                ui.label(RichText::new(tl!("Properties")).font(theme::semibold(13.5)).color(t.text));
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if icons::button(ui, "minus", 22.0, false, tl!("Hide Properties")).clicked() {
-                        app.ui.panels.properties = false;
-                    }
-                });
-            });
-            let bar = title.response.rect.with_max_x(title.response.rect.right() - 28.0);
-            let grip = ui.interact(bar, card_id.with("title"), Sense::drag());
-            if grip.hovered() || grip.dragged() {
-                ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+        let card = frame.show(ui, |ui| {
+            ui.set_width(width - 2.0 * f32::from(padding));
+            if historical {
+                ui.spacing_mut().item_spacing.y = metrics.row_gap;
             }
-            drag = grip.drag_delta();
-            ui.add_space(6.0);
+            if let Some((caption, closed)) = crate::historical::window_caption(ui, tl!("Properties")) {
+                drag = caption.drag_delta();
+                grip_height = caption.rect.height();
+                if closed {
+                    app.ui.panels.properties = false;
+                }
+            } else {
+                let title = ui.horizontal(|ui| {
+                    ui.label(RichText::new(tl!("Properties")).font(theme::semibold(13.5)).color(t.text));
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if icons::button(ui, "minus", 22.0, false, tl!("Hide Properties")).clicked() {
+                            app.ui.panels.properties = false;
+                        }
+                    });
+                });
+                let bar = title.response.rect.with_max_x(title.response.rect.right() - 28.0);
+                let grip = ui.interact(bar, card_id.with("title"), Sense::drag());
+                if grip.hovered() || grip.dragged() {
+                    ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+                }
+                drag = grip.drag_delta();
+            }
+            ui.add_space(if historical { metrics.panel_gap } else { 6.0 });
             let icon = match &layer.content {
                 LayerContent::Adjustment(_) => "sliders-horizontal",
                 LayerContent::Group(_) => "folder",
@@ -2045,11 +2064,16 @@ pub fn properties_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 _ => "image",
             };
             ui.horizontal(|ui| {
-                let (r, _) = ui.allocate_exact_size(vec2(32.0, 32.0), Sense::hover());
+                let icon_size = if historical { metrics.layer_thumbnail_size } else { 32.0 };
+                let (r, _) = ui.allocate_exact_size(vec2(icon_size, icon_size), Sense::hover());
                 ui.painter().rect_filled(r, t.radius_sm, t.field);
-                icons::paint(ui, r, icon, 17.0, t.icon);
+                icons::paint(ui, r, icon, if historical { icon_size.min(16.0) } else { 17.0 }, t.icon);
                 ui.vertical(|ui| {
-                    ui.label(RichText::new(&layer.name).font(theme::medium(13.0)).color(t.text));
+                    ui.label(
+                        RichText::new(&layer.name)
+                            .font(if historical { crate::theme_fonts::control(ui.ctx(), metrics.tab_font_size, true) } else { theme::medium(13.0) })
+                            .color(t.text),
+                    );
                     let kind = match &layer.content {
                         LayerContent::Adjustment(a) => crate::i18n::fmt(tl!("{name} Properties"), &[("name", tl!(a.label()))]),
                         // Whole phrases ("Type Layer"), as the Properties header translates them.
@@ -2058,21 +2082,24 @@ pub fn properties_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
                     ui.label(RichText::new(kind).small().color(t.text_faint));
                 });
             });
-            ui.add_space(8.0);
+            ui.add_space(if historical { metrics.panel_gap } else { 8.0 });
             widgets::hairline(ui);
-            ui.add_space(8.0);
+            ui.add_space(if historical { metrics.panel_gap } else { 8.0 });
             if let LayerContent::Adjustment(adj) = &layer.content {
                 adjustment_controls(app, ui, id, adj);
             } else {
                 layer_controls(app, ui, &layer);
             }
         });
+        if historical && t.appearance != theme::Appearance::System6 {
+            crate::historical::bevel(ui, card.response.rect, Color32::TRANSPARENT, true, t);
+        }
     });
     if drag != egui::Vec2::ZERO && canvas.is_positive() {
         // Keep the title bar inside the canvas.
         let r = shown.response.rect.translate(drag);
         let dx = (canvas.left() - r.left()).max(0.0) - (r.right() - canvas.right()).max(0.0);
-        let dy = (canvas.top() - r.top()).max(0.0) - (r.top() + 40.0 - canvas.bottom()).max(0.0);
+        let dy = (canvas.top() - r.top()).max(0.0) - (r.top() + grip_height - canvas.bottom()).max(0.0);
         ctx.data_mut(|m| m.insert_temp(card_id, offset + drag + egui::vec2(dx, dy)));
     }
 }
@@ -2082,16 +2109,24 @@ fn adjustment_controls(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: LayerId, 
     ui.add_space(6.0);
     let layer = app.session.active().and_then(|s| s.doc.layer(id).cloned());
     if let Some(l) = layer {
-        ui.horizontal(|ui| {
+        let historical = Tokens::get(ui.ctx()).appearance != theme::Appearance::Modern;
+        let controls = |ui: &mut egui::Ui| {
             let mut vis = l.visible;
-            if widgets::toggle(ui, &mut vis, tl!("Adjustment visible")).changed() {
+            let visibility =
+                if historical { widgets::checkbox(ui, &mut vis, tl!("Adjustment visible")) } else { widgets::toggle(ui, &mut vis, tl!("Adjustment visible")) };
+            if visibility.changed() {
                 let _ = app.run("layer.setProps", json!({"layer": id.0, "visible": vis}));
             }
             let mut clip = l.clipped;
             if widgets::toggle(ui, &mut clip, tl!("Clip to layer below")).changed() {
                 let _ = app.run("layer.setProps", json!({"layer": id.0, "clipped": clip}));
             }
-        });
+        };
+        if historical {
+            ui.vertical(controls);
+        } else {
+            ui.horizontal(controls);
+        }
     }
     ui.add_space(6.0);
     if widgets::secondary_button(ui, tl!("Reset to defaults"), ui.available_width()).clicked() {
