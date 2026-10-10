@@ -103,6 +103,7 @@ pub fn truncated(painter: &Painter, text: &str, font: FontId, color: egui::Color
 /// Paint `l`'s right-hand indicators in `row` and handle the effects triangle. Returns the
 /// name's right limit, the indicator rects, and whether the triangle was clicked this frame (so
 /// the row doesn't also treat the click as a selection).
+#[allow(clippy::too_many_arguments)]
 pub fn indicators(
     ui: &egui::Ui,
     painter: &Painter,
@@ -110,16 +111,21 @@ pub fn indicators(
     name_left: f32,
     l: &Layer,
     fx_open: bool,
+    selected_color: Option<egui::Color32>,
     actions: &mut Vec<(String, Value)>,
 ) -> (f32, Vec<(Indicator, Rect)>, bool) {
     let t = Tokens::get(ui.ctx());
     let locked = l.locks.transparency || l.locks.position || l.locks.all;
-    let fx_font = theme::semibold(11.0);
-    let blend_font = FontId::proportional(10.5);
+    let historical = t.appearance != theme::Appearance::Modern;
+    let metrics = theme::LayoutTokens::get(ui.ctx());
+    let fx_font = if historical { crate::theme_fonts::control(ui.ctx(), metrics.tab_font_size, true) } else { theme::semibold(11.0) };
+    let blend_font = if historical { crate::theme_fonts::control(ui.ctx(), metrics.tab_font_size, false) } else { FontId::proportional(10.5) };
+    let dim = selected_color.unwrap_or(t.text_dim);
+    let faint = selected_color.unwrap_or(t.text_faint);
     let has_fx = !l.effects.items.is_empty();
     let show_blend = l.blend != BlendMode::Normal && l.blend != BlendMode::PassThrough;
-    let fx_galley = has_fx.then(|| painter.layout_no_wrap("fx".into(), fx_font, t.text_dim));
-    let blend_galley = show_blend.then(|| painter.layout_no_wrap(tl!(l.blend.label()).into(), blend_font, t.text_faint));
+    let fx_galley = has_fx.then(|| painter.layout_no_wrap("fx".into(), fx_font, dim));
+    let blend_galley = show_blend.then(|| painter.layout_no_wrap(tl!(l.blend.label()).into(), blend_font, faint));
     let mut items = Vec::new();
     if locked {
         items.push((Indicator::Lock, ICON_W));
@@ -139,21 +145,21 @@ pub fn indicators(
     let cy = row.center().y;
     for &(kind, r) in &rects {
         match kind {
-            Indicator::Lock => icons::paint(ui, Rect::from_center_size(r.center(), vec2(ICON_W, ICON_W)), "lock", 12.0, t.text_faint),
-            Indicator::Link => icons::paint(ui, Rect::from_center_size(r.center(), vec2(ICON_W, ICON_W)), "link", 12.0, t.text_faint),
+            Indicator::Lock => icons::paint(ui, Rect::from_center_size(r.center(), vec2(ICON_W, ICON_W)), "lock", 12.0, faint),
+            Indicator::Link => icons::paint(ui, Rect::from_center_size(r.center(), vec2(ICON_W, ICON_W)), "link", 12.0, faint),
             Indicator::Fx => {
                 if let Some(g) = fx_galley.clone() {
-                    painter.galley(pos2(r.left(), cy - g.size().y / 2.0), g, t.text_dim);
+                    painter.galley(pos2(r.left(), cy - g.size().y / 2.0), g, dim);
                 }
             }
             Indicator::Blend => {
                 if let Some(g) = blend_galley.clone() {
-                    painter.galley(pos2(r.left(), cy - g.size().y / 2.0), g, t.text_faint);
+                    painter.galley(pos2(r.left(), cy - g.size().y / 2.0), g, faint);
                 }
             }
             Indicator::FxTriangle => {
                 let resp = ui.interact(r, ui.id().with(("fx-disclosure", l.id.0)), Sense::click());
-                paint_triangle(painter, r.center(), fx_open, if resp.hovered() { t.text } else { t.icon });
+                paint_triangle(painter, r.center(), fx_open, selected_color.unwrap_or(if resp.hovered() { t.text } else { t.icon }));
                 if resp.clicked() {
                     clicked = true;
                     let all = ui.input(|i| i.modifiers.alt);

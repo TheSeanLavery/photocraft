@@ -9,6 +9,45 @@ use photocraft_ui_egui::{
 use serde_json::json;
 
 #[test]
+fn historical_dock_content_uses_authored_spacing_without_modern_padding() {
+    for source in [
+        include_str!("../../../assets/themes/windows-98-se.json"),
+        include_str!("../../../assets/themes/mac-os-9-1.json"),
+        include_str!("../../../assets/themes/system-6.json"),
+    ] {
+        for scale in [1.0, 1.5, 2.0] {
+            for gap in [2.0, 7.0] {
+                let ctx = egui::Context::default();
+                PhotocraftApp::setup_context(&ctx, Default::default());
+                ctx.set_pixels_per_point(scale);
+                let mut pack = photocraft_ui_egui::theme_pack::ThemePack::parse(source).unwrap();
+                pack.geometry.row_gap = Some(gap);
+                pack.resolve().unwrap().apply(&ctx);
+                let mut app = PhotocraftApp::new(Session::new(), Services::default());
+                let mut rows = Vec::new();
+                let mut output = ctx.run_ui(
+                    egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(380.0, 500.0))), ..Default::default() },
+                    |ui| {
+                        rows.clear();
+                        egui::CentralPanel::default().show(ui, |ui| {
+                            photocraft_ui_egui::dock::show(&mut app, ui, &[photocraft_ui_egui::dock::Group::Properties], |_, ui, _, _| {
+                                for _ in 0..2 {
+                                    rows.push(ui.allocate_exact_size(egui::vec2(80.0, 16.0), egui::Sense::hover()).0);
+                                }
+                            });
+                        });
+                    },
+                );
+                output.textures_delta.clear();
+                assert_eq!(rows.len(), 2);
+                let actual = rows[1].top() - rows[0].bottom();
+                assert!((actual - gap).abs() < 0.01, "{} at {scale}x: authored {gap}, actual {actual}", pack.id);
+            }
+        }
+    }
+}
+
+#[test]
 fn historical_bars_contain_their_controls_and_layer_rows_at_all_scales() {
     for id in ["builtin.windows-98-se", "builtin.mac-os-9-1", "builtin.system-6"] {
         for scale in [1.0, 1.5, 2.0] {

@@ -287,7 +287,7 @@ report their bundled fallback. The native runtime provider itself adds no browse
 
 Dock sizing: `geometry.dockGroupHeights` and `dockGroupCompactHeights` are six logical-point heights in Color, Properties, Character, Navigator, History, Layers order (80–1024; Layers minimum140; compact <= default). `dockPreferredFill` (140–1200) sets the space reserved for Layers before untouched groups expand to their full defaults; the last expanded group fills the remaining column. `dockGroupGap` (0–16, default6) controls layout, splitters and drop markers. Existing `colorPanelHeight` takes precedence over the Color default. Theme defaults never become saved manual heights; compact sizing yields before manual groups. Historical defaults:120/180/180/160/140/320, compact100/120/120/110/100/200, Layers preferred352, gap2. Modern defaults and saved workspace sizing are preserved.
 
-`colors.row_selected_text` controls the text and icon color on selected History and preset list rows. Built-in modern themes keep their previous text color; Windows98 and System6 use white and Platinum uses black. This is independent of ordinary `text` and the selection background (`row_selected`, or `accent_soft` for Classic History).
+`colors.row_selected_text` controls the text and icon color on selected History and preset list rows, and on historical Layers rows. Built-in modern themes keep their previous text color; Windows98 and System6 use white and Platinum uses black. This is independent of ordinary `text` and the selection background (`row_selected`, or `accent_soft` for Classic History).
 
 Historical custom sliders use editable `geometry.sliderThumbSize` (width/height8–32 points) and `sliderTrackHeight` (2–12 points). Layout grows for larger thumbs and reserves endpoint clearance; modern slider appearance retains its existing sizing. Arrow keys change1percent of the range (Shift:10percent), Home/End select endpoints, and disabled sliders reject keyboard changes. Colors and focus come from theme tokens. Platinum uses a pointed indicator based on [Apple Mac OS8 HIG, Sliders and Tick Marks, pages34–35](https://dev.os9.ca/techpubs/mac/pdf/HIGOS8Guidelines.pdf). System6 is a clean-room monochrome adaptation, not a claim that System6 standardized this exact slider widget.
 
@@ -363,3 +363,59 @@ requires the bundled subset. It models the browser's missing-Microsoft-font reso
 in a native offscreen harness and checks the 18/18/24 caption/menu/options metrics.
 Set `PHOTOCRAFT_THEME_FONT_EVIDENCE` to a caller-owned directory to save its three PNGs.
 This fixture does not replace fresh-browser runtime acceptance.
+
+
+### Historical layer selection
+
+Historical Layers rows use square `colors.row_selected` surfaces and
+`colors.row_selected_text` for names, visibility/clipping glyphs, disclosure triangles,
+mask chains, lock/link/effect indicators, and target brackets. This covers both the
+primary and other selected layers, including hidden layers. Windows uses white on navy;
+Platinum uses black on its light lavender highlight; System 6 uses white on black.
+The theme files can override both values without a new build.
+
+System 6 also inverts its selected folder/adjustment/type icon tiles. Image, solid/gradient
+fill, and mask content retain their actual colors. Historical thumbnails have square
+frames; mask letterbox margins use `colors.field` so selection cannot make a white mask
+look darker. Modern row painting, icon colors and thumbnail radii retain their previous
+behavior. The active thumbnail keeps separate target brackets within a multi-selection.
+
+`historical_layer_selection` tests actual app drawing and interaction at 100/150/200
+percent and dock widths 240/380. It includes groups, hidden/clipped layers, both mask
+kinds, links, effects and locks; clicks group expansion and mask linking; verifies type/adjustment icon inversion and untinted solid/gradient previews; and checks
+modern Classic/Pro behavior. Set `PHOTOCRAFT_HISTORICAL_LAYER_EVIDENCE` to a caller-owned
+directory when running the test to save rendered PNGs and compare image/mask pixels
+(including historical letterbox margins) before and after selection. Its synthetic
+colored document is independent of user documents and preferences.
+
+
+### Chrome area review (2026-10-10)
+
+These are current default logical sizes at 100% scale, not a claim that every PhotoCraft
+panel existed in the original operating systems. Historical visual references guide the
+OS controls; PhotoCraft-specific bars use a compact adaptation. At 150/200% the same
+logical geometry scales with the display. Theme JSON can change these values at runtime.
+
+| Area | Windows 98 SE | Mac OS 9.1 / System 6 | Review result |
+|---|---|---|---|
+| App caption | 18 | 18 | Separate historical caption; integrated macOS traffic lights reserve at least 28. Caption faces/weights remain under review. |
+| Menu bar | 18 | 20 | Separate compact row, with 2-point menu margins. Long localized menus still need a broader review. |
+| Tool options | 24 | 24 | Controls fit the row; specialized tool states remain under review. |
+| Document tabs | 20 | 20 | Theme font and compact geometry; long labels elide. |
+| Tool buttons | 22 | 22 | 2-point toolbar padding. |
+| Dock rail buttons | 20 | 20 | Compact rail; existing resized dock width is preserved. |
+| Panel tabs | 20 | 20 | Compact strip; collapsed group reserves 24 including panel padding. |
+| Panel content | 2-point padding/gap | 2-point padding/gap | Dock row spacing now follows `rowGap`, removing an unconditional 6-point gap. |
+| Layers | 28 row / 20 thumbnail | 28 row / 20 thumbnail | Square historical frames; selected text/icons readable; document previews retain their colors. |
+| Color / swatches | 120 panel / 16 swatch | 120 panel / 16 swatch | Compact default; user resizing remains effective. |
+| Status | 22 | 22 | Zoom/info/Fit fit the bar. |
+| Scrollbars | 16 | 16 | Period painters; fixed Mac scroll box. |
+| Dialogs | 10 margin / 23 button allocation | 12 margin / 28 button allocation | Mac button allocation includes focus-ring room; it is not the painted face height. |
+| Floating Properties | 240 width / 2 padding | 240 width / 2 padding | Historical caption, square body; remaining floating/specialized windows need coverage. |
+
+Native offscreen full-app renders in `plan/evidence/chrome-area-review/` cover all three
+profiles at 100/150/200%. `historical_chrome` checks actual bar containment and dock/Color
+geometry. Its dock-spacing regression also measures two laid-out controls at authored
+2/7-point gaps across all profiles/scales. The full historical goal remains active:
+font roles/weights, large custom type, specialized/localized states, native chooser UI,
+and final browser roundtrips/download verification remain open.

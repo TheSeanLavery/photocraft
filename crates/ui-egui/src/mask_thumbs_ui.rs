@@ -104,6 +104,7 @@ pub fn paint(
     x: &mut f32,
     cy: f32,
     ts: f32,
+    selected_color: Option<Color32>,
     actions: &mut Vec<(String, Value)>,
 ) -> MaskRects {
     let t = Tokens::get(ctx);
@@ -113,9 +114,9 @@ pub fn paint(
         let chain = Rect::from_min_max(pos2(*x - 4.0, cy - ts / 2.0), pos2(*x - 4.0 + CHAIN_W, cy + ts / 2.0));
         let resp = ui.interact(chain, ui.id().with(("mask-chain", l.id.0, kind == MaskKind::Vector)), Sense::click());
         if linked {
-            paint_chain(painter, chain.center(), if resp.hovered() { t.text } else { t.icon });
+            paint_chain(painter, chain.center(), selected_color.unwrap_or(if resp.hovered() { t.text } else { t.icon }));
         } else if resp.hovered() {
-            paint_chain(painter, chain.center(), t.text_faint);
+            paint_chain(painter, chain.center(), selected_color.unwrap_or(t.text_faint));
         }
         let (verb, what, name) = (if linked { "Unlink" } else { "Link" }, kind.label(), l.name.clone());
         let resp = resp.on_hover_text(if linked { tl!("Unlink the mask from the layer") } else { tl!("Link the mask to the layer") });
@@ -128,6 +129,11 @@ pub fn paint(
         *x += CHAIN_W - 2.0;
         let r = Rect::from_min_size(pos2(*x, cy - ts / 2.0), vec2(ts, ts));
         if ui.is_rect_visible(r) {
+            // Letterboxing is UI space, not mask content. Keep its backdrop
+            // neutral when the historical selected row is black or blue.
+            if t.appearance != crate::theme::Appearance::Modern {
+                painter.rect_filled(r, 0.0, t.field);
+            }
             let tex = match kind {
                 MaskKind::Pixel => l.mask.as_ref().map(|m| app.mask_thumb(ctx, doc, l.id, m)),
                 MaskKind::Vector => l.vector_mask.as_ref().map(|m| app.vector_mask_thumb(ctx, doc, l.id, m)),
@@ -145,8 +151,8 @@ pub fn paint(
         }
         painter.rect_stroke(
             r,
-            if t.pro { 0.0 } else { 4.0 },
-            Stroke::new(1.0, if t.pro { Color32::from_gray(20) } else { t.field_border }),
+            if t.pro || t.appearance != crate::theme::Appearance::Modern { 0.0 } else { 4.0 },
+            Stroke::new(1.0, if t.pro { Color32::from_gray(20) } else { selected_color.unwrap_or(t.field_border) }),
             StrokeKind::Outside,
         );
         out.thumbs.push((kind, r));

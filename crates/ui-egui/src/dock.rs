@@ -399,7 +399,13 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
         let collapsed = app.ui.dock.is_collapsed(g);
         let mut child = ui.new_child(egui::UiBuilder::new().id_salt(("dock-group", g.key())).max_rect(rect));
         child.set_clip_rect(rect.intersect(ui.clip_rect()));
-        child.spacing_mut().item_spacing.y = if t.pro { 0.0 } else { 6.0 };
+        child.spacing_mut().item_spacing.y = if t.appearance != crate::theme::Appearance::Modern {
+            metrics.row_gap
+        } else if t.pro {
+            0.0
+        } else {
+            6.0
+        };
         let before = *g.tab_mut(&mut app.ui.dock_tabs);
         let mut sel = before;
         let tabs = g.tabs(t.pro);

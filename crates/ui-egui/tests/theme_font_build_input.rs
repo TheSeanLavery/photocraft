@@ -6,10 +6,12 @@ use std::path::PathBuf;
 struct Fixture(PathBuf);
 impl Fixture {
     fn new() -> Self {
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let root = std::env::temp_dir().join(format!(
-            "photocraft-font-build-{}-{}",
+            "photocraft-font-build-{}-{}-{}",
             std::process::id(),
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
+            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
         std::fs::create_dir_all(root.join("fonts/chicago-kare")).unwrap();
         std::fs::create_dir_all(root.join("fonts/w95fa")).unwrap();
@@ -49,7 +51,8 @@ fn subset_checks_hashes_licenses_and_only_selected_files() {
 fn missing_license_and_missing_family_fail_the_build_input() {
     let f = Fixture::new();
     std::fs::write(f.0.join("fonts/w95fa/LICENSE"), b"not a license").unwrap();
-    assert!(input::entries(&f.0).unwrap_err().contains("license text"));
+    let error = input::entries(&f.0).unwrap_err();
+    assert!(error.contains("license text"), "{error}");
     std::fs::write(f.0.join("fonts/manifest.txt"), "# no historical faces\n").unwrap();
     assert!(input::entries(&f.0).unwrap_err().contains("missing Chicago Kare"));
 }

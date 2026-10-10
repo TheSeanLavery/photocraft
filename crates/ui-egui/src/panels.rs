@@ -1688,16 +1688,20 @@ fn layer_row(
         // eye column divider + row divider, as in Photoshop
         painter.line_segment([pos2(rect.left() + 30.0, rect.top()), pos2(rect.left() + 30.0, rect.bottom())], Stroke::new(1.0, t.separator));
         painter.line_segment([rect.left_bottom(), rect.right_bottom()], Stroke::new(1.0, t.separator));
+    } else if historical && selected {
+        painter.rect_filled(rect, 0.0, t.row_selected);
+        painter.rect_stroke(rect, 0.0, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
     } else if selected {
         painter.rect_filled(rect, t.radius, t.hover);
         painter.rect_stroke(rect, t.radius, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
     } else if resp.hovered() {
         painter.rect_filled(rect, t.radius, t.hover.gamma_multiply(0.5));
     }
+    let selected_color = (historical && selected).then_some(t.row_selected_text);
     let mut x = rect.left() + 6.0;
     let eye = Rect::from_min_size(pos2(x, rect.center().y - 11.0), vec2(22.0, 22.0));
     let eye_resp = ui.interact(eye, ui.id().with(("eye", l.id.0)), Sense::click());
-    icons::paint(ui, eye, if l.visible { "eye" } else { "eye-off" }, 15.0, if l.visible { t.icon } else { t.text_faint });
+    icons::paint(ui, eye, if l.visible { "eye" } else { "eye-off" }, 15.0, selected_color.unwrap_or(if l.visible { t.icon } else { t.text_faint }));
     if eye_resp.clicked() {
         actions.push(("layer.setProps".into(), json!({"layer": l.id.0, "visible": !l.visible})));
     }
@@ -1711,16 +1715,22 @@ fn layer_row(
     let ts = crate::mask_thumbs_ui::thumb_size(l, layout.layer_thumbnail_size, rect.width() - others);
     let fixed = others + ts + 6.0 + crate::mask_thumbs_ui::width(l, ts);
     x += 28.0 + crate::layer_row_ui::indent(depth, rect.width(), fixed);
-    let toggled = crate::layer_tree_ui::disclosure(ui, rect, &mut x, l, actions);
+    let toggled = crate::layer_tree_ui::disclosure(ui, rect, &mut x, l, selected_color, actions);
     if l.clipped {
-        painter.text(pos2(x, rect.center().y), Align2::LEFT_CENTER, "↳", egui::FontId::proportional(13.0), t.text_faint);
+        painter.text(
+            pos2(x, rect.center().y),
+            Align2::LEFT_CENTER,
+            "↳",
+            if historical { crate::theme_fonts::control(ctx, layout.tab_font_size, false) } else { egui::FontId::proportional(13.0) },
+            selected_color.unwrap_or(t.text_faint),
+        );
         x += 12.0;
     }
     let thumb = Rect::from_min_size(pos2(x, rect.center().y - ts / 2.0), vec2(ts, ts));
-    draw_layer_thumb(app, ctx, ui, doc, l, thumb, row.primary);
+    draw_layer_thumb(app, ctx, ui, doc, l, thumb, row);
     x += ts + 6.0;
     // Link chains and pixel / vector mask thumbnails (#153).
-    let masks = crate::mask_thumbs_ui::paint(app, ctx, ui, &painter, doc, l, &mut x, rect.center().y, ts, actions);
+    let masks = crate::mask_thumbs_ui::paint(app, ctx, ui, &painter, doc, l, &mut x, rect.center().y, ts, selected_color, actions);
     let mask_rect = masks.thumb(crate::mask_thumbs_ui::MaskKind::Pixel);
     let vector_rect = masks.thumb(crate::mask_thumbs_ui::MaskKind::Vector);
     // Photoshop frames the targeted thumbnail (pixels, mask or vector mask) of the active layer
@@ -1734,13 +1744,13 @@ fn layer_row(
             Some(thumb)
         };
         if let Some(r) = target {
-            crate::mask_thumbs_ui::paint_brackets(&painter, r, t.text);
+            crate::mask_thumbs_ui::paint_brackets(&painter, r, selected_color.unwrap_or(t.text));
         }
     }
     // Right-hand indicators first; the name gets what is left and ends in "…" (#144).
     let fx_open = app.session.active().is_none_or(|d| !d.fx_collapsed.contains(&l.id));
-    let (name_right, indicators, fx_toggled) = crate::layer_row_ui::indicators(ui, &painter, rect, x, l, fx_open, actions);
-    let name_color = if l.visible { t.text } else { t.text_faint };
+    let (name_right, indicators, fx_toggled) = crate::layer_row_ui::indicators(ui, &painter, rect, x, l, fx_open, selected_color, actions);
+    let name_color = selected_color.unwrap_or(if l.visible { t.text } else { t.text_faint });
     let font = if historical {
         crate::theme_fonts::control(ctx, layout.tab_font_size, false)
     } else if selected && !t.pro {
@@ -1836,19 +1846,28 @@ fn layer_row(
     });
 }
 
-fn draw_layer_thumb(app: &mut PhotocraftApp, ctx: &egui::Context, ui: &egui::Ui, doc: &photocraft_doc::Document, l: &Layer, rect: Rect, selected: bool) {
+fn draw_layer_thumb(app: &mut PhotocraftApp, ctx: &egui::Context, ui: &egui::Ui, doc: &photocraft_doc::Document, l: &Layer, rect: Rect, row: RowSel) {
     let t = Tokens::get(ctx);
     let p = ui.painter();
+    let historical = t.appearance != theme::Appearance::Modern;
+    let invert_icon = row.selected && t.appearance == theme::Appearance::System6;
+    let icon_background = if invert_icon { t.row_selected } else { t.field };
+    let icon_color = if invert_icon { t.row_selected_text } else { t.icon };
+    let radius = if historical { 0.0 } else { 6.0 };
     match &l.content {
         LayerContent::Adjustment(_) | LayerContent::Group(_) => {
-            p.rect_filled(rect, 6.0, t.field);
+            p.rect_filled(rect, radius, icon_background);
             let icon = if l.is_group() { "folder" } else { "contrast" };
-            icons::paint(ui, rect, icon, 18.0, t.icon);
+            icons::paint(ui, rect, icon, 18.0, icon_color);
         }
         LayerContent::Text(_) => {
             // Photoshop: type layers show a "T" tile rather than a pixel thumbnail.
-            p.rect_filled(rect, if t.pro { 0.0 } else { 6.0 }, Color32::from_gray(if t.pro { 222 } else { 236 }));
-            icons::paint(ui, rect, "type", 20.0, Color32::from_gray(40));
+            p.rect_filled(
+                rect,
+                if historical || t.pro { 0.0 } else { radius },
+                if historical { icon_background } else { Color32::from_gray(if t.pro { 222 } else { 236 }) },
+            );
+            icons::paint(ui, rect, "type", 20.0, if historical { icon_color } else { Color32::from_gray(40) });
         }
         // Gradient fills show the gradient itself (Photoshop); solid ones their colour.
         LayerContent::Fill(f) if crate::gradient_ui::paint_thumbnail(ui, l.id, f, rect) => {}
@@ -1857,7 +1876,7 @@ fn draw_layer_thumb(app: &mut PhotocraftApp, ctx: &egui::Context, ui: &egui::Ui,
                 photocraft_doc::Fill::Solid(c) => c.to_rgba8(),
                 _ => [128, 128, 128, 255],
             };
-            p.rect_filled(rect, 6.0, Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]));
+            p.rect_filled(rect, radius, Color32::from_rgba_unmultiplied(c[0], c[1], c[2], c[3]));
         }
         _ => {
             // Keep row layout and outside thumbnail decorations when the image is clipped.
@@ -1870,12 +1889,14 @@ fn draw_layer_thumb(app: &mut PhotocraftApp, ctx: &egui::Context, ui: &egui::Ui,
     }
     let stroke = if t.pro {
         Stroke::new(1.0, Color32::from_gray(20))
-    } else if selected {
+    } else if historical && row.selected {
+        Stroke::new(if row.primary { 1.5 } else { 1.0 }, t.row_selected_text)
+    } else if row.primary {
         Stroke::new(1.5, t.text)
     } else {
         Stroke::new(1.0, t.field_border)
     };
-    p.rect_stroke(rect, CornerRadius::same(if t.pro { 0 } else { 5 }), stroke, StrokeKind::Outside);
+    p.rect_stroke(rect, CornerRadius::same(if historical || t.pro { 0 } else { 5 }), stroke, StrokeKind::Outside);
     crate::smart_ui::thumb_badge(ui, l, rect);
 }
 

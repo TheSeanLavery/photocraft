@@ -28,7 +28,7 @@
     "shadow": "#000000",
     "primary_bg": "#DDDDDD",
     "primary_text": "#000000",
-    "row_selected": "#666699",
+    "row_selected": "#CCCCFF",
     "bevel_highlight": "#FFFFFF",
     "bevel_light": "#DDDDDD",
     "bevel_shadow": "#808080",
