@@ -546,103 +546,71 @@ mod tests {
 /// Set `PHOTOCRAFT_THEME_FILE` to a versioned theme pack or legacy token file.
 #[cfg(not(target_arch = "wasm32"))]
 pub mod live {
-    use std::io::Read;
-    use std::path::PathBuf;
-    use std::time::{Duration, SystemTime};
-
     use super::ThemeKind;
     use crate::theme_pack::{MAX_THEME_BYTES, ThemePack};
+    use crate::theme_watch::FileWatch;
+    use std::path::PathBuf;
 
     #[derive(Default)]
     pub struct LiveTokens {
-        path: Option<PathBuf>,
-        stamp: Option<(SystemTime, u64)>,
-        last_check: f64,
+        watch: Option<FileWatch<String>>,
         kind: Option<ThemeKind>,
         last_valid: Option<String>,
         last_error: Option<String>,
         pending_error: Option<String>,
     }
 
+    fn validated_text(text: &str) -> Result<String, String> {
+        ThemePack::parse_file(text, ThemeKind::Studio)?.resolve()?;
+        Ok(text.into())
+    }
+
     impl LiveTokens {
         pub fn from_env() -> Self {
             Self::from_path(std::env::var_os("PHOTOCRAFT_THEME_FILE").map(Into::into))
         }
-
         pub fn from_path(path: Option<PathBuf>) -> Self {
-            Self { path, last_check: f64::NEG_INFINITY, ..Default::default() }
+            Self { watch: path.map(|p| FileWatch::new(p, MAX_THEME_BYTES, validated_text)), ..Default::default() }
         }
-
-        /// A new diagnostic only; avoid replacing status every frame for an unchanged bad file.
         pub fn take_error(&mut self) -> Option<String> {
             self.pending_error.take()
         }
-
-        /// The shell has rebuilt the base style; reapply the active file next frame,
-        /// even when the user selected the same built-in theme again.
         pub fn invalidate(&mut self) {
             self.kind = None;
         }
-
+        fn error(&mut self, error: String) {
+            if self.last_error.as_ref() != Some(&error) {
+                self.pending_error = Some(error.clone());
+            }
+            self.last_error = Some(error);
+        }
+        /// Only consumes validated background results; no stat/read calls or waits on the UI thread.
         pub fn poll(&mut self, ctx: &egui::Context, kind: ThemeKind) -> bool {
-            if self.path.is_none() {
-                return false;
-            }
-            let now = ctx.input(|i| i.time);
-            let kind_changed = self.kind != Some(kind);
-            ctx.request_repaint_after(Duration::from_secs(2));
-            if !kind_changed && now - self.last_check < 2.0 {
-                return false;
-            }
-            self.last_check = now;
+            let Some(watch) = self.watch.as_mut() else { return false };
+            let update = watch.poll(ctx);
+            let mut changed = self.kind != Some(kind);
             self.kind = Some(kind);
-            match self.reload(ctx, kind, kind_changed) {
-                Ok(changed) => {
+            match update {
+                Some(Ok(Some(text))) => {
+                    self.last_valid = Some(text);
                     self.last_error = None;
-                    changed
+                    changed = true;
                 }
-                Err(error) => {
-                    if self.last_error.as_ref() != Some(&error) {
-                        self.pending_error = Some(error.clone());
-                        self.last_error = Some(error);
-                    }
-                    // A built-in selection must not discard the last valid file style just
-                    // because an editor has temporarily saved incomplete JSON.
-                    if kind_changed
-                        && let Some(text) = &self.last_valid
-                        && let Ok(pack) = ThemePack::parse_file(text, kind)
-                        && let Ok(resolved) = pack.resolve()
-                    {
+                Some(Ok(None)) => self.error("theme file is unavailable; retaining the last valid appearance".into()),
+                Some(Err(error)) => self.error(error),
+                None => (),
+            }
+            if changed && let Some(text) = &self.last_valid {
+                // Legacy flat token files inherit the current base; versioned packs carry their own.
+                match ThemePack::parse_file(text, kind).and_then(|pack| pack.resolve()) {
+                    Ok(resolved) => {
                         resolved.apply(ctx);
                         return true;
                     }
-                    false
+                    Err(error) => self.error(error),
                 }
             }
-        }
-
-        fn reload(&mut self, ctx: &egui::Context, kind: ThemeKind, force: bool) -> Result<bool, String> {
-            let Some(path) = &self.path else { return Ok(false) };
-            let metadata = std::fs::metadata(path).map_err(|e| format!("theme file: {e}"))?;
-            if !metadata.is_file() {
-                return Err("theme path must be a regular file".into());
-            }
-            if metadata.len() > MAX_THEME_BYTES as u64 {
-                return Err(format!("theme exceeds {MAX_THEME_BYTES} bytes"));
-            }
-            let stamp = (metadata.modified().map_err(|e| format!("theme file timestamp: {e}"))?, metadata.len());
-            if !force && self.stamp == Some(stamp) {
-                return Ok(false);
-            }
-            let file = std::fs::File::open(path).map_err(|e| format!("theme file: {e}"))?;
-            let mut text = String::new();
-            file.take((MAX_THEME_BYTES + 1) as u64).read_to_string(&mut text).map_err(|e| format!("theme file: {e}"))?;
-            let pack = ThemePack::parse_file(&text, kind)?;
-            let resolved = pack.resolve()?;
-            resolved.apply(ctx);
-            self.stamp = Some(stamp);
-            self.last_valid = Some(text);
-            Ok(true)
+            false
         }
     }
 
@@ -650,43 +618,53 @@ pub mod live {
     mod tests {
         use super::*;
 
+        fn wait(live: &mut LiveTokens, ctx: &egui::Context, kind: ThemeKind, error: bool) {
+            let until = std::time::Instant::now() + std::time::Duration::from_secs(4);
+            loop {
+                let changed = live.poll(ctx, kind);
+                if (error && live.pending_error.is_some()) || (!error && changed) {
+                    return;
+                }
+                assert!(std::time::Instant::now() < until, "background result did not arrive");
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+        }
         #[test]
         fn failed_save_retains_style_and_recovery_updates_all_controls() {
             let path = std::env::temp_dir().join(format!("photocraft-theme-{}-{:?}.json", std::process::id(), std::thread::current().id()));
             let ctx = egui::Context::default();
             let mut live = LiveTokens::from_path(Some(path.clone()));
             std::fs::write(&path, r##"{"card":"#102030"}"##).unwrap();
-            assert!(live.reload(&ctx, ThemeKind::Studio, true).unwrap());
+            wait(&mut live, &ctx, ThemeKind::Studio, false);
             let before = super::super::Tokens::get(&ctx);
             std::fs::write(&path, "{partial").unwrap();
-            assert!(live.reload(&ctx, ThemeKind::Studio, true).is_err());
+            wait(&mut live, &ctx, ThemeKind::Studio, true);
             assert_eq!(super::super::Tokens::get(&ctx), before);
-            assert_eq!(ctx.global_style().visuals.window_fill, before.card);
+            assert!(live.take_error().is_some());
+            assert!(live.take_error().is_none());
+            super::super::apply(&ctx, ThemeKind::Studio);
+            live.invalidate();
+            assert!(live.poll(&ctx, ThemeKind::Studio));
+            assert_eq!(super::super::Tokens::get(&ctx), before);
             std::fs::write(&path, r##"{"card":"#334455"}"##).unwrap();
-            assert!(live.reload(&ctx, ThemeKind::Studio, true).unwrap());
+            wait(&mut live, &ctx, ThemeKind::Studio, false);
             assert_eq!(ctx.global_style().visuals.window_fill, egui::Color32::from_rgb(51, 68, 85));
-            std::fs::remove_file(path).unwrap();
+            std::fs::remove_file(&path).unwrap();
+            wait(&mut live, &ctx, ThemeKind::Studio, true);
+            assert_eq!(ctx.global_style().visuals.window_fill, egui::Color32::from_rgb(51, 68, 85));
         }
-
         #[test]
         fn selecting_the_same_base_reapplies_the_file_and_bad_edits_keep_the_last_valid_style() {
             let path = std::env::temp_dir().join(format!("photocraft-theme-reselect-{}-{:?}.json", std::process::id(), std::thread::current().id()));
             let ctx = egui::Context::default();
             let mut live = LiveTokens::from_path(Some(path.clone()));
             std::fs::write(&path, r##"{"card":"#102030"}"##).unwrap();
-            assert!(live.poll(&ctx, ThemeKind::Studio));
+            wait(&mut live, &ctx, ThemeKind::Studio, false);
             let expected = super::super::Tokens::get(&ctx);
             super::super::apply(&ctx, ThemeKind::Studio);
             live.invalidate();
             assert!(live.poll(&ctx, ThemeKind::Studio));
             assert_eq!(super::super::Tokens::get(&ctx), expected);
-            std::fs::write(&path, "{partial").unwrap();
-            super::super::apply(&ctx, ThemeKind::Studio);
-            live.invalidate();
-            assert!(live.poll(&ctx, ThemeKind::Studio));
-            assert_eq!(super::super::Tokens::get(&ctx), expected);
-            assert!(live.take_error().is_some());
-            assert!(live.take_error().is_none());
             std::fs::remove_file(path).unwrap();
         }
     }

@@ -110,6 +110,8 @@ pub mod theme;
 mod theme_fonts;
 mod theme_manager;
 pub mod theme_pack;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod theme_watch;
 pub mod themes;
 mod timeline_ui;
 pub mod tone;
@@ -178,6 +180,8 @@ pub type PickThemeFn = Box<dyn FnMut() -> Result<Option<String>, String>>;
 pub type ThemeInbox = std::sync::Arc<std::sync::Mutex<Vec<Result<String, String>>>>;
 /// Load the bounded theme library; distinguish missing storage from malformed/unreadable data.
 pub type LoadThemesFn = Box<dyn FnMut() -> Result<Option<String>, String>>;
+/// Platform background updates; missing files retain the last valid catalog.
+pub type PollThemesFn = Box<dyn FnMut(&egui::Context) -> Option<Result<Option<themes::Catalog>, String>>>;
 /// Autosave a document snapshot for crash recovery: (snapshot, revision, original path).
 pub type AutosaveFn = Box<dyn FnMut(&std::sync::Arc<Document>, u64, Option<&str>) -> Result<(), String>>;
 /// Drop the recovery data of a document (by `DocId` value) once it is saved or closed.
@@ -223,6 +227,7 @@ pub struct Services {
     pub save_prefs: Option<SaveTextFn>,
     pub load_themes: Option<LoadThemesFn>,
     pub save_themes: Option<SaveTextFn>,
+    pub poll_themes: Option<PollThemesFn>,
     pub pick_theme: Option<PickThemeFn>,
     pub theme_inbox: Option<ThemeInbox>,
     /// Crash-recovery autosave (Preferences › File Handling) and recovery at launch.
@@ -854,6 +859,7 @@ impl eframe::App for PhotocraftApp {
         }
         self.collect_screenshots(ctx);
         self.issue_screenshots(ctx);
+        themes::poll(self, ctx);
         theme_manager::tick(self, ctx);
         prefs_ui::tick(self, ctx);
         #[cfg(not(target_arch = "wasm32"))]

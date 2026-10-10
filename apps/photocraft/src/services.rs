@@ -77,6 +77,26 @@ fn read_theme_text(path: &Path, limit: usize) -> Result<Option<String>, String> 
     Ok(Some(text))
 }
 
+/// All library callbacks share a watcher so a successful save cancels stale background reads.
+fn theme_services(path: Option<PathBuf>) -> (photocraft_ui_egui::LoadThemesFn, photocraft_ui_egui::SaveTextFn, photocraft_ui_egui::PollThemesFn) {
+    let watch = Rc::new(RefCell::new(path.clone().map(|path| {
+        photocraft_ui_egui::theme_watch::FileWatch::new(path, photocraft_ui_egui::themes::MAX_LIBRARY_BYTES, photocraft_ui_egui::themes::Catalog::parse)
+    })));
+    let (load_path, save_path, save_watch, poll_watch) = (path.clone(), path, watch.clone(), watch);
+    (
+        Box::new(move || read_themes(load_path.as_deref().ok_or("no config directory")?)),
+        Box::new(move |text| {
+            let mut watch = save_watch.try_borrow_mut().map_err(|_| "theme storage is busy")?;
+            write_atomic(save_path.as_deref().ok_or("no config directory")?, text.as_bytes())?;
+            if let Some(watch) = watch.as_mut() {
+                watch.acknowledge_save();
+            }
+            Ok(())
+        }),
+        Box::new(move |ctx| poll_watch.try_borrow_mut().ok().and_then(|mut watch| watch.as_mut().and_then(|watch| watch.poll(ctx)))),
+    )
+}
+
 /// The brush preset store (one file per preset group plus tip bitmaps; see
 /// `photocraft_engine::preset_store`).
 pub fn presets_dir() -> Option<PathBuf> {
@@ -95,6 +115,7 @@ fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
 }
 
 pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) -> Services {
+    let (load_themes, save_themes, poll_themes) = theme_services(themes_file());
     let savers: Rc<RefCell<HashMap<u64, Autosaver>>> = Rc::default();
     let savers2 = savers.clone();
     let clip: Rc<RefCell<Option<arboard::Clipboard>>> = Rc::default();
@@ -184,8 +205,9 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         }),
         load_prefs: Some(Box::new(|| std::fs::read_to_string(prefs_file()?).ok())),
         save_prefs: Some(Box::new(|text: &str| write_atomic(&prefs_file().ok_or("no config directory")?, text.as_bytes()))),
-        load_themes: Some(Box::new(|| read_themes(&themes_file().ok_or("no config directory")?))),
-        save_themes: Some(Box::new(|text| write_atomic(&themes_file().ok_or("no config directory")?, text.as_bytes()))),
+        load_themes: Some(load_themes),
+        save_themes: Some(save_themes),
+        poll_themes: Some(poll_themes),
         // Crash recovery: background incremental .pcraft saves into the recovery directory.
         autosave: Some(Box::new(move |doc: &Arc<Document>, revision: u64, path: Option<&str>| {
             let dir = recovery_dir().ok_or("no config directory")?;
@@ -306,5 +328,46 @@ mod theme_storage_tests {
         std::fs::write(&path, [0xff, 0xfe]).unwrap();
         assert!(read_themes(&path).is_err());
         std::fs::remove_file(path).unwrap();
+    }
+    #[test]
+    fn native_library_callbacks_deliver_validated_external_changes_and_recover() {
+        use photocraft_ui_egui::{theme_pack::ThemePack, themes::Catalog};
+        use std::time::{Duration, Instant};
+        fn next(poll: &mut photocraft_ui_egui::PollThemesFn) -> Result<Option<Catalog>, String> {
+            let ctx = egui::Context::default();
+            let until = Instant::now() + Duration::from_secs(4);
+            loop {
+                if let Some(v) = poll(&ctx) {
+                    return v;
+                }
+                assert!(Instant::now() < until);
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        }
+        let root = std::env::temp_dir().join(format!("photocraft-library-watch-{}-{:?}", std::process::id(), std::thread::current().id()));
+        let path = root.join("library.json");
+        let (mut load, mut save, mut poll) = theme_services(Some(path.clone()));
+        let mut catalog = Catalog::default();
+        catalog
+            .insert(ThemePack::parse(r##"{"version":1,"id":"silver","name":"Silver","base":"classic","colors":{"card":"#102030"}}"##).unwrap(), false)
+            .unwrap();
+        let text = catalog.serialize().unwrap();
+        save(&text).unwrap();
+        assert_eq!(load().unwrap(), Some(text));
+        assert_eq!(next(&mut poll).unwrap().unwrap().get("silver").unwrap().colors["card"], "#102030");
+        let mut changed = catalog.get("silver").unwrap();
+        changed.colors.insert("card".into(), "#334455".into());
+        catalog.insert(changed, true).unwrap();
+        write_atomic(&path, catalog.serialize().unwrap().as_bytes()).unwrap();
+        assert_eq!(next(&mut poll).unwrap().unwrap().get("silver").unwrap().colors["card"], "#334455");
+        std::fs::write(&path, "{partial").unwrap();
+        assert!(next(&mut poll).is_err());
+        save(&catalog.serialize().unwrap()).unwrap();
+        assert!(next(&mut poll).unwrap().is_some());
+        std::fs::remove_file(&path).unwrap();
+        assert!(next(&mut poll).unwrap().is_none());
+        drop(poll);
+        drop(save);
+        std::fs::remove_dir(root).unwrap();
     }
 }

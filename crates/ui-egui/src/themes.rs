@@ -136,6 +136,24 @@ pub(crate) fn load(app: &mut PhotocraftApp) {
     }
 }
 
+/// Adopt validated platform updates without modifying a manager draft or saved selection.
+pub(crate) fn poll(app: &mut PhotocraftApp, ctx: &Context) {
+    if app.theme_rt.preview_preferences.is_some() {
+        return;
+    }
+    let update = app.services.poll_themes.as_mut().and_then(|poll| poll(ctx));
+    match update {
+        Some(Ok(Some(mut catalog))) if catalog.packs != app.theme_rt.catalog.packs => {
+            catalog.revision = app.theme_rt.catalog.revision.saturating_add(1);
+            app.theme_rt.catalog = catalog;
+            app.theme_rt.applied = None;
+            sync(app, ctx);
+        }
+        Some(Err(error)) => app.ui.status = format!("Theme library unchanged: {error}"),
+        _ => (),
+    }
+}
+
 pub(crate) fn apply_pack(app: &mut PhotocraftApp, ctx: &Context, pack: &ThemePack) -> Result<(), String> {
     let resolved = pack.resolve()?;
     resolved.apply(ctx);
@@ -433,5 +451,58 @@ mod tests {
         let id = crate::prefs_ui::open_preferences(&mut app, "interface");
         let draft = &app.ui.dialogs.iter().find(|dialog| dialog.id == id).unwrap().fields;
         assert!(!crate::prefs_ui::preferences_changed(&app, draft));
+    }
+    #[test]
+    fn external_library_changes_reapply_same_id_and_preserve_manager_drafts() {
+        let ctx = Context::default();
+        let source = Rc::new(RefCell::new(None));
+        let receiver = source.clone();
+        let mut app = PhotocraftApp::new(Session::new(), Services { poll_themes: Some(Box::new(move |_| receiver.borrow_mut().take())), ..Default::default() });
+        app.theme_rt.catalog.insert(pack("silver"), false).unwrap();
+        select(&mut app, &ctx, "silver").unwrap();
+        command(&mut app, &ctx, "manager", &json!({"id":"silver"})).unwrap();
+        let draft = app.ui.theme_manager.as_ref().unwrap().json.clone();
+        let mut changed = pack("silver");
+        changed.colors.insert("card".into(), "#112233".into());
+        let mut catalog = Catalog::default();
+        catalog.insert(changed, false).unwrap();
+        *source.borrow_mut() = Some(Ok(Some(catalog)));
+        poll(&mut app, &ctx);
+        assert_eq!(Tokens::get(&ctx).card, egui::Color32::from_rgb(17, 34, 51));
+        assert_eq!(app.ui.theme_manager.as_ref().unwrap().json, draft);
+        assert_eq!(app.session.prefs().interface.theme_id, "silver");
+        *source.borrow_mut() = Some(Err("partial JSON".into()));
+        poll(&mut app, &ctx);
+        assert_eq!(Tokens::get(&ctx).card, egui::Color32::from_rgb(17, 34, 51));
+        *source.borrow_mut() = Some(Ok(None));
+        poll(&mut app, &ctx);
+        assert_eq!(Tokens::get(&ctx).card, egui::Color32::from_rgb(17, 34, 51));
+    }
+    #[test]
+    fn preview_defers_external_updates_and_cancel_adopts_the_latest_valid_library() {
+        let ctx = Context::default();
+        let source = Rc::new(RefCell::new(None));
+        let receiver = source.clone();
+        let mut app = PhotocraftApp::new(Session::new(), Services { poll_themes: Some(Box::new(move |_| receiver.borrow_mut().take())), ..Default::default() });
+        app.theme_rt.catalog.insert(pack("silver"), false).unwrap();
+        select(&mut app, &ctx, "silver").unwrap();
+        command(&mut app, &ctx, "manager", &json!({"id":"silver"})).unwrap();
+        let mut preview = pack("silver");
+        preview.colors.insert("card".into(), "#ff0000".into());
+        let draft = serde_json::to_string(&preview).unwrap();
+        command(&mut app, &ctx, "draft", &json!({"json":draft})).unwrap();
+        command(&mut app, &ctx, "preview", &json!({})).unwrap();
+        let mut changed = pack("silver");
+        changed.colors.insert("card".into(), "#112233".into());
+        let mut catalog = Catalog::default();
+        catalog.insert(changed, false).unwrap();
+        *source.borrow_mut() = Some(Ok(Some(catalog)));
+        poll(&mut app, &ctx);
+        assert!(source.borrow().is_some());
+        assert_eq!(Tokens::get(&ctx).card, egui::Color32::RED);
+        command(&mut app, &ctx, "cancel", &json!({})).unwrap();
+        poll(&mut app, &ctx);
+        assert_eq!(Tokens::get(&ctx).card, egui::Color32::from_rgb(17, 34, 51));
+        assert_eq!(app.ui.theme_id, "silver");
     }
 }

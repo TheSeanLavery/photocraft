@@ -205,6 +205,7 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
         save_prefs: Some(Box::new(|text: &str| local_storage().ok_or("no localStorage")?.set_item(PREFS_KEY, text).map_err(|e| format!("{e:?}")))),
         load_themes: Some(Box::new(|| local_storage().ok_or("no localStorage")?.get_item(THEMES_KEY).map_err(|e| format!("{e:?}")))),
         save_themes: Some(Box::new(|text| local_storage().ok_or("no localStorage")?.set_item(THEMES_KEY, text).map_err(|e| format!("{e:?}")))),
+        poll_themes: None,
         ..Default::default()
     }
 }

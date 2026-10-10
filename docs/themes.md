@@ -92,7 +92,10 @@ reproduction; dedicated historical control rendering is still being built.
 
 Files are limited to 64 KiB. Numbers must be finite and within the documented ranges. The
 loader keeps working across ordinary editor saves, including temporary invalid JSON and
-atomic file replacement. It checks the active file every two seconds.
+atomic file replacement. Native builds read and validate the active file on a background
+worker every two seconds, comparing its contents rather than timestamps. Frame updates
+consume a single latest result without waiting for the worker. The first override arrives
+asynchronously; malformed or deleted files retain the last applied appearance.
 
 Legacy flat token files continue to work. They inherit the currently selected built-in theme:
 
@@ -109,6 +112,12 @@ Custom packs have stable IDs independent of their display names. Native builds s
 validated library at `Themes/library.json` beneath the existing configuration directory,
 including portable mode. The web app uses `photocraft.themes` in browser local storage.
 Libraries are limited to 64 custom packs and 4 MiB. Built-in IDs (`builtin.*`) are reserved.
+Native builds also watch this library in the background. External valid edits update the
+selected theme, including edits that retain the same ID; malformed or deleted libraries
+retain the last applied catalog. Local atomic saves invalidate earlier pending reads.
+Theme Manager previews defer external updates until the preview ends, and an open editor
+draft remains intact. Browser imports and commands update the catalog directly; changes
+from another browser tab are not watched.
 
 `interface.themeId` stores the selected ID. Existing preferences with only `interface.theme`
 are normalized from that built-in choice during loading. The original enum remains the
@@ -123,8 +132,8 @@ services (for example in an offscreen harness), changes are session-only and com
 report `persisted:false`.
 
 The environment-variable file adapter is native-only and applies after the selected library
-theme as an explicit live override outside a manager preview. Browser runtime verification,
-historical widget styles and font selection are subsequent parts of the theme-engine work.
+theme as an explicit live override outside a manager preview. Historical rendering and font
+fallbacks are described below. Release and browser runtime acceptance remain in progress.
 
 
 ## Theme Manager
