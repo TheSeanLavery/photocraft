@@ -126,6 +126,7 @@ pub(crate) struct Runtime {
     pub(crate) preview_preferences: Option<(Theme, String)>,
     pub(crate) applied: Option<(String, u64)>,
     library_notice: Option<String>,
+    selection_notice: Option<String>,
 }
 
 fn library_error(app: &mut PhotocraftApp, message: String) {
@@ -138,6 +139,14 @@ fn library_recovered(app: &mut PhotocraftApp) {
         && app.ui.status == message
     {
         app.ui.status = "Theme library reloaded".into();
+    }
+}
+
+fn selection_recovered(app: &mut PhotocraftApp) {
+    if let Some(message) = app.theme_rt.selection_notice.take()
+        && app.ui.status == message
+    {
+        app.ui.status = "Selected theme restored".into();
     }
 }
 
@@ -217,8 +226,11 @@ pub(crate) fn sync(app: &mut PhotocraftApp, ctx: &Context) {
         app.checker = None;
         #[cfg(not(target_arch = "wasm32"))]
         app.live_tokens.invalidate();
-        app.ui.status = format!("{error}; using {}", kind.label());
+        let message = format!("{error}; using {}", kind.label());
+        app.ui.status = message.clone();
+        app.theme_rt.selection_notice = Some(message);
     } else {
+        selection_recovered(app);
         let base = crate::prefs_ui::theme_pref(app.ui.theme);
         if base != fallback {
             app.session.prefs.edit(|p| p.interface.theme = base);
@@ -256,6 +268,7 @@ pub fn select(app: &mut PhotocraftApp, ctx: &Context, id: &str) -> Result<(), St
         manager.previewing = false;
     }
     apply_pack(app, ctx, &pack)?;
+    selection_recovered(app);
     app.theme_rt.last_preferences = Some((app.session.prefs().interface.theme, id.into()));
     app.theme_rt.applied = Some((id.into(), app.theme_rt.catalog.revision));
     Ok(())
@@ -406,6 +419,50 @@ mod tests {
         assert_eq!(app.session.prefs().interface.theme_id, "silver");
         command(&mut app, &ctx, "import", &json!({"json":serde_json::to_string(&pack("silver")).unwrap()})).unwrap();
         assert_eq!(app.ui.theme_id, "silver");
+        assert_eq!(app.ui.status, "Selected theme restored");
+        assert!(app.theme_rt.selection_notice.is_none());
+    }
+
+    #[test]
+    fn selected_theme_worker_recovery_preserves_unrelated_status() {
+        for unrelated in [false, true] {
+            let ctx = Context::default();
+            let source = Rc::new(RefCell::new(None));
+            let receiver = source.clone();
+            let mut session = Session::new();
+            session.prefs.edit(|p| p.interface.theme_id = "silver".into());
+            let mut app = PhotocraftApp::new(session, Services { poll_themes: Some(Box::new(move |_| receiver.borrow_mut().take())), ..Default::default() });
+            sync(&mut app, &ctx);
+            assert!(app.ui.status.contains("selected theme `silver` is unavailable"));
+            if unrelated {
+                app.ui.status = "Document saved".into();
+            }
+            let mut restored = Catalog::default();
+            restored.insert(pack("silver"), false).unwrap();
+            *source.borrow_mut() = Some(Ok(Some(restored)));
+            poll(&mut app, &ctx);
+            assert_eq!(app.ui.theme_id, "silver");
+            assert_eq!(app.ui.status, if unrelated { "Document saved" } else { "Selected theme restored" });
+            assert!(app.theme_rt.selection_notice.is_none());
+        }
+    }
+
+    #[test]
+    fn explicit_selection_clears_missing_notice_only_after_success() {
+        let ctx = Context::default();
+        let mut session = Session::new();
+        session.prefs.edit(|p| p.interface.theme_id = "silver".into());
+        let mut app = PhotocraftApp::new(session, Services::default());
+        sync(&mut app, &ctx);
+        let notice = app.ui.status.clone();
+        app.services.save_prefs = Some(Box::new(|_| Err("disk full".into())));
+        assert!(select(&mut app, &ctx, ThemeKind::Classic.id()).is_err());
+        assert_eq!(app.ui.status, notice);
+        assert!(app.theme_rt.selection_notice.is_some());
+        app.services.save_prefs = None;
+        select(&mut app, &ctx, ThemeKind::Classic.id()).unwrap();
+        assert_eq!(app.ui.status, "Selected theme restored");
+        assert!(app.theme_rt.selection_notice.is_none());
     }
 
     #[test]
