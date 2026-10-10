@@ -60,7 +60,7 @@ pub fn selective_color_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: La
     let mut method = values["method"].as_str().unwrap_or("relative").to_string();
     ui.horizontal(|ui| {
         for (m, label) in [("relative", tl!("Relative")), ("absolute", tl!("Absolute"))] {
-            if ui.radio(method == m, label).clicked() && method != m {
+            if crate::widgets::radio(ui, method == m, label).clicked() && method != m {
                 method = m.to_string();
                 values["method"] = json!(m);
                 commit = true;
@@ -116,7 +116,7 @@ pub fn color_lookup_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: Layer
     let mut tet = *tetrahedral;
     ui.horizontal(|ui| {
         for (on, label) in [(false, tl!("Trilinear")), (true, tl!("Tetrahedral"))] {
-            if ui.radio(tet == on, label).clicked() && tet != on {
+            if crate::widgets::radio(ui, tet == on, label).clicked() && tet != on {
                 tet = on;
                 params = Some(json!({"tetrahedral": on}));
             }

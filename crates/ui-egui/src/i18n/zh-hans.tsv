@@ -1916,3 +1916,9 @@
 	Draft: {name}	草稿：{name}
 	Duplicate	复制
 	Import…	导入…
+
+# Historical appearance profiles
+	Windows 98 SE Theme	Windows 98 SE 主题
+	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum 主题
+	Macintosh System 6 Theme	Macintosh System 6 主题
+	Font {requested} is unavailable; using {actual}.	字体 {requested} 不可用；使用 {actual}。

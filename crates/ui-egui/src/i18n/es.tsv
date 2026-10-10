@@ -2018,3 +2018,9 @@
 	Draft: {name}	Borrador: {name}
 	Duplicate	Duplicar
 	Import…	Importar…
+
+# Historical appearance profiles
+	Windows 98 SE Theme	Tema Windows 98 SE
+	Mac OS 9.1 Platinum Theme	Tema Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Tema Macintosh System 6
+	Font {requested} is unavailable; using {actual}.	La fuente {requested} no está disponible; se usa {actual}.

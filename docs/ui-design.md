@@ -113,3 +113,9 @@ documents), strings assembled with `format!` that were not converted to `fmt`/`t
 per-language font fallback (the CJK fallback prefers Japanese forms), right-to-left layout,
 locale-aware number and date formats, automatic language detection on the web build (native
 builds read `LANG`/`LC_*`, the macOS preferred languages and the Windows user locale).
+
+
+Historical runtime presets (Windows 98 SE, Mac OS 9.1 Platinum, Macintosh System 6) are
+available in Window → Theme and Theme Manager. They are under historical acceptance; see
+[themes.md](themes.md) for implemented render strategies, font substitutions and remaining
+control-state work. Existing five themes keep their original default renderer and fonts.

@@ -204,13 +204,16 @@ pub fn pill_tabs(ui: &mut Ui, id: egui::Id, area: Rect, tabs: &[&str], selected:
         area,
         tabs,
         selected,
-        theme::medium(theme::LayoutTokens::get(ui.ctx()).tab_font_size),
+        crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).tab_font_size, false),
         20.0,
         44.0,
         |i| i == sel,
         |ui, r, _, galley, resp, active| {
             // 2 pt between pills, as the old horizontal layout had.
             let r = Rect::from_min_max(r.min, pos2((r.right() - 2.0).max(r.left()), r.bottom()));
+            if crate::historical::tab(ui, r, active, galley.clone()) {
+                return;
+            }
             if active {
                 crate::widgets::surface(ui, r, t.hover, true);
                 if !t.bevel {

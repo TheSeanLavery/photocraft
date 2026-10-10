@@ -94,6 +94,13 @@ pub fn button(ui: &mut egui::Ui, name: &str, box_size: f32, selected: bool, tool
     let t = Tokens::get(ui.ctx());
     let (rect, resp) = ui.allocate_exact_size(Vec2::splat(box_size), Sense::click());
     let hovered = resp.hovered();
+    if t.appearance != crate::theme::Appearance::Modern {
+        if selected || hovered || resp.is_pointer_button_down_on() {
+            crate::historical::surface(ui, rect, t.chrome, !selected && !resp.is_pointer_button_down_on());
+        }
+        paint(ui, rect, name, (box_size * 0.52).round(), t.icon);
+        return if tooltip.is_empty() { resp } else { resp.on_hover_text(tl!(tooltip)) };
+    }
     if selected {
         ui.painter().rect_filled(rect, t.radius_sm, t.accent_soft);
         ui.painter().rect_stroke(rect, t.radius_sm, egui::Stroke::new(1.0, t.accent_border), egui::StrokeKind::Inside);

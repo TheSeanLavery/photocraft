@@ -21,6 +21,8 @@ pub struct ThemePack {
     /// Built-in fallback and defaults. Arbitrary pack inheritance is deliberately unsupported.
     pub base: String,
     #[serde(default)]
+    pub appearance: crate::theme::Appearance,
+    #[serde(default)]
     pub colors: BTreeMap<String, String>,
     #[serde(default)]
     pub geometry: Geometry,
@@ -61,6 +63,7 @@ pub struct Geometry {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields, rename_all = "camelCase")]
 pub struct Typography {
+    pub family: Option<String>,
     pub small: Option<f32>,
     pub body: Option<f32>,
     pub button: Option<f32>,
@@ -92,6 +95,7 @@ impl ThemePack {
             id: "legacy.overrides".into(),
             name: "Live token overrides".into(),
             base: fallback.label().into(),
+            appearance: Default::default(),
             colors: BTreeMap::new(),
             geometry: Geometry::default(),
             typography: Typography::default(),
@@ -134,6 +138,11 @@ impl ThemePack {
         }
         let kind = ThemeKind::from_name(&self.base).ok_or_else(|| format!("unknown theme base `{}`", self.base))?;
         let mut tokens = Tokens::for_kind(kind);
+        tokens.appearance = self.appearance;
+        if self.appearance != crate::theme::Appearance::Modern {
+            tokens.pro = false;
+            tokens.bevel = self.appearance != crate::theme::Appearance::System6;
+        }
         for (key, value) in &self.colors {
             set_color(&mut tokens, key, parse_color(value).ok_or_else(|| format!("colors.{key}: expected #RRGGBB or #RRGGBBAA"))?)?;
         }
@@ -174,6 +183,11 @@ impl ThemePack {
         }
         validate_pair("preferenceSpacing", g.preference_spacing, 0.0, 32.0)?;
         let ty = &self.typography;
+        if let Some(family) = ty.family.as_deref()
+            && !crate::theme_fonts::FAMILIES.contains(&family)
+        {
+            return Err(format!("unsupported UI font family `{family}`"));
+        }
         for (name, value) in [("small", ty.small), ("body", ty.body), ("button", ty.button), ("heading", ty.heading), ("monospace", ty.monospace)] {
             validate_number(name, value, 6.0, 64.0)?;
         }
@@ -233,6 +247,7 @@ impl ResolvedTheme {
         layout.field_height = layout.field_height.max(layout.field_font_size + 8.0);
         layout.tab_height = layout.tab_height.max(layout.tab_font_size + 6.0);
         layout.apply(ctx);
+        crate::theme_fonts::set(ctx, self.typography.family.as_deref());
         ctx.global_style_mut(|s| {
             let g = &self.geometry;
             if let Some([x, y]) = g.item_spacing {
@@ -260,6 +275,17 @@ impl ResolvedTheme {
                 s.spacing.window_margin = egui::Margin::same(v.round() as i8);
             }
             let ty = &self.typography;
+            if let Some(family) = &ty.family {
+                for font in s.text_styles.values_mut() {
+                    font.family = egui::FontFamily::Name(family.clone().into());
+                }
+            }
+            if self.tokens.appearance != crate::theme::Appearance::Modern {
+                s.spacing.scroll.bar_width = 16.0;
+                s.spacing.scroll.handle_min_length = 16.0;
+                s.spacing.scroll.bar_inner_margin = 0.0;
+                s.spacing.scroll.bar_outer_margin = 0.0;
+            }
             for (style, size) in [
                 (TextStyle::Small, ty.small),
                 (TextStyle::Body, ty.body),
@@ -356,6 +382,7 @@ mod tests {
             id: "custom.silver".into(),
             name: "Custom Silver".into(),
             base: "classic".into(),
+            appearance: Default::default(),
             colors: BTreeMap::new(),
             geometry: Geometry::default(),
             typography: Typography::default(),

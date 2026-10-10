@@ -2022,3 +2022,9 @@
 	Draft: {name}	下書き: {name}
 	Duplicate	複製
 	Import…	読み込み…
+
+# Historical appearance profiles
+	Windows 98 SE Theme	Windows 98 SE テーマ
+	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum テーマ
+	Macintosh System 6 Theme	Macintosh System 6 テーマ
+	Font {requested} is unavailable; using {actual}.	フォント {requested} がないため、{actual} を使用します。

@@ -50,6 +50,9 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("window.theme.studio", "Studio Theme", &["Window", "Theme"], None),
     ("window.theme.studioLight", "Studio Light Theme", &["Window", "Theme"], None),
     ("window.theme.classic", "Classic Theme", &["Window", "Theme"], None),
+    ("window.theme.windows-98-se", "Windows 98 SE Theme", &["Window", "Theme"], None),
+    ("window.theme.mac-os-9-1", "Mac OS 9.1 Platinum Theme", &["Window", "Theme"], None),
+    ("window.theme.system-6", "Macintosh System 6 Theme", &["Window", "Theme"], None),
     ("window.theme.manager", "Theme Manager…", &["Window", "Theme"], None),
     ("window.theme.preview", "Preview Theme", &[], None),
     ("window.theme.apply", "Apply Theme", &[], None),
@@ -294,6 +297,10 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
         "window.theme.pro" | "window.theme.proMedium" | "window.theme.studio" | "window.theme.studioLight" | "window.theme.classic" => {
             let k = crate::theme::ThemeKind::from_name(&id["window.theme.".len()..]).unwrap_or_default();
             app.set_theme(ctx, k);
+            Ok(Value::Null)
+        }
+        "window.theme.windows-98-se" | "window.theme.mac-os-9-1" | "window.theme.system-6" => {
+            crate::themes::select(app, ctx, &format!("builtin.{}", id.trim_start_matches("window.theme.")))?;
             Ok(Value::Null)
         }
         id if id.starts_with("window.theme.") => crate::themes::command(app, ctx, id.trim_start_matches("window.theme."), &params),

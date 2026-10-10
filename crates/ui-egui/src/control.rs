@@ -502,6 +502,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "windows": app.ui.windows,
         "theme": app.ui.theme,
         "themeId": app.ui.theme_id,
+        "themeFont": crate::theme_fonts::status(ctx).map(|(requested, actual)| json!({"requested":requested,"actual":actual})),
         "status": app.ui.status,
         "statusError": app.ui.status_error,
         "notices": app.ui.notices,

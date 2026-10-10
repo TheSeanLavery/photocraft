@@ -215,6 +215,11 @@ pub(crate) fn show(app: &mut PhotocraftApp, ctx: &Context) {
             if let Some(error) = &manager.error {
                 ui.colored_label(crate::theme::Tokens::get(ctx).warning, error);
             }
+            if let Some((requested, actual)) = crate::theme_fonts::status(ctx)
+                && requested != actual
+            {
+                ui.label(crate::i18n::fmt(tl!("Font {requested} is unavailable; using {actual}."), &[("requested", &requested), ("actual", &actual)]));
+            }
             if manager.previewing {
                 ui.label(tl!("Preview is active. Cancel restores your saved theme."));
             }

@@ -673,7 +673,7 @@ fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>, catalog: &crate::th
                     ui.painter().rect_filled(rect, t.radius_sm, t.hover);
                 }
                 let color = if sel {
-                    if t.bevel { t.accent_text } else { t.text }
+                    if t.bevel || t.appearance != crate::theme::Appearance::Modern { t.accent_text } else { t.text }
                 } else if empty {
                     t.text_faint
                 } else {
@@ -681,7 +681,7 @@ fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>, catalog: &crate::th
                 };
                 // Translated section names can be longer than the column: elide them (the full
                 // name is the tooltip) instead of drawing over the settings.
-                let mut job = egui::text::LayoutJob::simple_singleline(tl!(title).to_string(), crate::theme::medium(12.5), color);
+                let mut job = egui::text::LayoutJob::simple_singleline(tl!(title).to_string(), crate::theme_fonts::control(ui.ctx(), 12.5, false), color);
                 job.wrap = egui::text::TextWrapping::truncate_at_width(rect.width() - 12.0);
                 let galley = ui.painter().layout_job(job);
                 let elided = galley.elided;
@@ -696,7 +696,7 @@ fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>, catalog: &crate::th
         ui.vertical(|ui| {
             ui.set_width(540.0);
             let title = SECTIONS.iter().find(|(id, _)| *id == section).map_or("General", |(_, t)| *t);
-            ui.label(RichText::new(tl!(&title)).font(crate::theme::semibold(14.0)).color(t.text));
+            ui.label(RichText::new(tl!(&title)).font(crate::theme_fonts::control(ui.ctx(), 14.0, true)).color(t.text));
             ui.add_space(6.0);
             egui::ScrollArea::vertical().max_height(390.0).id_salt("prefs-scroll").show(ui, |ui| {
                 let order: Vec<String> =
@@ -1187,7 +1187,7 @@ fn mismatch_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
         ]
     };
     for (v, label) in opts {
-        ui.radio_value(&mut action, v.to_string(), *label);
+        crate::widgets::radio_value(ui, &mut action, v.to_string(), label);
     }
     f.insert("action".into(), json!(action));
 }

@@ -2298,3 +2298,9 @@
 	Preview is active. Cancel restores your saved theme.	Предпросмотр активен. Отмена восстановит сохранённую тему.
 	Saved theme	Сохранённая тема
 	Draft: {name}	Черновик: {name}
+
+# Historical appearance profiles
+	Windows 98 SE Theme	Тема Windows 98 SE
+	Mac OS 9.1 Platinum Theme	Тема Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Тема Macintosh System 6
+	Font {requested} is unavailable; using {actual}.	Шрифт {requested} недоступен; используется {actual}.

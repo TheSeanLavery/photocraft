@@ -67,20 +67,22 @@ impl Catalog {
                 id: id.into(),
                 name: kind.label().into(),
                 base: kind.label().into(),
+                appearance: Default::default(),
                 colors: BTreeMap::new(),
                 geometry: Default::default(),
                 typography: Default::default(),
             });
         }
-        self.packs.get(id).cloned()
+        crate::historical::preset(id).or_else(|| self.packs.get(id).cloned())
     }
 
     pub fn list(&self) -> Vec<Value> {
         ThemeKind::ALL
             .into_iter()
             .filter_map(|kind| self.get(kind.id()))
+            .chain(crate::historical::IDS.into_iter().filter_map(crate::historical::preset))
             .chain(self.packs.values().cloned())
-            .map(|pack| json!({"id": pack.id, "name": pack.name, "base": pack.base, "builtin": builtin(&pack.id).is_some()}))
+            .map(|pack| json!({"id": pack.id, "name": pack.name, "base": pack.base, "builtin": builtin(&pack.id).is_some() || crate::historical::IDS.contains(&pack.id.as_str())}))
             .collect()
     }
 
@@ -106,7 +108,7 @@ impl Catalog {
     }
 
     fn remove(&mut self, id: &str) -> Result<(), String> {
-        if builtin(id).is_some() {
+        if builtin(id).is_some() || crate::historical::IDS.contains(&id) {
             return Err("built-in themes cannot be removed".into());
         }
         if self.packs.remove(id).is_none() {

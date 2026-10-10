@@ -60,9 +60,21 @@ impl ThemeKind {
     }
 }
 
+/// Renderer strategy, independent of the inherited palette/layout defaults.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Appearance {
+    #[default]
+    Modern,
+    Windows98,
+    Platinum,
+    System6,
+}
+
 /// Colour and shape tokens.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Tokens {
+    pub appearance: Appearance,
     pub kind: ThemeKind,
     /// Window chrome (title bar, toolbars).
     pub chrome: Color32,
@@ -167,6 +179,7 @@ impl Tokens {
                 radius_sm: 3.0,
                 radius: 4.0,
                 radius_lg: 6.0,
+                appearance: Appearance::Modern,
                 bevel: false,
                 bevel_highlight: Color32::WHITE,
                 bevel_light: Color32::from_gray(223),
@@ -206,6 +219,7 @@ impl Tokens {
                 radius_sm: 6.0,
                 radius: 8.0,
                 radius_lg: 12.0,
+                appearance: Appearance::Modern,
                 bevel: false,
                 bevel_highlight: Color32::WHITE,
                 bevel_light: Color32::from_gray(223),
@@ -245,6 +259,7 @@ impl Tokens {
                 radius_sm: 6.0,
                 radius: 8.0,
                 radius_lg: 12.0,
+                appearance: Appearance::Modern,
                 bevel: false,
                 bevel_highlight: Color32::WHITE,
                 bevel_light: Color32::from_gray(223),
@@ -284,6 +299,7 @@ impl Tokens {
                 radius_sm: 0.0,
                 radius: 0.0,
                 radius_lg: 0.0,
+                appearance: Appearance::Modern,
                 bevel: true,
                 bevel_highlight: Color32::WHITE,
                 bevel_light: Color32::from_gray(223),
@@ -331,6 +347,7 @@ pub fn install_fonts_with(ctx: &egui::Context, cjk: crate::cjk_fonts::Sources) {
         stack.extend(fallback.iter().cloned());
         fonts.families.insert(FontFamily::Name(fam.into()), stack);
     }
+    crate::theme_fonts::install(ctx, &mut fonts);
     ctx.set_fonts(fonts);
     // Japanese / Chinese / Korean fallback fonts (craft-fonts' Japanese ones if built in, then
     // the system's) are registered on demand (cjk_fonts.rs).
@@ -355,6 +372,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
 
 /// Apply resolved tokens to both shared widgets and stock egui controls in the same frame.
 pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
+    crate::theme_fonts::set(ctx, None);
     LayoutTokens::for_kind(t.kind).apply(ctx);
     ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-theme"), t));
     let mut v = if t.dark() { Visuals::dark() } else { Visuals::light() };
@@ -372,11 +390,12 @@ pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
     v.menu_corner_radius = CornerRadius::same(t.radius as u8);
     v.window_shadow = egui::Shadow { offset: [0, 10], blur: 32, spread: 0, color: t.shadow };
     v.popup_shadow = egui::Shadow { offset: [0, 6], blur: 20, spread: 0, color: t.shadow };
-    v.selection.bg_fill = if t.bevel || t.pro { t.accent } else { t.accent_soft };
+    v.selection.bg_fill = if t.bevel || t.pro || t.appearance != Appearance::Modern { t.accent } else { t.accent_soft };
     v.selection.stroke = Stroke::new(1.0, t.accent_text);
     v.slider_trailing_fill = true;
     v.handle_shape = egui::style::HandleShape::Circle;
     v.striped = false;
+    v.disabled_alpha = if t.appearance == Appearance::System6 { 1.0 } else { 0.5 };
     let r = CornerRadius::same(t.radius_sm as u8);
     let w = &mut v.widgets;
     w.noninteractive.bg_fill = t.card;
@@ -396,6 +415,10 @@ pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
         wv.fg_stroke = Stroke::new(1.0, t.text);
         wv.corner_radius = r;
         wv.expansion = 0.0;
+    }
+    if t.appearance != Appearance::Modern {
+        v.window_shadow = egui::Shadow { offset: [1, 1], blur: 0, spread: 0, color: t.shadow };
+        v.popup_shadow = egui::Shadow { offset: [1, 1], blur: 0, spread: 0, color: t.shadow };
     }
     ctx.set_visuals(v);
     ctx.global_style_mut(|s| {
@@ -418,7 +441,7 @@ pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
         s.visuals.indent_has_left_vline = false;
         s.interaction.tooltip_delay = TOOLTIP_DELAY;
         // Thin overlay scrollbars that appear on hover (Photoshop/macOS style).
-        s.spacing.scroll = if t.bevel { egui::style::ScrollStyle::solid() } else { egui::style::ScrollStyle::thin() };
+        s.spacing.scroll = if t.bevel || t.appearance != Appearance::Modern { egui::style::ScrollStyle::solid() } else { egui::style::ScrollStyle::thin() };
         s.spacing.tooltip_width = 280.0;
     });
 }

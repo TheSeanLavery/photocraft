@@ -2032,3 +2032,9 @@
 	Draft: {name}	Koncept: {name}
 	Duplicate	Duplikovat
 	Import…	Importovat…
+
+# Historical appearance profiles
+	Windows 98 SE Theme	Motiv Windows 98 SE
+	Mac OS 9.1 Platinum Theme	Motiv Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Motiv Macintosh System 6
+	Font {requested} is unavailable; using {actual}.	Písmo {requested} není dostupné; používá se {actual}.

@@ -71,9 +71,13 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 ui.set_min_width(w);
                 ui.set_max_width(w);
             }
-            let t = ui.add(egui::Label::new(egui::RichText::new(&title).font(crate::theme::semibold(15.0))).selectable(false)).rect;
-            let bar = egui::Rect::from_min_max(t.min, egui::pos2(ui.max_rect().right(), t.bottom()));
-            drag = ui.interact(bar, id.with("title"), egui::Sense::drag()).drag_delta();
+            if let Some(caption) = crate::historical::dialog_caption(ui, &title) {
+                drag = caption.drag_delta();
+            } else {
+                let t = ui.add(egui::Label::new(egui::RichText::new(&title).font(crate::theme::semibold(15.0))).selectable(false)).rect;
+                let bar = egui::Rect::from_min_max(t.min, egui::pos2(ui.max_rect().right(), t.bottom()));
+                drag = ui.interact(bar, id.with("title"), egui::Sense::drag()).drag_delta();
+            }
             ui.add_space(4.0);
             crate::widgets::hairline(ui);
             ui.add_space(8.0);

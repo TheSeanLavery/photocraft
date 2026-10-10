@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "id": "builtin.windows-98-se",
+  "name": "Windows 98 SE",
+  "base": "classic",
+  "appearance": "windows98",
+  "colors": {
+    "chrome": "#C0C0C0",
+    "dock": "#C0C0C0",
+    "card": "#C0C0C0",
+    "hover": "#C0C0C0",
+    "pressed": "#C0C0C0",
+    "tab_strip": "#C0C0C0",
+    "canvas": "#808080",
+    "canvas_dot": "#808080",
+    "card_border": "#808080",
+    "field": "#FFFFFF",
+    "field_border": "#808080",
+    "text": "#000000",
+    "text_dim": "#000000",
+    "text_faint": "#808080",
+    "icon": "#000000",
+    "accent": "#000080",
+    "accent_soft": "#1084D0",
+    "accent_border": "#000000",
+    "accent_text": "#FFFFFF",
+    "separator": "#808080",
+    "shadow": "#000000",
+    "primary_bg": "#C0C0C0",
+    "primary_text": "#000000",
+    "row_selected": "#000080",
+    "bevel_highlight": "#FFFFFF",
+    "bevel_light": "#C0C0C0",
+    "bevel_shadow": "#808080",
+    "bevel_dark": "#000000"
+  },
+  "geometry": {
+    "radiusSmall": 0,
+    "radius": 0,
+    "radiusLarge": 0,
+    "bevelWidth": 2,
+    "itemSpacing": [
+      5,
+      3
+    ],
+    "buttonPadding": [
+      8,
+      2
+    ],
+    "controlSize": [
+      18,
+      18
+    ],
+    "fieldHeight": 20,
+    "tabHeight": 22,
+    "panelPadding": 4,
+    "panelGap": 3,
+    "rowGap": 3,
+    "titleBarHeight": 22,
+    "optionsBarHeight": 30,
+    "statusBarHeight": 24,
+    "toolButtonSize": 26,
+    "toolbarPadding": 4,
+    "railButtonSize": 24,
+    "preferenceSpacing": [
+      8,
+      4
+    ],
+    "menuMargin": 2,
+    "dialogMargin": 10,
+    "buttonHeight": 23
+  },
+  "typography": {
+    "small": 10,
+    "body": 11,
+    "button": 11,
+    "heading": 12,
+    "monospace": 11,
+    "family": "Microsoft Sans Serif"
+  }
+}

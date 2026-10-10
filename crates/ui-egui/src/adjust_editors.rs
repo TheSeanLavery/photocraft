@@ -1008,7 +1008,7 @@ fn color_balance(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
     ui.horizontal(|ui| {
         label(ui, tl!("Tone:"));
         for (i, l) in [tl!("Shadows"), tl!("Midtones"), tl!("Highlights")].iter().enumerate() {
-            if ui.radio(tone_ix == i, *l).clicked() {
+            if crate::widgets::radio(ui, tone_ix == i, l).clicked() {
                 tone_ix = i;
             }
         }
@@ -1088,7 +1088,7 @@ fn photo_filter(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
     let mode_id = cx.mem.with("pf-mode");
     let mut use_color: bool = ui.data(|d| d.get_temp(mode_id)).unwrap_or(preset.is_none());
     ui.horizontal(|ui| {
-        if ui.radio(!use_color, tl!("Filter:")).clicked() {
+        if crate::widgets::radio(ui, !use_color, tl!("Filter:")).clicked() {
             use_color = false;
         }
         let mut sel = preset.unwrap_or("custom").to_string();
@@ -1104,7 +1104,7 @@ fn photo_filter(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
         }
     });
     ui.horizontal(|ui| {
-        if ui.radio(use_color, tl!("Color:")).clicked() {
+        if crate::widgets::radio(ui, use_color, tl!("Color:")).clicked() {
             use_color = true;
         }
         let r = ui.add_enabled_ui(use_color, |ui| color_button(ui, &mut c)).inner;

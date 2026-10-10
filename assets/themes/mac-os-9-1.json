@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "id": "builtin.mac-os-9-1",
+  "name": "Mac OS 9.1 Platinum",
+  "base": "classic",
+  "appearance": "platinum",
+  "colors": {
+    "chrome": "#DDDDDD",
+    "dock": "#DDDDDD",
+    "card": "#DDDDDD",
+    "hover": "#DDDDDD",
+    "pressed": "#DDDDDD",
+    "tab_strip": "#DDDDDD",
+    "canvas": "#808080",
+    "canvas_dot": "#808080",
+    "card_border": "#000000",
+    "field": "#FFFFFF",
+    "field_border": "#808080",
+    "text": "#000000",
+    "text_dim": "#000000",
+    "text_faint": "#808080",
+    "icon": "#000000",
+    "accent": "#666699",
+    "accent_soft": "#CCCCFF",
+    "accent_border": "#000000",
+    "accent_text": "#FFFFFF",
+    "separator": "#808080",
+    "shadow": "#000000",
+    "primary_bg": "#DDDDDD",
+    "primary_text": "#000000",
+    "row_selected": "#666699",
+    "bevel_highlight": "#FFFFFF",
+    "bevel_light": "#DDDDDD",
+    "bevel_shadow": "#808080",
+    "bevel_dark": "#000000"
+  },
+  "geometry": {
+    "radiusSmall": 0,
+    "radius": 0,
+    "radiusLarge": 0,
+    "bevelWidth": 1,
+    "itemSpacing": [
+      8,
+      4
+    ],
+    "buttonPadding": [
+      12,
+      2
+    ],
+    "controlSize": [
+      18,
+      18
+    ],
+    "fieldHeight": 20,
+    "tabHeight": 22,
+    "panelPadding": 4,
+    "panelGap": 3,
+    "rowGap": 3,
+    "titleBarHeight": 20,
+    "optionsBarHeight": 30,
+    "statusBarHeight": 24,
+    "toolButtonSize": 26,
+    "toolbarPadding": 4,
+    "railButtonSize": 24,
+    "preferenceSpacing": [
+      8,
+      4
+    ],
+    "menuMargin": 2,
+    "dialogMargin": 20,
+    "buttonHeight": 28
+  },
+  "typography": {
+    "small": 10,
+    "body": 12,
+    "button": 12,
+    "heading": 12,
+    "monospace": 12,
+    "family": "Charcoal"
+  }
+}

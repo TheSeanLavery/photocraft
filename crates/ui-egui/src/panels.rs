@@ -288,6 +288,9 @@ fn color_chips(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
 // ----------------------------------------------------------------------------- title bar
 
 pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
+    if crate::historical::title_bar(app, ui) {
+        return;
+    }
     let t = Tokens::get(ui.ctx());
     let control_size = (theme::LayoutTokens::get(ui.ctx()).title_bar_height - 4.0).clamp(16.0, 28.0);
     let left = if cfg!(target_os = "macos") && app.integrated_titlebar { 78 } else { 10 };

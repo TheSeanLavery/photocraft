@@ -9,6 +9,9 @@ use crate::theme::{self, Tokens};
 pub fn surface(ui: &Ui, rect: Rect, fill: Color32, raised: bool) {
     let t = Tokens::get(ui.ctx());
     let p = ui.painter();
+    if crate::historical::surface(ui, rect, fill, raised) {
+        return;
+    }
     p.rect_filled(rect, t.radius_sm, fill);
     if t.bevel {
         let edge = |rect: Rect, hi, lo| {
@@ -132,7 +135,7 @@ fn pro_panel(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, collaps
 
 pub fn pill_tab(ui: &mut Ui, label: &str, selected: bool) -> Response {
     let t = Tokens::get(ui.ctx());
-    let font = theme::medium(theme::LayoutTokens::get(ui.ctx()).tab_font_size);
+    let font = crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).tab_font_size, false);
     let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), font, t.text);
     let size = vec2(galley.size().x + 20.0, theme::LayoutTokens::get(ui.ctx()).tab_height);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
@@ -171,7 +174,7 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
             ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::NONE;
             ui.style_mut().visuals.widgets.hovered.bg_stroke = Stroke::NONE;
             ui.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::TRANSPARENT;
-            ui.style_mut().override_font_id = Some(theme::mono(theme::LayoutTokens::get(ui.ctx()).field_font_size));
+            ui.style_mut().override_font_id = Some(crate::theme_fonts::number(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).field_font_size));
             // DragValue is a button internally: its stock minimum/padding must fit our painted field.
             ui.spacing_mut().interact_size.y = field.height();
             ui.spacing_mut().button_padding.y = 0.0;
@@ -192,7 +195,7 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
             pos2(rect.right() - 6.0, rect.center().y),
             Align2::RIGHT_CENTER,
             suffix,
-            theme::mono((theme::LayoutTokens::get(ui.ctx()).field_font_size - 1.0).max(6.0)),
+            crate::theme_fonts::number(ui.ctx(), (theme::LayoutTokens::get(ui.ctx()).field_font_size - 1.0).max(6.0)),
             t.text_faint,
         );
     }
@@ -284,7 +287,7 @@ pub fn slider_row(ui: &mut Ui, label: &str, value: &mut f32, range: std::ops::Ra
 /// iOS-style toggle switch.
 pub fn toggle(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
     let t = Tokens::get(ui.ctx());
-    if t.pro {
+    if t.pro || t.appearance != theme::Appearance::Modern {
         return checkbox(ui, on, label);
     }
     let mut resp = ui
@@ -324,12 +327,15 @@ pub fn secondary_button(ui: &mut Ui, label: &str, min_width: f32) -> Response {
 fn button_impl(ui: &mut Ui, label: &str, min_width: f32, bg: Color32, fg: Color32, primary: bool) -> Response {
     let t = Tokens::get(ui.ctx());
     let layout = theme::LayoutTokens::get(ui.ctx());
-    let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), theme::medium(layout.button_font_size), fg);
+    let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), crate::theme_fonts::control(ui.ctx(), layout.button_font_size, false), fg);
     let h = layout.button_height;
     let size = vec2((galley.size().x + layout.button_padding_x * 2.0).max(min_width), h);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
     // Painted text: name the button for accessibility (and so tests and agents can find it).
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), label));
+    if crate::historical::button(ui, rect, &resp, primary, galley.clone()) {
+        return resp;
+    }
     if t.pro {
         // Spectrum buttons: fully rounded; primary = filled accent, secondary = outline.
         let down = resp.is_pointer_button_down_on();
@@ -407,7 +413,7 @@ pub fn dropdown<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, op
         for (v, l) in options {
             let selected = v == current;
             let text = egui::RichText::new(tl!(l));
-            let text = if selected && t.bevel { text.color(t.accent_text) } else { text };
+            let text = if selected && (t.bevel || t.appearance != theme::Appearance::Modern) { text.color(t.accent_text) } else { text };
             if ui.selectable_label(selected, text).clicked() {
                 *current = v.clone();
                 changed = true;
@@ -415,6 +421,38 @@ pub fn dropdown<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, op
         }
     });
     changed
+}
+
+/// A radio control with historical painting and the same semantics as egui's radio.
+pub fn radio(ui: &mut Ui, on: bool, label: &str) -> Response {
+    let t = Tokens::get(ui.ctx());
+    if t.appearance == theme::Appearance::Modern {
+        return ui.radio(on, tl!(label));
+    }
+    let galley = ui.painter().layout_no_wrap(
+        tl!(label).to_owned(),
+        crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).button_font_size, false),
+        t.text,
+    );
+    let mark_size = if t.appearance == theme::Appearance::Windows98 { 13.0 } else { 12.0 };
+    let (rect, response) = ui.allocate_exact_size(vec2(mark_size + 5.0 + galley.size().x, 18.0_f32.max(galley.size().y)), Sense::click());
+    response.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::RadioButton, ui.is_enabled(), on, tl!(label)));
+    let mark = Rect::from_center_size(pos2(rect.left() + mark_size / 2.0, rect.center().y), vec2(mark_size, mark_size));
+    crate::historical::radio(ui, mark, on, &response);
+    let at = pos2(rect.left() + mark_size + 5.0, rect.center().y - galley.size().y / 2.0);
+    let text_rect = Rect::from_min_size(at, galley.size());
+    ui.painter().galley_with_override_text_color(at, galley, t.text);
+    crate::historical::disabled_stipple(ui, text_rect, t.chrome);
+    response
+}
+
+pub fn radio_value<T: PartialEq>(ui: &mut Ui, current: &mut T, value: T, label: &str) -> Response {
+    let mut response = radio(ui, *current == value, label);
+    if response.clicked() && *current != value {
+        *current = value;
+        response.mark_changed();
+    }
+    response
 }
 
 /// Paint a small checkerboard (transparency) in `rect`.
@@ -437,10 +475,17 @@ pub fn checkbox(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
     let t = Tokens::get(ui.ctx());
     let mut resp = ui
         .horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = 6.0;
-            let (rect, resp) = ui.allocate_exact_size(vec2(14.0, 14.0), Sense::click());
+            ui.spacing_mut().item_spacing.x = if t.appearance == theme::Appearance::Modern { 6.0 } else { 5.0 };
+            let (width, height) = match t.appearance {
+                theme::Appearance::Modern => (14.0, 14.0),
+                theme::Appearance::Windows98 => (13.0, 18.0),
+                theme::Appearance::Platinum | theme::Appearance::System6 => (12.0, 18.0),
+            };
+            let (rect, resp) = ui.allocate_exact_size(vec2(width, height), Sense::click());
             let p = ui.painter();
-            if *on {
+            if crate::historical::checkbox(ui, rect, *on, &resp) {
+                // The historical renderer paints the box and checked state.
+            } else if *on {
                 p.rect_filled(rect, 2.0, t.accent);
                 let a = rect.left_center() + vec2(3.0, 0.5);
                 let b = rect.center_bottom() + vec2(-1.0, -3.5);
@@ -452,6 +497,7 @@ pub fn checkbox(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
                 p.rect_stroke(rect, 2.0, Stroke::new(1.5, if resp.hovered() { t.text_dim } else { t.text_faint }), StrokeKind::Inside);
             }
             let l = ui.add(egui::Label::new(egui::RichText::new(tl!(label)).color(t.text_dim)).sense(Sense::click()));
+            crate::historical::disabled_stipple(ui, l.rect, t.chrome);
             resp.union(l)
         })
         .inner;
@@ -464,6 +510,9 @@ pub fn checkbox(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
 
 /// Small chevron for dropdowns (replaces egui's filled triangle).
 pub fn chevron_icon(ui: &Ui, rect: Rect, visuals: &egui::style::WidgetVisuals, _open: bool) {
+    if crate::historical::dropdown_arrow(ui, rect) {
+        return;
+    }
     let c = rect.center();
     let s = 3.2;
     let stroke = Stroke::new(1.3, visuals.fg_stroke.color.gamma_multiply(0.8));

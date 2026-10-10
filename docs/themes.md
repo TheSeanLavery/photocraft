@@ -59,6 +59,9 @@ reproduction; dedicated historical control rendering is still being built.
 - `name`: display name, 1–128 bytes of printable text.
 - `base`: `pro`, `proMedium`, `studio`, `studioLight` or `classic`. Missing overrides inherit
   the built-in base. Packs cannot inherit other packs.
+- `appearance`: `modern` (default), `windows98`, `platinum`, or `system6`. This selects
+  the app-drawn control renderer independently of `base`. Older packs omit it and keep the
+  existing renderer.
 - `colors`: semantic `Tokens` color names, with strict `#RRGGBB` or `#RRGGBBAA` values.
   Available names are `chrome`, `canvas`, `canvas_dot`, `dock`, `card`, `card_border`, `field`,
   `field_border`, `hover`, `pressed`, `text`, `text_dim`, `text_faint`, `icon`, `accent`,
@@ -75,6 +78,14 @@ reproduction; dedicated historical control rendering is still being built.
   0–32 points; `preferenceSpacing` is a horizontal/vertical pair, each 0–32 points.
   `buttonPadding` also controls horizontal padding in custom buttons. Defaults preserve existing
   themes. Buttons, numeric fields and tabs grow when needed to fit the configured type size.
+- `typography.family`: optional registered UI family: `Inter`, `JetBrains Mono`,
+  `Microsoft Sans Serif`, `Geneva`, `Chicago`, or `Charcoal`. Native builds read these faces
+  from known installed-font locations, with bounded reads and parsing; no font files enter
+  this repository. The built-in Inter stack remains the fallback. Missing Chicago/Charcoal
+  use installed Geneva when available, then Inter. The manager reports substitutions;
+  `ui.inspect.themeFont` exposes requested and actual family. Browser builds use the registered
+  fallback stack when historical faces are unavailable. Current family registrations are cached
+  for the app session; restart after installing an additional face.
 - `typography`: egui text-style sizes, 6–64 points; `button`, `monospace` and `body` also size
   shared custom button text, numeric fields and pill tabs. Current named font families and other
   explicitly sized custom widgets retain their existing fonts and sizes.
@@ -136,3 +147,36 @@ fails after writing the catalog, it rolls back the catalog write; a rollback fai
 explicitly. Built-in definitions cannot be overwritten. Importing an existing custom ID and
 pressing Apply replaces that custom definition. Commands taking parameters remain available
 to agents, while the command palette exposes the interactive manager and built-in selectors.
+
+
+## Historical preset development
+
+Window › Theme and Theme Manager include **Windows 98 SE**, **Mac OS 9.1 Platinum**, and
+**Macintosh System 6**. Portable definitions live in `assets/themes/`; export/duplicate any
+preset to edit it without recompiling. Stable IDs are `builtin.windows-98-se`,
+`builtin.mac-os-9-1`, and `builtin.system-6`.
+
+The first renderer pass differentiates button/default/focus states, checkbox and radio shapes and marks,
+panel tab borders, sunken fields, dropdown arrows, toolbar selection, and app-drawn main/modal captions. Windows
+uses square bevels and an active caption gradient; Platinum uses rounded buttons and striped
+captions; System 6 uses monochrome chrome and X-mark boxes. Native outer decorations remain
+host-managed. Document pixels, swatch values and other color content retain their actual colors.
+
+These presets are still under historical acceptance. Exact bitmap typography, all custom
+widget fonts/metrics, arrowed/patterned scrollbars, complete disabled-state treatment,
+remaining floating-window captions, and complete multi-scale control-state comparisons are
+not finished. System 6 panel tabs adapt PhotoCraft's docking UI to monochrome; System 6 did not have this modern docking workflow.
+Custom disabled button/check/radio ink uses a checker mask. Microsoft Sans Serif is a metrically compatible vector successor, not Windows
+98's MS Sans Serif bitmap face. Chicago and Charcoal are not present on the current machine;
+Geneva is the reported fallback. Do not describe this first pass as pixel-perfect reproduction.
+
+Clean-room references: [Microsoft shell font history](https://learn.microsoft.com/en-us/windows/win32/Intl/using-ms-shell-dlg-and-ms-shell-dlg-2),
+[Microsoft Sans Serif metric compatibility](https://learn.microsoft.com/en-us/typography/font-list/microsoft-sans-serif),
+[Apple-authored Platinum controls and layout guidelines (archived)](https://dev.os9.ca/techpubs/mac/pdf/HIGOS8Guidelines.pdf),
+and [Apple's Platinum typography note (archived)](https://dev.os9.ca/techpubs/mac/HIGOS8Guide/thig-8.html).
+
+For visual review without opening an editing session, run
+`cargo run -p photocraft-ui-egui --example historical_controls -- <slug> <scale> <state> <output.png>`.
+Slugs are `windows-98-se`, `mac-os-9-1`, `system-6`; states are `normal`, `hover`,
+`pressed`, and `focus`. The gallery exercises production control painters and retains
+the true document-color swatches.
