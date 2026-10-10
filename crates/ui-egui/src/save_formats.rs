@@ -31,7 +31,14 @@ pub(crate) fn show_choice(ctx: &egui::Context, format: &mut String) -> Option<Op
         ui.horizontal(|ui| {
             ui.label(tl!("Format"));
             let label = formats.iter().find(|f| f.extensions.contains(&format.as_str())).map_or_else(|| format.clone(), |f| format!("{} (.{format})", f.name));
-            let button = ui.add_sized([310.0, ui.spacing().interact_size.y], egui::Button::new(label).right_text("▾"));
+            let button = ui.add_sized([310.0, ui.spacing().interact_size.y], egui::Button::new(label));
+            let arrow = egui::pos2(button.rect.right() - 16.0, button.rect.center().y);
+            let color = ui.style().interact(&button).fg_stroke.color;
+            ui.painter().add(egui::Shape::convex_polygon(
+                vec![arrow + egui::vec2(-3.5, -2.0), arrow + egui::vec2(3.5, -2.0), arrow + egui::vec2(0.0, 2.5)],
+                color,
+                egui::Stroke::NONE,
+            ));
             let viewport = ctx.content_rect();
             let below = viewport.bottom() - button.rect.bottom();
             let above = button.rect.top() - viewport.top();
