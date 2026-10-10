@@ -46,6 +46,8 @@ pub struct Geometry {
     pub button_height: Option<f32>,
     pub field_height: Option<f32>,
     pub scroll_bar_width: Option<f32>,
+    pub slider_thumb_size: Option<[f32; 2]>,
+    pub slider_track_height: Option<f32>,
     pub tab_height: Option<f32>,
     pub panel_padding: Option<f32>,
     pub panel_gap: Option<f32>,
@@ -173,6 +175,8 @@ impl ThemePack {
         for (name, value) in [("itemSpacing", g.item_spacing), ("buttonPadding", g.button_padding)] {
             validate_pair(name, value, 0.0, 64.0)?;
         }
+        validate_pair("sliderThumbSize", g.slider_thumb_size, 8.0, 32.0)?;
+        validate_number("sliderTrackHeight", g.slider_track_height, 2.0, 12.0)?;
         validate_pair("controlSize", g.control_size, 8.0, 128.0)?;
         for (name, value) in [("sliderWidth", g.slider_width), ("dropdownWidth", g.dropdown_width)] {
             validate_number(name, value, 16.0, 1024.0)?;
@@ -264,6 +268,9 @@ impl ResolvedTheme {
         if self.tokens.appearance != crate::theme::Appearance::Modern {
             layout.scroll_bar_width = 16.0;
         }
+        if self.tokens.appearance == crate::theme::Appearance::Platinum {
+            layout.slider_thumb_size = [12.0, 14.0];
+        }
         macro_rules! apply_layout {
             ($($field:ident),*) => { $(if let Some(v) = g.$field { layout.$field = v; })* };
         }
@@ -271,6 +278,8 @@ impl ResolvedTheme {
             button_height,
             field_height,
             scroll_bar_width,
+            slider_thumb_size,
+            slider_track_height,
             tab_height,
             panel_padding,
             panel_gap,
@@ -633,6 +642,41 @@ mod tests {
         pack.resolve().unwrap().apply(&ctx);
         let layout = crate::theme::LayoutTokens::get(&ctx);
         assert!(layout.button_height >= 30.0 && layout.field_height >= 32.0);
+    }
+
+    #[test]
+    fn slider_metrics_are_editable_bounded_and_reset() {
+        let mut pack = ThemePack::parse(include_str!("../../../assets/themes/system-6.json")).unwrap();
+        pack.geometry.slider_thumb_size = Some([32.0, 32.0]);
+        pack.geometry.slider_track_height = Some(12.0);
+        let restored = ThemePack::parse(&serde_json::to_string(&pack).unwrap()).unwrap();
+        let mut initialized = false;
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(300.0, 150.0)).build_ui_state(
+            |ui, value| {
+                if !initialized {
+                    crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                    initialized = true;
+                    return;
+                }
+                crate::widgets::slider(ui, value, 0.0..=100.0, None);
+            },
+            50.0,
+        );
+        restored.resolve().unwrap().apply(&h.ctx);
+        h.run_steps(4);
+        use egui_kittest::kittest::Queryable;
+        assert!(h.get_by_label("Slider").rect().height() >= 36.0);
+        fixture().resolve().unwrap().apply(&h.ctx);
+        assert_eq!(crate::theme::LayoutTokens::get(&h.ctx).slider_thumb_size, [10.0, 14.0]);
+        for size in [[7.0, 14.0], [14.0, 33.0], [f32::NAN, 14.0]] {
+            pack.geometry.slider_thumb_size = Some(size);
+            assert!(pack.resolve().is_err());
+        }
+        pack.geometry.slider_thumb_size = None;
+        for height in [1.0, 13.0, f32::NAN] {
+            pack.geometry.slider_track_height = Some(height);
+            assert!(pack.resolve().is_err());
+        }
     }
 
     #[test]

@@ -202,24 +202,65 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
     resp
 }
 
-/// Thin-track slider with a round knob. `gradient` paints the track (e.g. hue spectrum).
+/// Setting slider with theme-specific chrome. `gradient` paints the edited color range.
 pub fn slider(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive<f32>, gradient: Option<&[Color32]>) -> Response {
     let t = Tokens::get(ui.ctx());
     let width = ui.available_width().max(60.0);
-    let (rect, mut resp) = ui.allocate_exact_size(vec2(width, 18.0), Sense::click_and_drag());
+    let historical = t.appearance != theme::Appearance::Modern;
+    let metrics = theme::LayoutTokens::get(ui.ctx());
+    let [thumb_width, thumb_height] = metrics.slider_thumb_size;
+    let height = if historical { (thumb_height.max(metrics.slider_track_height) + 4.0).max(18.0) } else { 18.0 };
+    let (rect, mut resp) = ui.allocate_exact_size(vec2(width, height), Sense::click_and_drag());
     let (lo, hi) = (*range.start(), *range.end());
-    let track = Rect::from_center_size(rect.center(), vec2(rect.width() - 14.0, if gradient.is_some() { 5.0 } else { 3.0 }));
+    let span = hi - lo;
+    let adjustable = lo.is_finite() && hi.is_finite() && span.is_finite() && span > 0.0;
+    let inset = if historical { thumb_width + 4.0 } else { 14.0 };
+    let track_height = if historical {
+        metrics.slider_track_height.max(if gradient.is_some() { 5.0 } else { 2.0 })
+    } else if gradient.is_some() {
+        5.0
+    } else {
+        3.0
+    };
+    let track = Rect::from_center_size(rect.center(), vec2(rect.width() - inset, track_height));
     if let Some(p) = resp.interact_pointer_pos()
+        && adjustable
         && (resp.dragged() || resp.clicked())
     {
         let f = ((p.x - track.left()) / track.width()).clamp(0.0, 1.0);
         let nv = lo + f * (hi - lo);
-        if (nv - *value).abs() > f32::EPSILON {
+        if !value.is_finite() || (nv - *value).abs() > f32::EPSILON {
             *value = nv;
             resp.mark_changed();
         }
     }
-    let f = ((*value - lo) / (hi - lo)).clamp(0.0, 1.0);
+    if resp.clicked() && adjustable {
+        resp.request_focus();
+    }
+    if adjustable && resp.has_focus() && ui.is_enabled() {
+        let base = if value.is_finite() { value.clamp(lo, hi) } else { lo };
+        let keyboard = ui.input_mut(|i| {
+            let modifiers = if i.modifiers.shift { egui::Modifiers::SHIFT } else { egui::Modifiers::NONE };
+            if i.consume_key(modifiers, egui::Key::Home) {
+                Some(lo)
+            } else if i.consume_key(modifiers, egui::Key::End) {
+                Some(hi)
+            } else {
+                let increase = i.consume_key(modifiers, egui::Key::ArrowRight) || i.consume_key(modifiers, egui::Key::ArrowUp);
+                let decrease = i.consume_key(modifiers, egui::Key::ArrowLeft) || i.consume_key(modifiers, egui::Key::ArrowDown);
+                (increase || decrease)
+                    .then(|| (base + (i32::from(increase) - i32::from(decrease)) as f32 * span / if i.modifiers.shift { 10.0 } else { 100.0 }).clamp(lo, hi))
+            }
+        });
+        if let Some(next) = keyboard
+            && (!value.is_finite() || next != *value)
+        {
+            *value = next;
+            resp.mark_changed();
+        }
+    }
+    resp.widget_info(|| egui::WidgetInfo::slider(ui.is_enabled() && adjustable, if value.is_finite() { f64::from(*value) } else { 0.0 }, "Slider"));
+    let f = if adjustable && value.is_finite() { ((*value - lo) / span).clamp(0.0, 1.0) } else { 0.0 };
     let knob_x = track.left() + f * track.width();
     let painter = ui.painter();
     match gradient {
@@ -240,24 +281,28 @@ pub fn slider(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive<f32>
             }
         }
         _ => {
-            painter.rect_filled(track, 2.0, t.field_border);
-            let filled = Rect::from_min_max(track.min, pos2(knob_x, track.max.y));
-            painter.rect_filled(filled, 2.0, if t.bevel { t.accent } else { t.text_dim });
+            if !crate::historical::slider_track(ui, track) {
+                painter.rect_filled(track, 2.0, t.field_border);
+                let filled = Rect::from_min_max(track.min, pos2(knob_x, track.max.y));
+                painter.rect_filled(filled, 2.0, if t.bevel { t.accent } else { t.text_dim });
+            }
         }
     }
     let knob = pos2(knob_x, rect.center().y);
-    if t.bevel {
-        let kr = Rect::from_center_size(knob, vec2(10.0, 16.0));
-        surface(ui, kr, t.card, true);
-    } else {
-        let kr = if t.pro { 6.0 } else { 7.0 };
-        painter.circle_filled(knob + vec2(0.0, 1.0), kr + 0.5, Color32::from_black_alpha(90));
-        painter.circle_filled(knob, kr, if t.pro { Color32::from_gray(236) } else { Color32::WHITE });
-        if t.pro {
-            painter.circle_stroke(knob, kr, Stroke::new(1.0, Color32::from_gray(40)));
-        }
-        if resp.hovered() || resp.dragged() {
-            painter.circle_stroke(knob, 9.5, Stroke::new(2.0, t.accent_soft));
+    if !crate::historical::slider_indicator(ui, rect, knob, &resp) {
+        if t.bevel {
+            let kr = Rect::from_center_size(knob, vec2(10.0, 16.0));
+            surface(ui, kr, t.card, true);
+        } else {
+            let kr = if t.pro { 6.0 } else { 7.0 };
+            painter.circle_filled(knob + vec2(0.0, 1.0), kr + 0.5, Color32::from_black_alpha(90));
+            painter.circle_filled(knob, kr, if t.pro { Color32::from_gray(236) } else { Color32::WHITE });
+            if t.pro {
+                painter.circle_stroke(knob, kr, Stroke::new(1.0, Color32::from_gray(40)));
+            }
+            if resp.hovered() || resp.dragged() {
+                painter.circle_stroke(knob, 9.5, Stroke::new(2.0, t.accent_soft));
+            }
         }
     }
     resp

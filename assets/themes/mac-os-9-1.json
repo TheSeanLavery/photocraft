@@ -97,7 +97,12 @@
       200
     ],
     "dockPreferredFill": 352,
-    "dockGroupGap": 2
+    "dockGroupGap": 2,
+    "sliderThumbSize": [
+      12,
+      14
+    ],
+    "sliderTrackHeight": 4
   },
   "typography": {
     "small": 10,

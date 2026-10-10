@@ -85,6 +85,67 @@ pub fn disabled_stipple(ui: &Ui, rect: Rect, background: Color32) {
     ui.painter().add(mesh);
 }
 
+/// Plain setting-slider groove; gradients still represent the edited image's colors.
+pub fn slider_track(ui: &Ui, track: Rect) -> bool {
+    let t = Tokens::get(ui.ctx());
+    if t.appearance == Appearance::Modern {
+        return false;
+    }
+    let groove = Rect::from_center_size(track.center(), vec2(track.width(), theme::LayoutTokens::get(ui.ctx()).slider_track_height));
+    if t.appearance == Appearance::System6 {
+        ui.painter().rect_filled(groove, 0.0, t.field);
+        ui.painter().rect_stroke(groove, 0.0, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
+        disabled_stipple(ui, groove, t.chrome);
+    } else {
+        bevel(ui, groove, t.field, false, t);
+    }
+    true
+}
+
+/// Period setting-slider indicator, independent of the modern slider painter.
+pub fn slider_indicator(ui: &Ui, rect: Rect, center: egui::Pos2, response: &Response) -> bool {
+    let t = Tokens::get(ui.ctx());
+    if t.appearance == Appearance::Modern {
+        return false;
+    }
+    let down = response.is_pointer_button_down_on();
+    let p = ui.painter();
+    let [width, height] = theme::LayoutTokens::get(ui.ctx()).slider_thumb_size;
+    let thumb = Rect::from_center_size(center, vec2(width, height));
+    match t.appearance {
+        Appearance::Windows98 => {
+            bevel(ui, thumb, t.chrome, !down, t);
+            p.line_segment([thumb.center_top() + vec2(0.0, 3.0), thumb.center_bottom() - vec2(0.0, 3.0)], Stroke::new(1.0, t.bevel_shadow));
+        }
+        Appearance::Platinum => {
+            let points =
+                vec![thumb.left_top(), thumb.right_top(), thumb.right_bottom() - vec2(0.0, 4.0), thumb.center_bottom(), thumb.left_bottom() - vec2(0.0, 4.0)];
+            p.add(Shape::convex_polygon(points, if down { t.accent } else { t.accent_soft }, Stroke::new(1.0, t.bevel_dark)));
+            p.line_segment([thumb.left_bottom() - vec2(-1.0, 5.0), thumb.left_top() + vec2(1.0, 1.0)], Stroke::new(1.0, t.bevel_highlight));
+            p.line_segment([thumb.left_top() + vec2(1.0, 1.0), thumb.right_top() + vec2(-1.0, 1.0)], Stroke::new(1.0, t.bevel_highlight));
+            p.line_segment([thumb.left_center() + vec2(3.0, -1.0), thumb.right_center() + vec2(-3.0, -1.0)], Stroke::new(1.0, t.bevel_shadow));
+        }
+        Appearance::System6 => {
+            let (fill, ink) = if down { (t.accent, t.accent_text) } else { (t.field, t.text) };
+            p.rect_filled(thumb, 0.0, fill);
+            p.rect_stroke(thumb, 0.0, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
+            for dx in [-1.0, 1.0] {
+                p.line_segment([thumb.center_top() + vec2(dx, 3.0), thumb.center_bottom() + vec2(dx, -3.0)], Stroke::new(1.0, ink));
+            }
+            disabled_stipple(ui, thumb, t.chrome);
+        }
+        Appearance::Modern => {}
+    }
+    if response.has_focus() && ui.is_enabled() {
+        if t.appearance == Appearance::Platinum {
+            p.rect_stroke(thumb.expand(2.0), 2.0, Stroke::new(1.0, t.accent_border), StrokeKind::Outside);
+        } else {
+            focus(ui, rect.shrink(1.0), t.text);
+        }
+    }
+    true
+}
+
 pub fn button(ui: &Ui, rect: Rect, response: &Response, primary: bool, galley: Arc<egui::Galley>) -> bool {
     let t = Tokens::get(ui.ctx());
     if t.appearance == Appearance::Modern {
@@ -466,6 +527,73 @@ mod tests {
         assert_ne!(profiles[1], profiles[2]);
         assert!(ThemePack::parse(r#"{"version":1,"id":"x","name":"X","base":"classic","appearance":"unknown"}"#).is_err());
         assert!(ThemePack::parse(r#"{"version":1,"id":"x","name":"X","base":"classic","typography":{"family":"unknown"}}"#).is_err());
+    }
+
+    #[test]
+    fn custom_sliders_have_distinct_historical_shapes_and_work_with_keyboard() {
+        use egui_kittest::{Harness, kittest::Queryable};
+        for id in IDS {
+            for scale in [1.0, 1.5, 2.0] {
+                let mut initialized = false;
+                let mut h = Harness::builder().with_size(vec2(300.0, 150.0)).with_pixels_per_point(scale).build_ui_state(
+                    |ui, state: &mut (f32, bool)| {
+                        if !initialized {
+                            crate::PhotocraftApp::setup_context(ui.ctx(), theme::ThemeKind::Classic);
+                            initialized = true;
+                            return;
+                        }
+                        ui.add_enabled_ui(state.1, |ui| {
+                            crate::widgets::slider(ui, &mut state.0, 0.0..=100.0, None);
+                        });
+                    },
+                    (50.0, true),
+                );
+                preset(id).unwrap().resolve().unwrap().apply(&h.ctx);
+                h.run_steps(4);
+                assert!(!h.output().shapes.iter().any(|s| matches!(s.shape, Shape::Circle(_))), "{id} {scale}");
+                h.get_by_label("Slider").click();
+                h.run_steps(3);
+                let before = h.state().0;
+                for key in [egui::Key::ArrowRight, egui::Key::End, egui::Key::Home] {
+                    h.event(egui::Event::Key { key, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+                    h.run_steps(3);
+                    h.event(egui::Event::Key { key, physical_key: None, pressed: false, repeat: false, modifiers: egui::Modifiers::NONE });
+                    h.run_steps(2);
+                    match key {
+                        egui::Key::ArrowRight => assert!(h.state().0 > before),
+                        egui::Key::End => assert_eq!(h.state().0, 100.0),
+                        egui::Key::Home => assert_eq!(h.state().0, 0.0),
+                        _ => {}
+                    }
+                }
+                h.state_mut().1 = false;
+                h.run_steps(3);
+                h.event(egui::Event::Key { key: egui::Key::End, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+                h.run_steps(3);
+                assert_eq!(h.state().0, 0.0, "disabled slider changed");
+            }
+        }
+    }
+
+    #[test]
+    fn custom_slider_invalid_and_fixed_ranges_keep_finite_geometry() {
+        use egui_kittest::Harness;
+        for (lo, hi, value) in [(0.0, 0.0, 0.0), (10.0, 0.0, 5.0), (f32::NAN, 1.0, 0.0), (0.0, f32::INFINITY, 0.0), (0.0, 100.0, f32::NAN)] {
+            let mut h = Harness::builder().with_size(vec2(300.0, 150.0)).build_ui_state(
+                |ui, value| {
+                    crate::widgets::slider(ui, value, lo..=hi, None);
+                },
+                value,
+            );
+            h.run_steps(3);
+            for shape in &h.output().shapes {
+                if matches!(shape.shape, Shape::Noop) {
+                    continue;
+                }
+                let bounds = shape.shape.visual_bounding_rect();
+                assert!(bounds.min.x.is_finite() && bounds.max.x.is_finite(), "invalid slider geometry: {bounds:?}");
+            }
+        }
     }
 
     #[test]

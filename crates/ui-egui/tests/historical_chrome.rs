@@ -270,3 +270,36 @@ fn long_gradient_properties_scroll_to_reset_without_leaving_the_viewport() {
         assert_eq!(params["stops"].as_array().unwrap().len(), 2);
     }
 }
+
+#[test]
+fn historical_slider_keyboard_edits_dispatch_to_the_adjustment_layer() {
+    let mut h = Harness::builder().with_size(egui::vec2(1280.0, 900.0)).build_eframe(|cc| {
+        PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+        let mut app = PhotocraftApp::new(Session::new(), Services::default());
+        app.run("file.new", json!({"width":64,"height":48})).unwrap();
+        app.run("layer.newAdjustmentLayer.brightnessContrast", json!({})).unwrap();
+        app.ui.panels.properties = true;
+        app
+    });
+    h.run_steps(4);
+    let ctx = h.ctx.clone();
+    let (request, _) = ControlRequest::new("ui.theme.select", json!({"id":"builtin.system-6"}));
+    let Outcome::Done(result) = handle(h.state_mut(), &ctx, &request) else { panic!("did not complete") };
+    assert_eq!(result.get("ok"), Some(&json!(true)));
+    h.run_steps(6);
+    let card = ctx.memory(|m| m.area_rect(egui::Id::new("properties-card"))).unwrap();
+    let label = h.get_by_label("Brightness").rect();
+    let layout = LayoutTokens::get(&ctx);
+    let at = egui::pos2(card.center().x, label.center().y + layout.field_height / 2.0 + layout.row_gap + 9.0);
+    h.event(egui::Event::PointerMoved(at));
+    h.event(egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: true, modifiers: egui::Modifiers::NONE });
+    h.run_steps(2);
+    h.event(egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: false, modifiers: egui::Modifiers::NONE });
+    h.run_steps(2);
+    h.event(egui::Event::Key { key: egui::Key::End, physical_key: None, pressed: true, repeat: false, modifiers: egui::Modifiers::NONE });
+    h.run_steps(4);
+    let state = h.state().session.active().unwrap();
+    let layer = state.doc.layer(state.active_layer.unwrap()).unwrap();
+    let photocraft_doc::LayerContent::Adjustment(adj) = &layer.content else { panic!("lost adjustment") };
+    assert_eq!(photocraft_engine::adjust_params::to_params(adj)["brightness"], json!(150.0));
+}
