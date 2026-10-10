@@ -85,7 +85,7 @@ reproduction; dedicated historical control rendering is still being built.
   accepts 80–600 points and supplies the initial Color group height without overwriting
   user-resized heights or saving preview dimensions.
 - `typography.family`: optional registered UI family: `Inter`, `JetBrains Mono`,
-  `Microsoft Sans Serif`, `Geneva`, `Chicago`, `Charcoal`, or `Chicago Kare`. Native builds read these faces
+  `Microsoft Sans Serif`, `Geneva`, `Chicago`, `Charcoal`, `Chicago Kare`, or `W95FA`. Native builds read these faces
   from known installed-font locations, with bounded reads and parsing; no font files enter
   this repository. The built-in Inter stack remains the fallback. Missing Chicago uses Chicago Kare when configured, then installed Geneva, then Inter.
   Missing Charcoal uses installed Geneva when available, then Inter. The manager reports substitutions;
@@ -93,7 +93,9 @@ reproduction; dedicated historical control rendering is still being built.
   fallback stack when historical faces are unavailable. Current family registrations are cached
   for the app session; restart after installing an additional face.
 - `typography.caption`: app-drawn historical app, dialog and floating-window title size,
-  6–64 points (default 12). Caption height grows only when needed to contain the text.
+  6–64 points (default 12; Windows 98 SE specifies 11). Caption height grows only when needed to contain the text.
+- `typography.captionFamily`: optional registered family for captions alone; omitted values inherit `family`. It has the same family allowlist and reports substitutions independently.
+- `typography.captionBold`: optional caption weight. Windows defaults to bold; Mac profiles use their font's native weight. Inter uses its actual semibold face. Regular historical faces use a one-point horizontal overstrike with added intercharacter spacing; naturally heavy Chicago faces are not doubled. This is a clean-room rendering treatment, not an embedded copy of the original raster font.
 - `typography`: egui text-style sizes, 6–64 points; `button`, `monospace` and `body` also size
   shared custom button text, numeric fields and pill tabs. Current named font families and other
   explicitly sized custom widgets retain their existing fonts and sizes.
@@ -345,8 +347,8 @@ are shared. About PhotoCraft exposes the complete embedded notices under
 “Historical UI font licenses.” Builds without this input omit that section.
 
 The browser artifact must still pass the 24 MiB packaging limit after Trunk optimization;
-the size of the font files alone does not prove that limit. Separate historical font roles
-and weights remain follow-up work.
+the size of the font files alone does not prove that limit. Independent caption roles are
+described below; the remaining font roles and weights stay under historical acceptance.
 
 
 The Windows sizing reference is the archived [Microsoft font guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-fonts),
@@ -355,7 +357,8 @@ on Windows 95/98. These printer points are not interchangeable with egui logical
 W95FA is a scalable recreation as described by [its publisher](https://fontsarena.com/w95fa-by-alina-sava/).
 The selected correction comes from the actual recreation's outline grid and offscreen
 comparisons at 100/150/200 percent, with the original [Windows 98 SE Display Properties](https://guidebookgallery.org/pics/gui/settings/appearance/win98se-1-1.png)
-used as a visual reference. Captions and bold roles still need separate treatment.
+used as a visual reference. Captions now have the independent sizing/weight treatment
+described below; bold roles outside captions remain under review.
 
 
 The ignored `windows_recreation_alias_renders_compact_chrome_at_three_scales` UI test
@@ -419,3 +422,33 @@ geometry. Its dock-spacing regression also measures two laid-out controls at aut
 2/7-point gaps across all profiles/scales. The full historical goal remains active:
 font roles/weights, large custom type, specialized/localized states, native chooser UI,
 and final browser roundtrips/download verification remain open.
+
+
+### Independent caption typography
+
+`captionFamily`, `caption`, and `captionBold` are runtime settings independent of body,
+menu and numeric text. Preview, Cancel and theme switching restore all three with the
+rest of the pack. `ui.inspect.themeCaptionFont` reports requested/actual family, bold
+intent, and whether the weight is synthesized. Theme Manager reports a separate caption
+substitution when it differs from the body family. Modern themes clear the caption role.
+
+Windows 98 SE now uses nominal 11-point caption text (the W95FA compatibility alias
+calibrates this to 12.5), retaining its 18-point bar. The regular-face bold treatment adds
+one logical point of stroke and character spacing, with room reserved before elision.
+Microsoft describes GDI's raster-font bold synthesis in [CreateFont](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-createfonta);
+this implementation is a visual adaptation, not a claim of identical GDI rasterization.
+[Microsoft's earlier Windows font guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-fonts)
+specifies 8-point MS Shell Dlg; printer points are not directly egui logical points.
+The existing [Windows appearance reference](https://guidebookgallery.org/pics/gui/settings/appearance/win98se-1-1.png)
+provides the visual comparison. These settings do not solve missing Charcoal or bold
+roles outside captions; those remain in the historical acceptance work.
+
+
+Caption acceptance evidence lives in `plan/evidence/caption-roles/`: nine default
+full-app renders, 100/150/200% before/after strips, and eighteen custom full-app renders
+with Inter/Chicago/W95FA captions at 24/64 points. The 64-point contact sheets show the
+caption growing while body controls retain their sizes. `caption-roles-w95fa/` captures
+the real bundled W95FA through the Microsoft compatibility alias on a native harness.
+These are PhotoCraft renders, not original operating-system screenshots or a fresh
+browser release verification. Tests cover independent roles, provider substitution,
+weight/spacing/elision, Preview/Cancel, Apply/export, and modern-theme reset.

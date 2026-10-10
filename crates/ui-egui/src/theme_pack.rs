@@ -86,6 +86,8 @@ pub struct Typography {
     pub heading: Option<f32>,
     pub monospace: Option<f32>,
     pub caption: Option<f32>,
+    pub caption_family: Option<String>,
+    pub caption_bold: Option<bool>,
 }
 
 /// Validated, resolved style. Creating it does not alter the current UI.
@@ -234,10 +236,10 @@ impl ThemePack {
         }
         validate_pair("preferenceSpacing", g.preference_spacing, 0.0, 32.0)?;
         let ty = &self.typography;
-        if let Some(family) = ty.family.as_deref()
-            && !crate::theme_fonts::FAMILIES.contains(&family)
-        {
-            return Err(format!("unsupported UI font family `{family}`"));
+        for family in [ty.family.as_deref(), ty.caption_family.as_deref()].into_iter().flatten() {
+            if !crate::theme_fonts::FAMILIES.contains(&family) {
+                return Err(format!("unsupported UI font family `{family}`"));
+            }
         }
         for (name, value) in
             [("small", ty.small), ("body", ty.body), ("button", ty.button), ("heading", ty.heading), ("monospace", ty.monospace), ("caption", ty.caption)]
@@ -335,6 +337,7 @@ impl ResolvedTheme {
         }
         layout.apply(ctx);
         crate::theme_fonts::set(ctx, self.typography.family.as_deref());
+        crate::theme_fonts::set_caption(ctx, self.typography.caption_family.as_deref(), self.typography.caption_bold);
         // Read family resolution before acquiring the global style lock.
         let font_scale = self
             .typography

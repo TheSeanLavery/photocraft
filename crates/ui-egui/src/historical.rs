@@ -371,10 +371,15 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut Ui) -> bool {
         } else {
             stripes(ui, r, t);
         }
-        let font = crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).caption_font_size, true);
         let text = app.session.active().map_or_else(|| "PhotoCraft".into(), |s| format!("{} — PhotoCraft", s.doc.name));
         let max = (r.width() - 80.0 - native_inset).max(1.0);
-        let galley = crate::tab_strip::elided(ui, &text, font, if t.appearance == Appearance::Windows98 { t.accent_text } else { t.text }, max);
+        let galley = crate::theme_fonts::caption_galley(
+            ui,
+            &text,
+            theme::LayoutTokens::get(ui.ctx()).caption_font_size,
+            if t.appearance == Appearance::Windows98 { t.accent_text } else { t.text },
+            max,
+        );
         let at = if t.appearance == Appearance::Windows98 {
             pos2(r.left() + native_inset + 6.0, r.center().y - galley.size().y / 2.0)
         } else {
@@ -383,7 +388,7 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut Ui) -> bool {
         if t.appearance != Appearance::Windows98 {
             p.rect_filled(Rect::from_min_size(at - vec2(6.0, 2.0), galley.size() + vec2(12.0, 4.0)), 0.0, t.chrome);
         }
-        p.galley(at, galley, if t.appearance == Appearance::Windows98 { t.accent_text } else { t.text });
+        crate::theme_fonts::paint_caption(ui, at, galley, if t.appearance == Appearance::Windows98 { t.accent_text } else { t.text });
         if native_inset > 0.0 && t.appearance != Appearance::Windows98 {
             return;
         }
@@ -431,8 +436,7 @@ pub fn window_caption(ui: &mut Ui, title: &str) -> Option<(Response, bool)> {
 // Real font metrics matter for installed faces and unusually large user type sizes.
 fn caption_height(ui: &Ui) -> f32 {
     let layout = theme::LayoutTokens::get(ui.ctx());
-    let font = crate::theme_fonts::control(ui.ctx(), layout.caption_font_size, true);
-    let text_height = crate::tab_strip::elided(ui, "Hg", font, Tokens::get(ui.ctx()).text, f32::INFINITY).size().y;
+    let text_height = crate::theme_fonts::caption_galley(ui, "Hg", layout.caption_font_size, Tokens::get(ui.ctx()).text, f32::INFINITY).size().y;
     layout.title_bar_height.max(text_height + 2.0)
 }
 
@@ -456,13 +460,7 @@ fn caption(ui: &mut Ui, title: &str, closable: bool) -> Option<(Response, bool)>
     }
     let color = if t.appearance == Appearance::Windows98 { t.accent_text } else { t.text };
     let reserved = if closable { 42.0 } else { 12.0 };
-    let galley = crate::tab_strip::elided(
-        ui,
-        title,
-        crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).caption_font_size, true),
-        color,
-        (rect.width() - reserved).max(1.0),
-    );
+    let galley = crate::theme_fonts::caption_galley(ui, title, theme::LayoutTokens::get(ui.ctx()).caption_font_size, color, (rect.width() - reserved).max(1.0));
     let at = if t.appearance == Appearance::Windows98 {
         pos2(rect.left() + 4.0, rect.center().y - galley.size().y / 2.0)
     } else {
@@ -471,7 +469,7 @@ fn caption(ui: &mut Ui, title: &str, closable: bool) -> Option<(Response, bool)>
     if t.appearance != Appearance::Windows98 {
         ui.painter().rect_filled(Rect::from_min_size(at - vec2(4.0, 1.0), galley.size() + vec2(8.0, 2.0)), 0.0, t.chrome);
     }
-    ui.painter().galley(at, galley, color);
+    crate::theme_fonts::paint_caption(ui, at, galley, color);
     let closed = if closable {
         let close = Rect::from_center_size(
             pos2(if t.appearance == Appearance::Windows98 { rect.right() - 11.0 } else { rect.left() + 11.0 }, rect.center().y),
@@ -609,7 +607,7 @@ mod tests {
                         return;
                     }
                     if let Some((response, _)) = window_caption(ui, "PhotoCraft caption") {
-                        let font = crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).caption_font_size, true);
+                        let font = crate::theme_fonts::caption(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).caption_font_size);
                         let galley = crate::tab_strip::elided(ui, "PhotoCraft caption", font, Tokens::get(ui.ctx()).text, ui.available_width());
                         *measured = (response.rect.height(), galley.size().y);
                     }

@@ -235,6 +235,15 @@ pub(crate) fn show(app: &mut PhotocraftApp, ctx: &Context) {
         {
             ui.label(crate::i18n::fmt(tl!("Font {requested} is unavailable; using {actual}."), &[("requested", &requested), ("actual", &actual)]));
         }
+        if let Some((requested, actual, _, _)) = crate::theme_fonts::caption_status(ctx)
+            && requested != actual
+            && crate::theme_fonts::status(ctx).is_none_or(|(body, _)| body != requested)
+        {
+            ui.horizontal(|ui| {
+                ui.label(tl!("Caption font"));
+                ui.label(crate::i18n::fmt(tl!("Font {requested} is unavailable; using {actual}."), &[("requested", &requested), ("actual", &actual)]));
+            });
+        }
         if manager.previewing {
             ui.label(tl!("Preview is active. Cancel restores your saved theme."));
         }
@@ -309,6 +318,37 @@ mod tests {
         let mut pack = draft(app).unwrap();
         pack.colors.insert("card".into(), "#aabbcc".into());
         definition(&pack).unwrap()
+    }
+
+    #[test]
+    fn caption_role_preview_cancel_and_apply_preserve_independent_body_font() {
+        let ctx = Context::default();
+        crate::PhotocraftApp::setup_context(&ctx, ThemeKind::Classic);
+        let mut app = PhotocraftApp::new(Session::new(), Services::default());
+        themes::command(&mut app, &ctx, "select", &json!({"id":"builtin.windows-98-se"})).unwrap();
+        let original = crate::control::inspect(&app, &ctx);
+        command(&mut app, &ctx, "manager", &Value::Null).unwrap();
+        let mut pack = draft(&app).unwrap();
+        pack.id = "custom.caption-role".into();
+        pack.typography.caption_family = Some("Inter".into());
+        pack.typography.caption_bold = Some(false);
+        pack.typography.caption = Some(24.0);
+        let edit = definition(&pack).unwrap();
+        command(&mut app, &ctx, "draft", &json!({"json":edit})).unwrap();
+        command(&mut app, &ctx, "preview", &Value::Null).unwrap();
+        let preview = crate::control::inspect(&app, &ctx);
+        assert_eq!(preview["themeFont"], original["themeFont"]);
+        assert_eq!(preview["themeCaptionFont"], json!({"requested":"Inter","actual":"Inter","bold":false,"synthesized":false}));
+        assert_eq!(crate::theme::LayoutTokens::get(&ctx).caption_font_size, 24.0);
+        command(&mut app, &ctx, "cancel", &Value::Null).unwrap();
+        assert_eq!(crate::control::inspect(&app, &ctx)["themeCaptionFont"], original["themeCaptionFont"]);
+        assert_eq!(crate::theme::LayoutTokens::get(&ctx).caption_font_size, 11.0);
+        command(&mut app, &ctx, "manager", &Value::Null).unwrap();
+        command(&mut app, &ctx, "draft", &json!({"json":edit})).unwrap();
+        command(&mut app, &ctx, "apply", &Value::Null).unwrap();
+        assert_eq!(app.session.prefs().interface.theme_id, "custom.caption-role");
+        let exported = themes::command(&mut app, &ctx, "export", &json!({"id":"custom.caption-role"})).unwrap();
+        assert_eq!(ThemePack::parse(exported["json"].as_str().unwrap()).unwrap(), pack);
     }
 
     #[test]

@@ -112,6 +112,7 @@
     "button": 12,
     "heading": 12,
     "monospace": 12,
-    "family": "Chicago"
+    "family": "Chicago",
+    "captionBold": false
   }
 }

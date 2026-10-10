@@ -21,7 +21,8 @@ with command IDs `window.theme.<action>` and the same parameters:
 | `ui.theme.duplicate` | none | Create a custom draft from the current editor definition |
 | `ui.theme.reset` | none | Discard editor changes and restore the catalog definition |
 
-`ui.inspect` includes `themeFont` (requested/actual family when configured), `themeId` for the actual resolved theme and the existing `theme` built-in
+`ui.inspect` includes `themeFont` (requested/actual family when configured), `themeCaptionFont`
+(requested/actual caption family, `bold` intent and `synthesized` weight; null for modern themes), `themeId` for the actual resolved theme and the existing `theme` built-in
 base. Preferences expose the requested ID at `interface.themeId`, with `interface.theme` as
 the fallback. Unknown IDs, invalid JSON/schema/values, oversized input, duplicate IDs without
 `replace:true`, and persistence errors return structured errors without replacing the working

@@ -16,6 +16,12 @@ struct Families {
     resolved: Arc<Vec<(String, String)>>,
 }
 
+#[derive(Clone, Default, Debug)]
+struct Caption {
+    family: Option<String>,
+    bold: Option<bool>,
+}
+
 pub(crate) fn install(ctx: &Context, fonts: &mut FontDefinitions) {
     let mut resolved: Vec<(String, String)> = vec![("Inter".into(), "Inter".into()), ("JetBrains Mono".into(), "JetBrainsMono".into())];
     for family in ["Microsoft Sans Serif", "Geneva", "Chicago Kare", "W95FA"] {
@@ -204,12 +210,88 @@ pub fn status(ctx: &Context) -> Option<(String, String)> {
 pub(crate) fn set(ctx: &Context, family: Option<&str>) {
     ctx.data_mut(|d| {
         let id = egui::Id::new("theme-font-family");
+        d.remove::<Caption>(egui::Id::new("theme-caption-font"));
         if let Some(name) = family {
             d.insert_temp(id, name.to_string());
         } else {
             d.remove::<String>(id);
         }
     });
+}
+
+pub(crate) fn set_caption(ctx: &Context, family: Option<&str>, bold: Option<bool>) {
+    ctx.data_mut(|d| d.insert_temp(egui::Id::new("theme-caption-font"), Caption { family: family.map(str::to_owned), bold }));
+}
+
+fn caption_role(ctx: &Context) -> (Option<String>, bool) {
+    let role = ctx.data(|d| d.get_temp::<Caption>(egui::Id::new("theme-caption-font"))).unwrap_or_default();
+    let family = role.family.or_else(|| ctx.data(|d| d.get_temp::<String>(egui::Id::new("theme-font-family"))));
+    let bold = role.bold.unwrap_or(crate::theme::Tokens::get(ctx).appearance == crate::theme::Appearance::Windows98);
+    (family, bold)
+}
+
+pub(crate) fn caption(ctx: &Context, size: f32) -> FontId {
+    let (family, bold) = caption_role(ctx);
+    if family.as_deref().is_none_or(|name| caption_actual(ctx, name) == "Inter") {
+        return if bold { crate::theme::semibold(size) } else { crate::theme::medium(size) };
+    }
+    match family.as_deref() {
+        Some("Inter") | None => {
+            if bold {
+                crate::theme::semibold(size)
+            } else {
+                crate::theme::medium(size)
+            }
+        }
+        Some(name) => calibrated(ctx, FontId::new(size, FontFamily::Name(name.to_owned().into()))),
+    }
+}
+
+/// Classic raster Windows captions embolden the regular face horizontally. Keep
+/// the naturally heavy Chicago faces intact and use Inter's real semibold face.
+pub(crate) fn caption_embolden(ctx: &Context) -> bool {
+    let (family, bold) = caption_role(ctx);
+    bold && family.is_some_and(|name| !matches!(caption_actual(ctx, &name).as_str(), "Inter" | "Chicago" | "Chicago Kare"))
+}
+
+fn caption_actual(ctx: &Context, requested: &str) -> String {
+    ctx.data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families")))
+        .and_then(|families| families.resolved.iter().find(|(name, _)| name == requested).map(|(_, actual)| actual.clone()))
+        .unwrap_or_else(|| "Inter".into())
+}
+
+pub(crate) fn caption_status(ctx: &Context) -> Option<(String, String, bool, bool)> {
+    if crate::theme::Tokens::get(ctx).appearance == crate::theme::Appearance::Modern {
+        return None;
+    }
+    let (family, bold) = caption_role(ctx);
+    let requested = family.unwrap_or_else(|| "Inter".into());
+    Some((requested.clone(), caption_actual(ctx, &requested), bold, caption_embolden(ctx)))
+}
+
+pub(crate) fn caption_galley(ui: &egui::Ui, text: &str, size: f32, color: egui::Color32, max_width: f32) -> Arc<egui::Galley> {
+    let font = caption(ui.ctx(), size);
+    let line_height = chrome_line_height(ui.ctx(), &font);
+    let embolden = caption_embolden(ui.ctx());
+    let mut job = egui::text::LayoutJob::simple_singleline(text.to_owned(), font, color);
+    for section in &mut job.sections {
+        section.format.line_height = line_height;
+        section.format.extra_letter_spacing = if embolden { 1.0 } else { 0.0 };
+    }
+    job.wrap = egui::text::TextWrapping {
+        max_width: (max_width - if embolden { 1.0 } else { 0.0 }).max(1.0),
+        max_rows: 1,
+        break_anywhere: true,
+        overflow_character: Some('…'),
+    };
+    ui.painter().layout_job(job)
+}
+
+pub(crate) fn paint_caption(ui: &egui::Ui, at: egui::Pos2, galley: Arc<egui::Galley>, color: egui::Color32) {
+    if caption_embolden(ui.ctx()) {
+        ui.painter().galley(at + egui::vec2(1.0, 0.0), galley.clone(), color);
+    }
+    ui.painter().galley(at, galley, color);
 }
 
 /// Chicago Kare's 64-unit grid in a 1024-unit em needs 16 points for one
@@ -264,6 +346,97 @@ pub(crate) fn number(ctx: &Context, size: f32) -> FontId {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn caption_roles_round_trip_remain_independent_and_reset() {
+        let ctx = Context::default();
+        crate::PhotocraftApp::setup_context(&ctx, crate::theme::ThemeKind::Classic);
+        let mut pack = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap();
+        pack.typography.caption_family = Some("Inter".into());
+        pack.typography.caption_bold = Some(true);
+        let restored = crate::theme_pack::ThemePack::parse(&serde_json::to_string(&pack).unwrap()).unwrap();
+        assert_eq!(restored, pack);
+        restored.resolve().unwrap().apply(&ctx);
+        let body = control(&ctx, 11.0, false);
+        assert_eq!(body.family, FontFamily::Name("Microsoft Sans Serif".into()));
+        assert_eq!(caption(&ctx, 11.0), crate::theme::semibold(11.0));
+        assert!(!caption_embolden(&ctx));
+        assert_eq!(caption_status(&ctx), Some(("Inter".into(), "Inter".into(), true, false)));
+        pack.typography.caption_bold = Some(false);
+        pack.resolve().unwrap().apply(&ctx);
+        assert_eq!(caption(&ctx, 11.0), crate::theme::medium(11.0));
+        assert_eq!(control(&ctx, 11.0, false), body);
+        pack.typography.caption_family = Some("../../arbitrary-font.ttf".into());
+        assert!(pack.resolve().is_err());
+        crate::theme::apply(&ctx, crate::theme::ThemeKind::Classic);
+        assert!(caption_status(&ctx).is_none());
+        assert_eq!(caption(&ctx, 12.0), crate::theme::medium(12.0));
+    }
+
+    #[test]
+    fn caption_weight_tracks_the_resolved_face_including_fallbacks() {
+        let ctx = Context::default();
+        crate::PhotocraftApp::setup_context(&ctx, crate::theme::ThemeKind::Classic);
+        let pack = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap();
+        pack.resolve().unwrap().apply(&ctx);
+        // Provider resolution is explicit, so unavailable faces use genuine
+        // Inter semibold; recreated Chicago must not acquire a second stroke.
+        for (actual, synthesized) in [("W95FA", true), ("Microsoft Sans Serif", true), ("Chicago Kare", false), ("Inter", false)] {
+            ctx.data_mut(|d| {
+                d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(vec![("Microsoft Sans Serif".into(), actual.into())]) })
+            });
+            assert_eq!(caption_embolden(&ctx), synthesized);
+            assert_eq!(caption_status(&ctx), Some(("Microsoft Sans Serif".into(), actual.into(), true, synthesized)));
+            if actual == "Inter" {
+                assert_eq!(caption(&ctx, 11.0), crate::theme::semibold(11.0));
+            }
+        }
+    }
+
+    #[test]
+    fn caption_painting_preserves_letter_spacing_and_bounds_at_all_scales() {
+        for scale in [1.0, 1.5, 2.0] {
+            let mut initialized = false;
+            let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(300.0, 180.0)).with_pixels_per_point(scale).build_ui_state(
+                |ui, measured| {
+                    if !initialized {
+                        crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                        crate::historical::preset("builtin.windows-98-se").unwrap().resolve().unwrap().apply(ui.ctx());
+                        initialized = true;
+                        return;
+                    }
+                    let galley = caption_galley(ui, "PhotoCraft caption with a long document name", 11.0, egui::Color32::WHITE, 100.0);
+                    *measured = (galley.size().x, galley.rows.len(), galley.job.sections[0].format.extra_letter_spacing);
+                    paint_caption(ui, egui::pos2(10.0, 20.0), galley, egui::Color32::WHITE);
+                },
+                (0.0_f32, 0_usize, 0.0_f32),
+            );
+            h.run_steps(4);
+            for bold in [false, true] {
+                set_caption(&h.ctx, None, Some(bold));
+                h.run_steps(4);
+                let synthetic = caption_embolden(&h.ctx);
+                let (width, rows, spacing) = *h.state();
+                assert_eq!(rows, 1);
+                assert!(width + if synthetic { 1.0 } else { 0.0 } <= 100.01);
+                assert_eq!(spacing, if synthetic { 1.0 } else { 0.0 });
+                let texts: Vec<_> = h
+                    .output()
+                    .shapes
+                    .iter()
+                    .filter_map(|s| match &s.shape {
+                        egui::Shape::Text(text) => Some(text),
+                        _ => None,
+                    })
+                    .collect();
+                assert_eq!(texts.len(), if synthetic { 2 } else { 1 });
+                if synthetic {
+                    assert_eq!((texts[0].pos - texts[1].pos).x.abs(), 1.0);
+                    assert_eq!(texts[0].pos.y, texts[1].pos.y);
+                }
+            }
+        }
+    }
 
     #[test]
     #[ignore = "requires PHOTOCRAFT_THEME_FONTS_BUILD_DIR at build time"]
