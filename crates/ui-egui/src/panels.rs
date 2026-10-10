@@ -2059,6 +2059,10 @@ fn channels(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
 }
 
 fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
+    if app.session.collaboration.room.is_some() && app.session.active().map(|state| state.doc.id) == app.session.collaboration.document_id {
+        crate::collaboration_ui::history(app, ui);
+        return;
+    }
     let t = Tokens::get(ui.ctx());
     let Some(st) = app.session.active() else {
         empty(ui, tl!("No document"));

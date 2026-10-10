@@ -600,6 +600,56 @@ impl Session {
         if let Some(gate) = self.authorize {
             gate(id, &params)?;
         }
+        let room_document = self.collaboration.room.is_some() && self.active().is_some_and(|st| Some(st.doc.id) == self.collaboration.document_id);
+        if room_document && self.active().is_some_and(|st| crate::float_cmds::floating(st).is_some()) {
+            if matches!(id, "edit.undo" | "edit.stepBackward") {
+                if let Some(result) = crate::float_cmds::before_command(self, id)? {
+                    return Ok(Started::Done(result));
+                }
+            } else if !crate::float_cmds::keeps_floating(id) {
+                self.dispatch("select.drop", Value::Null, false)?;
+            }
+        }
+        if room_document && (id == "edit.undo" || id == "edit.redo" || id == "edit.toggleLastState") {
+            let redo = id == "edit.redo" || (id == "edit.toggleLastState" && self.collaboration.own_history().last().is_some_and(|entry| !entry.1));
+            self.collaboration_submit(if redo { photocraft_collab::Operation::Redo } else { photocraft_collab::Operation::Undo })?;
+            return Ok(Started::Done(Value::Null));
+        }
+        if room_document && matches!(id, "edit.purge.undo" | "edit.purge.histories" | "edit.purge.all") {
+            (spec.enabled)(self).map_err(|why| EngineError::Disabled(id.into(), why))?;
+            let result = (spec.run)(self, &params)?;
+            self.collaboration_submit(photocraft_collab::Operation::PurgeHistory)?;
+            return Ok(Started::Done(result));
+        }
+        let mut params = params;
+        if room_document
+            && id == "layer.setProps"
+            && let Some(visible) = params.get("visible").and_then(Value::as_bool)
+        {
+            let layer = params
+                .get("layer")
+                .and_then(Value::as_u64)
+                .map(photocraft_doc::LayerId)
+                .or_else(|| self.active().and_then(|st| st.active_layer))
+                .ok_or_else(|| EngineError::Other("no layer selected".into()))?;
+            let mode = self.collaboration.room.as_ref().map(|room| room.visibility_mode).unwrap_or_default();
+            self.collaboration_submit(photocraft_collab::Operation::Visibility { mode, layers: std::collections::BTreeMap::from([(layer, visible)]) })?;
+            if let Value::Object(object) = &mut params {
+                object.remove("visible");
+                if object.keys().all(|key| key == "layer") {
+                    return Ok(Started::Done(Value::Null));
+                }
+            }
+        }
+        let private_mask = crate::channel_cmds::inject_target(self, id, params.clone()).get("target").and_then(Value::as_str) == Some("quickMask");
+        if !private_mask
+            && (room_document || (self.collaboration.room.is_some() && id == "layer.smartObjects.saveContents"))
+            && crate::collab_resources::command_mode(id, &params) != crate::collab_resources::CommandMode::Local
+        {
+            let resolved_params = crate::channel_cmds::inject_target(self, id, crate::commands::inject_kind(id, params));
+            return self.collaboration_execute(id, resolved_params).map(Started::Done);
+        }
+
         // A floating selection drops before any other command (Undo puts it back instead).
         if let Some(v) = crate::float_cmds::before_command(self, id)? {
             return Ok(Started::Done(v));
@@ -646,7 +696,7 @@ impl Session {
     }
 
     /// Bookkeeping after a command (or a job's apply) succeeded.
-    fn after_command(&mut self, id: &str, params: Value, journal: bool) {
+    pub(crate) fn after_command(&mut self, id: &str, params: Value, journal: bool) {
         // A layer-mask view ends when another layer becomes active (#196).
         if let Some(st) = self.active_mut() {
             crate::mask_view_cmds::fix(st);

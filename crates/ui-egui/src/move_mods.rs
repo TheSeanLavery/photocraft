@@ -95,6 +95,9 @@ fn duplicate(app: &mut PhotocraftApp) -> Option<usize> {
 
 /// Merges every history step after `from` into one "Duplicate + Move" step.
 fn fold_history(app: &mut PhotocraftApp, from: usize) {
+    if app.session.collaboration.room.is_some() && app.session.active().map(|state| state.doc.id) == app.session.collaboration.document_id {
+        return;
+    }
     let Some(st) = app.session.active_mut() else { return };
     while st.history.past_len() > from + 1 {
         if !st.history.purge_last() {
@@ -236,6 +239,15 @@ mod tests {
         assert!(near(v, [0.0, 40.0]), "{v:?}");
         // And back.
         assert!(near(constrain([30.0, 20.0], Some(v), 4), [30.0, 0.0]));
+    }
+
+    #[test]
+    fn collaboration_does_not_purge_canonical_history_when_folding_duplicate_moves() {
+        let mut app = app_with_layer();
+        let before = app.session.active().unwrap().history.past_len();
+        app.run("collab.room.create", json!({"code":"MOVE01","peer":"alice"})).unwrap();
+        fold_history(&mut app, 0);
+        assert_eq!(app.session.active().unwrap().history.past_len(), before);
     }
 
     fn app_with_layer() -> PhotocraftApp {

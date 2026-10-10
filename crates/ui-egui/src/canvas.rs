@@ -173,6 +173,8 @@ pub(crate) struct LiveStroke {
     damage: Vec<DRect>,
     /// Drag points rendered so far.
     fed: usize,
+    collaboration_id: Option<String>,
+    collaboration_sequence: u32,
 }
 
 impl LiveStroke {
@@ -254,15 +256,55 @@ fn brush_tip_centre(tool: Tool, option: bool, show_crosshair: bool, radius: f32)
     show_crosshair || radius > 6.0 || tool == Tool::BackgroundEraser
 }
 
-fn begin_live_stroke(app: &PhotocraftApp) -> Option<LiveStroke> {
+fn begin_live_stroke(app: &mut PhotocraftApp) -> Option<LiveStroke> {
     static STROKES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let st = app.session.active()?;
     let d = app.drag.as_ref()?;
-    let p = stroke_params(app, d.tool, d.erase, &app.stylus.stroke_points(&d.points));
+    let command = stroke_command(d.tool);
+    let fed = d.points.len();
+    let mut p = stroke_params(app, d.tool, d.erase, &app.stylus.stroke_points(&d.points));
     let stroke = photocraft_engine::brush_cmds::LiveStroke::begin_with(&app.session, stroke_command(d.tool), &p).ok()?;
     let n = STROKES.fetch_add(1, std::sync::atomic::Ordering::Relaxed) & 0xff_ffff;
     let damage = vec![stroke.bounds()];
-    Some(LiveStroke { stroke, doc: st.doc.id, revision: st.revision, key: (1 << 44) | (n << 20), damage, fed: d.points.len() })
+    let (doc, revision) = (st.doc.id, st.revision);
+    p["seed"] = json!(stroke.seed);
+    // Stream ordinary layer pixels; masks, individual channels and quick mask keep their
+    // native command routing and are replicated through the generic command pathway.
+    let stream_pixels = p.get("target") == Some(&json!("pixels"))
+        && st.doc.quick_mask.is_none()
+        && matches!(st.channel_view.target, photocraft_engine::channel_cmds::ChannelTarget::Composite)
+        && app.session.collaboration.document_id == Some(st.doc.id)
+        && st.doc.selection.as_ref().is_none_or(|selection| {
+            let bounds = selection.content_bounds();
+            i64::from(bounds.width()).saturating_mul(i64::from(bounds.height())) <= 1_048_576
+        })
+        && photocraft_engine::brush_cmds::collaboration_brush(&app.session, &p, command)
+            .is_ok_and(|brush| brush.size <= 1024.0 && (!brush.dual_brush.enabled || brush.dual_brush.size <= 1024.0));
+    let collaboration_id = app
+        .session
+        .collaboration
+        .room
+        .as_ref()
+        .filter(|_| stream_pixels)
+        .map(|room| format!("{}-stroke-{}-{}", room.local_peer, app.session.collaboration.next_nonce, n));
+    let mut collaboration_sequence: u32 = 0;
+    if let Some(id) = &collaboration_id {
+        if let Err(error) = app.run("collab.stroke.begin", json!({"id":id,"command":command,"params":p})) {
+            app.ui.collaboration.error = error;
+            return None;
+        }
+        let points = app.drag.as_ref().map(|d| app.stylus.stroke_points(&d.points)).unwrap_or_default();
+        let points = wire_points(&points);
+        for chunk in points.chunks(256) {
+            if let Err(error) = app.run("collab.submit", json!({"type":"strokeChunk","id":id,"sequence":collaboration_sequence,"points":chunk})) {
+                let _ = app.run("collab.submit", json!({"type":"strokeEnd","id":id,"sequence":collaboration_sequence}));
+                app.ui.collaboration.error = error;
+                return None;
+            }
+            collaboration_sequence = collaboration_sequence.saturating_add(1);
+        }
+    }
+    Some(LiveStroke { stroke, doc, revision, key: (1 << 44) | (n << 20), damage, fed, collaboration_id, collaboration_sequence })
 }
 
 /// Render the drag points the live stroke hasn't seen yet, with the pen pressure, tilt and
@@ -286,10 +328,42 @@ pub(crate) fn feed_live_stroke(app: &mut PhotocraftApp) {
         return;
     }
     l.fed = d.points.len();
+    let wire = l.collaboration_id.clone().map(|id| (id, l.collaboration_sequence));
     match l.stroke.push(&pts) {
         Ok(r) => l.damage.push(r),
         Err(_) => app.live_stroke = None,
     }
+    if let Some((id, sequence)) = wire {
+        let mut sequence = sequence;
+        for chunk in pts.chunks(256) {
+            if let Err(error) = app.run("collab.submit", json!({"type":"strokeChunk","id":id,"sequence":sequence,"points":chunk})) {
+                let _ = app.run("collab.submit", json!({"type":"strokeEnd","id":id,"sequence":sequence}));
+                app.ui.collaboration.error = error;
+                app.live_stroke = None;
+                // The accepted prefix already ended canonically. Do not replay the entire
+                // gesture as a generic stroke on release and paint that prefix twice.
+                app.drag = None;
+                return;
+            }
+            sequence = sequence.saturating_add(1);
+            if let Some(live) = app.live_stroke.as_mut() {
+                live.collaboration_sequence = sequence;
+            }
+        }
+    }
+}
+
+fn wire_points(points: &[Vec<f64>]) -> Vec<photocraft_engine::paint::StrokePoint> {
+    points
+        .iter()
+        .filter_map(|p| {
+            let mut point = photocraft_engine::paint::StrokePoint::new(*p.first()?, *p.get(1)?, p.get(2).copied().unwrap_or(1.0) as f32);
+            point.tilt_x = p.get(3).copied().unwrap_or(0.0) as f32;
+            point.tilt_y = p.get(4).copied().unwrap_or(0.0) as f32;
+            point.rotation = p.get(5).copied().unwrap_or(0.0) as f32;
+            Some(point)
+        })
+        .collect()
 }
 
 /// Tools whose gesture follows a freehand path (a polyline of the input points), so every pointer
@@ -2090,6 +2164,12 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         crate::analysis_ui::draw_overlay(app, &painter, &xf);
         crate::gradient_ui::draw_overlay(app, &painter, &xf);
         crate::slice_ui::draw_overlay(app, &painter, &xf);
+        if app.session.collaboration.document_id == Some(doc.id) {
+            crate::collaboration_ui::draw_overlay(app, &painter, &xf);
+            if let Some(position) = response.hover_pos() {
+                crate::collaboration_ui::pointer(app, &ctx, xf.to_doc(position));
+            }
+        }
         // Tool cursors (Photoshop-style).
         let guide_hover = response.hover_pos().filter(|_| tool == Tool::Move).and_then(|p| {
             let d = xf.to_doc(p);
@@ -2588,6 +2668,15 @@ fn tool_move(app: &mut PhotocraftApp, x: f64, y: f64, pressure: f32, mods: egui:
 
 /// Tool state machine. Shared by mouse input and automation.
 pub fn tool_event(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers) {
+    if app.ui.collaboration.transport_pending
+        && app.session.collaboration.room.is_some()
+        && app.session.active().map(|state| state.doc.id) == app.session.collaboration.document_id
+    {
+        app.ui.status = "Wait for the host connection and document synchronization before drawing.".into();
+        app.ui.status_error = true;
+        return;
+    }
+
     // An Alt+right-drag armed for this press (`paint_mouse`): taken before anything else can
     // consume the event, so it never outlives the press it was armed for (#297).
     let armed = std::mem::take(&mut app.brush_resize_armed);
@@ -2903,6 +2992,32 @@ pub(crate) fn finish_gesture(app: &mut PhotocraftApp, d: Drag) {
         Tool::Type | Tool::VerticalType => crate::type_tool::pointer_up(app, d.start, [end[0], end[1]]),
         Tool::Brush | Tool::Pencil | Tool::Eraser => {
             let live = app.live_stroke.take();
+            if live.as_ref().is_some_and(|stroke| stroke.collaboration_id.is_some()) {
+                if app.session.collaboration.room.is_none() {
+                    return;
+                }
+                if let Some(live) = live
+                    && let Some(id) = live.collaboration_id
+                {
+                    let all_points = app.stylus.stroke_points(&d.points);
+                    let remaining = all_points.get(live.fed..).unwrap_or_default();
+                    let points = wire_points(remaining);
+                    let mut sequence = live.collaboration_sequence;
+                    for chunk in points.chunks(256) {
+                        if let Err(error) = app.run("collab.submit", json!({"type":"strokeChunk","id":id,"sequence":sequence,"points":chunk})) {
+                            let _ = app.run("collab.submit", json!({"type":"strokeEnd","id":id,"sequence":sequence}));
+                            app.ui.collaboration.error = error;
+                            return;
+                        }
+                        sequence = sequence.saturating_add(1);
+                    }
+                    if let Err(error) = app.run("collab.submit", json!({"type":"strokeEnd","id":id,"sequence":sequence})) {
+                        app.ui.collaboration.error = error;
+                    }
+                }
+
+                return;
+            }
             let mut p = stroke_params(app, d.tool, d.erase, &app.stylus.stroke_points(&d.points));
             if let Some(l) = &live {
                 p["seed"] = json!(l.stroke.seed);
@@ -3103,6 +3218,115 @@ mod tests {
             Display { id: 4, name: "B".into(), frame: [100.0, 0.0, 100.0, 100.0], profile_name: None, icc: icc("display-p3") },
         ]));
         app
+    }
+
+    #[test]
+    fn collaboration_streams_pressure_and_finishes_without_duplicate_paint_commit() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":64,"height":64,"background":"transparent"})).unwrap();
+        app.run("collab.room.create", json!({"code":"TEST01","peer":"alice"})).unwrap();
+        app.ui.tool = Tool::Brush;
+        tool_event(&mut app, ToolEvent::Down { x: 10.0, y: 10.0, pressure: 0.25 }, egui::Modifiers::NONE);
+        tool_event(&mut app, ToolEvent::Move { x: 30.0, y: 30.0, pressure: 0.75 }, egui::Modifiers::NONE);
+        tool_event(&mut app, ToolEvent::Up { x: 40.0, y: 40.0 }, egui::Modifiers::NONE);
+        let events = serde_json::to_value(&app.session.collaboration.canonical_outbox).unwrap();
+        let events = events.as_array().unwrap();
+        assert!(events.iter().any(|e| e["message"]["operation"]["type"] == "strokeBegin"));
+        assert!(events.iter().any(|e| e["message"]["operation"]["type"] == "strokeEnd"));
+        assert!(
+            events.iter().filter(|e| e["message"]["operation"]["type"] == "strokeChunk").any(|e| e["message"]["operation"]["points"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|p| p["pressure"].as_f64() == Some(0.75)))
+        );
+        assert!(!app.session.journal.iter().any(|(id, _)| id == "paint.stroke"));
+        assert_eq!(app.session.collaboration.own_history().len(), 1);
+        assert!(crate::menus::is_enabled(&app, "edit.undo"));
+        assert!(crate::menus::is_enabled(&app, "edit.redo"));
+        app.run("edit.undo", json!({})).unwrap();
+        assert_eq!(serde_json::to_value(app.session.collaboration.canonical_outbox.last()).unwrap()["message"]["operation"]["type"], "undo");
+        assert!(!app.session.collaboration.own_history().first().unwrap().1);
+        app.run("edit.redo", json!({})).unwrap();
+        assert!(app.session.collaboration.own_history().first().unwrap().1);
+    }
+
+    #[test]
+    fn collaboration_rejected_chunk_finishes_the_partial_stroke_at_the_expected_sequence() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":64,"height":64,"background":"transparent"})).unwrap();
+        app.run("collab.room.create", json!({"code":"TEST02","peer":"alice"})).unwrap();
+        app.ui.tool = Tool::Brush;
+        tool_event(&mut app, ToolEvent::Down { x: 10.0, y: 10.0, pressure: 0.5 }, egui::Modifiers::NONE);
+        tool_event(&mut app, ToolEvent::Move { x: 6000.0, y: 10.0, pressure: 0.5 }, egui::Modifiers::NONE);
+        assert!(app.live_stroke.is_none());
+        assert!(!app.ui.collaboration.error.is_empty());
+        let last = serde_json::to_value(app.session.collaboration.canonical_outbox.last()).unwrap();
+        assert_eq!(last["message"]["operation"]["type"], "strokeEnd");
+        assert_eq!(last["message"]["operation"]["sequence"], 1);
+        let completed = app.session.collaboration.own_history().len();
+        tool_event(&mut app, ToolEvent::Up { x: 6000.0, y: 10.0 }, egui::Modifiers::NONE);
+        assert_eq!(app.session.collaboration.own_history().len(), completed, "release must not replay the accepted prefix twice");
+    }
+
+    #[test]
+    fn collaboration_mask_brush_uses_generic_edit_and_preserves_layer_pixels() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":64,"height":64,"background":"transparent"})).unwrap();
+        app.run("layer.layerMask.revealAll", json!({})).unwrap();
+        let before = app.session.active().unwrap().doc.clone();
+        app.run("collab.room.create", json!({"code":"MASK01","peer":"alice"})).unwrap();
+        app.ui.mask_target = true;
+        app.ui.tool = Tool::Brush;
+        tool_event(&mut app, ToolEvent::Down { x: 10.0, y: 10.0, pressure: 0.5 }, egui::Modifiers::NONE);
+        tool_event(&mut app, ToolEvent::Up { x: 20.0, y: 20.0 }, egui::Modifiers::NONE);
+        assert!(!app.ui.status_error, "{}", app.ui.status);
+        let events = serde_json::to_value(&app.session.collaboration.canonical_outbox).unwrap();
+        assert!(!events.as_array().unwrap().iter().any(|event| event["message"]["operation"]["type"] == "strokeBegin"));
+        let after = &app.session.active().unwrap().doc;
+        assert_eq!(before.layers[0].surface().unwrap().rgba(15, 15), after.layers[0].surface().unwrap().rgba(15, 15));
+        assert_ne!(before.layers[0].mask.as_ref().unwrap().surface.pixel(15, 15), after.layers[0].mask.as_ref().unwrap().surface.pixel(15, 15));
+        assert_eq!(app.session.collaboration.own_history().len(), 1);
+    }
+
+    #[test]
+    fn collaboration_mixed_shapes_then_type_create_preserves_all_authored_layers() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":960,"height":640,"background":"white"})).unwrap();
+        app.run("collab.room.create", json!({"code":"MIXED1","peer":"alice"})).unwrap();
+        app.run("shape.create", json!({"kind":"rect","rect":[120,130,200,130],"fill":"#3388cc"})).unwrap();
+        app.run("shape.create", json!({"kind":"ellipse","rect":[390,150,150,150],"fill":"#c95d8f"})).unwrap();
+        app.run("type.create", json!({"x":130,"y":380,"text":"Paint • Type • Shapes","size":36,"color":"#334466"})).unwrap();
+        assert_eq!(app.session.active().unwrap().doc.layers.len(), 4);
+        assert_eq!(app.session.collaboration.own_history().len(), 3);
+    }
+
+    #[test]
+    fn collaboration_large_selection_and_brushes_keep_preview_and_commit_generically() {
+        for case in ["selection", "brush", "dual"] {
+            let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+            let side = if case == "selection" { 1025 } else { 64 };
+            app.run("file.new", json!({"width":side,"height":side,"background":"transparent"})).unwrap();
+            if case == "selection" {
+                app.run("select.all", json!({})).unwrap();
+            }
+            let brush = match case {
+                "brush" => json!({"size":1025,"hardness":1}),
+                "dual" => json!({"size":4,"hardness":1,"dualBrush":{"enabled":true,"size":1025,"hardness":1}}),
+                _ => json!({"size":4,"hardness":1}),
+            };
+            app.run("tools.setBrush", json!({"brush":brush})).unwrap();
+            app.run("collab.room.create", json!({"code":"LARGE1","peer":"alice"})).unwrap();
+            app.ui.tool = Tool::Brush;
+            tool_event(&mut app, ToolEvent::Down { x: 10.0, y: 10.0, pressure: 0.5 }, egui::Modifiers::NONE);
+            let live = app.live_stroke.as_ref().expect("local live preview survives generic fallback");
+            assert!(live.collaboration_id.is_none(), "{case} must avoid bounded stream protocol");
+            assert!(app.ui.collaboration.error.is_empty(), "{case}: {}", app.ui.collaboration.error);
+            tool_event(&mut app, ToolEvent::Up { x: 12.0, y: 10.0 }, egui::Modifiers::NONE);
+            assert!(!app.ui.status_error, "{case}: {}", app.ui.status);
+            assert_eq!(app.session.collaboration.own_history().len(), 1, "{case}");
+            assert!(app.session.active().unwrap().doc.layers[0].surface().unwrap().rgba(10, 10)[3] > 0.0, "{case}");
+        }
     }
 
     #[test]

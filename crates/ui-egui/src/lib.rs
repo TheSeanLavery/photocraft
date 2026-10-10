@@ -41,6 +41,7 @@ pub mod channel_view;
 pub mod channels_panel;
 pub mod chrome_ui;
 pub mod cjk_fonts;
+pub mod collaboration_ui;
 pub mod color_picker_ui;
 pub mod color_range_ui;
 pub mod comps_ui;
@@ -324,7 +325,10 @@ pub struct Services {
     pub native_menu: Option<native_menu::NativeMenu>,
 }
 
+pub type CollaborationFrameHook = Box<dyn FnMut(&mut PhotocraftApp)>;
+
 pub struct PhotocraftApp {
+    collaboration_frame_hook: Option<CollaborationFrameHook>,
     pub session: Session,
     pub ui: UiState,
     pub services: Services,
@@ -492,6 +496,7 @@ pub struct PhotocraftApp {
 impl PhotocraftApp {
     pub fn new(session: Session, services: Services) -> Self {
         let mut app = Self {
+            collaboration_frame_hook: None,
             session,
             ui: UiState::default(),
             services,
@@ -632,6 +637,11 @@ impl PhotocraftApp {
     }
 
     /// Attach a control channel (requests arrive from a transport thread: TCP, stdin, tests).
+    pub fn with_collaboration_frame_hook(mut self, hook: CollaborationFrameHook) -> Self {
+        self.collaboration_frame_hook = Some(hook);
+        self
+    }
+
     pub fn with_control(mut self, rx: Receiver<ControlRequest>) -> Self {
         self.control_rx = Some(rx);
         self
@@ -652,6 +662,31 @@ impl PhotocraftApp {
     }
 
     fn run_command(&mut self, id: &str, params: Value) -> Result<Value, String> {
+        let id = if self.session.collaboration.room.is_some() && self.session.active().map(|state| state.doc.id) == self.session.collaboration.document_id {
+            match id {
+                "edit.undo" => "collab.undo",
+                "edit.redo" => "collab.redo",
+                _ => id,
+            }
+        } else {
+            id
+        };
+        if id == "layer.setProps"
+            && params.as_object().is_some_and(|p| p.len() <= 2)
+            && params.get("visible").and_then(Value::as_bool).is_some()
+            && self.session.active().map(|state| state.doc.id) == self.session.collaboration.document_id
+            && let Some(room) = self.session.collaboration.room.as_ref()
+        {
+            let mode = serde_json::to_value(room.visibility_mode).map_err(|e| e.to_string())?;
+            let layer = params
+                .get("layer")
+                .and_then(Value::as_u64)
+                .or_else(|| self.session.active().and_then(|s| s.active_layer.map(|id| id.0)))
+                .ok_or("no active layer")?;
+            let mut layers = serde_json::Map::new();
+            layers.insert(layer.to_string(), params.get("visible").cloned().unwrap_or(Value::Bool(true)));
+            return self.run("collab.visibility", serde_json::json!({"mode":mode,"layers":layers}));
+        }
         let clip_read = std::mem::take(&mut self.clip_read_for_paste);
         if self.automation_input
             && let Some(authorize) = self.services.automation_command.as_ref()
@@ -1039,6 +1074,15 @@ impl eframe::App for PhotocraftApp {
         discard_ui::guard_window_close(self, ctx);
         // Background jobs: apply finished ones, keep frames coming, Esc cancels (before the
         // shortcuts see Esc).
+        if let Some(mut hook) = self.collaboration_frame_hook.take() {
+            hook(self);
+            self.collaboration_frame_hook = Some(hook);
+            // A room bootstrap may add a document after this frame's first view synchronization.
+            self.sync_views();
+        }
+        if self.session.collaboration.room.is_some() {
+            ctx.request_repaint_after(std::time::Duration::from_millis(16));
+        }
         jobs_ui::tick(self, ctx);
         shortcuts::handle(self, ctx);
         let arrived: Vec<(String, Vec<u8>)> =
@@ -1123,6 +1167,7 @@ impl eframe::App for PhotocraftApp {
         preset_panels::windows(self, &ctx);
         type_panels_ui::windows(self, &ctx);
         analysis_ui::windows(self, &ctx);
+        collaboration_ui::window(self, &ctx);
         timeline_ui::windows(self, &ctx);
         workspace_ui::windows(self, &ctx);
         palette::show(self, &ctx);

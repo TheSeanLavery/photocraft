@@ -59,6 +59,7 @@ pub const TABLE: &[(&str, Class)] = &[
     ("viewport", Class::Layer(4)),
     ("ml", Class::Layer(4)),
     ("plugins", Class::Layer(4)),
+    ("collab", Class::Layer(4)),
     ("engine", Class::Layer(5)),
     ("ui-egui", Class::Layer(6)),
     ("automation", Class::Layer(6)),
@@ -66,6 +67,7 @@ pub const TABLE: &[(&str, Class)] = &[
     ("testkit", Class::Testkit),
     // L7 apps and tooling
     ("photocraft", Class::Exempt),
+    ("room-server", Class::Exempt),
     ("cli", Class::Exempt),
     ("web", Class::Exempt),
     ("xtask", Class::Exempt),

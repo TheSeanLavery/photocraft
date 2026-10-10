@@ -38,6 +38,8 @@
        Apple silicon and has the Metal feature set wgpu targets. -->
   <key>LSMinimumSystemVersion</key>
   <string>11.0</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>PhotoCraft uses your microphone for optional room push-to-talk voice chat.</string>
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key>

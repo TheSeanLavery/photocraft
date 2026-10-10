@@ -127,10 +127,12 @@ pub fn status_bar_pro(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         return;
     };
     let text = status_info_text(&st.doc, &app.ui.chrome.status_info, tl!(app.ui.tool.label()), &profile_name(&st.doc));
-    let mut pct = app.ui.views[i].zoom * 100.0;
-    if widgets::value_field(ui, &mut pct, 1.0..=3200.0, "%", 64.0).changed() {
-        app.ui.views[i].zoom = pct / 100.0;
-        app.ui.views[i].fit_pending = false;
+    if let Some(view) = app.ui.views.get_mut(i) {
+        let mut pct = view.zoom * 100.0;
+        if widgets::value_field(ui, &mut pct, 1.0..=3200.0, "%", 64.0).changed() {
+            view.zoom = pct / 100.0;
+            view.fit_pending = false;
+        }
     }
     ui.add_space(12.0);
     ui.label(RichText::new(tl!(&text)).color(t.text_dim).size(12.0));
@@ -220,6 +222,18 @@ mod tests {
         let mut s = photocraft_engine::Session::new();
         s.execute("file.new", json!({"width": 2400, "height": 1500, "resolution": 72, "background": "white"})).unwrap();
         (*s.active().unwrap().doc).clone()
+    }
+
+    #[test]
+    fn document_bootstrap_with_a_stale_view_does_not_crash_the_status_bar() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":8,"height":8})).unwrap();
+        app.session.execute("file.new", json!({"width":8,"height":8})).unwrap();
+        assert_eq!(app.session.active_index(), Some(1));
+        assert_eq!(app.ui.views.len(), 1);
+        let ctx = egui::Context::default();
+        ctx.run_ui(Default::default(), |ui| status_bar_pro(&mut app, ui)).textures_delta.clear();
+        assert_eq!(app.session.documents().len(), 2);
     }
 
     #[test]

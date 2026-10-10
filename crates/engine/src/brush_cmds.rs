@@ -779,3 +779,25 @@ pub fn specs() -> Vec<CommandSpec> {
 
 #[cfg(test)]
 mod tests;
+
+/// Resolve an immutable collaborative brush without changing local tool state.
+pub fn collaboration_brush(s: &Session, p: &Value, cmd: &str) -> Result<BrushSettings> {
+    if is_mask_target(p) || crate::channel_cmds::is_channel_target(p) {
+        return Err(bad(cmd, "collaboration currently targets layer pixels"));
+    }
+    let brush = match cmd {
+        "paint.stroke" => with_blend_mode(resolve_brush(s, p, cmd)?, p),
+        "paint.pencil" => pencil_brush(s, p)?,
+        _ => return Err(bad(cmd, "this tool is not synchronized in collaboration rooms")),
+    };
+    let (id, mut brush, _) = stroke_target(s, p, brush)?;
+    let layer = s.active().and_then(|d| id.and_then(|id| d.doc.layer(id))).ok_or(EngineError::NoDocument)?;
+    erase_locked(&mut brush, layer.locks.transparency, s.tools.background);
+    if cmd == "paint.pencil" && flag(p, "autoErase", false) {
+        let pts = parse_points(p, cmd)?;
+        let surf = layer.surface().ok_or_else(|| bad(cmd, "layer has no raster pixels"))?;
+        let fg = brush.color;
+        apply_auto_erase(&mut brush, surf, pts.first(), fg, s.tools.background);
+    }
+    Ok(brush)
+}

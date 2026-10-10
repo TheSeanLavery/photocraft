@@ -20,6 +20,9 @@ pub mod brush_preset_cmds;
 pub mod build_info;
 mod canvas_geom;
 pub mod channel_cmds;
+pub mod collab;
+pub mod collab_cmds;
+pub mod collab_resources;
 pub mod color_cmds;
 pub mod commands;
 pub mod comps_cmds;
@@ -263,6 +266,7 @@ impl Default for ToolState {
 
 #[derive(Default)]
 pub struct Session {
+    pub collaboration: collab::Collaboration,
     docs: Vec<DocState>,
     active: Option<usize>,
     pub tools: ToolState,
@@ -383,8 +387,30 @@ impl Session {
     }
 
     pub fn close(&mut self, index: usize) -> Option<DocState> {
+        if self.collaboration.room.is_some()
+            && self.docs.get(index).map(|st| st.doc.id) == self.collaboration.document_id
+            && self.execute("collab.room.leave", serde_json::json!({})).is_err()
+        {
+            return None;
+        }
         if index >= self.docs.len() {
             return None;
+        }
+        let shared_child = self.docs.get(index).filter(|st| st.is_dirty()).is_some_and(|st| {
+            self.collaboration.room.is_some()
+                && self.smart_links.iter().any(|link| link.child == st.doc.id && Some(link.parent) == self.collaboration.document_id)
+        });
+        if shared_child {
+            let previous = self.active;
+            self.active = Some(index);
+            let saved = self.execute("layer.smartObjects.saveContents", serde_json::json!({})).is_ok();
+            self.active = previous;
+            if !saved {
+                return None;
+            }
+            if let Some(st) = self.docs.get_mut(index) {
+                st.saved_revision = st.revision;
+            }
         }
         smart_cmds::on_close(self, index);
         if let Some(id) = self.docs.get(index).map(|d| d.doc.id) {
@@ -522,6 +548,10 @@ impl Session {
     }
 
     fn move_history(&mut self, redo: bool) -> Result<bool> {
+        if self.collaboration.room.is_some() && self.active().is_some_and(|st| Some(st.doc.id) == self.collaboration.document_id) {
+            self.collaboration_submit(if redo { photocraft_collab::Operation::Redo } else { photocraft_collab::Operation::Undo })?;
+            return Ok(true);
+        }
         if self.active_job().is_some() {
             return Ok(false);
         }

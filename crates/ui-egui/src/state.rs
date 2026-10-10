@@ -720,6 +720,8 @@ pub struct UiState {
     #[serde(default)]
     pub sdr_output: bool,
     pub hdr_workbench_open: bool,
+    #[serde(default)]
+    pub collaboration: crate::collaboration_ui::CollaborationUi,
     pub tool: Tool,
     /// Recently opened file paths, most-recent first (File › Open Recent). Capped; de-duplicated.
     #[serde(default)]
@@ -872,6 +874,7 @@ impl Default for UiState {
         Self {
             sdr_output: false,
             hdr_workbench_open: false,
+            collaboration: Default::default(),
             tool: Tool::Brush,
             recent_files: Vec::new(),
             text_edit: None,
