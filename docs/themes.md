@@ -256,3 +256,5 @@ Browser import/export/persistence still requires separate runtime acceptance.
 Historical Theme Manager windows use the theme's caption and close control. Dragging
 the caption moves the window; closing it restores a preview like Cancel. Import and
 Export follow the same theme button metrics and disabled treatment as the other actions.
+
+Dock widths are editable with `dockWidth`, `dockMinWidth`, and `dockMaxWidth` (180–1024 logical points, ordered minimum ≤ default ≤ maximum). Historical presets use 240 by default and allow 220–520. Rendering and `ui.set {dockWidth}` share the resolved range. Fresh docks follow theme defaults; saved or explicitly resized widths remain user-owned and are clamped only when outside the new range.

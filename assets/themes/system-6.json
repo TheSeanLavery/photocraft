@@ -77,7 +77,10 @@
     "layerRowHeight": 28,
     "layerThumbnailSize": 20,
     "swatchSize": 16,
-    "colorPanelHeight": 110
+    "colorPanelHeight": 110,
+    "dockWidth": 240,
+    "dockMinWidth": 220,
+    "dockMaxWidth": 520
   },
   "typography": {
     "small": 10,

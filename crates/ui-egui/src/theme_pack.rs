@@ -56,6 +56,9 @@ pub struct Geometry {
     pub layer_thumbnail_size: Option<f32>,
     pub swatch_size: Option<f32>,
     pub color_panel_height: Option<f32>,
+    pub dock_width: Option<f32>,
+    pub dock_min_width: Option<f32>,
+    pub dock_max_width: Option<f32>,
     pub title_bar_height: Option<f32>,
     pub options_bar_height: Option<f32>,
     pub status_bar_height: Option<f32>,
@@ -171,6 +174,16 @@ impl ThemePack {
         validate_number("layerThumbnailSize", g.layer_thumbnail_size, 8.0, 64.0)?;
         validate_number("swatchSize", g.swatch_size, 8.0, 48.0)?;
         validate_number("colorPanelHeight", g.color_panel_height, 80.0, 600.0)?;
+        for (name, value) in [("dockWidth", g.dock_width), ("dockMinWidth", g.dock_min_width), ("dockMaxWidth", g.dock_max_width)] {
+            validate_number(name, value, 180.0, 1024.0)?;
+        }
+        let defaults = crate::theme::LayoutTokens::for_kind(kind);
+        let min = g.dock_min_width.unwrap_or(defaults.dock_min_width);
+        let width = g.dock_width.unwrap_or(defaults.dock_width);
+        let max = g.dock_max_width.unwrap_or(defaults.dock_max_width);
+        if min > width || width > max {
+            return Err("dockMinWidth must be <= dockWidth <= dockMaxWidth".into());
+        }
         for (name, value) in [
             ("buttonHeight", g.button_height),
             ("fieldHeight", g.field_height),
@@ -246,6 +259,9 @@ impl ResolvedTheme {
             layer_thumbnail_size,
             swatch_size,
             color_panel_height,
+            dock_width,
+            dock_min_width,
+            dock_max_width,
             title_bar_height,
             options_bar_height,
             status_bar_height,
@@ -422,6 +438,29 @@ mod tests {
             geometry: Geometry::default(),
             typography: Typography::default(),
         }
+    }
+
+    #[test]
+    fn dock_width_metrics_validate_together_and_restore_modern_defaults() {
+        let mut pack = fixture();
+        pack.geometry.dock_width = Some(240.0);
+        pack.geometry.dock_min_width = Some(220.0);
+        pack.geometry.dock_max_width = Some(520.0);
+        let json = serde_json::to_string(&pack).unwrap();
+        assert_eq!(ThemePack::parse(&json).unwrap(), pack);
+        let ctx = egui::Context::default();
+        pack.resolve().unwrap().apply(&ctx);
+        assert_eq!(crate::theme::LayoutTokens::get(&ctx).dock_width, 240.0);
+        pack.geometry.dock_min_width = Some(250.0);
+        assert!(pack.resolve().is_err());
+        pack.geometry.dock_min_width = Some(220.0);
+        pack.geometry.dock_max_width = Some(230.0);
+        assert!(pack.resolve().is_err());
+        pack.geometry.dock_max_width = Some(f32::NAN);
+        assert!(pack.resolve().is_err());
+        crate::theme::apply(&ctx, ThemeKind::Classic);
+        let layout = crate::theme::LayoutTokens::get(&ctx);
+        assert_eq!((layout.dock_width, layout.dock_min_width, layout.dock_max_width), (300.0, 250.0, 520.0));
     }
 
     #[test]

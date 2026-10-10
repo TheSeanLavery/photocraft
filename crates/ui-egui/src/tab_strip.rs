@@ -123,9 +123,11 @@ fn tabs_in(
         let Some(name) = tabs.get(i) else { continue };
         let r = Rect::from_min_size(pos2(x, area.top()), vec2(w, area.height()));
         let resp = ui.interact(r, id.with(("tab", i)), Sense::click());
-        // The padding gives way (down to a third) before the label is cut.
-        let galley = elided(ui, name, font.clone(), t.text, (w - pad / 3.0).max(1.0));
-        let cut = galley.size().x + pad + 0.5 < natural.get(i).copied().unwrap_or(0.0) && galley.size().x + pad / 3.0 >= w - 0.5;
+        // Sloped Platinum sides retain space for the label even in a squeezed tab.
+        let padding = if t.appearance == crate::theme::Appearance::Platinum { (r.height() * 0.35).min(w * 0.2) * 2.0 + 4.0 } else { pad / 3.0 };
+        let max_label = (w - padding).max(1.0);
+        let galley = elided(ui, name, font.clone(), t.text, max_label);
+        let cut = natural.get(i).copied().unwrap_or(0.0) - pad > max_label + 0.5;
         paint_tab(ui, r, i, galley, &resp, active(i));
         let resp = if cut { resp.on_hover_text(*name) } else { resp };
         out.double_clicked |= resp.double_clicked();

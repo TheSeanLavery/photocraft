@@ -972,8 +972,13 @@ pub fn right_dock(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     crate::dock::persist(app, ui.ctx());
 }
 
-/// The right dock's width range (points).
-const DOCK_WIDTH: std::ops::RangeInclusive<f32> = 250.0..=520.0;
+/// Remember whether a fresh dock still follows its theme default. Persisted or resized
+/// widths belong to the user and are not replaced by preview/theme changes.
+#[derive(Clone, Copy)]
+struct DockWidthDefault {
+    width: f32,
+    automatic: bool,
+}
 
 fn dock_width_id() -> egui::Id {
     egui::Id::new("dock-width-request")
@@ -981,7 +986,9 @@ fn dock_width_id() -> egui::Id {
 
 /// Set the right dock's width on the next frame (`ui.set {dockWidth}`); clamped to its range.
 pub fn request_dock_width(ctx: &egui::Context, w: f32) {
-    let w = if w.is_finite() { w.clamp(*DOCK_WIDTH.start(), *DOCK_WIDTH.end()) } else { *DOCK_WIDTH.start() };
+    let metrics = theme::LayoutTokens::get(ctx);
+    let w = if w.is_finite() { w.clamp(metrics.dock_min_width, metrics.dock_max_width) } else { metrics.dock_min_width };
+    ctx.data_mut(|d| d.insert_temp(dock_width_id().with("default"), DockWidthDefault { width: metrics.dock_width, automatic: false }));
     ctx.data_mut(|d| d.insert_temp(dock_width_id(), w));
 }
 
@@ -1010,7 +1017,16 @@ fn dock_panels(app: &mut PhotocraftApp, ui: &mut egui::Ui, p: &crate::state::Pan
     } else {
         8
     };
-    let mut panel = egui::Panel::right("dock").resizable(true).default_size(if t.pro { 290.0 } else { 300.0 }).size_range(DOCK_WIDTH);
+    let metrics = theme::LayoutTokens::get(ui.ctx());
+    let state = egui::containers::panel::PanelState::load(ui.ctx(), egui::Id::new("dock"));
+    let previous = ui.ctx().data_mut(|d| d.get_temp::<DockWidthDefault>(dock_width_id().with("default")));
+    let automatic = previous.map_or(state.is_none(), |previous| previous.automatic && state.is_none_or(|state| (state.size().x - previous.width).abs() < 1.0));
+    let follow_default = automatic && previous.is_some_and(|previous| previous.width != metrics.dock_width);
+    ui.ctx().data_mut(|d| d.insert_temp(dock_width_id().with("default"), DockWidthDefault { width: metrics.dock_width, automatic }));
+    let mut panel = egui::Panel::right("dock").resizable(true).default_size(metrics.dock_width).size_range(metrics.dock_min_width..=metrics.dock_max_width);
+    if follow_default {
+        panel = panel.exact_size(metrics.dock_width);
+    }
     if let Some(w) = ui.ctx().data_mut(|d| d.remove_temp::<f32>(dock_width_id())) {
         panel = panel.exact_size(w);
     }
@@ -1237,6 +1253,8 @@ fn swatches(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         let (cx, cy) = ((i % cols) as f32, (i / cols) as f32);
         let r = Rect::from_min_size(area.min + vec2(cx * (cell + gap), cy * (cell + gap)), Vec2::splat(cell));
         let resp = ui.interact(r, ui.id().with(("sw", i)), Sense::click());
+        let resp =
+            if t.appearance != theme::Appearance::Modern { resp.on_hover_text(tl!("Click sets foreground · right-click sets background")) } else { resp };
         ui.painter().rect_filled(r, radius, Color32::from_rgb(s[0], s[1], s[2]));
         if resp.hovered() {
             ui.painter().rect_stroke(r, radius, Stroke::new(1.5, t.text), StrokeKind::Outside);
@@ -1249,8 +1267,10 @@ fn swatches(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             app.session.tools.background = c;
         }
     }
-    ui.add_space(2.0);
-    ui.label(RichText::new(tl!("Click sets foreground · right-click sets background")).small().color(t.text_faint));
+    if t.appearance == theme::Appearance::Modern {
+        ui.add_space(2.0);
+        ui.label(RichText::new(tl!("Click sets foreground · right-click sets background")).small().color(t.text_faint));
+    }
 }
 
 fn color_picker(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
