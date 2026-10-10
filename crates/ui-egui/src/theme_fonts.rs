@@ -345,7 +345,11 @@ pub(crate) fn chrome_line_height(ctx: &Context, font: &FontId) -> Option<f32> {
 
 pub(crate) fn control(ctx: &Context, size: f32, bold: bool) -> FontId {
     if let Some(name) = ctx.data(|d| d.get_temp::<String>(egui::Id::new("theme-font-family"))) {
-        calibrated(ctx, FontId::new(size, FontFamily::Name(name.into())))
+        if caption_actual(ctx, &name) == "Inter" {
+            if bold { crate::theme::semibold(size) } else { crate::theme::medium(size) }
+        } else {
+            calibrated(ctx, FontId::new(size, FontFamily::Name(name.into())))
+        }
     } else if bold {
         crate::theme::semibold(size)
     } else {
@@ -360,6 +364,21 @@ pub(crate) fn number(ctx: &Context, size: f32) -> FontId {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn body_control_inter_fallback_retains_requested_weight() {
+        let ctx = Context::default();
+        for requested in ["Inter", "Charcoal", "MS Sans Serif"] {
+            ctx.data_mut(|d| d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(vec![(requested.into(), "Inter".into())]) }));
+            set(&ctx, Some(requested));
+            assert_eq!(control(&ctx, 14.0, true), crate::theme::semibold(14.0));
+            assert_eq!(control(&ctx, 14.0, false), crate::theme::medium(14.0));
+        }
+        ctx.data_mut(|d| d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(vec![("Chicago".into(), "Chicago Kare".into())]) }));
+        set(&ctx, Some("Chicago"));
+        assert_eq!(control(&ctx, 12.0, true).family, FontFamily::Name("Chicago".into()));
+        assert_eq!(control(&ctx, 12.0, true).size, 16.0);
+    }
 
     #[test]
     fn historical_windows_alias_prefers_recreation_then_compatible_face_then_inter() {

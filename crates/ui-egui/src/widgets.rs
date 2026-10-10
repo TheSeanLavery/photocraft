@@ -1,7 +1,7 @@
 //! Custom widgets for the Photocraft look: cards with pill tabs, thin sliders with round knobs,
 //! monospace value fields with dimmed units, toggle switches, primary/secondary buttons.
 
-use egui::{Align2, Color32, CornerRadius, Pos2, Rect, Response, Sense, Stroke, StrokeKind, Ui, Vec2, pos2, vec2};
+use egui::{Color32, CornerRadius, Pos2, Rect, Response, Sense, Stroke, StrokeKind, Ui, Vec2, pos2, vec2};
 
 use crate::theme::{self, Tokens};
 
@@ -159,17 +159,23 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
     let font = crate::theme_fonts::number(ui.ctx(), metrics.field_font_size);
     let calibrated = crate::theme_fonts::chrome_line_height(ui.ctx(), &font).is_some();
     let vertical_padding = if calibrated { 1.0 } else { 2.0 };
-    let height = if calibrated {
-        metrics.field_height.max(ui.painter().layout_no_wrap("0".into(), font.clone(), t.text).size().y + 2.0 * vertical_padding)
-    } else {
-        metrics.field_height
-    };
+    // Measure the selected face, including compatibility calibration and custom
+    // sizes. Nominal font size alone does not describe its actual line box.
+    let number_galley = ui.painter().layout_no_wrap(
+        if range.end() - range.start() <= 10.0 { fmt_num2(f64::from(*value)) } else { fmt_num(f64::from(*value)) },
+        font.clone(),
+        t.text,
+    );
+    let suffix_font = crate::theme_fonts::number(ui.ctx(), (metrics.field_font_size - 1.0).max(6.0));
+    let suffix_galley = ui.painter().layout_no_wrap(suffix.to_owned(), suffix_font, t.text_faint);
+    let height = metrics.field_height.max(number_galley.size().y.max(suffix_galley.size().y) + 2.0 * vertical_padding);
+    let suffix_w = if suffix.is_empty() { 0.0 } else { suffix_galley.size().x + 8.0 };
+    let width = width.max(number_galley.size().x + suffix_w + 8.0);
     let (rect, _) = ui.allocate_exact_size(vec2(width, height), Sense::hover());
     surface(ui, rect, t.field, false);
     if !t.bevel {
         ui.painter().rect_stroke(rect, t.radius_sm, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
     }
-    let suffix_w = if suffix.is_empty() { 0.0 } else { 16.0 };
     let field = Rect::from_min_max(rect.min + vec2(4.0, vertical_padding), rect.max - vec2(4.0 + suffix_w, vertical_padding));
     // Small ranges (gamma 0.01–9.99, 0–1 centres) need two decimals and a finer drag, like Photoshop.
     let fine = range.end() - range.start() <= 10.0;
@@ -186,7 +192,7 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
             ui.style_mut().override_font_id = Some(font);
             // DragValue is a button internally: its stock minimum/padding must fit our painted field.
             ui.spacing_mut().interact_size.y = field.height();
-            ui.spacing_mut().button_padding.y = 0.0;
+            ui.spacing_mut().button_padding = egui::Vec2::ZERO;
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_sized(
                     field.size(),
@@ -200,13 +206,7 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
         }
     };
     if !suffix.is_empty() {
-        ui.painter().text(
-            pos2(rect.right() - 6.0, rect.center().y),
-            Align2::RIGHT_CENTER,
-            suffix,
-            crate::theme_fonts::number(ui.ctx(), (theme::LayoutTokens::get(ui.ctx()).field_font_size - 1.0).max(6.0)),
-            t.text_faint,
-        );
+        ui.painter().galley(pos2(rect.right() - 6.0 - suffix_galley.size().x, rect.center().y - suffix_galley.size().y / 2.0), suffix_galley, t.text_faint);
     }
     resp
 }
@@ -642,6 +642,63 @@ mod tests {
                     assert!(field.response.rect.contains_rect(field.inner.rect), "{scale}: {:?} outside {:?}", field.inner.rect, field.response.rect);
                 });
                 h.run_steps(3);
+            }
+        }
+    }
+
+    #[test]
+    fn custom_numeric_fonts_and_unit_labels_stay_inside_painted_fields() {
+        for source in [
+            include_str!("../../../assets/themes/windows-98-se.json"),
+            include_str!("../../../assets/themes/mac-os-9-1.json"),
+            include_str!("../../../assets/themes/system-6.json"),
+        ] {
+            for size in [6.0, 24.0, 64.0] {
+                for scale in [1.0, 1.5, 2.0] {
+                    let mut pack = crate::theme_pack::ThemePack::parse(source).unwrap();
+                    pack.typography.monospace = Some(size);
+                    let id = pack.id.clone();
+                    let pack = pack.resolve().unwrap();
+                    let mut initialized = false;
+                    let mut value = 100.0;
+                    let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(640.0, 300.0)).with_pixels_per_point(scale).build_ui_state(
+                        |ui, painted| {
+                            if !initialized {
+                                crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                                initialized = true;
+                                return;
+                            }
+                            pack.apply(ui.ctx());
+                            let field = ui.scope(|ui| super::value_field(ui, &mut value, 0.0..=999.0, "pixels", 78.0));
+                            *painted = field.response.rect;
+                        },
+                        egui::Rect::NOTHING,
+                    );
+                    h.run_steps(4);
+                    let painted = *h.state();
+                    let texts: Vec<_> = h
+                        .output()
+                        .shapes
+                        .iter()
+                        .filter_map(|shape| match &shape.shape {
+                            egui::Shape::Text(text) if matches!(text.galley.job.text.as_str(), "100" | "pixels") => Some(text),
+                            _ => None,
+                        })
+                        .collect();
+                    assert_eq!(texts.len(), 2);
+                    for text in &texts {
+                        let bounds = egui::Rect::from_min_size(text.pos, text.galley.size());
+                        assert!(painted.expand(0.5).contains_rect(bounds), "{id} {size} {scale}: {bounds:?} outside {painted:?}");
+                    }
+                    let a = egui::Rect::from_min_size(texts[0].pos, texts[0].galley.size());
+                    let b = egui::Rect::from_min_size(texts[1].pos, texts[1].galley.size());
+                    assert!(!a.intersects(b), "numeric value and suffix overlap: {a:?} {b:?}");
+                    if let Some(dir) = std::env::var_os("PHOTOCRAFT_FIELD_FONT_EVIDENCE") {
+                        let dir = std::path::PathBuf::from(dir);
+                        std::fs::create_dir_all(&dir).unwrap();
+                        h.render().unwrap().save(dir.join(format!("{id}-{size}-{scale}x.png"))).unwrap();
+                    }
+                }
             }
         }
     }

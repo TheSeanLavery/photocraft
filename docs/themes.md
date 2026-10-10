@@ -478,3 +478,10 @@ optional UI-font bundle. Default release-font wiring and final browser acceptanc
 separate work in the active historical-theme goal.
 
 Chrome/font follow-up evidence: `plan/evidence/ms-sans-alias/` contains nine fresh full-app renders at 100/150/200%, three top-bar comparisons, and three Windows font before/after strips. These are PhotoCraft renders, not original OS screenshots. The Windows stock alias now prefers W95FA even when the later Microsoft Sans Serif is installed. The alias registry, fallback priority, unchanged literal Microsoft request, and repeated-apply sizing are regression-tested.
+
+Numeric fields measure the actual selected value and unit-label galleys, including
+compatibility font calibration and custom sizes. Requested width/height remain
+minimums; the field expands to prevent numeric/unit overlap. Inner DragValue
+padding is zero because the painted field supplies its own inset. Named families
+that resolve to Inter now use the real regular/semibold control role. This does
+not add synthetic bold to other named body faces; that distinction remains open.
