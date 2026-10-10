@@ -91,3 +91,36 @@ fn historical_color_components_fit_the_compact_panel_and_remain_interactive() {
         }
     }
 }
+
+#[test]
+fn all_historical_dock_groups_fit_and_share_the_theme_gap_at_all_scales() {
+    for id in ["builtin.windows-98-se", "builtin.mac-os-9-1", "builtin.system-6"] {
+        for scale in [1.0, 1.5, 2.0] {
+            let mut h = Harness::builder().with_size(egui::vec2(1280.0, 900.0)).with_pixels_per_point(scale).build_eframe(|cc| {
+                PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+                PhotocraftApp::new(Session::new(), Services::default())
+            });
+            h.run_steps(4);
+            let ctx = h.ctx.clone();
+            for (method, params) in [
+                ("ui.theme.select", json!({"id":id})),
+                ("ui.set", json!({"panels":{"color":true,"properties":true,"character":true,"navigator":true,"history":true,"layers":true}})),
+            ] {
+                let (request, _) = ControlRequest::new(method, params);
+                let Outcome::Done(result) = handle(h.state_mut(), &ctx, &request) else { panic!("did not complete") };
+                assert_eq!(result.get("ok"), Some(&json!(true)));
+            }
+            h.run_steps(6);
+            let rects = photocraft_ui_egui::dock::last_rects(&ctx);
+            // Historical profiles inherit Classic: Properties remains a floating card.
+            assert_eq!(rects.len(), 5, "{id} {scale}");
+            for (_, rect) in &rects {
+                assert!(rect.height() >= 80.0 && rect.bottom() <= 900.0, "{id} {scale} {rect:?}");
+            }
+            for pair in rects.windows(2) {
+                assert!((pair[1].1.top() - pair[0].1.bottom() - LayoutTokens::get(&ctx).dock_group_gap).abs() < 0.01);
+            }
+            assert!(h.state().ui.dock.heights.is_empty());
+        }
+    }
+}

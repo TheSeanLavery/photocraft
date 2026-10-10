@@ -276,3 +276,5 @@ Chicago Kare is Duane King's MIT-licensed recreation, not Apple's original font.
 Font bytes and their license/manifest/attribution live in craft-fonts, never PhotoCraft.
 Browser builds still report their bundled fallback until a separate runtime font delivery
 path is implemented; this native provider does not add font bytes to WebAssembly.
+
+Dock sizing: `geometry.dockGroupHeights` and `dockGroupCompactHeights` are six logical-point heights in Color, Properties, Character, Navigator, History, Layers order (80–1024; Layers minimum140; compact <= default). `dockPreferredFill` (140–1200) sets the space reserved for Layers before untouched groups expand to their full defaults; the last expanded group fills the remaining column. `dockGroupGap` (0–16, default6) controls layout, splitters and drop markers. Existing `colorPanelHeight` takes precedence over the Color default. Theme defaults never become saved manual heights; compact sizing yields before manual groups. Historical defaults:120/180/180/160/140/320, compact100/120/120/110/100/200, Layers preferred352, gap2. Modern defaults and saved workspace sizing are preserved.

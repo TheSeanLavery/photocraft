@@ -78,7 +78,25 @@
     "colorPanelHeight": 120,
     "dockWidth": 240,
     "dockMinWidth": 220,
-    "dockMaxWidth": 520
+    "dockMaxWidth": 520,
+    "dockGroupHeights": [
+      120,
+      180,
+      180,
+      160,
+      140,
+      320
+    ],
+    "dockGroupCompactHeights": [
+      100,
+      120,
+      120,
+      110,
+      100,
+      200
+    ],
+    "dockPreferredFill": 352,
+    "dockGroupGap": 2
   },
   "typography": {
     "small": 10,

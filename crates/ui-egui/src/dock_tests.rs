@@ -566,3 +566,28 @@ fn dock_strips_fit_and_the_chevron_menu_switches_tabs() {
     h.run_steps(3);
     assert_eq!(*h.state(), 3, "Patterns chosen from the chevron menu");
 }
+
+#[test]
+fn historical_group_defaults_compact_before_manual_sizes_and_reset() {
+    for id in crate::historical::IDS {
+        let ctx = egui::Context::default();
+        crate::historical::preset(id).unwrap().resolve().unwrap().apply(&ctx);
+        let metrics = crate::theme::LayoutTokens::get(&ctx);
+        let mut layout = DockLayout::default();
+        let shown = [Group::Properties, Group::Character, Group::Navigator, Group::History, Group::Layers];
+        let roomy = layout.heights_for_metrics(&shown, 1400.0, 24.0, &metrics);
+        assert_eq!(roomy.iter().take(4).map(|(_, h)| *h).collect::<Vec<_>>(), vec![180.0, 180.0, 160.0, 140.0]);
+        let compact = layout.heights_for_metrics(&shown, 820.0, 24.0, &metrics);
+        assert!(compact.last().unwrap().1 >= metrics.dock_preferred_fill);
+        assert!(layout.heights.is_empty());
+        layout.heights.insert(Group::Character, 230.0);
+        let manual = layout.heights_for_metrics(&shown, 950.0, 24.0, &metrics);
+        assert_eq!(manual.iter().find(|(g, _)| *g == Group::Character).unwrap().1, 230.0);
+        layout.set_collapsed(Group::Navigator, true);
+        let collapsed = layout.heights_for_metrics(&shown, 1400.0, 24.0, &metrics);
+        assert_eq!(collapsed.iter().find(|(g, _)| *g == Group::Navigator).unwrap().1, 24.0);
+        crate::theme::apply(&ctx, crate::theme::ThemeKind::Classic);
+        let modern = crate::theme::LayoutTokens::get(&ctx);
+        assert_eq!(DockLayout::default().heights_for_metrics(&shown, 1600.0, 40.0, &modern), DockLayout::default().heights_for(&shown, 1600.0, 40.0));
+    }
+}

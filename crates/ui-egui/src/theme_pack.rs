@@ -56,6 +56,10 @@ pub struct Geometry {
     pub layer_thumbnail_size: Option<f32>,
     pub swatch_size: Option<f32>,
     pub color_panel_height: Option<f32>,
+    pub dock_group_heights: Option<[f32; 6]>,
+    pub dock_group_compact_heights: Option<[f32; 6]>,
+    pub dock_preferred_fill: Option<f32>,
+    pub dock_group_gap: Option<f32>,
     pub dock_width: Option<f32>,
     pub dock_min_width: Option<f32>,
     pub dock_max_width: Option<f32>,
@@ -179,6 +183,17 @@ impl ThemePack {
             validate_number(name, value, 180.0, 1024.0)?;
         }
         let defaults = crate::theme::LayoutTokens::for_kind(kind);
+        let heights = g.dock_group_heights.unwrap_or(defaults.dock_group_heights);
+        let compact = g.dock_group_compact_heights.unwrap_or(defaults.dock_group_compact_heights);
+        for ((height, floor), minimum) in heights.into_iter().zip(compact).zip([80.0, 80.0, 80.0, 80.0, 80.0, 140.0]) {
+            validate_number("dockGroupHeights", Some(height), minimum, 1024.0)?;
+            validate_number("dockGroupCompactHeights", Some(floor), minimum, 1024.0)?;
+            if floor > height {
+                return Err("dockGroupCompactHeights must be <= dockGroupHeights".into());
+            }
+        }
+        validate_number("dockGroupGap", g.dock_group_gap, 0.0, 16.0)?;
+        validate_number("dockPreferredFill", g.dock_preferred_fill, 140.0, 1200.0)?;
         let min = g.dock_min_width.unwrap_or(defaults.dock_min_width);
         let width = g.dock_width.unwrap_or(defaults.dock_width);
         let max = g.dock_max_width.unwrap_or(defaults.dock_max_width);
@@ -262,6 +277,10 @@ impl ResolvedTheme {
             layer_thumbnail_size,
             swatch_size,
             color_panel_height,
+            dock_group_heights,
+            dock_group_compact_heights,
+            dock_preferred_fill,
+            dock_group_gap,
             dock_width,
             dock_min_width,
             dock_max_width,
@@ -609,6 +628,32 @@ mod tests {
         pack.resolve().unwrap().apply(&ctx);
         let layout = crate::theme::LayoutTokens::get(&ctx);
         assert!(layout.button_height >= 30.0 && layout.field_height >= 32.0);
+    }
+
+    #[test]
+    fn dock_group_metrics_round_trip_reject_invalid_values_and_reset() {
+        let mut pack = ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap();
+        let restored = ThemePack::parse(&serde_json::to_string(&pack).unwrap()).unwrap();
+        let ctx = egui::Context::default();
+        restored.resolve().unwrap().apply(&ctx);
+        let layout = crate::theme::LayoutTokens::get(&ctx);
+        assert_eq!(layout.dock_group_heights, [120.0, 180.0, 180.0, 160.0, 140.0, 320.0]);
+        assert_eq!(layout.dock_group_gap, 2.0);
+        fixture().resolve().unwrap().apply(&ctx);
+        assert_eq!(crate::theme::LayoutTokens::get(&ctx).dock_group_gap, 6.0);
+        for invalid in [f32::NAN, f32::INFINITY, -1.0, 1025.0] {
+            pack.geometry.dock_group_heights = Some([invalid; 6]);
+            assert!(pack.resolve().is_err());
+        }
+        pack.geometry.dock_group_heights = Some([100.0; 6]);
+        pack.geometry.dock_group_compact_heights = Some([120.0; 6]);
+        assert!(pack.resolve().is_err());
+        pack.geometry.dock_group_heights = None;
+        pack.geometry.dock_group_compact_heights = None;
+        for invalid in [-1.0, 17.0, f32::NAN] {
+            pack.geometry.dock_group_gap = Some(invalid);
+            assert!(pack.resolve().is_err());
+        }
     }
 
     #[test]
