@@ -12,7 +12,10 @@ pub use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::{
     api::APIBuilder,
     data_channel::{RTCDataChannel, data_channel_init::RTCDataChannelInit, data_channel_state::RTCDataChannelState},
-    peer_connection::{RTCPeerConnection, configuration::RTCConfiguration, sdp::session_description::RTCSessionDescription},
+    peer_connection::{
+        RTCPeerConnection, configuration::RTCConfiguration, policy::ice_transport_policy::RTCIceTransportPolicy,
+        sdp::session_description::RTCSessionDescription,
+    },
 };
 
 pub type TransportResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -53,7 +56,13 @@ pub struct RtcPeer {
 }
 impl RtcPeer {
     pub async fn new(ice_servers: Vec<RTCIceServer>) -> TransportResult<(Self, mpsc::Receiver<Incoming>)> {
-        let connection = Arc::new(APIBuilder::new().build().new_peer_connection(RTCConfiguration { ice_servers, ..Default::default() }).await?);
+        Self::new_with_relay(ice_servers, std::env::var("PHOTOCRAFT_RTC_RELAY_ONLY").is_ok_and(|v| v == "1")).await
+    }
+    /// Force relay for Internet acceptance, so local candidates cannot mask a TURN failure.
+    pub async fn new_with_relay(ice_servers: Vec<RTCIceServer>, relay_only: bool) -> TransportResult<(Self, mpsc::Receiver<Incoming>)> {
+        let ice_transport_policy = if relay_only { RTCIceTransportPolicy::Relay } else { RTCIceTransportPolicy::All };
+        let connection =
+            Arc::new(APIBuilder::new().build().new_peer_connection(RTCConfiguration { ice_servers, ice_transport_policy, ..Default::default() }).await?);
         let channels = Arc::new(Mutex::new(HashMap::new()));
         let (inbox, receiver) = mpsc::channel(512);
         let remote_channels = channels.clone();
@@ -297,6 +306,41 @@ struct ConnectedRoom {
 async fn post<T: Serialize + ?Sized>(client: &reqwest::Client, server: &str, path: &str, request: &T) -> TransportResult<reqwest::Response> {
     Ok(client.post(format!("{}{path}", server.trim_end_matches('/'))).json(request).send().await?.error_for_status()?)
 }
+#[derive(Deserialize)]
+struct IceResponse {
+    #[serde(rename = "iceServers")]
+    ice_servers: Vec<RTCIceServer>,
+}
+async fn room_ice(client: &reqwest::Client, server: &str, admission: &crate::signaling::Admission) -> TransportResult<Vec<RTCIceServer>> {
+    let response = client
+        .post(format!("{}/ice", server.trim_end_matches('/')))
+        .timeout(Duration::from_secs(20))
+        .json(&crate::signaling::Auth::from(admission))
+        .send()
+        .await?;
+    // Older local signaling servers intentionally have no TURN service.
+    if response.status() == reqwest::StatusCode::NOT_FOUND
+        && reqwest::Url::parse(server).is_ok_and(|url| url.scheme() == "http" && url.host_str() == Some("127.0.0.1"))
+    {
+        return Ok(vec![]);
+    }
+    let mut response = response.error_for_status()?;
+    if response.content_length().is_some_and(|n| n > 64 * 1024) {
+        return Err("ICE response too large".into());
+    }
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await? {
+        if chunk.len() > (64 * 1024usize).saturating_sub(bytes.len()) {
+            return Err("ICE response too large".into());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    let ice: IceResponse = serde_json::from_slice(&bytes)?;
+    if ice.ice_servers.is_empty() || ice.ice_servers.len() > 16 || ice.ice_servers.iter().any(|s| s.urls.len() > 16) {
+        return Err("Invalid room ICE configuration".into());
+    }
+    Ok(ice.ice_servers)
+}
 async fn open_room(
     client: &reqwest::Client,
     server: String,
@@ -306,6 +350,17 @@ async fn open_room(
 ) -> TransportResult<ConnectedRoom> {
     let endpoint = if code.is_some() { "/join" } else { "/create" };
     let admission = post(client, &server, endpoint, &crate::signaling::RoomRequest { code, password }).await?.json::<crate::signaling::Admission>().await?;
+    let ice_servers = if ice_servers.is_empty() {
+        match room_ice(client, &server, &admission).await {
+            Ok(servers) => servers,
+            Err(error) => {
+                let _ = post(client, &server, "/leave", &crate::signaling::Auth::from(&admission)).await;
+                return Err(error);
+            }
+        }
+    } else {
+        ice_servers
+    };
     let mut links = HashMap::new();
     if admission.peer != admission.host {
         let (rtc, inbox) = RtcPeer::new(ice_servers.clone()).await?;
@@ -454,7 +509,7 @@ async fn close_room(client: &reqwest::Client, room: ConnectedRoom) {
     let _ = post(client, &room.server, "/leave", &crate::signaling::Auth::from(&room.admission)).await;
 }
 async fn run_worker(mut requests: mpsc::Receiver<Request>, events: std::sync::mpsc::SyncSender<Event>) {
-    let client = match reqwest::Client::builder().timeout(Duration::from_secs(5)).build() {
+    let client = match reqwest::Client::builder().user_agent("PhotoCraft-dev").timeout(Duration::from_secs(20)).build() {
         Ok(c) => c,
         Err(e) => {
             let _ = events.try_send(Event::Error(e.to_string()));

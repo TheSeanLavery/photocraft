@@ -4,6 +4,102 @@ use photocraft_collab::{
     transport::{ChannelKind, RtcPeer},
 };
 use std::time::Duration;
+/// Real Internet acceptance. The public service supplies credentials after admission.
+#[tokio::test]
+#[ignore = "requires PHOTOCRAFT_PLAYTEST_URL and live Cloudflare TURN"]
+async fn cloudflare_public_signaling_and_forced_relay_all_channels() {
+    use photocraft_collab::transport::RTCIceServer;
+    #[derive(serde::Deserialize)]
+    struct Ice {
+        #[serde(rename = "iceServers")]
+        servers: Vec<RTCIceServer>,
+    }
+    let server = std::env::var("PHOTOCRAFT_PLAYTEST_URL").expect("live public server URL");
+    let http = reqwest::Client::builder().user_agent("PhotoCraft-dev").timeout(Duration::from_secs(30)).build().unwrap();
+    let host_admission: photocraft_collab::signaling::Admission = http
+        .post(format!("{server}/create"))
+        .json(&RoomRequest { code: None, password: Some("relay-acceptance".into()) })
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let guest_admission: photocraft_collab::signaling::Admission = http
+        .post(format!("{server}/join"))
+        .json(&RoomRequest { code: Some(host_admission.code.clone()), password: Some("relay-acceptance".into()) })
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let mut forged = Auth::from(&guest_admission);
+    forged.token = "invalid".into();
+    assert_eq!(http.post(format!("{server}/ice")).json(&forged).send().await.unwrap().status(), reqwest::StatusCode::UNAUTHORIZED);
+    let mut peers = Vec::new();
+    for admission in [&host_admission, &guest_admission] {
+        let response = http.post(format!("{server}/ice")).json(&Auth::from(admission)).send().await.unwrap().error_for_status().unwrap();
+        assert_eq!(response.headers().get("cache-control").unwrap(), "no-store");
+        let ice: Ice = response.json().await.unwrap();
+        peers.push(RtcPeer::new_with_relay(ice.servers, true).await.unwrap());
+    }
+    let (guest, mut guest_inbox) = peers.pop().unwrap();
+    let (host, mut host_inbox) = peers.pop().unwrap();
+    let offer = guest.offer().await.unwrap();
+    assert!(offer.contains("typ relay"), "TURN must allocate a relay candidate");
+    assert!(!offer.contains("typ host"), "forced relay must exclude direct candidates");
+    http.post(format!("{server}/signal"))
+        .json(&SendSignal {
+            auth: Auth::from(&guest_admission),
+            signal: Signal { from: guest_admission.peer.clone(), to: host_admission.peer.clone(), sdp: offer, offer: true },
+        })
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+    let signals: Vec<Signal> =
+        http.post(format!("{server}/poll")).json(&Auth::from(&host_admission)).send().await.unwrap().error_for_status().unwrap().json().await.unwrap();
+    let answer = host.answer(&signals.first().unwrap().sdp).await.unwrap();
+    assert!(answer.contains("typ relay"));
+    http.post(format!("{server}/signal"))
+        .json(&SendSignal {
+            auth: Auth::from(&host_admission),
+            signal: Signal { from: host_admission.peer.clone(), to: guest_admission.peer.clone(), sdp: answer, offer: false },
+        })
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+    let signals: Vec<Signal> =
+        http.post(format!("{server}/poll")).json(&Auth::from(&guest_admission)).send().await.unwrap().error_for_status().unwrap().json().await.unwrap();
+    guest.accept_answer(&signals.first().unwrap().sdp).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(30), async {
+        while !host.is_open().await || !guest.is_open().await {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
+    for channel in [ChannelKind::Edits, ChannelKind::Presence, ChannelKind::Voice] {
+        guest.send(channel, b"Cloudflare relay acceptance").await.unwrap();
+        let packet = tokio::time::timeout(Duration::from_secs(10), host_inbox.recv()).await.unwrap().unwrap();
+        assert_eq!(packet.channel, channel);
+        assert_eq!(packet.payload, b"Cloudflare relay acceptance");
+        host.send(channel, b"accepted").await.unwrap();
+        assert_eq!(tokio::time::timeout(Duration::from_secs(10), guest_inbox.recv()).await.unwrap().unwrap().payload, b"accepted");
+    }
+    host.close().await.unwrap();
+    guest.close().await.unwrap();
+    http.post(format!("{server}/leave")).json(&Auth::from(&host_admission)).send().await.unwrap().error_for_status().unwrap();
+    println!("Public HTTPS signaling and forced Cloudflare relay passed: edits, presence, voice bidirectionally");
+}
 #[tokio::test]
 async fn encrypted_localhost_roundtrip_all_channels() {
     let (host, mut host_inbox) = RtcPeer::new(vec![]).await.unwrap();
