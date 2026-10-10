@@ -7,7 +7,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [features]
-doodles = ["dep:photocraft-engine", "dep:photocraft-compose", "dep:photocraft-paint", "dep:image", "dep:serde_json", "dep:photocraft-format"]
+doodles = ["dep:photocraft-engine", "dep:photocraft-compose", "dep:photocraft-paint", "dep:image", "dep:photocraft-format"]
 
 [[bin]]
 name = "collaboration-doodles"
@@ -20,10 +20,13 @@ photocraft-engine = { workspace = true, optional = true }
 photocraft-compose = { workspace = true, optional = true }
 photocraft-paint = { workspace = true, optional = true }
 image = { workspace = true, features = ["png"], optional = true }
-serde_json = { workspace = true, optional = true }
+serde_json.workspace = true
+serde.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 photocraft-collab = { path = "../../crates/collab", features = ["native"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
 axum = "0.8"
+tower-http = { version = "0.6", features = ["fs"] }
 
 [lints]
 workspace = true
