@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn typed_color_counts_reject_fractions_and_allow_arbitrary_integers() {
-        for (text, expected) in [("17", 17), ("256", 256), ("17.5", 64), ("17,5", 64), ("1e2", 64)] {
+        for (text, expected) in [("17", 17), ("256", 256), ("17.5", 64), ("17,5", 64), ("1e2", 100), ("(8+8)*2", 32), ("2^8", 256), ("5/2", 64)] {
             let mut harness = Harness::builder().with_size(vec2(320.0, 100.0)).build_ui_state(
                 |ui, count: &mut u32| {
                     color_count_row(ui, "Colors", count);
