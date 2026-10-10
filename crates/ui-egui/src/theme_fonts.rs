@@ -2,6 +2,13 @@
 use egui::{Context, FontData, FontDefinitions, FontFamily, FontId};
 use std::sync::Arc;
 
+include!(concat!(env!("OUT_DIR"), "/theme_fonts.rs"));
+
+fn embedded_font(family: &str) -> Option<FontData> {
+    let (_, bytes, _) = EMBEDDED_THEME_FONTS.iter().find(|(name, _, _)| *name == family)?;
+    checked_font(bytes.to_vec(), family)
+}
+
 pub const FAMILIES: [&str; 8] = ["Inter", "JetBrains Mono", "Microsoft Sans Serif", "Geneva", "Chicago", "Charcoal", "Chicago Kare", "W95FA"];
 
 #[derive(Clone, Debug)]
@@ -74,7 +81,7 @@ fn load(family: &str) -> Option<FontData> {
         "W95FA" => &W95FA,
         _ => return None,
     };
-    cache.get_or_init(|| read_font(family)).clone()
+    cache.get_or_init(|| read_font(family).or_else(|| embedded_font(family))).clone()
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -150,7 +157,6 @@ fn read_installed_font(path: &std::path::Path, family: &str) -> Option<FontData>
     checked_font(bytes, family)
 }
 
-#[cfg(any(not(target_arch = "wasm32"), test))]
 fn checked_font(bytes: Vec<u8>, family: &str) -> Option<FontData> {
     if bytes.is_empty() || bytes.len() > 8 * 1024 * 1024 {
         return None;
@@ -161,8 +167,32 @@ fn checked_font(bytes: Vec<u8>, family: &str) -> Option<FontData> {
     Some(FontData::from_owned(bytes))
 }
 #[cfg(target_arch = "wasm32")]
-fn load(_: &str) -> Option<FontData> {
-    None
+fn load(family: &str) -> Option<FontData> {
+    use std::sync::OnceLock;
+    static KARE: OnceLock<Option<FontData>> = OnceLock::new();
+    static WINDOWS: OnceLock<Option<FontData>> = OnceLock::new();
+    let cache = match family {
+        "Chicago Kare" => &KARE,
+        "W95FA" => &WINDOWS,
+        _ => return None,
+    };
+    cache.get_or_init(|| embedded_font(family)).clone()
+}
+
+/// License notices travel inside binaries using the optional historical UI subset.
+pub(crate) fn license_notices(ui: &mut egui::Ui) {
+    if EMBEDDED_THEME_FONTS.is_empty() {
+        return;
+    }
+    ui.collapsing("Historical UI font licenses", |ui| {
+        for (family, _, license) in EMBEDDED_THEME_FONTS {
+            ui.collapsing(*family, |ui| {
+                egui::ScrollArea::vertical().id_salt(("theme-font-license", family)).max_height(180.0).show(ui, |ui| {
+                    ui.add(egui::Label::new(*license).wrap().selectable(true));
+                });
+            });
+        }
+    });
 }
 
 pub fn status(ctx: &Context) -> Option<(String, String)> {
@@ -222,6 +252,45 @@ pub(crate) fn number(ctx: &Context, size: f32) -> FontId {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires PHOTOCRAFT_THEME_FONTS_BUILD_DIR at build time"]
+    fn bundled_license_notices_can_be_opened_and_stay_in_the_about_dialog() {
+        use egui_kittest::kittest::Queryable;
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1280.0, 900.0)).build_eframe(|cc| {
+            crate::PhotocraftApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::Classic);
+            crate::PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default())
+        });
+        h.state_mut().ui.open_dialog(crate::state::DialogKind::About, Default::default());
+        h.run_steps(4);
+        h.get_by_label("Historical UI font licenses").click();
+        h.run_steps(3);
+        h.get_by_label("W95FA").click();
+        h.run_steps(3);
+        let ok = h.get_by_label("OK").rect();
+        assert!(ok.bottom() <= 900.0 && ok.right() <= 1280.0, "{ok:?}");
+        assert!(h.output().shapes.iter().any(|s| match &s.shape {
+            egui::epaint::Shape::Text(t) => t.galley.job.text.contains("SIL OPEN FONT LICENSE Version 1.1"),
+            _ => false,
+        }));
+    }
+
+    #[test]
+    #[ignore = "requires PHOTOCRAFT_THEME_FONTS_BUILD_DIR at build time"]
+    fn bundled_historical_faces_and_notices_are_available_without_runtime_checkout() {
+        assert_eq!(EMBEDDED_THEME_FONTS.len(), 2);
+        assert_eq!(EMBEDDED_THEME_FONTS.iter().map(|(_, bytes, _)| bytes.len()).sum::<usize>(), 62_892);
+        for (family, bytes, license) in EMBEDDED_THEME_FONTS {
+            assert!(checked_font(bytes.to_vec(), family).is_some());
+            assert!(license.len() > 100);
+        }
+        let ctx = Context::default();
+        crate::theme::install_fonts(&ctx);
+        for family in ["Chicago Kare", "W95FA"] {
+            set(&ctx, Some(family));
+            assert_eq!(status(&ctx), Some((family.into(), family.into())));
+        }
+    }
 
     #[test]
     fn chicago_recreation_calibrates_alias_styles_without_double_scaling() {

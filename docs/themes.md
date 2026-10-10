@@ -282,8 +282,8 @@ Numeric fields retain native editing and measure the font row with a one-point v
 inset when calibrated, keeping the editable text and hit area inside the painted field.
 Chicago Kare is Duane King's MIT-licensed recreation, not Apple's original font.
 Font bytes and their license/manifest/attribution live in craft-fonts, never PhotoCraft.
-Browser builds still report their bundled fallback until a separate runtime font delivery
-path is implemented; this native provider does not add font bytes to WebAssembly.
+Browser builds can use the optional historical font build input below; without it they
+report their bundled fallback. The native runtime provider itself adds no browser bytes.
 
 Dock sizing: `geometry.dockGroupHeights` and `dockGroupCompactHeights` are six logical-point heights in Color, Properties, Character, Navigator, History, Layers order (80–1024; Layers minimum140; compact <= default). `dockPreferredFill` (140–1200) sets the space reserved for Layers before untouched groups expand to their full defaults; the last expanded group fills the remaining column. `dockGroupGap` (0–16, default6) controls layout, splitters and drop markers. Existing `colorPanelHeight` takes precedence over the Color default. Theme defaults never become saved manual heights; compact sizing yields before manual groups. Historical defaults:120/180/180/160/140/320, compact100/120/120/110/100/200, Layers preferred352, gap2. Modern defaults and saved workspace sizing are preserved.
 
@@ -306,5 +306,38 @@ provider is present, its compatibility request resolves to W95FA; an installed M
 Sans Serif remains preferred. An unavailable explicit W95FA request uses installed
 Microsoft Sans Serif, otherwise Inter. Theme Manager reports the actual face. Point sizes
 remain raw pending detailed raster calibration. Degree and Unicode ellipsis use the
-existing glyph fallback because the recreation lacks them. This does not bundle fonts
-into PhotoCraft or add font bytes to browser builds. Restart to load newly added font bytes.
+existing glyph fallback because the recreation lacks them. The runtime provider reads
+external fonts; restart to load newly added font bytes. The optional build input below
+can instead make these two recreations available without a runtime checkout.
+
+
+### Optional bundled historical UI fonts
+
+Set `PHOTOCRAFT_THEME_FONTS_BUILD_DIR=/absolute/path/to/craft-fonts` when building
+native or WASM artifacts to embed only Chicago Kare Regular and W95FA Regular
+(62,892 font bytes total), plus their complete license notices. This is separate from
+`CRAFT_FONTS_DIR`, which supplies the larger document/CJK font collection.
+
+```sh
+PHOTOCRAFT_THEME_FONTS_BUILD_DIR="$PWD/../craft-fonts" \
+PHOTOCRAFT_THEME_FONTS_REQUIRED=1 cargo build --release -p photocraft
+```
+
+Use the same variables with `trunk build --release` from `apps/photocraft-web`, with
+an absolute checkout path. The subset works on both targets. Font files remain in
+craft-fonts; they must never be committed here. The build validates exact manifest
+paths, SHA-256, actual family identity, bounded file sizes, checkout containment,
+and license text. Missing optional input uses existing fallbacks; invalid optional
+input emits a build warning and omits the subset. `PHOTOCRAFT_THEME_FONTS_REQUIRED=1`
+makes absent or invalid input a build error. Pin the external checkout for reproducible
+release artifacts. This does not change the existing release workflow's font pin.
+
+Native installed/runtime faces remain preferred, with bundled faces available as a
+fallback. WASM uses the bundled subset directly. Compatibility family requests,
+Chicago Kare size calibration, glyph fallback, and Theme Manager's actual-face report
+are shared. About PhotoCraft exposes the complete embedded notices under
+“Historical UI font licenses.” Builds without this input omit that section.
+
+The browser artifact must still pass the 24 MiB packaging limit after Trunk optimization;
+the size of the font files alone does not prove that limit. W95FA point-size calibration
+and separate historical font roles remain follow-up work.

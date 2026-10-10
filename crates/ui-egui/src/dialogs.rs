@@ -104,6 +104,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                     });
                     ui.add_space(10.0);
                     ui.weak("egui · wgpu · photocraft-engine");
+                    crate::theme_fonts::license_notices(ui);
                 }
                 DialogKind::Command if crate::fill_ui::owns(&fields) => crate::fill_ui::body(app, ui, &mut fields),
                 DialogKind::Command if crate::rasterize_prompt::owns(&fields) => crate::rasterize_prompt::body(ui, &fields),

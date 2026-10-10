@@ -31,6 +31,8 @@ base64 = "0.22"
 rayon = { workspace = true }
 
 [dev-dependencies]
+sha2 = "0.10"
+skrifa = "0.44"
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot", "eframe"] }
 # Only for examples/snapshot.rs (offscreen UI renders of real files).
 photocraft-io = { workspace = true }
@@ -41,3 +43,7 @@ photocraft-format = { workspace = true }
 photocraft-testkit = { workspace = true }
 # Only for examples/perf_scenarios.rs (a 500-brush .abr for the #210 import row).
 photocraft-psd = { workspace = true }
+
+[build-dependencies]
+sha2 = "0.10"
+skrifa = "0.44"
