@@ -1,5 +1,6 @@
 //! Session collaboration state and deterministic sparse-tile stroke replay.
 use crate::{EngineError, Session};
+pub use photocraft_collab::DEFAULT_SIGNALING_URL;
 use photocraft_collab::*;
 use photocraft_doc::{Document, LayerId};
 use photocraft_paint::StrokeRenderer;

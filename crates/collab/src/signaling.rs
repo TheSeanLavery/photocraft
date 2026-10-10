@@ -82,6 +82,13 @@ fn password_hash(code: &str, password: &str) -> [u8; 32] {
     Sha256::digest(format!("{code}:{password}").as_bytes()).into()
 }
 impl RoomService {
+    /// Validate active room membership without draining the signaling queue.
+    pub async fn authorize(&self, auth: &Auth) -> Result<(), ApiError> {
+        let mut rooms = self.rooms.lock().await;
+        authenticated(&mut rooms, auth)?;
+        Ok(())
+    }
+
     pub async fn create(&self, request: RoomRequest) -> Result<Admission, ApiError> {
         if request.password.as_ref().is_some_and(|p| p.len() > 256) {
             return Err((StatusCode::BAD_REQUEST, "password too long"));

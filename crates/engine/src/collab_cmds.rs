@@ -36,7 +36,7 @@ fn room(s: &mut Session, p: &Value, create: bool) -> Result<Value> {
     if password.as_ref().is_some_and(|p| p.len() > 256) {
         return Err(bad("password too long"));
     }
-    let server = p.get("signalingUrl").and_then(Value::as_str).unwrap_or("http://127.0.0.1:5548").to_string();
+    let server = p.get("signalingUrl").and_then(Value::as_str).unwrap_or(photocraft_collab::DEFAULT_SIGNALING_URL).to_string();
     s.collaboration = crate::collab::Collaboration::default();
     s.collaboration.document_id = s.active().map(|st| st.doc.id);
     s.collaboration.room = Some(RoomState::new(code.clone(), if create { peer.clone() } else { "host".into() }, peer.clone()));

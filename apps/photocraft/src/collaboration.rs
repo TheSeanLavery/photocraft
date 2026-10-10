@@ -538,7 +538,7 @@ mod tests {
     }
 
     fn pump(host: &mut Bridge, a: &mut PhotocraftApp, guest: &mut Bridge, b: &mut PhotocraftApp, until: impl Fn(&PhotocraftApp, &PhotocraftApp) -> bool) {
-        let deadline = Instant::now() + Duration::from_secs(20);
+        let deadline = Instant::now() + Duration::from_secs(60);
         loop {
             host.tick(a).unwrap();
             guest.tick(b).unwrap();
@@ -555,6 +555,15 @@ mod tests {
 
     #[test]
     fn actual_native_bridge_bootstrap_draw_chat_and_personal_undo() {
+        bridge_acceptance(None);
+    }
+    #[test]
+    #[ignore = "requires live PHOTOCRAFT_PLAYTEST_URL; run with PHOTOCRAFT_RTC_RELAY_ONLY=1"]
+    fn public_cloudflare_bridge_draw_chat_late_join_and_undo() {
+        let url = std::env::var("PHOTOCRAFT_PLAYTEST_URL").expect("public playtest URL");
+        bridge_acceptance(Some(url));
+    }
+    fn bridge_acceptance(public_server: Option<String>) {
         let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
         let (server, stop) = runtime.block_on(async {
             let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -569,6 +578,7 @@ mod tests {
             });
             (server, stop)
         });
+        let server = public_server.unwrap_or(server);
         let mut a = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         let mut b = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         a.ui.collaboration.name = "Host".into();

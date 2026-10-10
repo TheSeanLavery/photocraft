@@ -44,7 +44,7 @@ impl Default for CollaborationUi {
             color: [80, 170, 240],
             code: String::new(),
             password: String::new(),
-            signaling_url: "http://127.0.0.1:5548".into(),
+            signaling_url: photocraft_engine::collab::DEFAULT_SIGNALING_URL.into(),
             cursor_visible: true,
             name_visible: true,
             show_cursors: true,

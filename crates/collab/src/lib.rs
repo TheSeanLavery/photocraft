@@ -9,3 +9,9 @@ pub use model::*;
 pub mod signaling;
 #[cfg(all(feature = "native", not(target_arch = "wasm32")))]
 pub mod transport;
+
+/// Shared public room service; distributors can override it at build time.
+pub const DEFAULT_SIGNALING_URL: &str = match option_env!("PHOTOCRAFT_DEFAULT_SIGNALING_URL") {
+    Some(url) => url,
+    None => "https://photocraft-mp.theseanlavery.workers.dev",
+};
