@@ -202,3 +202,29 @@ fit and tool input, so scrolling cannot paint beneath a scrollbar.
 `geometry.scrollBarWidth` (12–32 logical points) adjusts app scrollbar width without
 recompiling. The three historical definitions default to 16 points. Gallery states
 `arrow` and `scroll` show a held arrow and the resulting scrolled content.
+
+
+## Offscreen release reload acceptance
+
+The `runtime_theme_acceptance` example exercises the production frame loop and native
+environment-file watcher in a release build, without opening a window or using user settings.
+It loads all three historical packs, checks malformed-file retention, atomically replaces the
+file with changed colors and button height, and verifies deletion retention. System 6 also
+has a rendered pixel check for a white pasteboard without a soft document shadow. Historical
+profiles render the default document shadow preference as a crisp outline using their border
+token; an explicit None border is still honored.
+
+Use a fresh caller-owned evidence directory; scale is `1`, `1.5`, or `2`, and renderer is
+`cpu` or `gpu`. Both use WGPU for the offscreen UI; `gpu` additionally enables the production
+GPU document canvas and fails if that path is unavailable.
+
+```sh
+cargo build --release -p photocraft-ui-egui --example runtime_theme_acceptance
+PHOTOCRAFT_THEME_FILE="$PWD/plan/evidence/live-acceptance/live.theme.json" \
+  target/release/examples/runtime_theme_acceptance "$PWD/plan/evidence/live-acceptance" 1 cpu
+```
+
+The example writes normal and recovered PNGs plus `acceptance.json` with the build mode and
+asserted outcomes. This proves the native override path; desktop Theme Manager file-picker
+interaction, release theme-library storage, and browser import/export/persistence require
+separate runtime acceptance.

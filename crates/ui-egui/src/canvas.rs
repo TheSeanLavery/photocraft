@@ -15,6 +15,12 @@ use crate::state::{Tool, View};
 /// Largest texture side we upload; bigger documents display downsampled until the GPU path lands.
 pub const MAX_TEXTURE: u32 = 4096;
 
+/// Historical document edges use a crisp rule instead of the modern soft pasteboard shadow.
+fn canvas_border(border: photocraft_engine::prefs::CanvasBorder, appearance: crate::theme::Appearance) -> photocraft_engine::prefs::CanvasBorder {
+    use photocraft_engine::prefs::CanvasBorder;
+    if appearance != crate::theme::Appearance::Modern && border == CanvasBorder::DropShadow { CanvasBorder::Line } else { border }
+}
+
 pub struct CanvasCache {
     pub revision: u64,
     pub texture: Option<egui::TextureHandle>,
@@ -1320,7 +1326,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         }
         None => paint_dots(ui, rect),
     }
-    let border = app.session.prefs().interface.canvas_border;
+    let border = canvas_border(app.session.prefs().interface.canvas_border, crate::theme::Tokens::get(&ctx).appearance);
     let drop_shadow = border == photocraft_engine::prefs::CanvasBorder::DropShadow;
     // Drop shadow, checkerboard, document image.
     let img_rect = xf.doc_rect(doc.bounds());
@@ -1671,7 +1677,9 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         crate::layer_pick_ui::show(app, &ctx);
         crate::snap_ui::draw(app, &painter, &xf);
         if border == photocraft_engine::prefs::CanvasBorder::Line {
-            painter.rect_stroke(img_rect, 0.0, Stroke::new(1.0, Color32::from_gray(20)), egui::StrokeKind::Outside);
+            let tokens = crate::theme::Tokens::get(&ctx);
+            let color = if tokens.appearance == crate::theme::Appearance::Modern { Color32::from_gray(20) } else { tokens.card_border };
+            painter.rect_stroke(img_rect, 0.0, Stroke::new(1.0, color), egui::StrokeKind::Outside);
         }
         crate::type_tool::draw_overlay(app, &painter, &xf);
         crate::transform_tool::draw_overlay(app, &painter, &xf);
@@ -2415,6 +2423,20 @@ fn hex(c: [f32; 4]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn historical_canvas_edges_replace_only_soft_shadows() {
+        use crate::theme::Appearance;
+        use photocraft_engine::prefs::CanvasBorder;
+        for appearance in [Appearance::Windows98, Appearance::Platinum, Appearance::System6] {
+            assert_eq!(canvas_border(CanvasBorder::DropShadow, appearance), CanvasBorder::Line);
+            assert_eq!(canvas_border(CanvasBorder::Line, appearance), CanvasBorder::Line);
+            assert_eq!(canvas_border(CanvasBorder::None, appearance), CanvasBorder::None);
+        }
+        for border in [CanvasBorder::DropShadow, CanvasBorder::Line, CanvasBorder::None] {
+            assert_eq!(canvas_border(border, Appearance::Modern), border);
+        }
+    }
 
     #[test]
     fn pointer_moves_are_bounded_by_the_press_and_release() {
