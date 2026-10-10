@@ -722,6 +722,8 @@ pub struct UiState {
     pub hdr_workbench_open: bool,
     #[serde(default)]
     pub collaboration: crate::collaboration_ui::CollaborationUi,
+    #[serde(default)]
+    pub theme_manager: Option<crate::theme_manager::Manager>,
     pub tool: Tool,
     /// Recently opened file paths, most-recent first (File › Open Recent). Capped; de-duplicated.
     #[serde(default)]
@@ -813,6 +815,9 @@ pub struct UiState {
     pub dialogs: Vec<Dialog>,
     pub windows: Vec<DocWindow>,
     pub theme: crate::theme::ThemeKind,
+    /// Actual resolved theme, including external packs. `theme` is its built-in base.
+    #[serde(default)]
+    pub theme_id: String,
     pub workspace: String,
     pub palette_open: bool,
     pub dock_tabs: DockTabs,
@@ -875,6 +880,7 @@ impl Default for UiState {
             sdr_output: false,
             hdr_workbench_open: false,
             collaboration: Default::default(),
+            theme_manager: None,
             tool: Tool::Brush,
             recent_files: Vec::new(),
             text_edit: None,
@@ -910,6 +916,7 @@ impl Default for UiState {
             dialogs: Vec::new(),
             windows: Vec::new(),
             theme: crate::theme::ThemeKind::ProMedium,
+            theme_id: crate::theme::ThemeKind::ProMedium.registry_id().into(),
             workspace: "Essentials".into(),
             palette_open: false,
             dock_tabs: DockTabs::default(),

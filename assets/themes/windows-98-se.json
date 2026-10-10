@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "builtin.windows-98-se",
+  "name": "Windows 98 SE",
+  "base": "classic",
+  "appearance": "windows98",
+  "colors": {
+    "chrome": "#C0C0C0",
+    "dock": "#C0C0C0",
+    "card": "#C0C0C0",
+    "hover": "#C0C0C0",
+    "pressed": "#C0C0C0",
+    "tab_strip": "#C0C0C0",
+    "canvas": "#808080",
+    "canvas_dot": "#808080",
+    "card_border": "#808080",
+    "field": "#FFFFFF",
+    "field_border": "#808080",
+    "text": "#000000",
+    "text_dim": "#000000",
+    "text_faint": "#808080",
+    "icon": "#000000",
+    "accent": "#000080",
+    "accent_soft": "#1084D0",
+    "accent_border": "#000000",
+    "accent_text": "#FFFFFF",
+    "separator": "#808080",
+    "shadow": "#000000",
+    "primary_bg": "#C0C0C0",
+    "primary_text": "#000000",
+    "row_selected": "#000080",
+    "bevel_highlight": "#FFFFFF",
+    "bevel_light": "#C0C0C0",
+    "bevel_shadow": "#808080",
+    "bevel_dark": "#000000",
+    "row_selected_text": "#FFFFFF"
+  },
+  "geometry": {
+    "radiusSmall": 0,
+    "radius": 0,
+    "radiusLarge": 0,
+    "bevelWidth": 2,
+    "itemSpacing": [
+      5,
+      3
+    ],
+    "buttonPadding": [
+      8,
+      2
+    ],
+    "controlSize": [
+      18,
+      18
+    ],
+    "fieldHeight": 20,
+    "tabHeight": 20,
+    "panelPadding": 2,
+    "panelGap": 2,
+    "rowGap": 2,
+    "titleBarHeight": 18,
+    "optionsBarHeight": 24,
+    "statusBarHeight": 22,
+    "toolButtonSize": 22,
+    "toolbarPadding": 2,
+    "railButtonSize": 20,
+    "preferenceSpacing": [
+      8,
+      4
+    ],
+    "menuMargin": 2,
+    "dialogMargin": 10,
+    "buttonHeight": 23,
+    "scrollBarWidth": 16,
+    "menuBarHeight": 18,
+    "documentTabHeight": 20,
+    "layerRowHeight": 28,
+    "layerThumbnailSize": 20,
+    "swatchSize": 16,
+    "colorPanelHeight": 120,
+    "dockWidth": 240,
+    "dockMinWidth": 220,
+    "dockMaxWidth": 520,
+    "dockGroupHeights": [
+      120,
+      180,
+      180,
+      160,
+      140,
+      320
+    ],
+    "dockGroupCompactHeights": [
+      100,
+      120,
+      120,
+      110,
+      100,
+      200
+    ],
+    "dockPreferredFill": 352,
+    "dockGroupGap": 2,
+    "sliderThumbSize": [
+      10,
+      14
+    ],
+    "sliderTrackHeight": 4
+  },
+  "typography": {
+    "small": 10,
+    "body": 11,
+    "button": 11,
+    "heading": 12,
+    "monospace": 11,
+    "family": "MS Sans Serif",
+    "captionBold": true,
+    "caption": 11
+  }
+}

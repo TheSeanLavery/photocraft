@@ -4393,4 +4393,69 @@ ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Zoom con la rueda de desplazamiento
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Zoom con el pellizco del trackpad
 
 ui-collaboration-977b20dea89dd78c = Colaboración…
+
 ui-collaboration-view-settings-cd37c80a120a2d5e = Ajustes de vista de colaboración
+
+# Runtime and historical themes
+
+ui-apply-theme-940745b76f98edfc = Aplicar tema
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = Cancelar vista previa del tema
+
+ui-caption-font-01f956c20c42c9c8 = Fuente del título
+
+ui-copy-json-fc4e8907ed0b8b94 = Copiar JSON
+
+ui-draft-name-c0af463d8e1619b5 = Borrador: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = Duplicar tema
+
+ui-edit-theme-definition-7f259c436cbc367b = Editar definición del tema
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = Edita la definición a continuación. Duplica un tema integrado antes de modificarlo.
+
+ui-export-theme-9924f16b219aa424 = Exportar tema…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = La fuente { $requested } no está disponible; se usa { $actual }.
+
+ui-import-theme-a399ac79528870d5 = Importar tema…
+
+ui-list-themes-3674d7aab0c03693 = Lista de temas
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Tema Mac OS 9.1 Platinum
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Tema Macintosh System 6
+
+ui-preview-theme-7eced90e6da56ad4 = Vista previa del tema
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = La vista previa está activa. Cancelar restaura el tema guardado.
+
+ui-remove-theme-f449889ab3dc13fe = Eliminar tema
+
+ui-reset-changes-91bb267473e72bf7 = Restablecer cambios
+
+ui-reset-theme-09df599fa743782b = Restablecer tema
+
+ui-saved-theme-c30bc5d2b3c69847 = Tema guardado
+
+ui-scroll-down-fff28769afb825f2 = Desplazar hacia abajo
+
+ui-scroll-left-58498927306bf4d7 = Desplazar a la izquierda
+
+ui-scroll-right-3171dac9aaa15648 = Desplazar a la derecha
+
+ui-scroll-up-ae49a1e892131037 = Desplazar hacia arriba
+
+ui-select-theme-85a12011f3908f5a = Seleccionar tema
+
+ui-theme-details-a78c7b85de9ad366 = Detalles del tema
+
+ui-theme-manager-43184a7204b2f7ef = Gestor de temas
+
+ui-theme-manager-5e06c12bd6d5d9a9 = Gestor de temas…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = La definición del tema supera los 64 KiB
+
+ui-theme-id-2057ac72399d5a4d = ID del tema
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Tema Windows 98 SE

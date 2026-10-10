@@ -6,6 +6,7 @@
 //! `measurementLog.*`); this module only holds view state ([`AnalysisUi`], part of the
 //! serialisable UI state so the control channel can read and drive it).
 
+use crate::scroll_area::ScrollArea;
 use egui::{Align2, Color32, CornerRadius, FontId, Pos2, RichText, Stroke, pos2, vec2};
 use photocraft_doc::{Document, Ruler};
 use serde::{Deserialize, Serialize};
@@ -579,7 +580,7 @@ pub fn windows(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 });
             });
             let cols: Vec<&str> = photocraft_engine::analysis_cmds::log_columns(&rows).into_iter().filter(|c| *c != "histogram").collect();
-            egui::ScrollArea::both().max_height(220.0).max_width(620.0).show(ui, |ui| {
+            ScrollArea::both().max_height(220.0).max_width(620.0).show(ui, |ui| {
                 egui::Grid::new("mlog-grid").striped(true).spacing(vec2(10.0, 2.0)).show(ui, |ui| {
                     for c in &cols {
                         let name = photocraft_engine::analysis_cmds::COLUMNS.iter().find(|x| x.0 == *c).map_or(*c, |x| x.1);

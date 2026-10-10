@@ -60,7 +60,7 @@ pub fn selective_color_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: La
     let mut method = values["method"].as_str().unwrap_or("relative").to_string();
     ui.horizontal(|ui| {
         for (m, label) in [("relative", tl!("Relative")), ("absolute", tl!("Absolute"))] {
-            if ui.radio(method == m, label).clicked() && method != m {
+            if crate::widgets::radio(ui, method == m, label).clicked() && method != m {
                 method = m.to_string();
                 values["method"] = json!(m);
                 commit = true;
@@ -96,7 +96,8 @@ pub fn color_lookup_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: Layer
     let mut params: Option<Value> = None;
     ui.horizontal(|ui| {
         ui.label(egui::RichText::new(tl!("3D LUT File")).color(t.text_dim));
-        if widgets::dropdown(ui, &format!("clrl-{}", id.0), &mut sel, &opts, 170.0) && sel != current && sel != "custom" {
+        let lut_width = if t.appearance != crate::theme::Appearance::Modern { ui.available_width().min(170.0) } else { 170.0 };
+        if widgets::dropdown(ui, &format!("clrl-{}", id.0), &mut sel, &opts, lut_width) && sel != current && sel != "custom" {
             params = Some(json!({"lut": sel}));
         }
     });
@@ -104,7 +105,12 @@ pub fn color_lookup_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: Layer
     let path_key = egui::Id::new(("clrl-path", id.0));
     let mut path: String = ui.data(|d| d.get_temp(path_key)).unwrap_or_default();
     ui.horizontal(|ui| {
-        let r = ui.add(egui::TextEdit::singleline(&mut path).hint_text(".cube / .3dl / .look path").desired_width(170.0));
+        let path_width = if t.appearance != crate::theme::Appearance::Modern {
+            (ui.available_width() - 60.0 - ui.spacing().item_spacing.x - 8.0).clamp(40.0, 170.0)
+        } else {
+            170.0
+        };
+        let r = ui.add(egui::TextEdit::singleline(&mut path).hint_text(".cube / .3dl / .look path").desired_width(path_width));
         if r.changed() {
             ui.data_mut(|d| d.insert_temp(path_key, path.clone()));
         }
@@ -116,7 +122,7 @@ pub fn color_lookup_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, id: Layer
     let mut tet = *tetrahedral;
     ui.horizontal(|ui| {
         for (on, label) in [(false, tl!("Trilinear")), (true, tl!("Tetrahedral"))] {
-            if ui.radio(tet == on, label).clicked() && tet != on {
+            if crate::widgets::radio(ui, tet == on, label).clicked() && tet != on {
                 tet = on;
                 params = Some(json!({"tetrahedral": on}));
             }

@@ -2173,3 +2173,39 @@ cameraRaw	Blending	混合
 
 	Collaboration…	协作…
 	Collaboration View Settings	协作视图设置
+# Runtime theme library
+	List Themes	主题列表
+	Theme Details	主题详情
+	Select Theme	选择主题
+	Import Theme…	导入主题…
+	Export Theme…	导出主题…
+	Remove Theme	删除主题
+	Theme id	主题 ID
+# Theme Manager
+	Theme Manager…	主题管理器…
+	Preview Theme	预览主题
+	Apply Theme	应用主题
+	Cancel Theme Preview	取消主题预览
+	Edit Theme Definition	编辑主题定义
+	Duplicate Theme	复制主题
+	Reset Theme	重置主题
+	Theme Manager	主题管理器
+	Reset Changes	重置更改
+	Copy JSON	复制 JSON
+	Edit the definition below. Duplicate a built-in theme before changing it.	编辑下方的定义。修改内置主题前请先创建副本。
+	Theme definition exceeds 64 KiB	主题定义超过 64 KiB
+	Preview is active. Cancel restores your saved theme.	正在预览。取消后将恢复已保存的主题。
+	Saved theme	已保存的主题
+	Draft: {name}	草稿：{name}
+	Duplicate	复制
+	Import…	导入…
+# Historical appearance profiles
+	Windows 98 SE Theme	Windows 98 SE 主题
+	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum 主题
+	Macintosh System 6 Theme	Macintosh System 6 主题
+	Font {requested} is unavailable; using {actual}.	字体 {requested} 不可用；使用 {actual}。
+	Scroll left	向左滚动
+	Scroll right	向右滚动
+	Scroll up	向上滚动
+	Scroll down	向下滚动
+	Caption font	标题字体

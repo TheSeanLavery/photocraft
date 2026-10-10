@@ -1,7 +1,7 @@
 //! Custom widgets for the Photocraft look: cards with pill tabs, thin sliders with round knobs,
 //! monospace value fields with dimmed units, toggle switches, primary/secondary buttons.
 
-use egui::{Align2, Color32, CornerRadius, Pos2, Rect, Response, Sense, Stroke, StrokeKind, Ui, Vec2, pos2, vec2};
+use egui::{Color32, CornerRadius, Pos2, Rect, Response, Sense, Stroke, StrokeKind, Ui, Vec2, pos2, vec2};
 
 use crate::theme::{self, Tokens};
 
@@ -22,13 +22,31 @@ pub fn drop_line(ui: &Ui, r: Rect, after: bool, vertical: bool, t: &Tokens) {
 pub fn surface(ui: &Ui, rect: Rect, fill: Color32, raised: bool) {
     let t = Tokens::get(ui.ctx());
     let p = ui.painter();
+    if crate::historical::surface(ui, rect, fill, raised) {
+        return;
+    }
     p.rect_filled(rect, t.radius_sm, fill);
     if t.bevel {
-        let (hi, lo) = if raised { (Color32::WHITE, Color32::from_gray(64)) } else { (Color32::from_gray(64), Color32::WHITE) };
-        p.line_segment([rect.left_bottom(), rect.left_top()], Stroke::new(1.0, hi));
-        p.line_segment([rect.left_top(), rect.right_top()], Stroke::new(1.0, hi));
-        p.line_segment([rect.right_top(), rect.right_bottom()], Stroke::new(1.0, lo));
-        p.line_segment([rect.right_bottom(), rect.left_bottom()], Stroke::new(1.0, lo));
+        let edge = |rect: Rect, hi, lo| {
+            p.line_segment([rect.left_bottom(), rect.left_top()], Stroke::new(1.0, hi));
+            p.line_segment([rect.left_top(), rect.right_top()], Stroke::new(1.0, hi));
+            p.line_segment([rect.right_top(), rect.right_bottom()], Stroke::new(1.0, lo));
+            p.line_segment([rect.right_bottom(), rect.left_bottom()], Stroke::new(1.0, lo));
+        };
+        if t.bevel_width >= 2.0 {
+            let (outer_hi, outer_lo, inner_hi, inner_lo) = if raised {
+                (t.bevel_light, t.bevel_dark, t.bevel_highlight, t.bevel_shadow)
+            } else {
+                (t.bevel_shadow, t.bevel_highlight, t.bevel_dark, t.bevel_light)
+            };
+            edge(rect, outer_hi, outer_lo);
+            if rect.width() >= 4.0 && rect.height() >= 4.0 {
+                edge(rect.shrink(1.0), inner_hi, inner_lo);
+            }
+        } else {
+            let (hi, lo) = if raised { (t.bevel_highlight, t.bevel_shadow) } else { (t.bevel_shadow, t.bevel_highlight) };
+            edge(rect, hi, lo);
+        }
     }
 }
 
@@ -59,32 +77,37 @@ pub fn card_ex(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, colla
     if t.pro {
         return pro_panel(ui, id, tabs, selected, collapsed, body);
     }
-    let frame = egui::Frame::NONE
-        .fill(t.card)
-        .stroke(Stroke::new(1.0, t.card_border))
-        .corner_radius(CornerRadius::same(t.radius as u8))
-        .inner_margin(egui::Margin { left: 8, right: 8, top: 6, bottom: if collapsed { 6 } else { 10 } });
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let padding = layout.panel_padding.round() as i8;
+    let frame =
+        egui::Frame::NONE.fill(t.card).stroke(Stroke::new(1.0, t.card_border)).corner_radius(CornerRadius::same(t.radius as u8)).inner_margin(egui::Margin {
+            left: padding,
+            right: padding,
+            top: (padding - 2).max(0),
+            bottom: if collapsed { (padding - 2).max(0) } else { (padding + 2).min(34) },
+        });
     let out = frame
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
             // Registered before the tabs so they keep their clicks; drags fall through to it.
-            let strip_rect = Rect::from_min_size(ui.cursor().min, vec2(ui.available_width(), 22.0));
+            let strip_rect = Rect::from_min_size(ui.cursor().min, vec2(ui.available_width(), (layout.tab_height - 2.0).max(14.0)));
             let strip = ui.interact(strip_rect, ui.id().with((id, "strip")), Sense::click_and_drag());
             // Pill tabs left of the menu button; they elide or overflow into a chevron (#151).
-            let (row, _) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::hover());
+            let (row, _) = ui.allocate_exact_size(vec2(ui.available_width(), layout.tab_height), Sense::hover());
             let tip = crate::i18n::fmt(tl!("{name} options"), &[("name", tl!(tabs.get(*selected).copied().unwrap_or(id)))]);
-            let menu_rect = Rect::from_min_max(pos2(row.right() - 22.0, row.top() + 1.0), pos2(row.right(), row.bottom() - 1.0));
-            let menu = crate::icons::button(&mut ui.new_child(egui::UiBuilder::new().max_rect(menu_rect)), "ellipsis", 22.0, false, &tip);
+            let menu_size = (layout.tab_height - 2.0).clamp(14.0, 22.0);
+            let menu_rect = Rect::from_min_max(pos2(row.right() - menu_size, row.top() + 1.0), pos2(row.right(), row.bottom() - 1.0));
+            let menu = crate::icons::button(&mut ui.new_child(egui::UiBuilder::new().max_rect(menu_rect)), "ellipsis", menu_size, false, &tip);
             let area = Rect::from_min_max(row.min, pos2((menu_rect.left() - 4.0).max(row.left()), row.bottom()));
             let tabs_out = crate::tab_strip::pill_tabs(ui, ui.id().with((id, "tabs")), area, tabs, selected);
             if !collapsed {
-                ui.add_space(6.0);
+                ui.add_space(layout.panel_gap);
                 body(ui, *selected);
             }
             CardResponse { strip, menu, tab_double_clicked: tabs_out.double_clicked, tabs: tabs_out.tabs, chevron: tabs_out.chevron }
         })
         .inner;
-    ui.add_space(6.0);
+    ui.add_space(layout.panel_gap);
     out
 }
 
@@ -92,9 +115,10 @@ pub fn card_ex(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, colla
 fn pro_panel(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, collapsed: bool, body: impl FnOnce(&mut Ui, usize)) -> CardResponse {
     let t = Tokens::get(ui.ctx());
     let width = ui.available_width();
+    let layout = theme::LayoutTokens::get(ui.ctx());
     // Tab strip. Its background senses drags (move the group) and double-clicks (collapse);
     // the tabs, registered after it, keep their clicks.
-    let (strip, _) = ui.allocate_exact_size(vec2(width, 26.0), Sense::hover());
+    let (strip, _) = ui.allocate_exact_size(vec2(width, layout.tab_height), Sense::hover());
     let strip_resp = ui.interact(strip, ui.id().with((id, "strip")), Sense::click_and_drag());
     let rounding = if collapsed { CornerRadius::same(3) } else { CornerRadius { nw: 3, ne: 3, sw: 0, se: 0 } };
     ui.painter().rect_filled(strip, rounding, t.tab_strip);
@@ -112,21 +136,21 @@ fn pro_panel(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, collaps
         egui::Frame::NONE
             .fill(t.card)
             .corner_radius(CornerRadius { nw: 0, ne: 0, sw: 3, se: 3 })
-            .inner_margin(egui::Margin { left: 8, right: 8, top: 8, bottom: 8 })
+            .inner_margin(egui::Margin::same(layout.panel_padding.round() as i8))
             .show(ui, |ui| {
-                ui.set_width(width - 16.0);
+                ui.set_width((width - layout.panel_padding.round() * 2.0).max(0.0));
                 body(ui, *selected);
             });
     }
-    ui.add_space(2.0);
+    ui.add_space(layout.panel_gap);
     CardResponse { strip: strip_resp, menu: mresp, tab_double_clicked: tabs_out.double_clicked, tabs: tabs_out.tabs, chevron: tabs_out.chevron }
 }
 
 pub fn pill_tab(ui: &mut Ui, label: &str, selected: bool) -> Response {
     let t = Tokens::get(ui.ctx());
-    let font = theme::medium(12.5);
+    let font = crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).tab_font_size, false);
     let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), font, t.text);
-    let size = vec2(galley.size().x + 20.0, 24.0);
+    let size = vec2(galley.size().x + 20.0, theme::LayoutTokens::get(ui.ctx()).tab_height);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
     if selected {
         surface(ui, rect, t.hover, true);
@@ -144,13 +168,28 @@ pub fn pill_tab(ui: &mut Ui, label: &str, selected: bool) -> Response {
 /// Monospace numeric field with a dimmed unit suffix, Photoshop style. Drag to scrub.
 pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive<f32>, suffix: &str, width: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    let (rect, _) = ui.allocate_exact_size(vec2(width, 24.0), Sense::hover());
+    let metrics = theme::LayoutTokens::get(ui.ctx());
+    let font = crate::theme_fonts::number(ui.ctx(), metrics.field_font_size);
+    let calibrated = crate::theme_fonts::chrome_line_height(ui.ctx(), &font).is_some();
+    let vertical_padding = if calibrated { 1.0 } else { 2.0 };
+    // Measure the selected face, including compatibility calibration and custom
+    // sizes. Nominal font size alone does not describe its actual line box.
+    let number_galley = ui.painter().layout_no_wrap(
+        if range.end() - range.start() <= 10.0 { fmt_num2(f64::from(*value)) } else { fmt_num(f64::from(*value)) },
+        font.clone(),
+        t.text,
+    );
+    let suffix_font = crate::theme_fonts::number(ui.ctx(), (metrics.field_font_size - 1.0).max(6.0));
+    let suffix_galley = ui.painter().layout_no_wrap(suffix.to_owned(), suffix_font, t.text_faint);
+    let height = metrics.field_height.max(number_galley.size().y.max(suffix_galley.size().y) + 2.0 * vertical_padding);
+    let suffix_w = if suffix.is_empty() { 0.0 } else { suffix_galley.size().x + 8.0 };
+    let width = width.max(number_galley.size().x + suffix_w + 8.0);
+    let (rect, _) = ui.allocate_exact_size(vec2(width, height), Sense::hover());
     surface(ui, rect, t.field, false);
     if !t.bevel {
         ui.painter().rect_stroke(rect, t.radius_sm, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
     }
-    let suffix_w = if suffix.is_empty() { 0.0 } else { 16.0 };
-    let field = Rect::from_min_max(rect.min + vec2(4.0, 2.0), rect.max - vec2(4.0 + suffix_w, 2.0));
+    let field = Rect::from_min_max(rect.min + vec2(4.0, vertical_padding), rect.max - vec2(4.0 + suffix_w, vertical_padding));
     // Small ranges (gamma 0.01–9.99, 0–1 centres) need two decimals and a finer drag, like Photoshop.
     let fine = range.end() - range.start() <= 10.0;
     // new_child (not scope_builder): a scope would move the parent cursor back to the child rect.
@@ -163,7 +202,10 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
             ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::NONE;
             ui.style_mut().visuals.widgets.hovered.bg_stroke = Stroke::NONE;
             ui.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::TRANSPARENT;
-            ui.style_mut().override_font_id = Some(theme::mono(12.0));
+            ui.style_mut().override_font_id = Some(font);
+            // DragValue is a button internally: its stock minimum/padding must fit our painted field.
+            ui.spacing_mut().interact_size.y = field.height();
+            ui.spacing_mut().button_padding = egui::Vec2::ZERO;
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let layout = egui::Layout::centered_and_justified(ui.layout().main_dir());
                 ui.allocate_ui_with_layout(field.size(), layout, |ui| number_edit(ui, value, range, fine)).inner
@@ -172,7 +214,7 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
         }
     };
     if !suffix.is_empty() {
-        ui.painter().text(pos2(rect.right() - 6.0, rect.center().y), Align2::RIGHT_CENTER, suffix, theme::mono(11.0), t.text_faint);
+        ui.painter().galley(pos2(rect.right() - 6.0 - suffix_galley.size().x, rect.center().y - suffix_galley.size().y / 2.0), suffix_galley, t.text_faint);
     }
     resp
 }
@@ -211,20 +253,61 @@ fn number_edit(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive<f32
 pub fn slider(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive<f32>, gradient: Option<&[Color32]>) -> Response {
     let t = Tokens::get(ui.ctx());
     let width = ui.available_width().max(60.0);
-    let (rect, mut resp) = ui.allocate_exact_size(vec2(width, 18.0), Sense::click_and_drag());
+    let historical = t.appearance != theme::Appearance::Modern;
+    let metrics = theme::LayoutTokens::get(ui.ctx());
+    let [thumb_width, thumb_height] = metrics.slider_thumb_size;
+    let height = if historical { (thumb_height.max(metrics.slider_track_height) + 4.0).max(18.0) } else { 18.0 };
+    let (rect, mut resp) = ui.allocate_exact_size(vec2(width, height), Sense::click_and_drag());
     let (lo, hi) = (*range.start(), *range.end());
-    let track = Rect::from_center_size(rect.center(), vec2(rect.width() - 14.0, if gradient.is_some() { 5.0 } else { 3.0 }));
+    let span = hi - lo;
+    let adjustable = lo.is_finite() && hi.is_finite() && span.is_finite() && span > 0.0;
+    let inset = if historical { thumb_width + 4.0 } else { 14.0 };
+    let track_height = if historical {
+        metrics.slider_track_height.max(if gradient.is_some() { 5.0 } else { 2.0 })
+    } else if gradient.is_some() {
+        5.0
+    } else {
+        3.0
+    };
+    let track = Rect::from_center_size(rect.center(), vec2(rect.width() - inset, track_height));
     if let Some(p) = resp.interact_pointer_pos()
+        && adjustable
         && (resp.dragged() || resp.clicked())
     {
         let f = ((p.x - track.left()) / track.width()).clamp(0.0, 1.0);
         let nv = lo + f * (hi - lo);
-        if (nv - *value).abs() > f32::EPSILON {
+        if !value.is_finite() || (nv - *value).abs() > f32::EPSILON {
             *value = nv;
             resp.mark_changed();
         }
     }
-    let f = ((*value - lo) / (hi - lo)).clamp(0.0, 1.0);
+    if resp.clicked() && adjustable {
+        resp.request_focus();
+    }
+    if adjustable && resp.has_focus() && ui.is_enabled() {
+        let base = if value.is_finite() { value.clamp(lo, hi) } else { lo };
+        let keyboard = ui.input_mut(|i| {
+            let modifiers = if i.modifiers.shift { egui::Modifiers::SHIFT } else { egui::Modifiers::NONE };
+            if i.consume_key(modifiers, egui::Key::Home) {
+                Some(lo)
+            } else if i.consume_key(modifiers, egui::Key::End) {
+                Some(hi)
+            } else {
+                let increase = i.consume_key(modifiers, egui::Key::ArrowRight) || i.consume_key(modifiers, egui::Key::ArrowUp);
+                let decrease = i.consume_key(modifiers, egui::Key::ArrowLeft) || i.consume_key(modifiers, egui::Key::ArrowDown);
+                (increase || decrease)
+                    .then(|| (base + (i32::from(increase) - i32::from(decrease)) as f32 * span / if i.modifiers.shift { 10.0 } else { 100.0 }).clamp(lo, hi))
+            }
+        });
+        if let Some(next) = keyboard
+            && (!value.is_finite() || next != *value)
+        {
+            *value = next;
+            resp.mark_changed();
+        }
+    }
+    resp.widget_info(|| egui::WidgetInfo::slider(ui.is_enabled() && adjustable, if value.is_finite() { f64::from(*value) } else { 0.0 }, "Slider"));
+    let f = if adjustable && value.is_finite() { ((*value - lo) / span).clamp(0.0, 1.0) } else { 0.0 };
     let knob_x = track.left() + f * track.width();
     let painter = ui.painter();
     match gradient {
@@ -245,24 +328,28 @@ pub fn slider(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive<f32>
             }
         }
         _ => {
-            painter.rect_filled(track, 2.0, t.field_border);
-            let filled = Rect::from_min_max(track.min, pos2(knob_x, track.max.y));
-            painter.rect_filled(filled, 2.0, if t.bevel { t.accent } else { t.text_dim });
+            if !crate::historical::slider_track(ui, track) {
+                painter.rect_filled(track, 2.0, t.field_border);
+                let filled = Rect::from_min_max(track.min, pos2(knob_x, track.max.y));
+                painter.rect_filled(filled, 2.0, if t.bevel { t.accent } else { t.text_dim });
+            }
         }
     }
     let knob = pos2(knob_x, rect.center().y);
-    if t.bevel {
-        let kr = Rect::from_center_size(knob, vec2(10.0, 16.0));
-        surface(ui, kr, t.card, true);
-    } else {
-        let kr = if t.pro { 6.0 } else { 7.0 };
-        painter.circle_filled(knob + vec2(0.0, 1.0), kr + 0.5, Color32::from_black_alpha(90));
-        painter.circle_filled(knob, kr, if t.pro { Color32::from_gray(236) } else { Color32::WHITE });
-        if t.pro {
-            painter.circle_stroke(knob, kr, Stroke::new(1.0, Color32::from_gray(40)));
-        }
-        if resp.hovered() || resp.dragged() {
-            painter.circle_stroke(knob, 9.5, Stroke::new(2.0, t.accent_soft));
+    if !crate::historical::slider_indicator(ui, rect, knob, &resp) {
+        if t.bevel {
+            let kr = Rect::from_center_size(knob, vec2(10.0, 16.0));
+            surface(ui, kr, t.card, true);
+        } else {
+            let kr = if t.pro { 6.0 } else { 7.0 };
+            painter.circle_filled(knob + vec2(0.0, 1.0), kr + 0.5, Color32::from_black_alpha(90));
+            painter.circle_filled(knob, kr, if t.pro { Color32::from_gray(236) } else { Color32::WHITE });
+            if t.pro {
+                painter.circle_stroke(knob, kr, Stroke::new(1.0, Color32::from_gray(40)));
+            }
+            if resp.hovered() || resp.dragged() {
+                painter.circle_stroke(knob, 9.5, Stroke::new(2.0, t.accent_soft));
+            }
         }
     }
     resp
@@ -292,7 +379,7 @@ pub fn slider_row(ui: &mut Ui, label: &str, value: &mut f32, range: std::ops::Ra
 /// iOS-style toggle switch.
 pub fn toggle(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
     let t = Tokens::get(ui.ctx());
-    if t.pro {
+    if t.pro || t.appearance != theme::Appearance::Modern {
         return checkbox(ui, on, label);
     }
     let mut resp = ui
@@ -321,12 +408,12 @@ pub fn toggle(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
 /// Big white primary button.
 pub fn primary_button(ui: &mut Ui, label: &str, min_width: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    button_impl(ui, label, min_width, t.primary_bg, t.primary_text, true)
+    button_impl(ui, label, min_width, t.primary_bg, t.primary_text, true, None)
 }
 
 pub fn secondary_button(ui: &mut Ui, label: &str, min_width: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    button_impl(ui, label, min_width, t.field, t.text, false)
+    button_impl(ui, label, min_width, t.field, t.text, false, None)
 }
 
 /// What a dialog button does, which decides where the platform's button order puts it.
@@ -411,21 +498,32 @@ fn button_size(ui: &Ui, label: &str, min_width: f32) -> Vec2 {
 }
 
 fn button_layout(ui: &Ui, label: &str, min_width: f32, fg: Color32) -> (std::sync::Arc<egui::Galley>, Vec2) {
-    let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), theme::medium(13.0), fg);
-    let h = if Tokens::get(ui.ctx()).pro { 28.0 } else { 30.0 };
-    let size = vec2((galley.size().x + 28.0).max(min_width), h);
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let galley = crate::tab_strip::elided(ui, tl!(label), crate::theme_fonts::control(ui.ctx(), layout.button_font_size, false), fg, f32::INFINITY);
+    let h = layout.button_height.max(galley.size().y + 4.0);
+    let size = vec2((galley.size().x + layout.button_padding_x * 2.0).max(min_width), h);
     (galley, size)
 }
 
-fn button_impl(ui: &mut Ui, label: &str, min_width: f32, bg: Color32, fg: Color32, primary: bool) -> Response {
+/// A compact chrome action that fits a bar without changing dialog button metrics.
+pub fn chrome_button(ui: &mut Ui, label: &str, height: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    let (galley, size) = button_layout(ui, label, min_width, fg);
-    let h = size.y;
+    button_impl(ui, label, 0.0, t.field, t.text, false, Some(height))
+}
+
+fn button_impl(ui: &mut Ui, label: &str, min_width: f32, bg: Color32, fg: Color32, primary: bool, height: Option<f32>) -> Response {
+    let t = Tokens::get(ui.ctx());
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let galley = crate::tab_strip::elided(ui, tl!(label), crate::theme_fonts::control(ui.ctx(), layout.button_font_size, false), fg, f32::INFINITY);
+    let h = height.filter(|h| h.is_finite()).unwrap_or(layout.button_height).max(galley.size().y + 4.0);
+    let size = vec2((galley.size().x + layout.button_padding_x * 2.0).max(min_width), h);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
     // Painted text: name the button for accessibility (and so tests and agents can find it).
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), label));
+    if crate::historical::button(ui, rect, &resp, primary, galley.clone()) {
+        return resp;
+    }
     if resp.has_focus() {
-        // Keyboard focus (Tab); clicks don't focus egui buttons.
         let r = if t.pro { h / 2.0 } else { t.radius_sm } + 2.0;
         ui.painter().rect_stroke(rect.expand(2.0), r, Stroke::new(2.0, t.accent), StrokeKind::Outside);
     }
@@ -515,20 +613,42 @@ pub fn dropdown<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, op
 
 /// [`dropdown`], also returning the option under the pointer in its open list (live previews).
 pub fn dropdown_hovered<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, options: &[(T, &str)], width: f32) -> (bool, Option<T>) {
+    let t = Tokens::get(ui.ctx());
     let label = options.iter().find(|(v, _)| v == current).map(|(_, l)| tl!(l)).unwrap_or("—");
     let (mut changed, mut hovered) = (false, None);
-    egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon).show_ui(ui, |ui| {
-        for (v, l) in options {
-            let item = ui.selectable_label(v == current, tl!(l));
-            if item.hovered() {
-                hovered = Some(v.clone());
-            }
-            if item.clicked() {
-                *current = v.clone();
-                changed = true;
-            }
-        }
-    });
+    let historical = t.appearance != theme::Appearance::Modern;
+    let width =
+        if historical { if width.is_finite() { width.clamp(0.0, ui.available_width().max(0.0)) } else { ui.available_width().max(0.0) } } else { width };
+    let mut draw = |ui: &mut Ui| {
+        let combo = egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon);
+        let combo = if historical { combo.truncate() } else { combo };
+        combo
+            .show_ui(ui, |ui| {
+                for (v, l) in options {
+                    let selected = v == current;
+                    let text = egui::RichText::new(tl!(l));
+                    let text = if selected && (t.bevel || historical) { text.color(t.accent_text) } else { text };
+                    let item = ui.selectable_label(selected, text);
+                    if item.hovered() {
+                        hovered = Some(v.clone());
+                    }
+                    if item.clicked() {
+                        *current = v.clone();
+                        changed = true;
+                    }
+                }
+            })
+            .response
+            .on_hover_text(label);
+    };
+    if historical {
+        ui.scope(|ui| {
+            ui.set_width(width);
+            draw(ui);
+        });
+    } else {
+        draw(ui);
+    }
     (changed, hovered)
 }
 
@@ -597,6 +717,40 @@ pub fn dropdown_with_tooltips<T: PartialEq + Clone>(ui: &mut Ui, id: &str, curre
     changed
 }
 
+/// A radio control with historical painting and the same semantics as egui's radio.
+pub fn radio(ui: &mut Ui, on: bool, label: &str) -> Response {
+    let t = Tokens::get(ui.ctx());
+    if t.appearance == theme::Appearance::Modern {
+        return ui.radio(on, tl!(label));
+    }
+    let galley = crate::tab_strip::elided(
+        ui,
+        tl!(label),
+        crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).button_font_size, false),
+        t.text,
+        f32::INFINITY,
+    );
+    let mark_size = if t.appearance == theme::Appearance::Windows98 { 13.0 } else { 12.0 };
+    let (rect, response) = ui.allocate_exact_size(vec2(mark_size + 5.0 + galley.size().x, 18.0_f32.max(galley.size().y)), Sense::click());
+    response.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::RadioButton, ui.is_enabled(), on, tl!(label)));
+    let mark = Rect::from_center_size(pos2(rect.left() + mark_size / 2.0, rect.center().y), vec2(mark_size, mark_size));
+    crate::historical::radio(ui, mark, on, &response);
+    let at = pos2(rect.left() + mark_size + 5.0, rect.center().y - galley.size().y / 2.0);
+    let text_rect = Rect::from_min_size(at, galley.size());
+    ui.painter().galley_with_override_text_color(at, galley, t.text);
+    crate::historical::disabled_stipple(ui, text_rect, t.chrome);
+    response
+}
+
+pub fn radio_value<T: PartialEq>(ui: &mut Ui, current: &mut T, value: T, label: &str) -> Response {
+    let mut response = radio(ui, *current == value, label);
+    if response.clicked() && *current != value {
+        *current = value;
+        response.mark_changed();
+    }
+    response
+}
+
 /// Paint a small checkerboard (transparency) in `rect`.
 pub fn checker(painter: &egui::Painter, rect: Rect, cell: f32) {
     painter.rect_filled(rect, 0.0, Color32::from_gray(250));
@@ -617,10 +771,17 @@ pub fn checkbox(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
     let t = Tokens::get(ui.ctx());
     let mut resp = ui
         .horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = 6.0;
-            let (rect, resp) = ui.allocate_exact_size(vec2(14.0, 14.0), Sense::click());
+            ui.spacing_mut().item_spacing.x = if t.appearance == theme::Appearance::Modern { 6.0 } else { 5.0 };
+            let (width, height) = match t.appearance {
+                theme::Appearance::Modern => (14.0, 14.0),
+                theme::Appearance::Windows98 => (13.0, 18.0),
+                theme::Appearance::Platinum | theme::Appearance::System6 => (12.0, 18.0),
+            };
+            let (rect, resp) = ui.allocate_exact_size(vec2(width, height), Sense::click());
             let p = ui.painter();
-            if *on {
+            if crate::historical::checkbox(ui, rect, *on, &resp) {
+                // The historical renderer paints the box and checked state.
+            } else if *on {
                 p.rect_filled(rect, 2.0, t.accent);
                 let a = rect.left_center() + vec2(3.0, 0.5);
                 let b = rect.center_bottom() + vec2(-1.0, -3.5);
@@ -632,6 +793,7 @@ pub fn checkbox(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
                 p.rect_stroke(rect, 2.0, Stroke::new(1.5, if resp.hovered() { t.text_dim } else { t.text_faint }), StrokeKind::Inside);
             }
             let l = ui.add(egui::Label::new(egui::RichText::new(tl!(label)).color(t.text_dim)).sense(Sense::click()));
+            crate::historical::disabled_stipple(ui, l.rect, t.chrome);
             resp.union(l)
         })
         .inner;
@@ -644,6 +806,9 @@ pub fn checkbox(ui: &mut Ui, on: &mut bool, label: &str) -> Response {
 
 /// Small chevron for dropdowns (replaces egui's filled triangle).
 pub fn chevron_icon(ui: &Ui, rect: Rect, visuals: &egui::style::WidgetVisuals, _open: bool) {
+    if crate::historical::dropdown_arrow(ui, rect) {
+        return;
+    }
     let c = rect.center();
     let s = 3.2;
     let stroke = Stroke::new(1.3, visuals.fg_stroke.color.gamma_multiply(0.8));
@@ -723,6 +888,154 @@ mod tests {
             assert_eq!(order, want, "{os:?}");
             assert!(edge - right < 20.0, "{os:?}: the row hugs the right edge ({right} of {edge})");
         }
+    }
+
+    #[test]
+    fn historical_numeric_text_fits_its_painted_field_at_all_scales() {
+        for source in [
+            include_str!("../../../assets/themes/windows-98-se.json"),
+            include_str!("../../../assets/themes/mac-os-9-1.json"),
+            include_str!("../../../assets/themes/system-6.json"),
+        ] {
+            for scale in [1.0, 1.5, 2.0] {
+                let pack = crate::theme_pack::ThemePack::parse(source).unwrap().resolve().unwrap();
+                let mut initialized = false;
+                let mut value = 100.0;
+                let mut h = egui_kittest::Harness::builder().with_pixels_per_point(scale).build_ui(|ui| {
+                    if !initialized {
+                        crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                        initialized = true;
+                        return;
+                    }
+                    pack.apply(ui.ctx());
+                    let field = ui.scope(|ui| super::value_field(ui, &mut value, 0.0..=999.0, "%", 78.0));
+                    assert!(field.response.rect.contains_rect(field.inner.rect), "{scale}: {:?} outside {:?}", field.inner.rect, field.response.rect);
+                });
+                h.run_steps(3);
+            }
+        }
+    }
+
+    #[test]
+    fn custom_numeric_fonts_and_unit_labels_stay_inside_painted_fields() {
+        for source in [
+            include_str!("../../../assets/themes/windows-98-se.json"),
+            include_str!("../../../assets/themes/mac-os-9-1.json"),
+            include_str!("../../../assets/themes/system-6.json"),
+        ] {
+            for size in [6.0, 24.0, 64.0] {
+                for scale in [1.0, 1.5, 2.0] {
+                    let mut pack = crate::theme_pack::ThemePack::parse(source).unwrap();
+                    pack.typography.monospace = Some(size);
+                    let id = pack.id.clone();
+                    let pack = pack.resolve().unwrap();
+                    let mut initialized = false;
+                    let mut value = 100.0;
+                    let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(640.0, 300.0)).with_pixels_per_point(scale).build_ui_state(
+                        |ui, painted| {
+                            if !initialized {
+                                crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                                initialized = true;
+                                return;
+                            }
+                            pack.apply(ui.ctx());
+                            let field = ui.scope(|ui| super::value_field(ui, &mut value, 0.0..=999.0, "pixels", 78.0));
+                            *painted = field.response.rect;
+                        },
+                        egui::Rect::NOTHING,
+                    );
+                    h.run_steps(4);
+                    let painted = *h.state();
+                    let texts: Vec<_> = h
+                        .output()
+                        .shapes
+                        .iter()
+                        .filter_map(|shape| match &shape.shape {
+                            egui::Shape::Text(text) if matches!(text.galley.job.text.as_str(), "100" | "pixels") => Some(text),
+                            _ => None,
+                        })
+                        .collect();
+                    assert_eq!(texts.len(), 2);
+                    for text in &texts {
+                        let bounds = egui::Rect::from_min_size(text.pos, text.galley.size());
+                        assert!(painted.expand(0.5).contains_rect(bounds), "{id} {size} {scale}: {bounds:?} outside {painted:?}");
+                    }
+                    let a = egui::Rect::from_min_size(texts[0].pos, texts[0].galley.size());
+                    let b = egui::Rect::from_min_size(texts[1].pos, texts[1].galley.size());
+                    assert!(!a.intersects(b), "numeric value and suffix overlap: {a:?} {b:?}");
+                    if let Some(dir) = std::env::var_os("PHOTOCRAFT_FIELD_FONT_EVIDENCE") {
+                        let dir = std::path::PathBuf::from(dir);
+                        std::fs::create_dir_all(&dir).unwrap();
+                        h.render().unwrap().save(dir.join(format!("{id}-{size}-{scale}x.png"))).unwrap();
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn historical_dropdown_long_labels_fit_requested_width_and_keep_selection() {
+        use egui_kittest::kittest::Queryable;
+        const LONG: &str = "An unusually long color lookup preset name with additional translated description";
+        for source in [
+            include_str!("../../../assets/themes/windows-98-se.json"),
+            include_str!("../../../assets/themes/mac-os-9-1.json"),
+            include_str!("../../../assets/themes/system-6.json"),
+        ] {
+            for scale in [1.0, 1.5, 2.0] {
+                let resolved = crate::theme_pack::ThemePack::parse(source).unwrap().resolve().unwrap();
+                let mut initialized = false;
+                let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(320.0, 240.0)).with_pixels_per_point(scale).build_ui(|ui| {
+                    if !initialized {
+                        crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                        initialized = true;
+                        return;
+                    }
+                    resolved.apply(ui.ctx());
+                    let mut value = ui.data(|d| d.get_temp::<i32>(egui::Id::new("chosen"))).unwrap_or(0);
+                    ui.horizontal(|ui| {
+                        let row = ui.scope(|ui| {
+                            super::dropdown(ui, "long-dropdown", &mut value, &[(0, LONG), (1, "Other Entry")], 120.0);
+                        });
+                        assert!(row.response.rect.width() <= 120.5, "{scale}: {:?}", row.response.rect);
+                        ui.label("Following control");
+                    });
+                    ui.data_mut(|d| d.insert_temp(egui::Id::new("chosen"), value));
+                });
+                h.run_steps(3);
+                h.get_by_value(LONG).click();
+                h.run_steps(3);
+                h.get_by_label("Other Entry").click();
+                h.run_steps(3);
+                assert_eq!(h.ctx.data(|d| d.get_temp::<i32>(egui::Id::new("chosen"))), Some(1));
+            }
+        }
+    }
+
+    #[test]
+    fn classic_dropdown_selected_text_uses_the_runtime_selection_color() {
+        use egui_kittest::kittest::Queryable;
+        let resolved = crate::theme_pack::ThemePack::parse(r##"{"version":1,"id":"test","name":"Test","base":"classic","colors":{"accent_text":"#E9F0FA"}}"##)
+            .unwrap()
+            .resolve()
+            .unwrap();
+        let mut current = 0;
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(320.0, 240.0)).build_ui(move |ui| {
+            resolved.apply(ui.ctx());
+            super::dropdown(ui, "selection-color", &mut current, &[(0, "Selected Entry"), (1, "Other Entry")], 200.0);
+        });
+        h.run_steps(2);
+        h.get_by_value("Selected Entry").click();
+        h.run_steps(2);
+        assert!(
+            h.output().shapes.iter().any(|clipped| match &clipped.shape {
+                egui::epaint::Shape::Text(text) =>
+                    text.galley.job.text == "Selected Entry"
+                        && text.galley.job.sections.iter().any(|section| section.format.color == egui::Color32::from_rgb(233, 240, 250)),
+                _ => false,
+            }),
+            "selected popup glyphs must use the configured foreground rather than black"
+        );
     }
 
     #[test]

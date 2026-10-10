@@ -5418,4 +5418,69 @@ ui-zoom-with-scroll-wheel-405e9e1a41be72fa = 스크롤 휠로 확대/축소
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = 트랙패드 핀치로 확대/축소
 
 ui-collaboration-977b20dea89dd78c = 공동 작업…
+
 ui-collaboration-view-settings-cd37c80a120a2d5e = 공동 작업 보기 설정
+
+# Runtime and historical themes
+
+ui-apply-theme-940745b76f98edfc = 테마 적용
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = 테마 미리보기 취소
+
+ui-caption-font-01f956c20c42c9c8 = 제목 글꼴
+
+ui-copy-json-fc4e8907ed0b8b94 = JSON 복사
+
+ui-draft-name-c0af463d8e1619b5 = 초안: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = 테마 복제
+
+ui-edit-theme-definition-7f259c436cbc367b = 테마 정의 편집
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = 아래 정의를 편집하세요. 기본 제공 테마를 변경하려면 먼저 복제하세요.
+
+ui-export-theme-9924f16b219aa424 = 테마 내보내기…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = { $requested } 글꼴을 사용할 수 없어 { $actual }을 사용합니다.
+
+ui-import-theme-a399ac79528870d5 = 테마 가져오기…
+
+ui-list-themes-3674d7aab0c03693 = 테마 목록
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Mac OS 9.1 Platinum 테마
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Macintosh System 6 테마
+
+ui-preview-theme-7eced90e6da56ad4 = 테마 미리보기
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = 미리보기가 활성화되어 있습니다. 취소하면 저장된 테마가 복원됩니다.
+
+ui-remove-theme-f449889ab3dc13fe = 테마 제거
+
+ui-reset-changes-91bb267473e72bf7 = 변경 사항 재설정
+
+ui-reset-theme-09df599fa743782b = 테마 재설정
+
+ui-saved-theme-c30bc5d2b3c69847 = 저장된 테마
+
+ui-scroll-down-fff28769afb825f2 = 아래로 스크롤
+
+ui-scroll-left-58498927306bf4d7 = 왼쪽으로 스크롤
+
+ui-scroll-right-3171dac9aaa15648 = 오른쪽으로 스크롤
+
+ui-scroll-up-ae49a1e892131037 = 위로 스크롤
+
+ui-select-theme-85a12011f3908f5a = 테마 선택
+
+ui-theme-details-a78c7b85de9ad366 = 테마 세부 정보
+
+ui-theme-manager-43184a7204b2f7ef = 테마 관리자
+
+ui-theme-manager-5e06c12bd6d5d9a9 = 테마 관리자…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = 테마 정의가 64 KiB를 초과합니다
+
+ui-theme-id-2057ac72399d5a4d = 테마 ID
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE 테마

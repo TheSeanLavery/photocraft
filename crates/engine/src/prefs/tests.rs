@@ -73,6 +73,26 @@ fn reset_one_colour_setting() {
 }
 
 #[test]
+fn stable_theme_ids_are_bounded_and_legacy_preferences_keep_their_builtin_fallback() {
+    let mut session = session();
+    session.load_prefs_json(r#"{"interface":{"theme":"classic"}}"#).unwrap();
+    assert_eq!(session.prefs().interface.theme, Theme::Classic);
+    assert!(session.prefs().interface.theme_id.is_empty());
+    session.execute("prefs.set", json!({"path":"interface.themeId","value":"custom.silver-98"})).unwrap();
+    assert_eq!(session.prefs().interface.theme_id, "custom.silver-98");
+    for bad in [json!(12), json!("../theme.json"), json!("x".repeat(65)), json!("theme with spaces")] {
+        assert!(session.execute("prefs.set", json!({"path":"interface.themeId","value":bad})).is_err());
+        assert_eq!(session.prefs().interface.theme_id, "custom.silver-98");
+    }
+    let mut restored = Session::new();
+    restored.load_prefs_json(&session.prefs_to_json()).unwrap();
+    assert_eq!(restored.prefs().interface.theme_id, "custom.silver-98");
+    assert_eq!(restored.prefs().interface.theme, Theme::Classic);
+    restored.execute("prefs.set", json!({"path":"interface.theme","value":"studio"})).unwrap();
+    assert_eq!(restored.prefs().interface.theme_id, "builtin.studio");
+}
+
+#[test]
 fn set_validates_and_is_all_or_nothing() {
     let mut s = session();
     for (path, value) in [

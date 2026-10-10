@@ -2743,3 +2743,38 @@ cameraRaw	Color	색상
 
 	Collaboration…	공동 작업…
 	Collaboration View Settings	공동 작업 보기 설정
+
+# Runtime and historical themes
+	Apply Theme	테마 적용
+	Cancel Theme Preview	테마 미리보기 취소
+	Duplicate Theme	테마 복제
+	Edit Theme Definition	테마 정의 편집
+	Export Theme…	테마 내보내기…
+	Import Theme…	테마 가져오기…
+	List Themes	테마 목록
+	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum 테마
+	Macintosh System 6 Theme	Macintosh System 6 테마
+	Preview Theme	테마 미리보기
+	Remove Theme	테마 제거
+	Reset Theme	테마 재설정
+	Select Theme	테마 선택
+	Theme Details	테마 세부 정보
+	Theme Manager…	테마 관리자…
+	Windows 98 SE Theme	Windows 98 SE 테마
+	Caption font	제목 글꼴
+	Copy JSON	JSON 복사
+	Draft: {name}	초안: {name}
+	Edit the definition below. Duplicate a built-in theme before changing it.	아래 정의를 편집하세요. 기본 제공 테마를 변경하려면 먼저 복제하세요.
+	Font {requested} is unavailable; using {actual}.	{requested} 글꼴을 사용할 수 없어 {actual}을 사용합니다.
+	Preview is active. Cancel restores your saved theme.	미리보기가 활성화되어 있습니다. 취소하면 저장된 테마가 복원됩니다.
+	Reset Changes	변경 사항 재설정
+	Saved theme	저장된 테마
+	Scroll down	아래로 스크롤
+	Scroll left	왼쪽으로 스크롤
+	Scroll right	오른쪽으로 스크롤
+	Scroll up	위로 스크롤
+	Theme Manager	테마 관리자
+	Theme definition exceeds 64 KiB	테마 정의가 64 KiB를 초과합니다
+	Theme id	테마 ID
+
+	Import…	가져오기…

@@ -41,7 +41,7 @@ pub fn triangle_rect(row: Rect, x: f32) -> Rect {
 
 /// Paint and handle a group row's disclosure triangle at `*x` (advancing it). Returns true when
 /// it was clicked this frame, so the row doesn't also treat the click as a selection.
-pub fn disclosure(ui: &mut egui::Ui, row: Rect, x: &mut f32, l: &Layer, actions: &mut Vec<(String, Value)>) -> bool {
+pub fn disclosure(ui: &mut egui::Ui, row: Rect, x: &mut f32, l: &Layer, selected_color: Option<egui::Color32>, actions: &mut Vec<(String, Value)>) -> bool {
     let LayerContent::Group(g) = &l.content else { return false };
     let hit = triangle_rect(row, *x);
     let resp = ui.interact(hit, ui.id().with(("disclosure", l.id.0)), Sense::click());
@@ -53,7 +53,7 @@ pub fn disclosure(ui: &mut egui::Ui, row: Rect, x: &mut f32, l: &Layer, actions:
     } else {
         vec![pos2(c.x - s * 0.6, c.y - s), pos2(c.x + s * 0.6, c.y), pos2(c.x - s * 0.6, c.y + s)]
     };
-    let color = if resp.hovered() { t.text } else { t.icon };
+    let color = selected_color.unwrap_or(if resp.hovered() { t.text } else { t.icon });
     ui.painter().add(Shape::convex_polygon(pts, color, Stroke::NONE));
     *x += TRIANGLE_W;
     let clicked = resp.clicked();

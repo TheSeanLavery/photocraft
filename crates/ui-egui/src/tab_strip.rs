@@ -79,7 +79,11 @@ fn squeeze(natural: &[f32], idx: &[usize], total: f32, min_w: f32) -> Vec<(usize
 
 /// A label laid out on one row no wider than `max_w`, cut with '…' when it doesn't fit.
 pub fn elided(ui: &Ui, text: &str, font: egui::FontId, color: egui::Color32, max_w: f32) -> std::sync::Arc<egui::Galley> {
+    let line_height = crate::theme_fonts::chrome_line_height(ui.ctx(), &font);
     let mut job = egui::text::LayoutJob::simple_singleline(text.to_owned(), font, color);
+    for section in &mut job.sections {
+        section.format.line_height = line_height;
+    }
     job.wrap = egui::text::TextWrapping { max_width: max_w.max(1.0), max_rows: 1, break_anywhere: true, overflow_character: Some('…') };
     ui.painter().layout_job(job)
 }
@@ -123,9 +127,11 @@ fn tabs_in(
         let Some(name) = tabs.get(i) else { continue };
         let r = Rect::from_min_size(pos2(x, area.top()), vec2(w, area.height()));
         let resp = ui.interact(r, id.with(("tab", i)), Sense::click());
-        // The padding gives way (down to a third) before the label is cut.
-        let galley = elided(ui, name, font.clone(), t.text, (w - pad / 3.0).max(1.0));
-        let cut = galley.size().x + pad + 0.5 < natural.get(i).copied().unwrap_or(0.0) && galley.size().x + pad / 3.0 >= w - 0.5;
+        // Sloped Platinum sides retain space for the label even in a squeezed tab.
+        let padding = if t.appearance == crate::theme::Appearance::Platinum { (r.height() * 0.35).min(w * 0.2) * 2.0 + 4.0 } else { pad / 3.0 };
+        let max_label = (w - padding).max(1.0);
+        let galley = elided(ui, name, font.clone(), t.text, max_label);
+        let cut = natural.get(i).copied().unwrap_or(0.0) - pad > max_label + 0.5;
         paint_tab(ui, r, i, galley, &resp, active(i));
         let resp = if cut { resp.on_hover_text(*name) } else { resp };
         out.double_clicked |= resp.double_clicked();
@@ -204,13 +210,16 @@ pub fn pill_tabs(ui: &mut Ui, id: egui::Id, area: Rect, tabs: &[&str], selected:
         area,
         tabs,
         selected,
-        theme::medium(12.5),
+        crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).tab_font_size, false),
         20.0,
         44.0,
         |i| i == sel,
         |ui, r, _, galley, resp, active| {
             // 2 pt between pills, as the old horizontal layout had.
             let r = Rect::from_min_max(r.min, pos2((r.right() - 2.0).max(r.left()), r.bottom()));
+            if crate::historical::tab(ui, r, active, galley.clone()) {
+                return;
+            }
             if active {
                 crate::widgets::surface(ui, r, t.hover, true);
                 if !t.bevel {
