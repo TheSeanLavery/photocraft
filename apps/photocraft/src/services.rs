@@ -351,6 +351,17 @@ fn show_save_destination(suggested: &str, frame: &eframe::Frame, ctx: &egui::Con
 #[cfg(test)]
 mod tests {
     #[test]
+    fn every_readable_codec_is_discoverable_in_the_native_open_panel() {
+        let filters = open_filters();
+        let all = &filters.iter().find(|(name, _)| *name == "All Formats").unwrap().1;
+        for codec in photocraft_codecs::Format::ALL.into_iter().filter(|f| f.caps().read) {
+            for ext in open_filter_extensions(codec.extensions()) {
+                assert!(all.contains(&ext), "{codec:?}: {ext}");
+            }
+        }
+    }
+
+    #[test]
     fn every_writable_codec_has_a_native_save_filter() {
         let filters = super::save_filters("Untitled.psd");
         for format in photocraft_codecs::Format::ALL {
