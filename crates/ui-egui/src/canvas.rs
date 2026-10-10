@@ -319,6 +319,12 @@ pub(crate) fn feed_live_stroke(app: &mut PhotocraftApp) {
     if app.defer_live_stroke {
         return;
     }
+    // A streamed gesture is already rendered by canonical application. Once that
+    // document advances, its private preview cannot be displayed (it would hide
+    // peer edits). Keep forwarding input without painting that hidden copy too.
+    let render_preview = app.live_stroke.as_ref().is_some_and(|live| {
+        live.collaboration_id.is_none() || app.session.active().is_some_and(|state| state.doc.id == live.doc && state.revision == live.revision)
+    });
     let (Some(l), Some(d)) = (app.live_stroke.as_mut(), app.drag.as_ref()) else { return };
     let pose = &app.stylus.stroke;
     let pts: Vec<_> = (l.fed..d.points.len())
@@ -335,9 +341,11 @@ pub(crate) fn feed_live_stroke(app: &mut PhotocraftApp) {
     }
     l.fed = d.points.len();
     let wire = l.collaboration_id.clone().map(|id| (id, l.collaboration_sequence));
-    match l.stroke.push(&pts) {
-        Ok(r) => l.damage.push(r),
-        Err(_) => app.live_stroke = None,
+    if render_preview {
+        match l.stroke.push(&pts) {
+            Ok(r) => l.damage.push(r),
+            Err(_) => app.live_stroke = None,
+        }
     }
     if let Some((id, sequence)) = wire {
         let mut sequence = sequence;
@@ -772,8 +780,15 @@ pub fn ensure_texture(app: &mut PhotocraftApp, ctx: &egui::Context, idx: usize, 
 /// rectangle did: the last edit's damage, or the live stroke's dabs since then. Cached keys have
 /// the colour display's key folded in (`^ display_key`); `now`'s is still raw.
 fn damage_since(app: &PhotocraftApp, idx: usize, seen: (u64, u64), now: (u64, u64), display_key: u64, last_damage: Option<DRect>) -> Option<DRect> {
-    if seen.1 == now.1 ^ display_key && seen.0 + 1 == now.0 {
-        return last_damage;
+    if seen.1 == now.1 ^ display_key && seen.0 < now.0 {
+        if let Some(state) = app.session.documents().get(idx)
+            && let Some(damage) = app.session.collaboration.damage_since(state.doc.id, seen.0, now.0)
+        {
+            return Some(if damage.is_empty() { damage } else { damage.inflate(effect_reach(&state.doc.layers)) });
+        }
+        if seen.0.saturating_add(1) == now.0 {
+            return last_damage;
+        }
     }
     // Between an adjustment dialog's previews (and the document): the target's area.
     if seen.0 == now.0
@@ -3246,6 +3261,33 @@ mod tests {
             Display { id: 4, name: "B".into(), frame: [100.0, 0.0, 100.0, 100.0], profile_name: None, icc: icc("display-p3") },
         ]));
         app
+    }
+
+    #[test]
+    fn collaboration_batches_refresh_only_changed_canvas_regions() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        let ctx = egui::Context::default();
+        app.run("file.new", json!({"width":512,"height":256,"background":"transparent"})).unwrap();
+        app.run("tools.setBrush", json!({"brush":{"size":8,"hardness":1,"spacing":0.2}})).unwrap();
+        app.run("collab.room.create", json!({"code":"DAMAGE","peer":"artist"})).unwrap();
+        ensure_texture(&mut app, &ctx, 0, None);
+        let initial = app.session.active().unwrap().revision;
+        tool_event(&mut app, ToolEvent::Down { x: 12.0, y: 30.0, pressure: 0.3 }, egui::Modifiers::NONE);
+        for x in [24.0, 36.0, 48.0] {
+            tool_event(&mut app, ToolEvent::Move { x, y: 30.0, pressure: 0.8 }, egui::Modifiers::NONE);
+        }
+        assert!(app.session.active().unwrap().revision > initial + 1);
+        ensure_texture(&mut app, &ctx, 0, None);
+        assert_eq!(app.perf.last_refresh, "rect", "several canonical chunks before a frame must retain damage");
+        assert!(app.perf.last_refresh_px < 512 * 256 / 4, "{}", app.perf.last_refresh_px);
+        let shown = display_doc(&mut app, 0).0;
+        assert!(shown.layers[0].surface().unwrap().rgba(24, 30)[3] > 0.0);
+        tool_event(&mut app, ToolEvent::Up { x: 48.0, y: 30.0 }, egui::Modifiers::NONE);
+        ensure_texture(&mut app, &ctx, 0, None);
+        assert_eq!(app.perf.last_refresh, "rect", "stroke release does not invalidate the whole canvas");
+        app.run("edit.fill", json!({"color":"#445588"})).unwrap();
+        ensure_texture(&mut app, &ctx, 0, None);
+        assert_eq!(app.perf.last_refresh, "full", "semantic edits retain conservative invalidation");
     }
 
     #[test]

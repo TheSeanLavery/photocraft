@@ -7,7 +7,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [features]
-doodles = ["dep:photocraft-engine", "dep:photocraft-compose", "dep:photocraft-paint", "dep:image", "dep:photocraft-format"]
+doodles = ["dep:photocraft-doc", "dep:photocraft-engine", "dep:photocraft-compose", "dep:photocraft-paint", "dep:image", "dep:photocraft-format"]
 
 [[bin]]
 name = "collaboration-doodles"
@@ -15,6 +15,7 @@ path = "src/bin/collaboration_doodles.rs"
 required-features = ["doodles"]
 
 [dependencies]
+photocraft-doc = { workspace = true, optional = true }
 photocraft-format = { workspace = true, optional = true }
 photocraft-engine = { workspace = true, optional = true }
 photocraft-compose = { workspace = true, optional = true }

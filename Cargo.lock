@@ -4866,6 +4866,7 @@ dependencies = [
  "image",
  "photocraft-collab",
  "photocraft-compose",
+ "photocraft-doc",
  "photocraft-engine",
  "photocraft-format",
  "photocraft-paint",
