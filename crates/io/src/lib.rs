@@ -34,10 +34,12 @@ mod flat;
 mod gradient_bake;
 pub mod linked;
 mod multichannel_map;
+mod openraster;
 pub mod pattern_map;
 mod pixels;
 mod psd_export;
 mod psd_import;
+mod raster_documents;
 pub mod raw;
 pub mod slices_map;
 pub mod smart_map;
@@ -160,6 +162,9 @@ fn import_stages(name: &str, bytes: &[u8], ctl: &photocraft_raster::Interrupt) -
     if has_extension(name, photocraft_format::EXTENSION) || photocraft_format::is_pcraft(bytes) {
         return Ok(ImportResult { document: photocraft_format::load_from_bytes(bytes)?, warnings: Vec::new() });
     }
+    if has_extension(name, "ora") || openraster::is_openraster(bytes) {
+        return openraster::import(name, bytes);
+    }
     if is_psd(bytes) {
         let file = PsdFile::from_bytes(bytes)?;
         // Nesting past the document model's cap could never be saved (.pcraft refuses it) and
@@ -172,6 +177,12 @@ fn import_stages(name: &str, bytes: &[u8], ctl: &photocraft_raster::Interrupt) -
         let (mut document, warnings) = psd_import::psd_to_document_with(&file, ctl).ok_or(IoError::Cancelled)?;
         document.name = name.to_string();
         return Ok(ImportResult { document, warnings });
+    }
+    if (has_extension(name, "svg") || has_extension(name, "svgz"))
+        && photocraft_codecs::detect(bytes).is_none()
+        && let Some(imported) = raster_documents::import_wrapper(name, bytes)?
+    {
+        return Ok(imported);
     }
     if raw::is_raw(bytes) {
         return raw::import_raw(name, bytes);
@@ -191,6 +202,12 @@ fn has_extension(name: &str, expected: &str) -> bool {
 /// bare extension).
 pub fn export(doc: &Document, name_or_ext: &str, opts: &ExportOptions) -> Result<ExportResult, IoError> {
     let ext = extension(name_or_ext);
+    if matches!(ext.as_str(), "svg" | "svgz" | "pdf") {
+        return raster_documents::export(doc, &ext, opts);
+    }
+    if ext == "ora" {
+        return openraster::export(doc, opts);
+    }
     if ext == photocraft_format::EXTENSION {
         let previews = photocraft_format::SaveOptions {
             thumbnail: Some(photocraft_compose::thumbnail(doc, 256)),
