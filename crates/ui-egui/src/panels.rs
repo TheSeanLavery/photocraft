@@ -1273,19 +1273,48 @@ fn swatches(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     }
 }
 
+/// Historical color controls share one compact row per component. The standard slider
+/// keeps keyboard/value semantics and receives the era's rectangular handle from the theme.
+fn historical_color_row(ui: &mut egui::Ui, label: &str, value: &mut f32, range: std::ops::RangeInclusive<f32>, suffix: &str) {
+    let t = Tokens::get(ui.ctx());
+    ui.push_id(label, |ui| {
+        ui.horizontal(|ui| {
+            ui.add_sized(vec2(66.0, theme::LayoutTokens::get(ui.ctx()).field_height), egui::Label::new(RichText::new(label).color(t.text)));
+            ui.spacing_mut().slider_width = (ui.available_width() - 55.0 - ui.spacing().item_spacing.x).max(16.0);
+            let response = ui.add(egui::Slider::new(value, range.clone()).show_value(false));
+            response.widget_info(|| egui::WidgetInfo::slider(ui.is_enabled(), f64::from(*value), label));
+            widgets::value_field(ui, value, range, suffix, 55.0);
+        });
+    });
+}
+
 fn color_picker(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let fg = app.session.tools.foreground;
     let hsva0 = srgb_hsva(fg);
     let mut h = hsva0.h * 360.0;
     let mut s = hsva0.s * 100.0;
     let mut v = hsva0.v * 100.0;
-    let hue = widgets::hue_stops();
-    widgets::slider_row(ui, tl!("Hue"), &mut h, 0.0..=360.0, "°", Some(&hue));
+    let historical = Tokens::get(ui.ctx()).appearance != theme::Appearance::Modern;
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    if historical {
+        ui.spacing_mut().item_spacing.y = layout.row_gap;
+        historical_color_row(ui, tl!("Hue"), &mut h, 0.0..=360.0, "°");
+    } else {
+        widgets::slider_row(ui, tl!("Hue"), &mut h, 0.0..=360.0, "°", Some(&widgets::hue_stops()));
+    }
     let sat_stops =
         [egui::ecolor::Hsva::new(hsva0.h, 0.0, hsva0.v.max(0.2), 1.0), egui::ecolor::Hsva::new(hsva0.h, 1.0, hsva0.v.max(0.2), 1.0)].map(Color32::from);
-    widgets::slider_row(ui, tl!("Saturation"), &mut s, 0.0..=100.0, "%", Some(&sat_stops));
+    if historical {
+        historical_color_row(ui, tl!("Saturation"), &mut s, 0.0..=100.0, "%");
+    } else {
+        widgets::slider_row(ui, tl!("Saturation"), &mut s, 0.0..=100.0, "%", Some(&sat_stops));
+    }
     let val_stops = [Color32::BLACK, Color32::from(egui::ecolor::Hsva::new(hsva0.h, hsva0.s, 1.0, 1.0))];
-    widgets::slider_row(ui, tl!("Brightness"), &mut v, 0.0..=100.0, "%", Some(&val_stops));
+    if historical {
+        historical_color_row(ui, tl!("Brightness"), &mut v, 0.0..=100.0, "%");
+    } else {
+        widgets::slider_row(ui, tl!("Brightness"), &mut v, 0.0..=100.0, "%", Some(&val_stops));
+    }
     let hsva = egui::ecolor::Hsva::new(h / 360.0, s / 100.0, v / 100.0, 1.0);
     if hsva != hsva0 {
         app.session.tools.foreground = hsva_srgb(hsva);
@@ -1293,10 +1322,16 @@ fn color_picker(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let [r, g, b, _] = hsva.to_srgba_unmultiplied();
     let t = Tokens::get(ui.ctx());
     ui.horizontal(|ui| {
-        let (sw, _) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::hover());
-        ui.painter().rect_filled(sw, 6.0, Color32::from_rgb(r, g, b));
-        ui.label(RichText::new(format!("#{r:02X}{g:02X}{b:02X}")).font(theme::mono(12.5)).color(t.text));
-        ui.label(RichText::new(format!("RGB {r} {g} {b}")).font(theme::mono(11.5)).color(t.text_faint));
+        let size = if historical { layout.swatch_size.max(8.0) } else { 26.0 };
+        let (sw, _) = ui.allocate_exact_size(Vec2::splat(size), Sense::hover());
+        ui.painter().rect_filled(sw, if historical { 0.0 } else { 6.0 }, Color32::from_rgb(r, g, b));
+        if historical {
+            ui.painter().rect_stroke(sw, 0.0, Stroke::new(1.0, t.text), StrokeKind::Inside);
+        }
+        let hex_font = if historical { crate::theme_fonts::number(ui.ctx(), layout.field_font_size) } else { theme::mono(12.5) };
+        let rgb_font = if historical { crate::theme_fonts::number(ui.ctx(), layout.field_font_size) } else { theme::mono(11.5) };
+        ui.label(RichText::new(format!("#{r:02X}{g:02X}{b:02X}")).font(hex_font).color(t.text));
+        ui.label(RichText::new(format!("RGB {r} {g} {b}")).font(rgb_font).color(t.text_faint));
     });
 }
 

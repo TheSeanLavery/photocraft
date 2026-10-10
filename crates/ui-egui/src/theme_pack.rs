@@ -297,6 +297,9 @@ impl ResolvedTheme {
         layout.apply(ctx);
         crate::theme_fonts::set(ctx, self.typography.family.as_deref());
         ctx.global_style_mut(|s| {
+            if self.tokens.appearance != crate::theme::Appearance::Modern {
+                s.visuals.handle_shape = egui::style::HandleShape::Rect { aspect_ratio: 0.6 };
+            }
             let g = &self.geometry;
             if let Some([x, y]) = g.item_spacing {
                 s.spacing.item_spacing = egui::vec2(x, y);
@@ -437,6 +440,17 @@ mod tests {
             colors: BTreeMap::new(),
             geometry: Geometry::default(),
             typography: Typography::default(),
+        }
+    }
+
+    #[test]
+    fn historical_stock_slider_handles_restore_when_switching_to_modern() {
+        let ctx = egui::Context::default();
+        for id in crate::historical::IDS {
+            crate::historical::preset(id).unwrap().resolve().unwrap().apply(&ctx);
+            assert_eq!(ctx.global_style().visuals.handle_shape, egui::style::HandleShape::Rect { aspect_ratio: 0.6 });
+            crate::theme::apply(&ctx, ThemeKind::Classic);
+            assert_eq!(ctx.global_style().visuals.handle_shape, egui::style::HandleShape::Circle);
         }
     }
 

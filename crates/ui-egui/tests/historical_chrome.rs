@@ -63,3 +63,31 @@ fn historical_bars_contain_their_controls_and_layer_rows_at_all_scales() {
         }
     }
 }
+
+#[test]
+fn historical_color_components_fit_the_compact_panel_and_remain_interactive() {
+    for id in ["builtin.windows-98-se", "builtin.mac-os-9-1", "builtin.system-6"] {
+        for scale in [1.0, 1.5, 2.0] {
+            let mut h = Harness::builder().with_size(egui::vec2(1280.0, 900.0)).with_pixels_per_point(scale).build_eframe(|cc| {
+                PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+                PhotocraftApp::new(Session::new(), Services::default())
+            });
+            h.run_steps(4);
+            let ctx = h.ctx.clone();
+            let (request, _) = ControlRequest::new("ui.theme.select", json!({"id":id}));
+            handle(h.state_mut(), &ctx, &request);
+            h.state_mut().ui.dock_tabs.color = 1;
+            h.state_mut().session.tools.foreground = [1.0, 0.0, 0.0, 1.0];
+            h.run_steps(6);
+            let panel = photocraft_ui_egui::dock::last_rects(&ctx).into_iter().find(|(g, _)| *g == photocraft_ui_egui::dock::Group::Color).unwrap().1;
+            for label in ["Hue", "Saturation", "Brightness", "#FF0000"] {
+                let rect = h.get_all_by_label(label).next().unwrap().rect();
+                assert!(panel.contains_rect(rect), "{id} {scale}: {label} {rect:?} outside {panel:?}");
+            }
+            h.get_all_by_label("Hue").last().unwrap().click();
+            h.run_steps(4);
+            let color = h.state().session.tools.foreground;
+            assert!(color[0] < 0.05 && color[1] > 0.95 && color[2] > 0.95, "{id} {scale}: hue midpoint did not select cyan: {color:?}");
+        }
+    }
+}
