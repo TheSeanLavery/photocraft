@@ -4212,3 +4212,6 @@ ui-zoom-tool-29d5178fea89df7a = 縮放工具
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = 以滾輪縮放
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = 以觸控板捏合縮放
+
+ui-collaboration-977b20dea89dd78c = 協作…
+ui-collaboration-view-settings-cd37c80a120a2d5e = 協作檢視設定

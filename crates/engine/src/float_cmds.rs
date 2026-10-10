@@ -28,6 +28,7 @@ use crate::{DocState, EngineError, Result, Session};
 #[derive(Clone, Debug)]
 pub struct CutParts {
     pub layer: LayerId,
+    original: Surface,
     rest: Surface,
     piece: Surface,
 }
@@ -43,6 +44,7 @@ impl CutParts {
         let fmt = surf.format();
         let with_alpha = PixelFormat::new(fmt.mode, fmt.sample, true);
         let mut rest = if fmt == with_alpha { surf.clone() } else { surf.convert(with_alpha) };
+        let original = rest.clone();
         let mut piece = Surface::new(with_alpha);
         let b = sel.content_bounds().intersect(&surf.content_bounds());
         if !b.is_empty() {
@@ -65,7 +67,48 @@ impl CutParts {
             piece.write_region(b, &pp);
             piece.prune();
         }
-        Ok(Self { layer, rest, piece })
+        Ok(Self { layer, original, rest, piece })
+    }
+
+    /// Keep the frozen cut piece while refreshing the cached rest after a peer edit.
+    /// Shared tiles take the COW path; only changed tiles inside the lifted piece
+    /// inspect pixels. A foreign change at the source stays at its source location.
+    pub(crate) fn rebased(&self, doc: &Document) -> Result<Self> {
+        let surface = doc.layer(self.layer).and_then(|layer| layer.surface()).ok_or(EngineError::NoLayer(self.layer))?;
+        if surface.format().mode != self.rest.format().mode || surface.format().sample != self.rest.format().sample {
+            return Err(EngineError::Other("the floating selection's pixel format changed".into()));
+        }
+        let current = if surface.format() == self.rest.format() { surface.clone() } else { surface.convert(self.rest.format()) };
+        let mut rest = current.clone();
+        let bounds = self.piece.content_bounds();
+        let channels = current.channels();
+        let same_default = current.default_pixel() == self.original.default_pixel();
+        for coord in bounds.tiles() {
+            let shared = match (current.tile(coord), self.original.tile(coord)) {
+                (Some(current), Some(original)) => Arc::ptr_eq(current, original),
+                (None, None) => same_default,
+                _ => false,
+            };
+            if shared {
+                if let Some(tile) = self.rest.tile(coord) {
+                    rest.put_tiles([(coord, tile.clone())]);
+                } else if current.tile(coord).is_some() {
+                    let _ = rest.take_tiles(coord.rect());
+                }
+                continue;
+            }
+            let region = coord.rect().intersect(&bounds);
+            let original = self.original.read_region(region);
+            let cut = self.rest.read_region(region);
+            let mut pixels = current.read_region(region);
+            for ((original, cut), pixel) in original.chunks_exact(channels).zip(cut.chunks_exact(channels)).zip(pixels.chunks_exact_mut(channels)) {
+                if pixel == original {
+                    pixel.copy_from_slice(cut);
+                }
+            }
+            rest.write_region(region, &pixels);
+        }
+        Ok(Self { layer: self.layer, original: current, rest, piece: self.piece.clone() })
     }
 
     /// `doc` with the piece moved by whole pixels (dx, dy) over the cut-out layer.
@@ -163,7 +206,7 @@ pub fn drop_floating(s: &mut Session) -> Result<Value> {
 }
 
 /// Commands that leave a floating piece floating: its own, and ones that don't touch documents.
-fn keeps_floating(id: &str) -> bool {
+pub(crate) fn keeps_floating(id: &str) -> bool {
     matches!(id, "select.float" | "select.drop") || ["view.", "window.", "help.", "prefs."].iter().any(|p| id.starts_with(p))
 }
 

@@ -1,0 +1,29 @@
+[package]
+name = "photocraft-room-server"
+default-run = "photocraft-room-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+doodles = ["dep:photocraft-engine", "dep:photocraft-compose", "dep:photocraft-paint", "dep:image", "dep:serde_json", "dep:photocraft-format"]
+
+[[bin]]
+name = "collaboration-doodles"
+path = "src/bin/collaboration_doodles.rs"
+required-features = ["doodles"]
+
+[dependencies]
+photocraft-format = { workspace = true, optional = true }
+photocraft-engine = { workspace = true, optional = true }
+photocraft-compose = { workspace = true, optional = true }
+photocraft-paint = { workspace = true, optional = true }
+image = { workspace = true, features = ["png"], optional = true }
+serde_json = { workspace = true, optional = true }
+photocraft-collab = { path = "../../crates/collab", features = ["native"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+axum = "0.8"
+
+[lints]
+workspace = true

@@ -4208,3 +4208,6 @@ ui-zoom-tool-29d5178fea89df7a = ズームツール
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = スクロールホイールでズーム
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = トラックパッドのピンチでズーム
+
+ui-collaboration-977b20dea89dd78c = 共同編集…
+ui-collaboration-view-settings-cd37c80a120a2d5e = 共同編集の表示設定

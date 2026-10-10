@@ -4628,3 +4628,6 @@ ui-zoom-tool-29d5178fea89df7a = Масштаб
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Масштаб колесом мыши
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Масштаб щипком на трекпаде
+
+ui-collaboration-977b20dea89dd78c = Совместная работа…
+ui-collaboration-view-settings-cd37c80a120a2d5e = Настройки вида совместной работы

@@ -17,7 +17,7 @@
 //! - `ui.pointer {events: [{kind: down|move|up, x, y, pressure?, tiltX?, tiltY?, rotation?}], modifiers?, button?}`: drive the active tool in document coordinates (`button: "secondary"` opens the tool's canvas context menu or Brush Preset picker, or erases with Preferences › Tools › Right-click with painting tools = erase)
 //! - `ui.click {x, y, button?, count?}` / `ui.move {x, y}`: synthetic pointer input in screen points
 //! - `ui.key {key, command?, shift?, alt?, ctrl?}` / `ui.type {text}`: synthetic keyboard input
-//! - `ui.resize {width, height}`: resize the main window
+//! - `ui.resize {width, height, x?, y?}`: resize the main window
 //! - `ui.gpu.simulateLoss {error?}`: act as if the wgpu device was lost (or, with `error: true`,
 //!   reported an error): the app switches to the CPU renderer for the rest of the session, as on a
 //!   real loss. For testing the fallback; returns whether a GPU canvas was active
@@ -70,7 +70,7 @@ pub enum Outcome {
 
 /// The fields `ui.set` reads. Anything else is rejected before a field is applied, so a typo or
 /// a field the method doesn't have can't reply with success while nothing changes (#412).
-pub const UI_SET_FIELDS: [&str; 25] = [
+pub const UI_SET_FIELDS: [&str; 26] = [
     "tool",
     "panels",
     "dock",
@@ -96,6 +96,7 @@ pub const UI_SET_FIELDS: [&str; 25] = [
     "vectorMode",
     "penShapeOperation",
     "hdrOutput",
+    "collaboration",
 ];
 
 fn ok(v: Value) -> Outcome {
@@ -381,6 +382,12 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     None => None,
                 };
 
+                if let Some(collaboration) = p.get("collaboration") {
+                    if !collaboration.is_object() {
+                        return Err("collaboration must be an object".into());
+                    }
+                    crate::collaboration_ui::settings(app, collaboration)?;
+                }
                 // Apply (nothing below can fail).
                 if let Some(t) = tool {
                     app.ui.tool = t;
@@ -666,8 +673,43 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             Outcome::AfterInput
         }
         "ui.resize" => {
-            let (w, h) = (p.get("width").and_then(Value::as_f64).unwrap_or(1280.0), p.get("height").and_then(Value::as_f64).unwrap_or(800.0));
-            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(w as f32, h as f32)));
+            let number = |key: &str, default: f64, min: f64, max: f64| -> Result<f32, String> {
+                let value = match p.get(key) {
+                    Some(value) => value.as_f64().ok_or_else(|| format!("{key} must be a number"))?,
+                    None => default,
+                };
+                if !value.is_finite() || !(min..=max).contains(&value) {
+                    return Err(format!("{key} is outside the supported range"));
+                }
+                Ok(value as f32)
+            };
+            let w = match number("width", 1280.0, 1.0, 32768.0) {
+                Ok(value) => value,
+                Err(error) => return err(error),
+            };
+            let h = match number("height", 800.0, 1.0, 32768.0) {
+                Ok(value) => value,
+                Err(error) => return err(error),
+            };
+            let position = match (p.get("x"), p.get("y")) {
+                (None, None) => None,
+                (Some(_), Some(_)) => {
+                    let x = match number("x", 0.0, -1_000_000.0, 1_000_000.0) {
+                        Ok(value) => value,
+                        Err(error) => return err(error),
+                    };
+                    let y = match number("y", 0.0, -1_000_000.0, 1_000_000.0) {
+                        Ok(value) => value,
+                        Err(error) => return err(error),
+                    };
+                    Some(egui::pos2(x, y))
+                }
+                _ => return err("window positioning requires both x and y"),
+            };
+            ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(w, h)));
+            if let Some(position) = position {
+                ctx.send_viewport_cmd(egui::ViewportCommand::OuterPosition(position));
+            }
             ok(Value::Null)
         }
         "ui.gpu.simulateLoss" => {
@@ -748,6 +790,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         app.ui.dialogs.iter().map(|d| json!({"id": d.id, "kind": d.kind, "title": crate::dialogs::title(d), "fields": d.fields})).collect();
     json!({
         "window": {"width": screen.width(), "height": screen.height(), "pixelsPerPoint": ctx.pixels_per_point()},
+        "collaboration": {"ui": app.ui.collaboration, "room": app.session.collaboration.room, "revision": app.session.collaboration.applied_revision, "document": app.session.collaboration.document_id, "history": app.session.collaboration.own_history()},
         "tool": app.ui.tool,
         "toolOptions": app.ui.tool_options,
         "magnetic": app.ui.magnetic,
@@ -900,6 +943,16 @@ mod tests {
         assert_eq!(call(&mut app, &ctx, "app.exportSdr", json!({"path":"out.exr"}))["ok"], false);
     }
     #[test]
+    fn resize_rejects_invalid_geometry_and_accepts_negative_monitor_coordinates() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        let ctx = egui::Context::default();
+        for params in [json!({"width":0}), json!({"height":-10}), json!({"x":10}), json!({"x":"NaN","y":0}), json!({"x":1e300,"y":0})] {
+            assert_eq!(call(&mut app, &ctx, "ui.resize", params)["ok"], false);
+        }
+        assert_eq!(call(&mut app, &ctx, "ui.resize", json!({"width":800,"height":600,"x":-800,"y":40}))["ok"], true);
+    }
+
+    #[test]
     fn engine_execute_runs_with_defaults_but_menu_invoke_opens_the_dialog() {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
         let ctx = egui::Context::default();
@@ -935,6 +988,24 @@ mod tests {
             assert!(!r.to_string().contains("unknown field"), "{field}: {r}");
         }
         assert_eq!(call(&mut app, &ctx, "ui.set", Value::Null)["ok"], true);
+    }
+
+    #[test]
+    fn ui_set_collaboration_preserves_current_main_atomic_validation() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        let ctx = egui::Context::default();
+        let original = app.ui.collaboration.name.clone();
+        let rejected = call(&mut app, &ctx, "ui.set", json!({"collaboration":{"name":"Changed"},"toolbarColumns":3}));
+        assert_eq!(rejected["ok"], false);
+        assert_eq!(app.ui.collaboration.name, original);
+        let tool = app.ui.tool;
+        let rejected = call(&mut app, &ctx, "ui.set", json!({"tool":"Pencil","collaboration":{"color":[999,0,0]}}));
+        assert_eq!(rejected["ok"], false);
+        assert_eq!(app.ui.tool, tool);
+        assert_eq!(call(&mut app, &ctx, "ui.set", json!({"tool":"Pencil","collaboration":true}))["ok"], false);
+        assert_eq!(app.ui.tool, tool);
+        assert_eq!(call(&mut app, &ctx, "ui.set", json!({"collaboration":{"name":"Alex"}}))["ok"], true);
+        assert_eq!(app.ui.collaboration.name, "Alex");
     }
 
     #[test]

@@ -40,6 +40,8 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("view.fitOnScreen", "Fit on Screen", &["View"], Some("Cmd+0")),
     ("view.actualPixels", "100%", &["View"], Some("Cmd+1")),
     ("window.newWindowForDocument", "New Window for Document", &["Window", "Arrange"], None),
+    ("window.collaboration", "Collaboration…", &["Window"], None),
+    ("window.collaboration.settings", "Collaboration View Settings", &[], None),
     ("window.toggle.layers", "Layers", &["Window"], Some("F7")),
     ("window.toggle.history", "History", &["Window"], None),
     ("window.toggle.properties", "Properties", &["Window"], None),
@@ -210,6 +212,11 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
         "view.hdrOutput" => {
             app.ui.sdr_output = !app.ui.sdr_output;
             Ok(Value::Null)
+        }
+        "window.collaboration.settings" => crate::collaboration_ui::settings(app, &params),
+        "window.collaboration" => {
+            app.ui.collaboration.open = !app.ui.collaboration.open;
+            Ok(json!({"open": app.ui.collaboration.open}))
         }
         // ⌘↩ / Ctrl+Enter (#306): load the path selected in the Paths panel (or the one being
         // drawn) as a selection.
@@ -477,6 +484,9 @@ fn open_path(app: &mut PhotocraftApp, path: &str) -> Result<Value, String> {
 }
 
 pub fn is_enabled(app: &PhotocraftApp, id: &str) -> bool {
+    if app.session.collaboration.room.is_some() && matches!(id, "edit.undo" | "edit.redo") {
+        return true;
+    }
     // Photoshop greys these for the Background layer, other layer kinds or single-layer documents.
     if crate::enable_rules::disabled(app, id) {
         return false;
@@ -500,6 +510,7 @@ pub fn is_enabled(app: &PhotocraftApp, id: &str) -> bool {
         return e;
     }
     match id {
+        "window.collaboration" | "window.collaboration.settings" => true,
         "file.open" | "file.exit" | "file.clearRecent" | "help.about" | "help.systemInfo" | "edit.search" => true,
         i if i.starts_with("file.openRecent.") => true,
         i if crate::links::url_for(i).is_some() => true,
