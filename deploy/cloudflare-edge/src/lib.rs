@@ -50,7 +50,7 @@ async fn main(mut req: worker::Request, env: worker::Env, _ctx: worker::Context)
         }
     }
     let mut init = RequestInit::new();
-    init.with_method(method.clone()).with_headers(headers).with_redirect(RequestRedirect::Error);
+    init.with_method(method.clone()).with_headers(headers).with_redirect(RequestRedirect::Manual);
     if method == Method::Post {
         if req.headers().get("content-length")?.and_then(|n| n.parse::<usize>().ok()).is_some_and(|n| n > 96 * 1024) {
             return Response::error("Request too large", 413);
