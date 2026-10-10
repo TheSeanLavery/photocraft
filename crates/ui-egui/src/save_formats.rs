@@ -14,12 +14,7 @@ pub fn document_formats() -> Vec<SaveFormat> {
         SaveFormat { name: "Large Document (PSB)", extensions: &["psb"] },
         SaveFormat { name: "PhotoCraft", extensions: &["pcraft"] },
     ];
-    formats.extend(
-        photocraft_codecs::Format::ALL.into_iter().filter(|f| f.caps().write).map(|f| SaveFormat {
-            name: if f == photocraft_codecs::Format::Pnm { "Netpbm (automatic subtype)" } else { f.name() },
-            extensions: f.extensions(),
-        }),
-    );
+    formats.extend(photocraft_codecs::Format::ALL.into_iter().filter(|f| f.caps().write).map(|f| SaveFormat { name: f.name(), extensions: f.extensions() }));
     formats
 }
 
@@ -29,24 +24,31 @@ pub(crate) fn show_choice(ctx: &egui::Context, format: &mut String) -> Option<Op
     let mut next = false;
     let mut cancel = false;
     let modal = egui::Modal::new(egui::Id::new("save-format")).show(ctx, |ui| {
-        ui.set_min_width(360.0);
-        ui.label(egui::RichText::new(tl!("Save As")).font(crate::theme::semibold(15.0)));
+        ui.set_width(420.0);
+        ui.label(egui::RichText::new(tl!("Save As…")).font(crate::theme::semibold(15.0)));
         crate::widgets::hairline(ui);
         ui.add_space(8.0);
         ui.horizontal(|ui| {
             ui.label(tl!("Format"));
             let label = formats.iter().find(|f| f.extensions.contains(&format.as_str())).map_or_else(|| format.clone(), |f| format!("{} (.{format})", f.name));
-            egui::ComboBox::from_id_salt("save-format-choice").selected_text(label).width(270.0).height(420.0).icon(crate::widgets::chevron_icon).show_ui(
-                ui,
+            let button = ui.add_sized([310.0, ui.spacing().interact_size.y], egui::Button::new(label).right_text("▾"));
+            let viewport = ctx.content_rect();
+            let below = viewport.bottom() - button.rect.bottom();
+            let above = button.rect.top() - viewport.top();
+            let height = (below.max(above) - 24.0).clamp(60.0, 420.0);
+            egui::Popup::menu(&button).width(button.rect.width()).align(egui::RectAlign::BOTTOM_START).align_alternatives(&[egui::RectAlign::TOP_START]).show(
                 |ui| {
-                    for f in &formats {
-                        if let Some(ext) = f.extensions.first() {
-                            let selected = f.extensions.contains(&format.as_str());
-                            if ui.selectable_label(selected, format!("{} (.{ext})", f.name)).clicked() {
-                                *format = (*ext).into();
+                    egui::ScrollArea::vertical().max_height(height).show(ui, |ui| {
+                        ui.set_min_width(button.rect.width() - 16.0);
+                        for f in &formats {
+                            if let Some(ext) = f.extensions.first() {
+                                let selected = f.extensions.contains(&format.as_str());
+                                if ui.selectable_label(selected, format!("{} (.{ext})", f.name)).clicked() {
+                                    *format = (*ext).into();
+                                }
                             }
                         }
-                    }
+                    });
                 },
             );
         });
@@ -63,7 +65,7 @@ pub(crate) fn show_choice(ctx: &egui::Context, format: &mut String) -> Option<Op
             cancel = crate::widgets::secondary_button(ui, tl!("Cancel"), 84.0).clicked();
         });
     });
-    if next || ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter)) {
+    if next {
         Some(Some(format.clone()))
     } else if cancel || modal.should_close() {
         Some(None)

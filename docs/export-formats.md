@@ -21,7 +21,7 @@ image mode/depth, platform, application version and installed plug-ins change th
 - **PhotoCraft:** Save As changes the working path; Save a Copy leaves the original path and
   saved revision alone. Flat formats flatten the output and existing fidelity warnings report
   conversions/losses. macOS now chooses the format in the editor before its native destination
-  sheet; Windows/Linux use their native file-type list. Export As exposes writable raster codecs.
+  sheet; Windows/Linux use their native file-type list. Export As uses the same writable document/raster catalog, including PhotoCraft, PSD and PSB.
 
 ## Full image/document and asset union
 
