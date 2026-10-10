@@ -981,12 +981,12 @@ impl Session {
                 }
                 st.selected_layers.retain(|id| st.doc.layer(*id).is_some());
                 st.revision = st.revision.saturating_add(1);
-                if let Some(mut floating) = st.floating.take() {
-                    if let Ok(parts) = floating.parts.rebased(&st.doc) {
-                        floating.parts = std::sync::Arc::new(parts);
-                        floating.revision = st.revision;
-                        st.floating = Some(floating);
-                    }
+                if let Some(mut floating) = st.floating.take()
+                    && let Ok(parts) = floating.parts.rebased(&st.doc)
+                {
+                    floating.parts = std::sync::Arc::new(parts);
+                    floating.revision = st.revision;
+                    st.floating = Some(floating);
                 }
                 st.last_damage = None;
             })
