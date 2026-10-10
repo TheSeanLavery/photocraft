@@ -1,4 +1,5 @@
 //! Native egui theme editor. Drafts and previews never change saved preferences.
+use crate::scroll_area::ScrollArea;
 use egui::Context;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -197,7 +198,7 @@ pub(crate) fn show(app: &mut PhotocraftApp, ctx: &Context) {
             if let Ok(pack) = ThemePack::parse(&manager.json) {
                 ui.label(crate::i18n::fmt(tl!("Draft: {name}"), &[("name", &pack.name)]));
             }
-            egui::ScrollArea::vertical().max_height(340.0).id_salt("theme-definition-scroll").show(ui, |ui| {
+            ScrollArea::vertical().max_height(340.0).id_salt("theme-definition-scroll").show(ui, |ui| {
                 ui.add(
                     egui::TextEdit::multiline(&mut manager.json)
                         .font(egui::TextStyle::Monospace)

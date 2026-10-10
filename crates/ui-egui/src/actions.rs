@@ -4,6 +4,7 @@
 //! where the journal was when ● was pressed, and ▶ replays those exact commands (strokes, transforms,
 //! type edits included) on whatever document is active.
 
+use crate::scroll_area::ScrollArea;
 use egui::{Align2, Color32, Rect, Sense, Stroke, pos2, vec2};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -68,7 +69,7 @@ pub fn panel(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let live = app.ui.actions.recording.map(|(from, _)| app.session.journal.len().saturating_sub(from)).unwrap_or(0);
     let max_h = (ui.available_height() - 70.0).clamp(80.0, 320.0);
     let mut play_idx = None;
-    egui::ScrollArea::vertical().id_salt("actions-rows").max_height(max_h).auto_shrink([false, true]).show(ui, |ui| {
+    ScrollArea::vertical().id_salt("actions-rows").max_height(max_h).auto_shrink([false, true]).show(ui, |ui| {
         if app.ui.actions.list.is_empty() {
             ui.label(egui::RichText::new(tl!("Record ● a sequence of edits, then play ▶ it on any document.")).color(t.text_faint).size(11.5));
         }

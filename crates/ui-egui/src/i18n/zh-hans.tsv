@@ -1922,3 +1922,7 @@
 	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum 主题
 	Macintosh System 6 Theme	Macintosh System 6 主题
 	Font {requested} is unavailable; using {actual}.	字体 {requested} 不可用；使用 {actual}。
+	Scroll left	向左滚动
+	Scroll right	向右滚动
+	Scroll up	向上滚动
+	Scroll down	向下滚动

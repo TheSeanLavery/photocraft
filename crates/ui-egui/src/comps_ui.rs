@@ -5,6 +5,7 @@
 //! appearance). Footer: previous / next comp, update, new, delete. Every action is a
 //! `layerComp.*` engine command; the selection is `UiState::layer_comp_selected`.
 
+use crate::scroll_area::ScrollArea;
 use egui::{Align2, Rect, Sense, Stroke, pos2, vec2};
 use serde_json::{Value, json};
 
@@ -38,7 +39,7 @@ pub fn panel(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let mut action: Option<(&'static str, Value)> = None;
     let mut select: Option<u32> = None;
     let row_h = 26.0;
-    egui::ScrollArea::vertical().id_salt("comps-rows").max_height(max_h).auto_shrink([false, true]).show(ui, |ui| {
+    ScrollArea::vertical().id_salt("comps-rows").max_height(max_h).auto_shrink([false, true]).show(ui, |ui| {
         // Last Document State.
         let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), row_h), Sense::click());
         if applied.is_none() {

@@ -45,6 +45,7 @@ pub struct Geometry {
     pub icon_width: Option<f32>,
     pub button_height: Option<f32>,
     pub field_height: Option<f32>,
+    pub scroll_bar_width: Option<f32>,
     pub tab_height: Option<f32>,
     pub panel_padding: Option<f32>,
     pub panel_gap: Option<f32>,
@@ -159,6 +160,7 @@ impl ThemePack {
             validate_number(name, value, 16.0, 1024.0)?;
         }
         validate_number("iconWidth", g.icon_width, 8.0, 64.0)?;
+        validate_number("scrollBarWidth", g.scroll_bar_width, 12.0, 32.0)?;
         for (name, value) in [
             ("buttonHeight", g.button_height),
             ("fieldHeight", g.field_height),
@@ -212,12 +214,16 @@ impl ResolvedTheme {
         crate::theme::apply_tokens(ctx, self.tokens);
         let g = &self.geometry;
         let mut layout = crate::theme::LayoutTokens::for_kind(self.tokens.kind);
+        if self.tokens.appearance != crate::theme::Appearance::Modern {
+            layout.scroll_bar_width = 16.0;
+        }
         macro_rules! apply_layout {
             ($($field:ident),*) => { $(if let Some(v) = g.$field { layout.$field = v; })* };
         }
         apply_layout!(
             button_height,
             field_height,
+            scroll_bar_width,
             tab_height,
             panel_padding,
             panel_gap,
@@ -280,11 +286,14 @@ impl ResolvedTheme {
                     font.family = egui::FontFamily::Name(family.clone().into());
                 }
             }
+            if g.scroll_bar_width.is_some() || self.tokens.appearance != crate::theme::Appearance::Modern {
+                s.spacing.scroll.bar_width = layout.scroll_bar_width;
+            }
             if self.tokens.appearance != crate::theme::Appearance::Modern {
-                s.spacing.scroll.bar_width = 16.0;
-                s.spacing.scroll.handle_min_length = 16.0;
+                s.spacing.scroll.handle_min_length = layout.scroll_bar_width;
                 s.spacing.scroll.bar_inner_margin = 0.0;
                 s.spacing.scroll.bar_outer_margin = 0.0;
+                s.spacing.scroll.fade.strength = 0.0;
             }
             for (style, size) in [
                 (TextStyle::Small, ty.small),
@@ -456,6 +465,7 @@ mod tests {
         for field in [
             "buttonHeight",
             "fieldHeight",
+            "scrollBarWidth",
             "tabHeight",
             "panelPadding",
             "panelGap",

@@ -6,6 +6,7 @@
 //! to reorder groups, and right-click for Rename and Delete. Every change is a `brush.presets.*`
 //! command, so it is journaled, drivable, and persisted by the preset store.
 
+use crate::scroll_area::ScrollArea;
 use egui::{Color32, RichText, Sense, Stroke, pos2, vec2};
 use photocraft_engine::paint::BrushPreset;
 use serde_json::json;
@@ -329,7 +330,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let groups = grouped_presets(presets);
     let brush = &app.session.tools.brush;
     let collapsed = &app.ui.brushes_panel.collapsed;
-    egui::ScrollArea::vertical().id_salt("brush-presets").max_height(400.0).auto_shrink([false, true]).show(ui, |ui| {
+    ScrollArea::vertical().id_salt("brush-presets").max_height(400.0).auto_shrink([false, true]).show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 1.0;
         for (label, items) in groups {
             let items: Vec<usize> =

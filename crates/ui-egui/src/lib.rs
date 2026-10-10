@@ -93,6 +93,7 @@ pub mod puppet_ui;
 pub mod rasterize_prompt;
 pub mod retouch_ui;
 pub mod rulers;
+pub mod scroll_area;
 pub mod scrollbars;
 pub mod shortcut_dispatch;
 pub mod shortcuts;

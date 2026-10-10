@@ -163,7 +163,7 @@ captions; System 6 uses monochrome chrome and X-mark boxes. Native outer decorat
 host-managed. Document pixels, swatch values and other color content retain their actual colors.
 
 These presets are still under historical acceptance. Exact bitmap typography, all custom
-widget fonts/metrics, arrowed/patterned scrollbars, complete disabled-state treatment,
+widget fonts/metrics, complete disabled-state treatment,
 remaining floating-window captions, and complete multi-scale control-state comparisons are
 not finished. System 6 panel tabs adapt PhotoCraft's docking UI to monochrome; System 6 did not have this modern docking workflow.
 Custom disabled button/check/radio ink uses a checker mask. Microsoft Sans Serif is a metrically compatible vector successor, not Windows
@@ -180,3 +180,16 @@ For visual review without opening an editing session, run
 Slugs are `windows-98-se`, `mac-os-9-1`, `system-6`; states are `normal`, `hover`,
 `pressed`, and `focus`. The gallery exercises production control painters and retains
 the true document-color swatches.
+
+Historical scroll areas and the canvas use end arrows, press-and-hold line scrolling,
+page clicks, and draggable thumbs. Windows 98 uses a proportional scroll box; the
+classic Mac profiles use a fixed scroll box (a historically available style). Platinum
+uses the configured accent for its scroll box, while System 6 uses black-and-white
+checker tracks and hollow arrows. Canvas bars remain outlined when the image fits;
+panels display bars when their contents overflow. Wheel input and virtualized rows
+remain managed by egui. Historical canvas space reserves the bar region before zoom,
+fit and tool input, so scrolling cannot paint beneath a scrollbar.
+
+`geometry.scrollBarWidth` (12–32 logical points) adjusts app scrollbar width without
+recompiling. The three historical definitions default to 16 points. Gallery states
+`arrow` and `scroll` show a held arrow and the resulting scrolled content.

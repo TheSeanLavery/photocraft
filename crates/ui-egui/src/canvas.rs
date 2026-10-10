@@ -1283,7 +1283,15 @@ fn hdr_preview(app: &PhotocraftApp, doc: &photocraft_doc::Document) -> Option<[f
 pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect: Rect, mut view: View, primary: bool) -> View {
     let ctx = ui.ctx().clone();
     let full = rect;
-    let rect = if primary { crate::rulers::content_rect(app, rect) } else { rect };
+    let bar_area = if primary { crate::rulers::content_rect(app, rect) } else { rect };
+    let rect = if crate::theme::Tokens::get(ui.ctx()).appearance != crate::theme::Appearance::Modern {
+        crate::scroll_area::content_rect(ui, bar_area)
+    } else {
+        bar_area
+    };
+    if primary && crate::theme::Tokens::get(ui.ctx()).appearance != crate::theme::Appearance::Modern {
+        app.last_canvas_rect = rect;
+    }
     let doc = app.session.documents()[idx].doc.clone();
     let size = [doc.size.width, doc.size.height];
     if view.doc_size != size {
@@ -1774,7 +1782,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     // Scrollbars (scrollbars.rs): drawn over the canvas edges, they take the pointer there.
     let t0 = crate::gpu_canvas::now_ms();
     let before = view.center;
-    let over_bars = crate::scrollbars::show(ui, rect, &mut view, flip, egui::Id::new(("pc-canvas", idx)));
+    let over_bars = crate::scrollbars::show(ui, bar_area, &mut view, flip, egui::Id::new(("pc-canvas", idx)));
     ctx.data_mut(|d| d.insert_temp(bars_id, over_bars));
     if view.center != before {
         ctx.request_repaint();

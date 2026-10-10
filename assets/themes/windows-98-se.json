@@ -68,7 +68,8 @@
     ],
     "menuMargin": 2,
     "dialogMargin": 10,
-    "buttonHeight": 23
+    "buttonHeight": 23,
+    "scrollBarWidth": 16
   },
   "typography": {
     "small": 10,

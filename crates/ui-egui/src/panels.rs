@@ -1,5 +1,6 @@
 //! Chrome around the canvas: title bar, options bar, toolbar, status bar, dock cards, Properties.
 
+use crate::scroll_area::ScrollArea;
 use egui::{Align2, Color32, CornerRadius, Rect, RichText, Sense, Stroke, StrokeKind, Vec2, pos2, vec2};
 use photocraft_color::BlendMode;
 use photocraft_doc::{Layer, LayerContent, LayerId};
@@ -1388,12 +1389,9 @@ fn layers(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let footer = 38.0;
     let fill = ui.available_height() > footer + 60.0;
     let rows_h = if fill { ui.available_height() - footer } else { f32::INFINITY };
-    egui::ScrollArea::vertical()
-        .id_salt("layer-rows")
-        .max_height(rows_h)
-        .min_scrolled_height(if fill { rows_h } else { 0.0 })
-        .auto_shrink([false, !fill])
-        .show(ui, |ui| {
+    ScrollArea::vertical().id_salt("layer-rows").max_height(rows_h).min_scrolled_height(if fill { rows_h } else { 0.0 }).auto_shrink([false, !fill]).show(
+        ui,
+        |ui| {
             let filter = app.ui.layer_filter.clone();
             let fx_collapsed = app.session.active().map(|d| d.fx_collapsed.clone()).unwrap_or_default();
             crate::layer_row_ui::begin(ui.ctx());
@@ -1434,7 +1432,8 @@ fn layers(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             {
                 actions.push(done);
             }
-        });
+        },
+    );
     // End any layer drag after every row has had a chance to accept the drop.
     if ctx.input(|i| i.pointer.any_released()) {
         ctx.data_mut(|d| d.remove::<u64>(egui::Id::new("layer-drag")));
@@ -1831,7 +1830,7 @@ fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     // The dock gives History a fixed height: the rows scroll above the footer.
     let footer = if t.pro { 34.0 } else { 0.0 };
     let max_h = (ui.available_height() - footer).max(40.0);
-    egui::ScrollArea::vertical().id_salt("history-rows").max_height(max_h).auto_shrink([false, false]).show(ui, |ui| {
+    ScrollArea::vertical().id_salt("history-rows").max_height(max_h).auto_shrink([false, false]).show(ui, |ui| {
         for (i, (e, is_redo)) in all.enumerate() {
             let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::click());
             if i == current {

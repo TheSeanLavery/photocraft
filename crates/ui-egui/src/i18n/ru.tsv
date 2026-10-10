@@ -2304,3 +2304,7 @@
 	Mac OS 9.1 Platinum Theme	Тема Mac OS 9.1 Platinum
 	Macintosh System 6 Theme	Тема Macintosh System 6
 	Font {requested} is unavailable; using {actual}.	Шрифт {requested} недоступен; используется {actual}.
+	Scroll left	Прокрутить влево
+	Scroll right	Прокрутить вправо
+	Scroll up	Прокрутить вверх
+	Scroll down	Прокрутить вниз

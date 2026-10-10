@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut unchecked = false;
     let mut number = 50.0;
     let mut choice = 0;
-    let mut h = Harness::builder().with_size(vec2(740.0, 420.0)).with_pixels_per_point(scale).wgpu().build_ui(|ui| {
+    let mut h = Harness::builder().with_size(vec2(740.0, 600.0)).with_pixels_per_point(scale).wgpu().build_ui(|ui| {
         if !initialized {
             PhotocraftApp::setup_context(ui.ctx(), theme::ThemeKind::Classic);
             initialized = true;
@@ -65,6 +65,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 });
             });
+            ui.add_space(12.0);
+            ui.label("Scrollable list");
+            photocraft_ui_egui::scroll_area::ScrollArea::both().id_salt("gallery-scrollbars").max_height(150.0).auto_shrink([false, false]).show(ui, |ui| {
+                ui.set_min_size(vec2(1100.0, 700.0));
+                for i in 0..35 {
+                    ui.label(format!("Row {i:02} — scroll with arrows, track clicks, wheel or thumb drag"));
+                }
+            });
         });
     });
     pack.apply(&h.ctx);
@@ -72,6 +80,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let at = h.get_by_label("Other action").rect().center();
     match state {
         "normal" => (),
+        "scroll" => {
+            for _ in 0..8 {
+                h.get_by_label("Scroll down").click();
+                h.run_steps(2);
+            }
+        }
+        "arrow" => {
+            let at = h.get_by_label("Scroll down").rect().center();
+            h.event(egui::Event::PointerMoved(at));
+            h.run_steps(1);
+            h.event(egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: true, modifiers: egui::Modifiers::NONE });
+            h.run_steps(2);
+        }
         "focus" => {
             h.get_by_label("Other action").focus();
             h.run_steps(2);

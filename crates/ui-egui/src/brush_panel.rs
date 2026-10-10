@@ -14,6 +14,7 @@
 //! The lock beside a section name keeps that section's settings when another preset is picked
 //! (`locks` in the brush, applied by the engine). The Brushes tab lives in [`crate::brushes_tab`].
 
+use crate::scroll_area::ScrollArea;
 use egui::{Color32, CornerRadius, RichText, Sense, Stroke, vec2};
 use photocraft_engine::BrushSettings;
 use photocraft_engine::paint;
@@ -303,7 +304,7 @@ fn settings_tab(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             ui.label(RichText::new(SECTIONS[section].0).font(theme::semibold(12.5)).color(t.text));
             ui.add_space(6.0);
             let on = section_flag(&mut b, section).is_none_or(|f| *f);
-            egui::ScrollArea::vertical().id_salt(("brush-section", section)).max_height(450.0).auto_shrink([false, false]).show(ui, |ui| {
+            ScrollArea::vertical().id_salt(("brush-section", section)).max_height(450.0).auto_shrink([false, false]).show(ui, |ui| {
                 ui.set_width(WIDTH - 204.0);
                 // A section that's off shows its options greyed out (Photoshop).
                 ui.add_enabled_ui(on, |ui| section_body(ui, &mut b, section, &app.session.tools.presets));

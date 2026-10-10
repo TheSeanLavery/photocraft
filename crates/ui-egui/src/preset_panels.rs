@@ -8,6 +8,7 @@
 //! an engine command (`gradient.presets.*`, `pattern.presets.*`, `style.presets.*`,
 //! `shape.presets.*`, `tool.presets.*`, `cloneSource.*`); this module only draws and dispatches.
 
+use crate::scroll_area::ScrollArea;
 use std::collections::{BTreeMap, BTreeSet};
 
 use egui::{Align2, Color32, ColorImage, CornerRadius, FontId, Pos2, Rect, Sense, Stroke, TextureHandle, TextureOptions, pos2, vec2};
@@ -281,7 +282,7 @@ fn browser(
     let mut headers: Vec<(Rect, String)> = Vec::new();
     let mut dropped: Option<(String, Pos2)> = None;
     let group_names: Vec<String> = groups.iter().map(|g| g.name.clone()).collect();
-    egui::ScrollArea::vertical().id_salt(("preset-scroll", panel)).max_height(max_h).auto_shrink([false, true]).show(ui, |ui| {
+    ScrollArea::vertical().id_salt(("preset-scroll", panel)).max_height(max_h).auto_shrink([false, true]).show(ui, |ui| {
         ui.spacing_mut().item_spacing = vec2(0.0, 2.0);
         for (gi, g) in groups.iter().enumerate() {
             let open = group_open(st, panel, gi, &g.name);
@@ -757,7 +758,7 @@ pub fn shape_picker(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let resp = resp.on_hover_text(&cur);
     egui::Popup::menu(&resp).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside).show(|ui| {
         ui.set_width(232.0);
-        egui::ScrollArea::vertical().max_height(320.0).show(ui, |ui| {
+        ScrollArea::vertical().max_height(320.0).show(ui, |ui| {
             for g in &groups {
                 ui.label(egui::RichText::new(&g.name).color(t.text_dim).size(11.0));
                 ui.horizontal_wrapped(|ui| {
@@ -852,7 +853,7 @@ pub fn tool_presets_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             }
         });
     }
-    egui::ScrollArea::vertical().id_salt("tool-presets").max_height(260.0).auto_shrink([false, true]).show(ui, |ui| {
+    ScrollArea::vertical().id_salt("tool-presets").max_height(260.0).auto_shrink([false, true]).show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 0.0;
         if items.is_empty() {
             empty(ui, if only { tl!("No presets for the current tool.") } else { tl!("No tool presets.") });

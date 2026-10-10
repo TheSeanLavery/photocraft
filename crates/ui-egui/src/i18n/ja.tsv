@@ -2028,3 +2028,7 @@
 	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum テーマ
 	Macintosh System 6 Theme	Macintosh System 6 テーマ
 	Font {requested} is unavailable; using {actual}.	フォント {requested} がないため、{actual} を使用します。
+	Scroll left	左にスクロール
+	Scroll right	右にスクロール
+	Scroll up	上にスクロール
+	Scroll down	下にスクロール

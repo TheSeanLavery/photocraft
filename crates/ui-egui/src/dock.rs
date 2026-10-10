@@ -10,6 +10,7 @@
 //! with Window › Workspace › New Workspace…, reset by Reset Workspace, and remembered across
 //! launches in the preferences (`panelLayout`) while Remember Workspace Changes is on.
 
+use crate::scroll_area::ScrollArea;
 use std::collections::BTreeMap;
 
 use egui::{Rect, Sense, Stroke, pos2, vec2};
@@ -380,7 +381,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
                 ui.set_min_height(inner);
                 body(app, ui, g, tab);
             } else {
-                egui::ScrollArea::vertical()
+                ScrollArea::vertical()
                     .id_salt(("dock-scroll", g.key(), tab))
                     .max_height(inner)
                     .auto_shrink([false, false])

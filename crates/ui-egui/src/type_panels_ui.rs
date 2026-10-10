@@ -5,6 +5,7 @@
 //! `type.insertText`, `edit.checkSpelling`); the panels only hold view state
 //! ([`TypePanelsUi`], part of the serialisable UI state so the control channel can drive it).
 
+use crate::scroll_area::ScrollArea;
 use egui::{Align2, Color32, CornerRadius, Rect, RichText, Sense, Stroke, TextureHandle, TextureOptions, pos2, vec2};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -230,7 +231,7 @@ pub fn styles_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool)
     let selected = app.ui.type_panels.options.filter(|o| o.0 == paragraph).map(|o| u64::from(o.1)).or(cur_id);
     let mut action: Option<(String, Value)> = None;
     let row_h = 22.0;
-    egui::ScrollArea::vertical().id_salt(("type-styles", paragraph)).max_height(220.0).auto_shrink([false, true]).show(ui, |ui| {
+    ScrollArea::vertical().id_salt(("type-styles", paragraph)).max_height(220.0).auto_shrink([false, true]).show(ui, |ui| {
         for s in &styles {
             let id = s["id"].as_u64().unwrap_or(0);
             let name = s["name"].as_str().unwrap_or("");
@@ -659,7 +660,7 @@ pub fn glyphs_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let cols = ((width / size).floor() as usize).max(1);
     let rows = chars.len().div_ceil(cols);
     let selected = app.ui.type_panels.glyph_selected.clone();
-    egui::ScrollArea::vertical().id_salt("glyph-grid").max_height(260.0).auto_shrink([false, false]).show_rows(ui, size, rows, |ui, range| {
+    ScrollArea::vertical().id_salt("glyph-grid").max_height(260.0).auto_shrink([false, false]).show_rows(ui, size, rows, |ui, range| {
         for row in range {
             let (rect, _) = ui.allocate_exact_size(vec2(width, size), Sense::hover());
             for col in 0..cols {
@@ -774,7 +775,7 @@ fn spelling_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
                     ui.label(RichText::new(tl!("Suggestions:")).color(t.text_dim).size(11.5));
                     egui::Frame::NONE.fill(t.field).corner_radius(CornerRadius::same(3)).inner_margin(egui::Margin::same(4)).show(ui, |ui| {
                         ui.set_min_size(vec2(240.0, 110.0));
-                        egui::ScrollArea::vertical().id_salt("spell-sugg").max_height(110.0).show(ui, |ui| {
+                        ScrollArea::vertical().id_salt("spell-sugg").max_height(110.0).show(ui, |ui| {
                             for s in item.as_ref().and_then(|i| i["suggestions"].as_array()).into_iter().flatten() {
                                 let s = s.as_str().unwrap_or("");
                                 let r = ui.selectable_label(s == change_to, s);

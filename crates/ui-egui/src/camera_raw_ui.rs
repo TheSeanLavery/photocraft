@@ -9,6 +9,7 @@
 //! Control channel: `ui.menu.invoke {"id":"filter.cameraRaw","params":{"ui":{"set":{…},
 //! "commit":true | "cancel":true}}}`; the reply describes the dialog.
 
+use crate::scroll_area::ScrollArea;
 use egui::{Align2, Color32, FontId, Pos2, Rect as ERect, Sense, Stroke, TextureHandle, pos2, vec2};
 use photocraft_algo::camera_raw::{CameraRaw, Wheel, curve_lut};
 use photocraft_doc::LayerId;
@@ -321,7 +322,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
         painter.line_segment([right.left_top(), right.left_bottom()], Stroke::new(1.0, t.separator));
         let mut props = ui.new_child(egui::UiBuilder::new().max_rect(right.shrink2(vec2(14.0, 10.0))));
         let mut dirty = false;
-        egui::ScrollArea::vertical().id_salt("camera-raw-props").show(&mut props, |ui| {
+        ScrollArea::vertical().id_salt("camera-raw-props").show(&mut props, |ui| {
             ui.spacing_mut().item_spacing.y = 4.0;
             let p = &mut d.params;
             let (ts, tn) = (temp_stops(), tint_stops());
