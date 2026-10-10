@@ -161,6 +161,10 @@ impl ThemePack {
         for (key, value) in &self.colors {
             set_color(&mut tokens, key, parse_color(value).ok_or_else(|| format!("colors.{key}: expected #RRGGBB or #RRGGBBAA"))?)?;
         }
+        // Old packs inherited their selected label color from ordinary text.
+        if !self.colors.contains_key("row_selected_text") {
+            tokens.row_selected_text = tokens.text;
+        }
         let g = &self.geometry;
         validate_number("bevelWidth", g.bevel_width, 1.0, 2.0)?;
         for (name, value) in [("radiusSmall", g.radius_small), ("radius", g.radius), ("radiusLarge", g.radius_large)] {
@@ -444,6 +448,7 @@ fn set_color(tokens: &mut Tokens, key: &str, color: Color32) -> Result<(), Strin
         warning,
         tab_strip,
         row_selected,
+        row_selected_text,
         bevel_highlight,
         bevel_light,
         bevel_shadow,
@@ -628,6 +633,18 @@ mod tests {
         pack.resolve().unwrap().apply(&ctx);
         let layout = crate::theme::LayoutTokens::get(&ctx);
         assert!(layout.button_height >= 30.0 && layout.field_height >= 32.0);
+    }
+
+    #[test]
+    fn selected_row_text_inherits_legacy_text_and_explicit_override_round_trips() {
+        let mut pack = fixture();
+        pack.colors.insert("text".into(), "#123456".into());
+        assert_eq!(pack.resolve().unwrap().tokens.row_selected_text, Color32::from_rgb(0x12, 0x34, 0x56));
+        pack.colors.insert("row_selected_text".into(), "#FFFFFF".into());
+        let restored = ThemePack::parse(&serde_json::to_string(&pack).unwrap()).unwrap();
+        assert_eq!(restored.resolve().unwrap().tokens.row_selected_text, Color32::WHITE);
+        pack.colors.insert("row_selected_text".into(), "invalid".into());
+        assert!(pack.resolve().is_err());
     }
 
     #[test]

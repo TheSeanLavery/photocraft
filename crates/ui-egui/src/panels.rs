@@ -1940,13 +1940,27 @@ fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 "Open" => "image",
                 _ => "sliders-horizontal",
             };
-            let color = if is_redo { t.text_faint } else { t.text };
+            let selected = i == current;
+            resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, selected, &e));
+            let color = if selected {
+                t.row_selected_text
+            } else if is_redo {
+                t.text_faint
+            } else {
+                t.text
+            };
             icons::paint(
                 ui,
                 Rect::from_center_size(pos2(rect.left() + 42.0, rect.center().y), vec2(16.0, 16.0)),
                 icon,
                 12.0,
-                if is_redo { t.text_faint } else { t.icon },
+                if selected {
+                    t.row_selected_text
+                } else if is_redo {
+                    t.text_faint
+                } else {
+                    t.icon
+                },
             );
             ui.painter().text(pos2(rect.left() + 58.0, rect.center().y), Align2::LEFT_CENTER, &e, egui::FontId::proportional(12.0), color);
             if resp.clicked() {

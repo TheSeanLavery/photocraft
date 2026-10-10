@@ -124,6 +124,7 @@ pub struct Tokens {
     pub tab_strip: Color32,
     /// Selected list row (layers, history).
     pub row_selected: Color32,
+    pub row_selected_text: Color32,
 }
 
 impl Tokens {
@@ -141,6 +142,7 @@ impl Tokens {
                 hover: Color32::from_rgb(98, 98, 98),
                 pressed: Color32::from_rgb(112, 112, 112),
                 text: Color32::from_rgb(238, 238, 238),
+                row_selected_text: Color32::from_rgb(238, 238, 238),
                 text_dim: Color32::from_rgb(212, 212, 212),
                 text_faint: Color32::from_rgb(160, 160, 160),
                 icon: Color32::from_rgb(226, 226, 226),
@@ -163,6 +165,7 @@ impl Tokens {
                 hover: Color32::from_rgb(66, 66, 66),
                 pressed: Color32::from_rgb(78, 78, 78),
                 text: Color32::from_rgb(222, 222, 222),
+                row_selected_text: Color32::from_rgb(222, 222, 222),
                 text_dim: Color32::from_rgb(178, 178, 178),
                 text_faint: Color32::from_rgb(128, 128, 128),
                 icon: Color32::from_rgb(200, 200, 200),
@@ -203,6 +206,7 @@ impl Tokens {
                 hover: Color32::from_rgb(44, 44, 48),
                 pressed: Color32::from_rgb(56, 56, 62),
                 text: Color32::from_rgb(236, 236, 240),
+                row_selected_text: Color32::from_rgb(236, 236, 240),
                 text_dim: Color32::from_rgb(150, 150, 158),
                 text_faint: Color32::from_rgb(96, 96, 104),
                 icon: Color32::from_rgb(196, 196, 204),
@@ -243,6 +247,7 @@ impl Tokens {
                 hover: Color32::from_rgb(232, 232, 237),
                 pressed: Color32::from_rgb(220, 220, 226),
                 text: Color32::from_rgb(24, 24, 28),
+                row_selected_text: Color32::from_rgb(24, 24, 28),
                 text_dim: Color32::from_rgb(96, 96, 106),
                 text_faint: Color32::from_rgb(150, 150, 160),
                 icon: Color32::from_rgb(60, 60, 68),
@@ -283,6 +288,7 @@ impl Tokens {
                 hover: Color32::from_rgb(226, 222, 214),
                 pressed: Color32::from_rgb(190, 186, 178),
                 text: Color32::BLACK,
+                row_selected_text: Color32::BLACK,
                 text_dim: Color32::from_rgb(64, 64, 64),
                 text_faint: Color32::from_rgb(128, 128, 128),
                 icon: Color32::BLACK,

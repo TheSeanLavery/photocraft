@@ -124,3 +124,41 @@ fn all_historical_dock_groups_fit_and_share_the_theme_gap_at_all_scales() {
         }
     }
 }
+
+#[test]
+fn selected_history_labels_use_the_theme_foreground_at_all_scales() {
+    fn foreground(shapes: &[egui::epaint::ClippedShape], label: &str) -> Option<egui::Color32> {
+        fn find(shape: &egui::Shape, label: &str) -> Option<egui::Color32> {
+            match shape {
+                egui::Shape::Text(text) if text.galley.job.text == label => text.galley.job.sections.first().map(|s| s.format.color),
+                egui::Shape::Vec(shapes) => shapes.iter().find_map(|s| find(s, label)),
+                _ => None,
+            }
+        }
+        shapes.iter().find_map(|s| find(&s.shape, label))
+    }
+    for id in ["builtin.windows-98-se", "builtin.mac-os-9-1", "builtin.system-6", "builtin.classic", "builtin.pro"] {
+        for scale in [1.0, 1.5, 2.0] {
+            let mut h = Harness::builder().with_size(egui::vec2(1280.0, 900.0)).with_pixels_per_point(scale).build_eframe(|cc| {
+                PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+                let mut app = PhotocraftApp::new(Session::new(), Services::default());
+                app.run("file.new", json!({"width":640,"height":480})).unwrap();
+                app.ui.panels.history = true;
+                app
+            });
+            h.run_steps(4);
+            let ctx = h.ctx.clone();
+            let (request, _) = ControlRequest::new("ui.theme.select", json!({"id":id}));
+            let Outcome::Done(result) = handle(h.state_mut(), &ctx, &request) else { panic!("did not complete") };
+            assert_eq!(result.get("ok"), Some(&json!(true)));
+            h.run_steps(6);
+            let tokens = photocraft_ui_egui::theme::Tokens::get(&ctx);
+            assert_eq!(foreground(&h.output().shapes, "Open"), Some(tokens.row_selected_text), "{id} {scale}");
+            assert!(h.get_by_label("Open").rect().height() > 0.0);
+            if id == "builtin.system-6" {
+                assert_eq!(tokens.row_selected_text, egui::Color32::WHITE);
+                assert_eq!(tokens.accent_soft, egui::Color32::BLACK);
+            }
+        }
+    }
+}

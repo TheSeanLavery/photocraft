@@ -339,7 +339,13 @@ fn browser(
                     }
                     let tr = Rect::from_min_size(r.min + vec2(24.0, 2.0), vec2(20.0, 20.0));
                     thumb(ui, tr, gi, ii);
-                    ui.painter().text(pos2(tr.right() + 8.0, r.center().y), Align2::LEFT_CENTER, &it.name, FontId::proportional(11.5), t.text);
+                    ui.painter().text(
+                        pos2(tr.right() + 8.0, r.center().y),
+                        Align2::LEFT_CENTER,
+                        &it.name,
+                        FontId::proportional(11.5),
+                        if is_sel { t.row_selected_text } else { t.text },
+                    );
                 } else {
                     thumb(ui, r, gi, ii);
                     let (stroke, kind) = if is_sel {
@@ -860,14 +866,27 @@ pub fn tool_presets_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         }
         for (name, tool) in &items {
             let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::click());
-            if selected.as_deref() == Some(name) {
+            let is_selected = selected.as_deref() == Some(name);
+            if is_selected {
                 ui.painter().rect_filled(r, 0.0, t.row_selected);
             } else if resp.hovered() {
                 ui.painter().rect_filled(r, 0.0, t.hover.gamma_multiply(0.5));
             }
             let icon = Tool::from_name(tool).map(crate::icons::tool_icon).unwrap_or("settings");
-            crate::icons::paint(ui, Rect::from_center_size(pos2(r.left() + 14.0, r.center().y), vec2(16.0, 16.0)), icon, 13.0, t.icon);
-            ui.painter().text(pos2(r.left() + 30.0, r.center().y), Align2::LEFT_CENTER, name, FontId::proportional(11.5), t.text);
+            crate::icons::paint(
+                ui,
+                Rect::from_center_size(pos2(r.left() + 14.0, r.center().y), vec2(16.0, 16.0)),
+                icon,
+                13.0,
+                if is_selected { t.row_selected_text } else { t.icon },
+            );
+            ui.painter().text(
+                pos2(r.left() + 30.0, r.center().y),
+                Align2::LEFT_CENTER,
+                name,
+                FontId::proportional(11.5),
+                if is_selected { t.row_selected_text } else { t.text },
+            );
             if resp.clicked() {
                 pick = Some(name.clone());
             }
@@ -1065,6 +1084,55 @@ mod tests {
         app.run("file.new", json!({"width": 64, "height": 48})).unwrap();
         app.sync_views();
         (app, ctx)
+    }
+
+    #[test]
+    fn selected_browser_and_tool_presets_paint_the_theme_foreground() {
+        fn color(shapes: &[egui::epaint::ClippedShape], label: &str) -> Option<Color32> {
+            fn find(shape: &egui::Shape, label: &str) -> Option<Color32> {
+                match shape {
+                    egui::Shape::Text(text) if text.galley.job.text == label => text.galley.job.sections.first().map(|s| s.format.color),
+                    egui::Shape::Vec(shapes) => shapes.iter().find_map(|s| find(s, label)),
+                    _ => None,
+                }
+            }
+            shapes.iter().find_map(|s| find(&s.shape, label))
+        }
+        for id in crate::historical::IDS {
+            for scale in [1.0, 1.5, 2.0] {
+                let (mut app, _) = app();
+                app.run("tool.presets.new", json!({"name":"Contrast tool", "tool":"brush"})).unwrap();
+                app.ui.presets_ui.selected.insert("toolPresets".into(), "Contrast tool".into());
+                app.ui.presets_ui.selected.insert("gradients".into(), "contrast".into());
+                app.ui.presets_ui.sizes.insert("gradients".into(), MIN_THUMB);
+                let mut initialized = false;
+                let mut h = egui_kittest::Harness::builder().with_size(vec2(480.0, 700.0)).with_pixels_per_point(scale).build_ui_state(
+                    |ui, app| {
+                        if !initialized {
+                            crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                            crate::historical::preset(id).unwrap().resolve().unwrap().apply(ui.ctx());
+                            initialized = true;
+                            return;
+                        }
+                        let groups = vec![GroupView { name: "Test".into(), items: vec![ItemView { key: "contrast".into(), name: "Contrast browser".into() }] }];
+                        let _ = browser(
+                            ui,
+                            &mut app.ui.presets_ui,
+                            "gradients",
+                            &groups,
+                            Place { canvas: Rect::NOTHING, max_h: 200.0, new_tip: "New" },
+                            &mut |_, _, _, _| {},
+                        );
+                        tool_presets_panel(app, ui);
+                    },
+                    app,
+                );
+                h.run_steps(6);
+                let expected = Tokens::get(&h.ctx).row_selected_text;
+                assert_eq!(color(&h.output().shapes, "Contrast browser"), Some(expected), "{id} {scale}");
+                assert_eq!(color(&h.output().shapes, "Contrast tool"), Some(expected), "{id} {scale}");
+            }
+        }
     }
 
     #[test]

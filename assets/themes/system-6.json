@@ -34,7 +34,8 @@
     "bevel_shadow": "#808080",
     "bevel_dark": "#000000",
     "warning": "#000000",
-    "danger": "#000000"
+    "danger": "#000000",
+    "row_selected_text": "#FFFFFF"
   },
   "geometry": {
     "radiusSmall": 0,

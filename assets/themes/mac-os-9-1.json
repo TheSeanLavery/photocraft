@@ -32,7 +32,8 @@
     "bevel_highlight": "#FFFFFF",
     "bevel_light": "#DDDDDD",
     "bevel_shadow": "#808080",
-    "bevel_dark": "#000000"
+    "bevel_dark": "#000000",
+    "row_selected_text": "#000000"
   },
   "geometry": {
     "radiusSmall": 0,
