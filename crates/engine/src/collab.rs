@@ -1039,7 +1039,7 @@ mod tests {
     use serde_json::json;
     fn session(depth: u32) -> Session {
         let mut s = Session::new();
-        s.execute("file.new", json!({"width":64,"height":64,"depth":depth,"fill":"transparent"})).unwrap();
+        s.execute("file.new", json!({"width":64,"height":64,"depth":depth,"background":"transparent"})).unwrap();
         s.execute("collab.room.create", json!({"peer":"host","code":"TEST01"})).unwrap();
         s
     }
