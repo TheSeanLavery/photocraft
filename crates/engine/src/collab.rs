@@ -426,7 +426,16 @@ impl Collaboration {
                         if command.visible {
                             let mut next = match recovered {
                                 Some(next) => next,
-                                None => crate::collab_resources::execute_resolved(&rebuilt, &command.edit)?.0,
+                                None => match crate::collab_resources::execute_resolved(&rebuilt, &command.edit) {
+                                    Ok((next, _)) => next,
+                                    // Removing an author's source ink can leave a previously
+                                    // accepted peer transform with no pixels. Keep the operator
+                                    // in history so redo applies it when its input returns.
+                                    Err(EngineError::Other(message)) if command.edit.id.starts_with("edit.transform") && message == "nothing to transform" => {
+                                        rebuilt.clone()
+                                    }
+                                    Err(error) => return Err(error),
+                                },
                             };
                             let fresh: Vec<_> = all_layers(&next).into_iter().filter(|l| rebuilt.layer(l.id).is_none()).map(|l| l.id).collect();
                             for (fresh, original) in fresh.into_iter().zip(&command.created) {
@@ -1478,7 +1487,11 @@ mod tests {
                 let mut edit = crate::collab_resources::prepare_command(&host, id, &params).unwrap();
                 edit.key = format!("peer-operation-{index}");
                 emit(&mut host, "peer", Operation::Command { edit: Box::new(edit) });
-                oracle.execute(id, params).unwrap();
+                match oracle.execute(id, params) {
+                    Ok(_) => {}
+                    Err(EngineError::Other(message)) if id == "edit.transform" && message == "nothing to transform" => {}
+                    Err(error) => panic!("unexpected oracle failure: {error}"),
+                }
             }
             host.execute("edit.undo", json!({})).unwrap();
             assert!(pixels(&host) == pixels(&oracle), "peer filters/transform changed after ownundo at depth {depth}");

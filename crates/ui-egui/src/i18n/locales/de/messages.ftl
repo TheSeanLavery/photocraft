@@ -4341,3 +4341,6 @@ ui-zoom-tool-29d5178fea89df7a = Zoom-Werkzeug
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Zoomen mit Mausrad
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Zoomen mit Trackpad-Aufziehen
+
+ui-collaboration-977b20dea89dd78c = Zusammenarbeit…
+ui-collaboration-view-settings-cd37c80a120a2d5e = Ansichtseinstellungen für Zusammenarbeit

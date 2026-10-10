@@ -5095,3 +5095,6 @@ ui-zoom-tool-29d5178fea89df7a = Outil Zoom
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Zoomer avec la molette
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Zoomer en pinçant le pavé tactile
+
+ui-collaboration-977b20dea89dd78c = Collaboration…
+ui-collaboration-view-settings-cd37c80a120a2d5e = Paramètres d’affichage de collaboration

@@ -5086,3 +5086,6 @@ ui-zoom-tool-29d5178fea89df7a = Alat Zoom
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Zoom dengan roda scroll
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Zoom dengan cubit trackpad
+
+ui-collaboration-977b20dea89dd78c = Kolaborasi…
+ui-collaboration-view-settings-cd37c80a120a2d5e = Pengaturan Tampilan Kolaborasi

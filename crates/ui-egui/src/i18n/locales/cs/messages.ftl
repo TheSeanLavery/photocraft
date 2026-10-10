@@ -4238,3 +4238,6 @@ ui-zoom-tool-29d5178fea89df7a = Nástroj lupa
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Zvětšovat kolečkem myši
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Zvětšovat sevřením na trackpadu
+
+ui-collaboration-977b20dea89dd78c = Spolupráce…
+ui-collaboration-view-settings-cd37c80a120a2d5e = Nastavení zobrazení spolupráce

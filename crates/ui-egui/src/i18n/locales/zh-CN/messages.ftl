@@ -4286,3 +4286,6 @@ ui-zoom-tool-29d5178fea89df7a = 缩放工具
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = 使用滚轮缩放
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = 使用触控板捏合缩放
+
+ui-collaboration-977b20dea89dd78c = 协作…
+ui-collaboration-view-settings-cd37c80a120a2d5e = 协作视图设置
