@@ -198,3 +198,75 @@ fn historical_floating_properties_fit_and_visibility_controls_still_dispatch() {
         }
     }
 }
+
+#[test]
+fn every_historical_adjustment_properties_card_stays_inside_the_viewport() {
+    let commands: Vec<_> = photocraft_engine::command_specs().iter().filter(|c| c.id.starts_with("layer.newAdjustmentLayer.")).map(|c| c.id).collect();
+    assert_eq!(commands.len(), 16);
+    let mut failures = Vec::new();
+    for id in ["builtin.windows-98-se", "builtin.mac-os-9-1", "builtin.system-6"] {
+        for (scale, height) in [(1.0, 900.0), (1.5, 900.0), (2.0, 900.0), (1.0, 640.0), (1.5, 640.0), (2.0, 640.0)] {
+            for command in &commands {
+                let mut h = Harness::builder().with_size(egui::vec2(1280.0, height)).with_pixels_per_point(scale).build_eframe(|cc| {
+                    PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+                    let mut app = PhotocraftApp::new(Session::new(), Services::default());
+                    app.run("file.new", json!({"width":64,"height":48})).unwrap();
+                    app.run(command, json!({})).unwrap();
+                    app.ui.panels.properties = true;
+                    app
+                });
+                h.run_steps(4);
+                let ctx = h.ctx.clone();
+                let (request, _) = ControlRequest::new("ui.theme.select", json!({"id":id}));
+                let Outcome::Done(result) = handle(h.state_mut(), &ctx, &request) else { panic!("did not complete") };
+                assert_eq!(result.get("ok"), Some(&json!(true)));
+                h.run_steps(6);
+                let rect = ctx.memory(|m| m.area_rect(egui::Id::new("properties-card"))).unwrap();
+                if rect.width() > LayoutTokens::get(&ctx).dock_width + 2.0 || !ctx.content_rect().contains_rect(rect) {
+                    failures.push(format!("{id} {scale} height{height} {command}: {rect:?}"));
+                }
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
+fn long_gradient_properties_scroll_to_reset_without_leaving_the_viewport() {
+    for id in ["builtin.windows-98-se", "builtin.mac-os-9-1", "builtin.system-6"] {
+        let mut h = Harness::builder().with_size(egui::vec2(1280.0, 640.0)).build_eframe(|cc| {
+            PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
+            let mut app = PhotocraftApp::new(Session::new(), Services::default());
+            app.run("file.new", json!({"width":64,"height":48})).unwrap();
+            let stops: Vec<_> = (0..64).map(|i| json!([f64::from(i) / 63.0, if i % 2 == 0 { "#000000" } else { "#FFFFFF" }])).collect();
+            app.run("layer.newAdjustmentLayer.gradientMap", json!({"stops":stops})).unwrap();
+            app.ui.panels.properties = true;
+            app
+        });
+        h.run_steps(4);
+        let ctx = h.ctx.clone();
+        let (request, _) = ControlRequest::new("ui.theme.select", json!({"id":id}));
+        let Outcome::Done(result) = handle(h.state_mut(), &ctx, &request) else { panic!("did not complete") };
+        assert_eq!(result.get("ok"), Some(&json!(true)));
+        h.run_steps(6);
+        let rect = ctx.memory(|m| m.area_rect(egui::Id::new("properties-card"))).unwrap();
+        assert!(ctx.content_rect().contains_rect(rect), "{id}: {rect:?}");
+        h.event(egui::Event::PointerMoved(rect.center()));
+        h.event(egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            phase: egui::TouchPhase::Move,
+            delta: egui::vec2(0.0, -10000.0),
+            modifiers: egui::Modifiers::NONE,
+        });
+        h.run_steps(24);
+        let reset = h.get_by_label("Reset to defaults");
+        assert!(rect.contains_rect(reset.rect()), "{id}: reset {:?} vs {rect:?}", reset.rect());
+        reset.click();
+        h.run_steps(4);
+        let state = h.state().session.active().unwrap();
+        let layer = state.doc.layer(state.active_layer.unwrap()).unwrap();
+        let photocraft_doc::LayerContent::Adjustment(adj) = &layer.content else { panic!("lost adjustment") };
+        let params = photocraft_engine::adjust_params::to_params(adj);
+        assert_eq!(params["stops"].as_array().unwrap().len(), 2);
+    }
+}
