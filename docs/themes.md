@@ -85,10 +85,10 @@ reproduction; dedicated historical control rendering is still being built.
   accepts 80–600 points and supplies the initial Color group height without overwriting
   user-resized heights or saving preview dimensions.
 - `typography.family`: optional registered UI family: `Inter`, `JetBrains Mono`,
-  `Microsoft Sans Serif`, `Geneva`, `Chicago`, or `Charcoal`. Native builds read these faces
+  `Microsoft Sans Serif`, `Geneva`, `Chicago`, `Charcoal`, or `Chicago Kare`. Native builds read these faces
   from known installed-font locations, with bounded reads and parsing; no font files enter
-  this repository. The built-in Inter stack remains the fallback. Missing Chicago/Charcoal
-  use installed Geneva when available, then Inter. The manager reports substitutions;
+  this repository. The built-in Inter stack remains the fallback. Missing Chicago uses Chicago Kare when configured, then installed Geneva, then Inter.
+  Missing Charcoal uses installed Geneva when available, then Inter. The manager reports substitutions;
   `ui.inspect.themeFont` exposes requested and actual family. Browser builds use the registered
   fallback stack when historical faces are unavailable. Current family registrations are cached
   for the app session; restart after installing an additional face.
@@ -258,3 +258,19 @@ the caption moves the window; closing it restores a preview like Cancel. Import 
 Export follow the same theme button metrics and disabled treatment as the other actions.
 
 Dock widths are editable with `dockWidth`, `dockMinWidth`, and `dockMaxWidth` (180–1024 logical points, ordered minimum ≤ default ≤ maximum). Historical presets use 240 by default and allow 220–520. Rendering and `ui.set {dockWidth}` share the resolved range. Fresh docks follow theme defaults; saved or explicitly resized widths remain user-owned and are clamped only when outside the new range.
+
+### Optional historical font recreation
+
+Native builds can load Chicago Kare from an external craft-fonts checkout at startup:
+`PHOTOCRAFT_THEME_FONTS_DIR=/absolute/path/to/craft-fonts`. The loader reads only
+`fonts/chicago-kare/ChicagoKare-Regular.ttf`, bounds reads to 8 MiB and verifies the actual
+family name. It also recognizes that filename in the user's installed-font directory.
+This runtime option does not embed the other craft-fonts assets or require recompilation.
+Restart to load a newly added font; theme definitions and metrics remain live-editable.
+
+`typography.family` accepts `Chicago Kare` explicitly. A `Chicago` request uses it when
+original Chicago is absent, and Theme Manager reports the actual recreation name.
+Chicago Kare is Duane King's MIT-licensed recreation, not Apple's original font.
+Font bytes and their license/manifest/attribution live in craft-fonts, never PhotoCraft.
+Browser builds still report their bundled fallback until a separate runtime font delivery
+path is implemented; this native provider does not add font bytes to WebAssembly.

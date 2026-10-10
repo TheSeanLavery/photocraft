@@ -78,3 +78,9 @@ next to the files:
 | `corpus/pngsuite/` | PngSuite | Willem van Schaik | <http://www.schaik.com/pngsuite/> | Public domain |
 
 Files copied into `corpus/` by hand (tiff, exr, raw) must be MIT, BSD or CC0.
+
+## Optional external historical theme font
+
+| External path | Title | Author | Source | License |
+|---|---|---|---|---|
+| `craft-fonts/fonts/chicago-kare/ChicagoKare-Regular.ttf` (not committed or embedded here) | Chicago Kare Regular, historical Chicago recreation | Duane King | [Chicago-Kare@dca7a9e](https://github.com/KingDuane/Chicago-Kare/tree/dca7a9e4f2b971e39cf3a5e8a3f9309d4293d56d) | MIT; license beside the font in `craft-fonts/fonts/chicago-kare/LICENSE` |

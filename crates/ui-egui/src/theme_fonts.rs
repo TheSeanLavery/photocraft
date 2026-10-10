@@ -2,7 +2,7 @@
 use egui::{Context, FontData, FontDefinitions, FontFamily, FontId};
 use std::sync::Arc;
 
-pub const FAMILIES: [&str; 6] = ["Inter", "JetBrains Mono", "Microsoft Sans Serif", "Geneva", "Chicago", "Charcoal"];
+pub const FAMILIES: [&str; 7] = ["Inter", "JetBrains Mono", "Microsoft Sans Serif", "Geneva", "Chicago", "Charcoal", "Chicago Kare"];
 
 #[derive(Clone, Debug)]
 struct Families {
@@ -11,7 +11,7 @@ struct Families {
 
 pub(crate) fn install(ctx: &Context, fonts: &mut FontDefinitions) {
     let mut resolved: Vec<(String, String)> = vec![("Inter".into(), "Inter".into()), ("JetBrains Mono".into(), "JetBrainsMono".into())];
-    for family in ["Microsoft Sans Serif", "Geneva"] {
+    for family in ["Microsoft Sans Serif", "Geneva", "Chicago Kare"] {
         let loaded = load(family);
         if let Some(data) = loaded {
             fonts.font_data.insert(family.into(), Arc::new(data));
@@ -25,7 +25,13 @@ pub(crate) fn install(ctx: &Context, fonts: &mut FontDefinitions) {
         if let Some(data) = load(family) {
             fonts.font_data.insert(family.into(), Arc::new(data));
         }
-        let actual = if fonts.font_data.contains_key(family) { family } else { mac };
+        let actual = if fonts.font_data.contains_key(family) {
+            family
+        } else if family == "Chicago" && fonts.font_data.contains_key("Chicago Kare") {
+            "Chicago Kare"
+        } else {
+            mac
+        };
         resolved.push((family.into(), actual.into()));
     }
     let fallback = fonts.families.get(&FontFamily::Proportional).cloned().unwrap_or_default();
@@ -44,11 +50,13 @@ fn load(family: &str) -> Option<FontData> {
     static GENEVA: OnceLock<Option<FontData>> = OnceLock::new();
     static CHICAGO: OnceLock<Option<FontData>> = OnceLock::new();
     static CHARCOAL: OnceLock<Option<FontData>> = OnceLock::new();
+    static CHICAGO_KARE: OnceLock<Option<FontData>> = OnceLock::new();
     let cache = match family {
         "Microsoft Sans Serif" => &WINDOWS,
         "Geneva" => &GENEVA,
         "Chicago" => &CHICAGO,
         "Charcoal" => &CHARCOAL,
+        "Chicago Kare" => &CHICAGO_KARE,
         _ => return None,
     };
     cache.get_or_init(|| read_font(family)).clone()
@@ -56,7 +64,6 @@ fn load(family: &str) -> Option<FontData> {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn read_font(family: &str) -> Option<FontData> {
-    use std::io::Read;
     use std::path::PathBuf;
     // Known installed-font locations only; theme JSON cannot request arbitrary file access.
     let mut candidates = vec![
@@ -78,24 +85,44 @@ fn read_font(family: &str) -> Option<FontData> {
     {
         candidates.push(PathBuf::from(root).join("Fonts/micross.ttf"));
     }
-    for path in candidates {
-        let Ok(file) = std::fs::File::open(path) else { continue };
-        let Ok(meta) = file.metadata() else { continue };
-        const LIMIT: u64 = 8 * 1024 * 1024;
-        if !meta.is_file() || meta.len() == 0 || meta.len() > LIMIT {
-            continue;
+    if family == "Chicago Kare" {
+        if let Some(root) = std::env::var_os("PHOTOCRAFT_THEME_FONTS_DIR") {
+            candidates.insert(0, PathBuf::from(root).join("fonts/chicago-kare/ChicagoKare-Regular.ttf"));
         }
-        let mut bytes = Vec::new();
-        if file.take(LIMIT + 1).read_to_end(&mut bytes).is_err() || bytes.len() > LIMIT as usize {
-            continue;
+        if let Some(home) = std::env::var_os("HOME") {
+            let root = PathBuf::from(home);
+            candidates.push(root.join(if cfg!(target_os = "macos") { "Library/Fonts" } else { ".local/share/fonts" }).join("ChicagoKare-Regular.ttf"));
         }
-        // Use the shared font parser before passing installed bytes to egui.
-        if !photocraft_text::fonts::FontDb::new().register_font_data(bytes.clone()).iter().any(|name| name.eq_ignore_ascii_case(family)) {
-            continue;
-        }
-        return Some(FontData::from_owned(bytes));
     }
-    None
+    candidates.iter().find_map(|path| read_installed_font(path, family))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn read_installed_font(path: &std::path::Path, family: &str) -> Option<FontData> {
+    use std::io::Read;
+    let Ok(file) = std::fs::File::open(path) else { return None };
+    let Ok(meta) = file.metadata() else { return None };
+    const LIMIT: u64 = 8 * 1024 * 1024;
+    if !meta.is_file() || meta.len() == 0 || meta.len() > LIMIT {
+        return None;
+    }
+    let mut bytes = Vec::new();
+    if file.take(LIMIT + 1).read_to_end(&mut bytes).is_err() || bytes.len() > LIMIT as usize {
+        return None;
+    }
+    // Use the shared font parser before passing installed bytes to egui.
+    checked_font(bytes, family)
+}
+
+#[cfg(any(not(target_arch = "wasm32"), test))]
+fn checked_font(bytes: Vec<u8>, family: &str) -> Option<FontData> {
+    if bytes.is_empty() || bytes.len() > 8 * 1024 * 1024 {
+        return None;
+    }
+    if !photocraft_text::fonts::FontDb::new().register_font_data(bytes.clone()).iter().any(|name| name.eq_ignore_ascii_case(family)) {
+        return None;
+    }
+    Some(FontData::from_owned(bytes))
 }
 #[cfg(target_arch = "wasm32")]
 fn load(_: &str) -> Option<FontData> {
@@ -131,4 +158,36 @@ pub(crate) fn control(ctx: &Context, size: f32, bold: bool) -> FontId {
 
 pub(crate) fn number(ctx: &Context, size: f32) -> FontId {
     if ctx.data(|d| d.get_temp::<String>(egui::Id::new("theme-font-family"))).is_some() { control(ctx, size, false) } else { crate::theme::mono(size) }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn actual_font_identity_is_required_even_for_recreations() {
+        let bytes = photocraft_text::fonts::INTER_REGULAR.to_vec();
+        assert!(checked_font(bytes.clone(), "Inter").is_some());
+        assert!(checked_font(bytes, "Chicago Kare").is_none());
+        assert!(checked_font(vec![0; 64], "Chicago Kare").is_none());
+        assert!(checked_font(Vec::new(), "Chicago Kare").is_none());
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    #[ignore = "requires licensed Chicago Kare in PHOTOCRAFT_THEME_FONTS_DIR"]
+    fn configured_chicago_recreation_keeps_its_actual_identity() {
+        let ctx = Context::default();
+        crate::theme::install_fonts(&ctx);
+        set(&ctx, Some("Chicago"));
+        assert_eq!(status(&ctx), Some(("Chicago".into(), "Chicago Kare".into())));
+        set(&ctx, Some("Chicago Kare"));
+        assert_eq!(status(&ctx), Some(("Chicago Kare".into(), "Chicago Kare".into())));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn missing_font_file_is_a_fallback_not_an_error() {
+        assert!(read_installed_font(std::path::Path::new("/photocraft-nonexistent-font.ttf"), "Chicago Kare").is_none());
+    }
 }
