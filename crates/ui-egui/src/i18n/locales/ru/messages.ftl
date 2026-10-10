@@ -5,6 +5,10 @@ ui-10-fps-ec754e5fee173c1d = 10 кадр/с
 
 ui-100-b99e3955e3a3aaad = 100%
 
+ui-101-by-101-average-f0636a75b4938275 = Среднее 101 × 101
+
+ui-11-by-11-average-538d383a16a69bb7 = Среднее 11 × 11
+
 ui-125-a935b755da9ad666 = 125%
 
 ui-15-fps-90234431c3f336ee = 15 кадр/с
@@ -31,6 +35,8 @@ ui-25-fps-b881f50533244195 = 25 кадр/с
 
 ui-250-d924c64cd7e61f65 = 250%
 
+ui-3-by-3-average-400d4f87bb7a72ef = Среднее 3 × 3
+
 ui-3-up-horizontal-4c23efd3482104f6 = Три по горизонтали
 
 ui-3-up-stacked-bd2af67dd88044db = То же с накоплением
@@ -44,6 +50,8 @@ ui-30-fps-0e87e2ada40fc6d3 = 30 кадр/с
 ui-30-frames-30-fps-86855c252e2336e2 = 30 кадров при 30 кадр/с
 
 ui-300-a47499467194a093 = 300%
+
+ui-31-by-31-average-f49ec39b911d80e3 = Среднее 31 × 31
 
 ui-32-bit-float-22185f2c23877e20 = 32 бит (float)
 
@@ -59,7 +67,13 @@ ui-4-up-d91fc73e02cd5199 = Четыре
 
 ui-4-x-4-7f4ba0051d29e745 = 4 × 4
 
+ui-5-by-5-average-393c80f9d8845bab = Среднее 5 × 5
+
 ui-5-x-5-7e182dd7405b6905 = 5 × 5
+
+ui-50-gray-da82e26ee3dda904 = 50% серого
+
+ui-51-by-51-average-f8031ef2f1c3a59f = Среднее 51 × 51
 
 ui-6-up-e29c4f2bcc87fe2f = Шесть
 
@@ -118,6 +132,8 @@ ui-add-stop-222d40042180e9c6 = Добавить ограничитель
 ui-add-to-521f6de1aa57d7f3 = Добавить к
 
 ui-add-to-sample-0cd5c503d0859b13 = Добавить к выборке
+
+ui-add-to-swatches-3781607eddbada31 = Добавить в образцы
 
 ui-add-variable-c4a401c42d0911dd = + Добавить переменную
 
@@ -181,7 +197,9 @@ ui-all-caps-bd95058f066e700f = Все прописные
 
 ui-all-layers-bf480d822a927800 = Все слои
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Все комбинации клавиш сброшены к стандартным Photoshop.
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = Все слои без коррекции
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Все комбинации клавиш сброшены к стандартным PhotoCraft.
 
 ui-all-slices-c7482a9e09ce788d = Все фрагменты
 
@@ -197,6 +215,8 @@ ui-alt-18c9177e5dc52d62 = Alt
 
 ui-alt-click-to-define-a-source-point-to-cl-2228e77de216e323 = Alt+щелчок, чтобы задать точку-источник клонирования
 
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Alt+щелчок перехватило окружение рабочего стола: оно перемещает окна через Alt+перетаскивание. Назначьте для перемещения окон клавишу Super или зафиксируйте Alt в меню Окно › Клавиши-модификаторы.
+
 ui-alternates-for-current-selection-5ffc93c126db3608 = Варианты для текущего выделения
 
 ui-alternative-5e22bc17c1d448fa = Альтернативный
@@ -204,6 +224,8 @@ ui-alternative-5e22bc17c1d448fa = Альтернативный
 ui-always-708f9a0c043b4c2e = Всегда
 
 ui-always-create-smart-objects-when-placing-f474351a9f48ed99 = Всегда создавать смарт-объекты при помещении
+
+ui-always-show-overlay-b6be473be8ad3beb = Всегда показывать перекрытие
 
 ui-amount-06ce2e017c351f2b = Эффект
 
@@ -214,6 +236,8 @@ ui-analysis-2c20cd1b6a7a0ec1 = Анализ
 ui-anamorphic-2-1-2-726f0be505a8bb59 = Анаморф 2:1 (2)
 
 ui-anchor-a0ad95217456f9d4 = Привязка:
+
+ui-and-n-more-6e37845d39302347 = …и ещё { $n }
 
 ui-angle-98480bdc2230deb6 = Угол
 
@@ -240,6 +264,8 @@ ui-appearance-layer-style-eb9a62f511fc8d0a = Внешний вид (стиль �
 ui-apple-rgb-b93c342181c17bc6 = Apple RGB
 
 ui-applies-at-next-launch-d3533a97eceb1f8c = Применится при следующем запуске.
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = Применить эффект на границах холста
 
 ui-apply-auto-tone-adf66ec80e3a0b08 = Применять автотон
 
@@ -347,6 +373,8 @@ ui-auto-show-hidden-panels-10d979553ed266c2 = Автоматически пок�
 
 ui-auto-show-home-screen-c05e3fe894f84850 = Автоматически показывать домашний экран
 
+ui-auto-show-overlay-59ff23a3b368166d = Показывать перекрытие автоматически
+
 ui-auto-tone-b0ded0d3730faa94 = Автотон
 
 ui-automate-846f7a3e78fb3639 = Автоматизация
@@ -425,6 +453,10 @@ ui-bitmap-d55ea07f32437944 = Битовый формат
 
 ui-black-49e5cb1e3f075426 = Плотный
 
+ui-black-87de58185ee7e143 = Чёрный
+
+ui-black-matte-7c051e0b8e0c064b = На чёрном фоне
+
 ui-black-point-compensation-0384ce18be7270ee = Компенсация чёрной точки
 
 ui-black-white-3409104e8d55c181 = Чёрно-белое
@@ -440,6 +472,8 @@ ui-blacks-98e3ce467d3c07f8 = Чёрные
 ui-blank-document-presets-n-d0e843aa86912c17 = НАБОРЫ ПУСТЫХ ДОКУМЕНТОВ ({ $n })
 
 ui-blend-6e128c1e53f35f56 = Смешивание
+
+ui-blend-if-47ff5afa1385a85d = Изображение если:
 
 ui-blend-if-7ad2aba688940595 = Изображение если
 
@@ -471,6 +505,8 @@ ui-blur-tool-82c3cb0310f74d48 = Размытие
 
 ui-bold-9841d4b252180f48 = Полужирный
 
+ui-bold-98d37886cf62c4a3 = Жирный
+
 ui-bold-italic-ab996b432667b548 = Полужирный курсив
 
 ui-border-63cb7a79f7bde62f = Граница…
@@ -482,6 +518,10 @@ ui-both-axes-435ce184a29db821 = По обеим осям
 ui-bottom-bada204837504c00 = Снизу
 
 ui-bottom-edges-80ce9c3631b189f2 = Нижние края
+
+ui-bottom-left-a4a6bc5593eb6541 = Нижний левый
+
+ui-bottom-right-2acd3cb673e6fda2 = Нижний правый
 
 ui-box-blur-2b37bcd95ec2938f = Размытие по рамке…
 
@@ -508,6 +548,8 @@ ui-brush-name-17e105a3dae09884 = Имя кисти
 ui-brush-picker-93597b7bd47683ad = Выбор кисти
 
 ui-brush-pose-3617230f221ac6a6 = Положение кисти
+
+ui-brush-preset-options-ae5d75337b0c67ae = Параметры наборов кистей
 
 ui-brush-preview-626c213d4519f731 = Предпросмотр кисти
 
@@ -570,6 +612,8 @@ ui-camera-raw-filter-29ed3a1dc4186978 = Фильтр Camera Raw…
 ui-camera-raw-filter-layer-1be4a91af7462ff0 = Фильтр Camera Raw ({ $layer })
 
 ui-camera-raw-isn-t-open-99ad694093e909ed = Camera Raw не открыт
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw ({ $name })
 
 ui-cancel-any-current-edits-esc-42764b5a3f8f4c7f = Отменить все текущие правки (Esc)
 
@@ -649,6 +693,8 @@ ui-channel-mixer-ec1e80a50b4c99b3 = Микширование каналов
 
 ui-channels-44d502bc3e71fbb7 = Каналы
 
+ui-channels-67ef32de1bae7097 = Каналы:
+
 ui-character-daf6ff1f129c38e6 = Символ
 
 ui-character-panel-9998e052a1533dd0 = Панель «Символ»
@@ -703,6 +749,8 @@ ui-clear-slices-0ed5aadb7420a613 = Удалить фрагменты
 
 ui-clear-smart-filters-48da550cf14de2ca = Очистить смарт-фильтры
 
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = Щёлкните по красному зрачку, чтобы убрать блик
+
 ui-click-corner-drag-smooth-click-first-poi-1551d2e2b2e3984d = Клик: угол · перетаскивание: гладкая · клик по первой точке: замкнуть · { $key } завершить · Esc отмена
 
 ui-click-select-anchor-drag-move-anchor-han-acc6bd478a1d5ab3 = Щелчок: выбрать узел · Перетаскивание: переместить узел, маркер или сегмент · { $shift }-щелчок: добавить · { $alt }-щелчок: весь подконтур
@@ -713,9 +761,17 @@ ui-click-to-add-text-b78b2772a89f1954 = Щёлкните, чтобы добав�
 
 ui-click-to-apply-key-click-to-clear-overri-e66d3fc7065013f5 = Щёлкните, чтобы применить · { $key }-клик сбрасывает переопределения · двойной клик — параметры стиля
 
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Нажмите, чтобы изменить число столбцов; перетащите строку заголовка для перемещения
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Нажмите, чтобы изменить число столбцов; перетащите, чтобы открепить инструменты
+
 ui-click-to-fill-similar-colours-d4ad82ceb74861df = Щёлкните, чтобы залить похожие цвета
 
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = Щелчок — выбрать · Esc — отменить
+
 ui-click-to-restore-the-current-colour-a3089de9e10e7d4e = Щёлкните, чтобы восстановить текущий цвет
+
+ui-click-to-sample-the-foreground-colour-ke-96a4f32b747b8180 = Клик — взять основной цвет  ·  { $key }-клик — фоновый цвет
 
 ui-click-with-the-note-tool-to-add-a-note-32cd19503d720141 = Щёлкните инструментом «Заметки», чтобы добавить заметку.
 
@@ -767,6 +823,8 @@ ui-color-73a9475ddd11219c = Цвет:
 
 ui-color-8beb3c381fb2f1ce = Цвет
 
+ui-color-a13d112d0512855e = Цвет…
+
 ui-color-adaptation-f7d5eb50532ba5ff = Адаптация цвета
 
 ui-color-balance-681e6e384510defe = Цветовой баланс
@@ -817,6 +875,12 @@ ui-color-overlay-e4ec9e391c16750a = Наложение цвета…
 
 ui-color-picker-ac18daa6e6202218 = Пипетка
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Палитра цветов (Цвет заливки)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Палитра цветов (Цвет обводки)
+
+ui-color-picker-text-color-6873936c7cbaceb3 = Палитра цветов (Цвет текста)
+
 ui-color-priority-138e732eacbefb9e = Приоритет цвета
 
 ui-color-profile-997217f0823061a7 = Цветовой профиль
@@ -834,6 +898,8 @@ ui-color-settings-1c8f18a9ed52e9c9 = Настройки цвета…
 ui-color-space-295320d7c66be8c4 = Цветовое пространство
 
 ui-color-table-0f9a9c9eee34022e = Цветовая таблица…
+
+ui-color-to-alpha-5a172092ca34c10d = Цвет в альфа-канал…
 
 ui-colorize-cc4a832f61eb6438 = Тонировать
 
@@ -875,6 +941,10 @@ ui-condensed-514bf80cab6f5664 = Узкий
 
 ui-conditional-mode-change-d54fc31ea7bbaf9c = Условная смена режима…
 
+ui-cone-83c7f5ac8fb13c68 = Конус
+
+ui-cone-inverted-07c75939642bd114 = Конус (инвертированный)
+
 ui-consolidate-all-to-tabs-8d663391c5754a08 = Объединить всё во вкладки
 
 ui-constant-4420365bad346a4b = Константа
@@ -898,6 +968,8 @@ ui-content-aware-move-953a1d4c41e938cc = Перемещение с учётом 
 ui-content-aware-move-tool-2b8963bbe66001be = Перемещение с учётом содержимого
 
 ui-content-aware-scale-379439a63f8f33a9 = Масштабирование с учётом содержимого
+
+ui-contents-b5e5b9d3f6d35ec1 = Содержимое:
 
 ui-contextual-alternates-faff0187fc6570f3 = Контекстные варианты
 
@@ -969,6 +1041,8 @@ ui-corner-radius-97bd53a5d5687970 = Радиус скругления
 
 ui-correction-07f5c477ab7d049f = Коррекция
 
+ui-could-not-open-05042bf852b9a743 = Не удалось открыть
+
 ui-couldn-t-place-name-error-6149cbfcec71f81b = Не удалось поместить { $name }: { $error }
 
 ui-count-c941513842a342a6 = Счёт
@@ -1031,6 +1105,8 @@ ui-create-new-style-from-the-selected-layer-538e544b12b2bb51 = Создать с
 
 ui-create-new-style-from-the-selected-type-683f13baccb54adf = Создать стиль (из выделенного текста)
 
+ui-create-new-swatch-df52baa4652be53b = Создать новый образец
+
 ui-create-new-tool-preset-7d4d468ee6c87460 = Создать новый набор инструментов
 
 ui-create-plane-de99e34027780935 = Создать плоскость
@@ -1065,6 +1141,8 @@ ui-current-a6280b8d8bb7d590 = Текущий
 
 ui-current-below-1799f701288bc2cb = Текущий и ниже
 
+ui-current-below-no-adjustments-ad3ef5ddcba453be = Текущий и ниже без коррекции
+
 ui-current-layer-530d0a7523724bb5 = Текущий слой
 
 ui-current-path-e40850189ad141b7 = Текущий контур
@@ -1095,6 +1173,8 @@ ui-custom-dark-d02136fca4cc1968 = Тёмная своя
 
 ui-custom-light-d0c46f600e83cca8 = Светлая своя
 
+ui-custom-pattern-b1725fbbdb358844 = Свой узор:
+
 ui-custom-pixel-aspect-ratio-07f72205d30e0a49 = Своё пиксельное соотношение…
 
 ui-custom-shape-tool-183aa3c7f0ae0715 = Произвольная фигура
@@ -1106,6 +1186,10 @@ ui-cut-09cfc77e55f475c5 = Вырезать
 ui-cyan-097690ac4a1ce224 = Голубой
 
 ui-cyan-red-90bb919c7ee7207e = Голубой  ·  Красный
+
+ui-cycle-orientation-d47100e364dd1ce9 = Сменить ориентацию
+
+ui-cycle-overlay-cd2523de1e12bc5b = Сменить перекрытие
 
 ui-cycle-screen-mode-42f43477ff963284 = Переключить режим экрана
 
@@ -1122,6 +1206,8 @@ ui-dark-1f7295a06447be87 = Тёмная
 ui-dark-gray-18764f09bb370c3a = Тёмно-серая
 
 ui-darken-a1fc662b2b849eb8 = Замена тёмным
+
+ui-darken-amount-4ff87ddb9162ea14 = Степень затемнения
 
 ui-darker-color-7874c6c27c279e1b = Замена тёмным
 
@@ -1149,7 +1235,7 @@ ui-default-colours-d-702fa2ae170283a6 = Цвета по умолчанию (D)
 
 ui-default-features-5afc3e0f6e30c7ff = Возможности по умолчанию
 
-ui-default-photoshop-size-86c00542f2645621 = Размер Photoshop по умолчанию
+ui-default-photocraft-size-42e29dd35050952b = Размер PhotoCraft по умолчанию
 
 ui-default-printer-4c55958efe32b804 = Принтер по умолчанию
 
@@ -1176,6 +1262,8 @@ ui-dehaze-622eced1257d8a96 = Устранение дымки
 ui-delete-af3196ad6b727abc = Удалить
 
 ui-delete-all-empty-layers-261b6232e0a29af4 = Удалить все пустые слои
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = Удалить и заполнить выделение
 
 ui-delete-brush-c1bc99e90e0b31e4 = Удалить кисть
 
@@ -1261,6 +1349,12 @@ ui-details-b0d022b6f9b30237 = Подробности
 
 ui-detect-faces-28e65e36e8c3c20e = Распознавать лица
 
+ui-developing-name-3ca6c158e9e9f235 = Обработка { $name }
+
+ui-diagonal-6308486872486528 = Диагональная
+
+ui-diagonal-descending-b3d2c399a327a7d9 = Диагональ (нисходящая)
+
 ui-diameter-81bc689924f8c26e = Диаметр:
 
 ui-difference-1a4cde7bc40e78f0 = Разница
@@ -1327,9 +1421,9 @@ ui-do-you-want-to-save-the-changes-you-made-17c3f819cb1205b5 = Сохранит�
 
 ui-do-you-want-to-save-the-changes-you-made-202da0c8f6b3e763 = Сохранить изменения в документе «{ $name }» перед выходом?
 
-ui-do-you-want-to-save-you-made-to-name-bef-5d145da7c1a07471 = Сохранить изменения в документе «{ $name }» перед выходом?
-
 ui-doc-flat-layered-d1f0265a090cb9bd = Док: { $flat }/{ $layered }
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Закрепить инструменты слева
 
 ui-document-a97acad20fc7786a = Документ
 
@@ -1347,6 +1441,10 @@ ui-dodge-burn-430dff5bd3396d92 = Осветление/Затемнение
 
 ui-dodge-tool-adf6f6943af6246c = Осветлитель
 
+ui-domed-6b80f3fc40f5c94c = Купол
+
+ui-domed-inverted-3a1408397cf5ea60 = Купол (инвертированный)
+
 ui-don-t-save-f65079b9d9723570 = Не сохранять
 
 ui-don-t-show-again-de85ff9ea36a1410 = Больше не показывать
@@ -1357,9 +1455,11 @@ ui-dots-970ac3a0a78b482b = Точки
 
 ui-double-click-layer-mask-launches-select-a-22efb608b3f5aa5f = Двойной клик по маске слоя открывает «Выделение и маска»
 
-ui-drag-a-crop-box-drag-inside-to-move-edge-e566d06268582827 = Выделите рамку кадрирования · перетащите внутри для перемещения · края меняют размер ({ $ratio } пропорции, { $centre } центр) · Space двигает при рисовании · { $commit } применить · Esc отмена
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = Выделите рамку кадрирования · перетащите внутри для перемещения · края меняют размер ({ $ratio } пропорции, { $centre } центр) · Space двигает при рисовании · стрелки сдвигают · X меняет ориентацию · { $commit } применить · Esc отмена
 
 ui-drag-a-rectangle-around-the-object-697b9c2e08d6e422 = Обведите объект прямоугольником
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = Перетащите вокруг центра, чтобы повернуть вид  ·  Shift фиксирует шаг 15°
 
 ui-drag-lasso-or-click-points-polygonal-add-71afddda665b962c = Перетащите (лассо) или щёлкайте точки (многоугольное) · { $add } добавить · { $sub } вычесть
 
@@ -1386,6 +1486,8 @@ ui-drop-an-image-or-psd-anywhere-to-open-it-075c8229425c5805 = Перетащи�
 ui-drop-shadow-373d11d86ce48f4a = Тень
 
 ui-drop-shadow-78382b6090e1266a = Тень…
+
+ui-dual-axis-1c45b5825da6a58e = Две оси
 
 ui-dual-brush-2f0c9c277dcf4fe1 = Двойная кисть
 
@@ -1435,6 +1537,8 @@ ui-edit-in-quick-mask-mode-q-db7789a2b660e3cc = Быстрая маска  (Q)
 
 ui-edit-in-standard-mode-q-bbbe310f07228224 = Стандартный режим  (Q)
 
+ui-edit-paste-3f6b4ca340b0bccc = Редактирование › Вставить
+
 ui-edit-pins-0e5874a633e4c081 = Правка булавок
 
 ui-edit-plane-49bb7193ccfb0ca9 = Править плоскость
@@ -1442,6 +1546,8 @@ ui-edit-plane-49bb7193ccfb0ca9 = Править плоскость
 ui-edit-toolbar-a11e5956c01bb540 = Настроить панель инструментов…
 
 ui-edit-type-226542c47a158ee1 = Редактировать текст
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = Правки, затрагивающие весь документ, например режим наложения, непрозрачность или видимость слоя, перерисовывают его целиком.
 
 ui-effect-cache-mb-b8602a7895e3baab = Кэш эффектов (МБ)
 
@@ -1555,6 +1661,10 @@ ui-export-sdr-preview-a2e7aebcb62b91d6 = Экспортировать предп
 
 ui-export-selected-measurements-csv-0eb0251cb8ea2998 = Экспортировать выбранные измерения (CSV)
 
+ui-export-swatches-429d4e913cd22171 = Экспортировать образцы…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = Экспортировать образцы для обмена…
+
 ui-exposure-96cd8f1e31d26ade = Экспозиция…
 
 ui-exposure-and-gamma-8513b6bf2c39f106 = Экспозиция и гамма
@@ -1577,6 +1687,10 @@ ui-extra-large-914d919288053da8 = Очень крупный
 
 ui-extra-light-9e4f57ea6990fba3 = Особо светлый
 
+ui-extrabold-fd6396c3deb95c21 = Особо жирный
+
+ui-extralight-0704360f6be0647a = Особо светлый
+
 ui-extras-0a7175b08c4cd3b0 = Вспомогательные элементы
 
 ui-extrude-f6557151eaa73968 = Экструзия…
@@ -1584,6 +1698,8 @@ ui-extrude-f6557151eaa73968 = Экструзия…
 ui-eyedropper-3a95c584b91b510c = Пипетка
 
 ui-eyedropper-tool-582fc790d038817e = Пипетка
+
+ui-eyedroppers-9220889b81a1f1b5 = Пипетки:
 
 ui-f-08324207b4eaf8fb = Число f
 
@@ -1631,6 +1747,8 @@ ui-fill-363a0aa33870e306 = Выполнить заливку…
 
 ui-fill-9a017e8f907356c6 = Заливка
 
+ui-fill-color-61734769aae23385 = Цвет заливки
+
 ui-fill-content-3ae9184569d9ebcb = Содержимое заливки
 
 ui-fill-layer-ed1a89e942e1517f = Слой-заливка
@@ -1640,6 +1758,8 @@ ui-fill-light-7c6733a773777d56 = Подсветка
 ui-fill-new-type-layers-with-placeholder-5d979cdb113aafff = Заполнять новые текстовые слои условным текстом
 
 ui-fill-path-efc74479f9ba4931 = Залить контур
+
+ui-fill-screen-610513f68e54eeee = Заполнить экран
 
 ui-film-video-560f45773f06554c = Кино и видео
 
@@ -1745,6 +1865,8 @@ ui-font-size-0e89b2d6970679b3 = Кегль:
 
 ui-foreground-background-jitter-a3277e3862e2de93 = Колебание основного/фонового
 
+ui-foreground-color-c4236e6fb45a0975 = Основной цвет
+
 ui-foreground-fff61f5769e5eef6 = Передний план
 
 ui-foreground-to-background-4fba9c133f9b2f4d = От основного к фоновому
@@ -1774,6 +1896,8 @@ ui-freeze-lasso-drag-to-freeze-an-area-alt-d-8b5ab83ae1f3c8c1 = Лассо за�
 ui-frequency-b3a6c0ac1faacbc7 = Частота
 
 ui-from-transparency-72b17acb155833bb = Из прозрачности
+
+ui-fuchsia-8d83defd7f0120fc = Фуксия
 
 ui-full-hd-portrait-39a9f8c4e7cf39c5 = Full HD, портрет
 
@@ -1834,6 +1958,10 @@ ui-glyphs-6bbe184f5faf7aa4 = Глифы
 ui-glyphs-panel-87f62f44dbffad6a = Панель «Глифы»
 
 ui-go-to-layer-98168259e44da003 = Перейти к слою
+
+ui-golden-ratio-ff69929862f02a2d = Золотое сечение
+
+ui-golden-spiral-5757498b8af1d487 = Золотая спираль
 
 ui-gps-e5810c7e40eb8e61 = GPS
 
@@ -1898,6 +2026,8 @@ ui-grid-size-c62a767ad114f318 = Размер сетки
 ui-grid-style-c961fd4ce773d51a = Стиль сетки
 
 ui-grid-unit-9fd0788cf6307cc3 = Единица сетки
+
+ui-grid-view-d533e4a476b6d894 = Вид сеткой
 
 ui-gridline-every-ef6a21d37121785e = Линии сетки через
 
@@ -2091,11 +2221,17 @@ ui-import-93f9356ee0cef73e = Импортировать…
 
 ui-import-bd7850245f5a79ee = Импорт
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Импортировать кисти Photoshop (.abr)
+ui-import-brushes-4b123336676f918a = Импортировать кисти…
+
+ui-import-brushes-abr-bc61ea3383f9a612 = Импортировать кисти (.abr)
 
 ui-import-presets-09d2999d476d4eb6 = Импортировать наборы
 
+ui-import-swatches-d6432c51430e3eba = Импортировать образцы…
+
 ui-imported-20ac5b157259f56f = Импортирован
+
+ui-impressionist-838b2d95b3fe039e = Импрессионист
 
 ui-in-d854a6186b3bd6e4 = Начало
 
@@ -2115,6 +2251,8 @@ ui-indexed-color-0faa4bcde55c476b = Индексированный цвет
 
 ui-indexed-color-e2738c7c72cbcf55 = Индексированный цвет…
 
+ui-indigo-5c3d440918ff0f31 = Индиго
+
 ui-industry-standard-e68be8fa930df146 = Отраслевой стандарт
 
 ui-inflate-ba6551601e2bc93a = Раздувание
@@ -2132,6 +2270,8 @@ ui-inner-shadow-0c096f8cee21b045 = Внутренняя тень…
 ui-input-6b4795ab9ec37475 = Вход:
 
 ui-insert-blank-frame-40a07ace6748bed5 = Вставить пустой кадр
+
+ui-inside-ac11c2c8cf66242f = Внутри
 
 ui-install-plug-in-04982eca1a6a9fd6 = Установить плагин…
 
@@ -2183,6 +2323,10 @@ ui-isolate-layers-96a991a1f2af455a = Изолировать слои
 
 ui-italic-8b147cdb6dfb1a83 = Курсив
 
+ui-italic-affc1f243d43a170 = Курсив
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = Слои не помещаются в бюджет памяти GPU. Увеличение параметра «Память» в разделе Настройки › Производительность повышает бюджет, но не больше четверти памяти этого компьютера.
+
 ui-join-the-artcraft-discord-d3ced290104ae3f3 = Discord сообщества ArtCraft…
 
 ui-join-us-on-discord-e753e5c5ad79996e = Мы в Discord
@@ -2223,6 +2367,8 @@ ui-keyboard-shortcuts-and-menus-dcc10360cc30a6b4 = Комбинации клав
 
 ui-keywords-077319116ce9acf3 = Ключевые слова
 
+ui-knockout-114fcb275f7f7673 = Просвечивание
+
 ui-kurtosis-ca8d45264309b563 = Эксцесс
 
 ui-lab-color-b643e9a33eb1e45d = Lab
@@ -2240,6 +2386,8 @@ ui-language-e2c202f6847daf21 = Язык
 ui-language-options-82440e7bfffbd467 = Языковые параметры
 
 ui-large-ba7eea47bc48e27a = Крупный
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = Большой документ: перерисовка на CPU
 
 ui-large-tabs-350b94c02256667a = Крупные вкладки
 
@@ -2333,6 +2481,8 @@ ui-light-70bd780571c98a39 = Светлый
 
 ui-light-91417d2bc909cb4c = Свет
 
+ui-light-b8b902e993554a24 = Светлый
+
 ui-light-gray-90925fdbdadb1af0 = Светло-серая
 
 ui-light-source-651c381dfc815f9e = Источник света
@@ -2361,6 +2511,8 @@ ui-line-tool-48d31482a89ecc91 = Линия
 
 ui-linear-burn-d113b2b129bacf4f = Линейный затемнитель
 
+ui-linear-ca47517bdefa4232 = Линейный
+
 ui-linear-dodge-add-45ab0f3b18354343 = Линейный осветлитель (добавить)
 
 ui-linear-light-b910ee3dc4885f5a = Линейный свет
@@ -2383,9 +2535,13 @@ ui-link-vector-mask-6987b504a926b38a = Связать векторную мас�
 
 ui-link-width-and-height-4f6db69f8fed488d = Связать ширину и высоту
 
+ui-linux-display-server-e35271f31f95faac = Дисплейный сервер Linux
+
 ui-liquify-e3ac8d1623d1f490 = Пластичность…
 
 ui-liquify-is-not-open-b8565caf511d21fb = Пластичность не открыта
+
+ui-list-view-c6ba08976d444618 = Вид списком
 
 ui-load-386eb65ee2979317 = Загрузка
 
@@ -2408,6 +2564,8 @@ ui-localize-color-clusters-03daf070874e4522 = Локализовать цвет�
 ui-localized-color-clusters-f881bf339dfd0b0e = Локализовать цветовые кластеры
 
 ui-location-297949d1a95f2298 = Место
+
+ui-location-d83b1142cca7d946 = Расположение:
 
 ui-lock-6cefb43affebd8e6 = Закрепить:
 
@@ -2434,6 +2592,8 @@ ui-loop-3890be5ee2b48715 = Цикл
 ui-lossless-6d3d4f23fd266529 = Без потерь
 
 ui-low-ba5e537e2889f79f = Низкая
+
+ui-low-resolution-previews-250ad01d7da7418c = Превью в низком разрешении
 
 ui-lowercase-extension-764b510e00dc8f45 = Расширение в нижнем регистре
 
@@ -2536,6 +2696,8 @@ ui-median-8a4a432f80729ec5 = Медиана:
 ui-median-b139c265acfc1003 = Медиана…
 
 ui-median-b93c3b35a9c8f19d = Медиана
+
+ui-medium-9ccd01b2e5f752af = Средний
 
 ui-medium-b9135835a9a61dd0 = Средний
 
@@ -2643,6 +2805,8 @@ ui-monitor-rgb-b273d3d571b853c4 = Монитор RGB
 
 ui-monochrome-910b1c7880814a4a = Монохром
 
+ui-more-documents-702166de66a88b90 = Ещё документы
+
 ui-more-panels-179b83bbde5b401d = Ещё панели
 
 ui-more-points-5c45ec96f2353d79 = Больше точек
@@ -2711,7 +2875,7 @@ ui-name-options-7816ca8286c5a7c4 = Параметры: { $name }
 
 ui-name-properties-5e4cf3189af3bfd7 = Свойства: { $name }
 
-ui-native-file-drag-and-drop-is-not-support-fc05bb70233ffab1 = Нативное перетаскивание файлов в Wayland пока не поддерживается. Откройте файл через Файл › Открыть или запустите PhotoCraft в XWayland с `WAYLAND_DISPLAY= photocraft`.
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Нативное перетаскивание файлов в Wayland пока не поддерживается. Откройте файл через Файл › Открыть или скопируйте изображение в файловом менеджере и вставьте его с помощью { $paste }.
 
 ui-native-file-drag-and-drop-is-unavailable-c005b509d62fed44 = Нативное перетаскивание файлов в Wayland недоступно
 
@@ -2727,6 +2891,8 @@ ui-nearest-neighbor-hard-edges-62c02be60659c447 = По ближайшим сос
 
 ui-never-79b1a901034168fb = Никогда
 
+ui-never-show-overlay-62e4d50ec1f95088 = Никогда не показывать перекрытие
+
 ui-new-a846017e1e12163f = Создать
 
 ui-new-adjustment-layer-464434a38030994f = Новый корректирующий слой
@@ -2736,6 +2902,8 @@ ui-new-be4f217ebbcb229f = новый
 ui-new-blank-video-layer-ea35461303ae9a0f = Новый пустой видеослой
 
 ui-new-brush-5dee4a87912f9d7b = Новая кисть
+
+ui-new-brush-preset-9a813a7c947ca0f2 = Новый набор параметров кисти…
 
 ui-new-channel-b0696786256acc9c = Новый канал
 
@@ -2782,6 +2950,10 @@ ui-new-smart-object-via-copy-5e9e49000e79ae76 = Новый смарт-объек
 ui-new-snapshot-0fd65c54e36905c5 = Новый снимок
 
 ui-new-style-a7c91bf676fef79e = Новый стиль…
+
+ui-new-swatch-35500735beac1287 = Новый образец…
+
+ui-new-swatch-group-d508820c8747faca = Новая группа образцов…
 
 ui-new-tool-preset-0d8f6b22acc3e2a6 = Новый набор
 
@@ -2837,6 +3009,8 @@ ui-no-presets-for-the-current-tool-652f0d1fff59c221 = Нет наборов дл
 
 ui-no-presets-of-this-type-e63b6fe12705a975 = Нет наборов этого типа.
 
+ui-no-saved-presets-yet-70f97356610163a1 = Сохранённых наборов пока нет.
+
 ui-no-tool-presets-d36fc42f8a32fad0 = Нет наборов инструментов.
 
 ui-noise-abd7cd31052e10cb = Шум
@@ -2851,6 +3025,8 @@ ui-normal-63acd193c4316f68 = Обычная
 
 ui-normal-tip-a57b8ea3cf7dfb65 = Контур кисти (50%)
 
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = Не веб-цвет: щёлкните, чтобы выбрать ближайший веб-цвет
+
 ui-not-in-dictionary-d8ff41d4854e2225 = Нет в словаре:
 
 ui-note-paper-545e7d9fd9e62821 = Бумага в клетку
@@ -2862,6 +3038,8 @@ ui-note-tool-875c484cda5ed52f = Заметки
 ui-notes-c54c5e311372a994 = Заметки
 
 ui-notes-f6acff3081c34a40 = Заметки…
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = Теперь перетащите выделение на другую область
 
 ui-ntsc-1953-8f50830135401be8 = NTSC (1953)
 
@@ -2897,6 +3075,8 @@ ui-opacity-jitter-e9730861bc70adf2 = Колебание непрозрачнос
 
 ui-opacity-mask-31dde80f8ea8f674 = Маска непрозрачности
 
+ui-opacity-threshold-3dbc5455a6a96857 = Порог непрозрачности
+
 ui-open-109cf946d8c85fc3 = Открыть
 
 ui-open-a-document-to-define-variables-52664c82c5fa930a = Откройте документ, чтобы определить переменные.
@@ -2913,7 +3093,11 @@ ui-open-documents-as-tabs-498095855e674b1d = Открывать документ
 
 ui-open-feb00cb3f872449d = Открыть…
 
+ui-open-in-camera-raw-c438bf24dab93647 = Открывать в Camera Raw
+
 ui-open-recent-fd5c6c7def1d08a2 = Открыть недавние
+
+ui-open-source-65fefae8d3d63fa4 = открытый исходный код
 
 ui-opengl-c155bc2323d0d700 = OpenGL
 
@@ -2933,6 +3117,8 @@ ui-option-click-to-define-a-source-point-to-5b5ee481f271b16b = Option-клик, 
 
 ui-options-5493ee7052dcf71b = Параметры
 
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = Или выберите в Настройки › Производительность › Дисплейный сервер Linux значение X11: PhotoCraft будет всегда запускаться в XWayland.
+
 ui-orange-30b0f96deed67be5 = Оранжевая
 
 ui-orange-76742226be664282 = Оранжевые
@@ -2951,6 +3137,8 @@ ui-other-9d71ccbd3d854465 = Другой…
 
 ui-out-a11feb7e1a7333f1 = Конец
 
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = Вне цветового охвата печати: щёлкните, чтобы выбрать ближайший печатаемый цвет
+
 ui-outer-glow-c3d36ffd2b40de25 = Внешнее свечение…
 
 ui-output-1a566208f0c7b218 = Выход:
@@ -2958,6 +3146,8 @@ ui-output-1a566208f0c7b218 = Выход:
 ui-output-channel-65d0af6ca7cc3b11 = Выходной канал:
 
 ui-output-levels-e25ff1f8cc0aa2bd = Выходные уровни:
+
+ui-outside-243f1d0f3f04be7a = Снаружи
 
 ui-overlay-color-3738c3a86e585d6e = Цвет наложения
 
@@ -3029,6 +3219,8 @@ ui-path-d61b4e8bcbc2e986 = Контур:
 
 ui-path-selection-tool-39aa008c0a0b4e3c = Выделение контура
 
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }: путь не является допустимым Unicode; переименуйте файл и откройте его снова.
+
 ui-path-to-illustrator-8f33f4b326ccb04c = Контур в Illustrator…
 
 ui-paths-d61b178bcbc28c11 = Контуры
@@ -3046,6 +3238,8 @@ ui-pattern-preview-e36e994295eca6bf = Предпросмотр паттерна
 ui-pattern-size-8bca37fd672238e4 = Размер паттерна
 
 ui-pattern-stamp-3def986c64c12dcc = Узорный штамп
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = Инструмент узорный штамп
 
 ui-patterns-1d6dc3afda393884 = Паттерны
 
@@ -3121,6 +3315,10 @@ ui-photomerge-a0b725f6319fdadd = Фотослияние…
 
 ui-picas-1e454e45dcd42f55 = Пики
 
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = Выберите пиксель на экране или нажмите Esc для отмены
+
+ui-pick-screen-color-b1eefd560cdcf751 = Выбрать цвет на экране
+
 ui-picture-frame-cd0cafd49c6db476 = Рамка…
 
 ui-picture-package-4ff232928cc24ff5 = Фото-комплект…
@@ -3179,6 +3377,8 @@ ui-plug-ins-2eee7753de7072ae = Плагины…
 
 ui-png-96c6af7e141c41aa = PNG
 
+ui-point-sample-10f1da74f87660f7 = Точечная выборка
+
 ui-point-size-5970a5e09d9eb10c = Размер пункта
 
 ui-pointillize-e5acd49400517880 = Пуантилизм…
@@ -3226,6 +3426,8 @@ ui-preset-details-fe13485ede717ede = ПАРАМЕТРЫ НАБОРА
 ui-preset-manager-6c6eb4dfeb15b971 = Управление наборами…
 
 ui-preset-name-9c3a1de649a97273 = Имя набора:
+
+ui-preset-name-a0b4d9aa9b88ec7b = Имя набора
 
 ui-preset-type-32c84557b4de0f10 = Тип набора
 
@@ -3307,6 +3509,8 @@ ui-pulled-string-mode-d7af51e1cb413a79 = Режим натянутой нити
 
 ui-punctuation-11ef795a1131b25d = Пунктуация
 
+ui-pupil-size-a21b8b198e346afe = Размер зрачка
+
 ui-puppet-warp-42fd3ea1b1bd5e75 = Кукольная деформация
 
 ui-puppet-warp-is-not-active-369bd48a920a578c = Кукольная деформация не активна
@@ -3330,6 +3534,8 @@ ui-quick-export-as-png-b327e322e854b6eb = Быстрый экспорт в PNG
 ui-quick-export-format-97275761627b4b37 = Формат быстрого экспорта
 
 ui-quick-export-location-07f66db2dd9be493 = Расположение быстрого экспорта
+
+ui-quick-mask-2a6a6afe4743fad6 = Быстрая маска
 
 ui-quick-selection-5118c8caf468d640 = Быстрое выделение
 
@@ -3399,6 +3605,8 @@ ui-red-e05ded70f468e95f = Красные
 
 ui-red-eye-96b14bb055bf9143 = Красные глаза
 
+ui-red-eye-tool-27d9f6bdd5ba4eeb = Инструмент «Красные глаза»
+
 ui-redefine-style-by-current-selection-49d130f0e168560a = Переопределить стиль по текущему выделению
 
 ui-redo-bb0ef92f46bdb0db = Повторить
@@ -3408,6 +3616,8 @@ ui-reduce-noise-662854e3e0397b99 = Уменьшить шум…
 ui-reference-point-location-d5d0aada333a3e05 = Положение опорной точки
 
 ui-registration-marks-3a37216f2ea991e4 = Кресты приводки
+
+ui-regular-182bf85491dfe61c = Обычный
 
 ui-regular-919edb23c43e78f9 = Обычный
 
@@ -3477,6 +3687,8 @@ ui-replace-contents-9ff6031ca8edd123 = Заменить содержимое…
 
 ui-replace-footage-c9fc761dd7955682 = Заменить материал…
 
+ui-replace-swatches-22ed7dc765dad82d = Заменить образцы…
+
 ui-report-an-issue-4db5116de1dae62d = Сообщить о проблеме…
 
 ui-resample-13091491b016ab24 = Изменить разрешение
@@ -3491,11 +3703,15 @@ ui-reset-gpu-backend-c242574510e63df8 = Сбросить GPU-бэкенд
 
 ui-reset-section-1555592178eaa045 = Сбросить раздел
 
+ui-reset-swatches-99689ab8ada5eb9a = Восстановить образцы
+
 ui-reset-the-brush-to-the-defaults-665697e36177d7c5 = Сбросить кисть к значениям по умолчанию
 
 ui-reset-to-default-dd87022c4b5251b6 = Сбросить к значению по умолчанию
 
 ui-reset-transform-c6a67438b8b36cb2 = Сбросить трансформацию
+
+ui-reset-view-c0bdf39ad3792a63 = Сбросить вид
 
 ui-reset-workspace-d7c759652b7ff2db = Сбросить рабочую среду
 
@@ -3587,6 +3803,8 @@ ui-rotate-fixed-0a90373e325c151e = Фиксированный поворот
 
 ui-rotate-view-db81b0d3c1a858dd = Поворот обзора
 
+ui-rotate-view-tool-6ceafa4ba26e1b91 = Инструмент поворота вида
+
 ui-rotate-view-with-trackpad-3c15038ce738e009 = Поворот обзора трекпадом
 
 ui-rotation-b6243111448bc781 = Поворот
@@ -3601,6 +3819,8 @@ ui-roundness-6a42c9613dbb06d8 = Круглость:
 
 ui-roundness-jitter-b4200a8afa26003c = Колебание круглости
 
+ui-rule-of-thirds-a9efcd425580c820 = Правило третей
+
 ui-ruler-09c12bd133985e69 = Линейка
 
 ui-ruler-tool-5ffeee07041b5b45 = Линейка
@@ -3613,11 +3833,15 @@ ui-rulers-grids-9cd93d2b76f5663d = Линейки и сетка
 
 ui-same-folder-66e0883669b7042f = Та же папка
 
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = Выберите пиксель в любом месте экрана
+
 ui-sample-all-layers-fd67756ff1544318 = По всем слоям
 
 ui-sample-bd8090f687415b75 = Выборка:
 
 ui-sample-foreground-colour-801c387e6c80ec96 = Выборка: основной цвет
+
+ui-sample-size-84705069550bbf3c = Размер выборки:
 
 ui-sampler-bd80d8f68741d5cd = Цветометр
 
@@ -3683,6 +3907,8 @@ ui-scatter-0083f819f7085cc3 = Рассеивание
 
 ui-scattering-0fbe477093686f35 = Рассеивание
 
+ui-scope-8765632a779d5bdd = Область
+
 ui-scratch-disks-5b9608a9904fb227 = Рабочие диски…
 
 ui-scratch-disks-7e9e89e4a230fe21 = Рабочие диски
@@ -3703,9 +3929,13 @@ ui-script-events-manager-9b68ea8921c19d4a = Диспетчер событий с
 
 ui-scripts-98ffef4200bb8b61 = Сценарии
 
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = Колесо — изменить масштаб
+
 ui-scrubby-slider-acceleration-4df9378eec0d56f0 = Ускорение ползунков перетаскиванием
 
 ui-scrubby-zoom-be94ebd193e23a8a = Масштаб перетаскиванием
+
+ui-seafoam-ebe537921cc90f2b = Морская пена
 
 ui-search-308efd5af041d729 = Найти…
 
@@ -3755,11 +3985,15 @@ ui-select-text-to-apply-a-character-style-7b4786ca1b3b0a6e = Выделите т
 
 ui-select-top-layer-c7f72dd94f5c4dd9 = Выбрать верхний слой
 
+ui-selected-3ee82e06f8c5ee8e = Выбранные
+
 ui-selected-areas-fd185287cecd47f4 = Выделенные области
 
 ui-selection-89b473d8a650a4cb = Выделение
 
 ui-selection-edges-10f0b5fc33c11b21 = Границы выделения
+
+ui-selection-preview-a4f0a0102c940143 = Просмотр выделения:
 
 ui-selections-4e4591229b07e4a8 = Выделения
 
@@ -3771,6 +4005,8 @@ ui-selective-color-68c4fe8ed142ab94 = Выборочная коррекция ц
 
 ui-semi-bold-2ab4997d447a1c4c = Полужирный
 
+ui-semibold-f43621cc0429d1c1 = Полужирный
+
 ui-send-backward-d37960b7d2f8771e = Переместить назад
 
 ui-send-the-selected-pin-backward-72893a04579fcf71 = Переместить выбранную булавку назад
@@ -3781,11 +4017,17 @@ ui-sessions-only-5bbd361c6717946c = Только сеансы
 
 ui-set-background-color-876066fdd53af1ec = Цвет фона
 
+ui-set-black-point-3a2fd412fb7bf324 = Задать точку чёрного
+
 ui-set-foreground-color-ab148f6fba123d15 = Основной цвет
 
 ui-set-measurement-scale-4b8d433a1e169e29 = Задать масштаб измерений…
 
+ui-set-neutral-gray-point-80347a56d69ad333 = Задать нейтральную серую точку
+
 ui-set-new-snapshot-as-default-92ca61404557bf22 = Сделать новый снимок стандартным
+
+ui-set-painting-symmetry-options-8e98ad5d74801895 = Настроить параметры симметричного рисования
 
 ui-set-shape-fill-type-219ecb592293d193 = Тип заливки фигуры
 
@@ -3793,7 +4035,11 @@ ui-set-shape-stroke-type-a38ffaf96d142f94 = Тип обводки фигуры
 
 ui-set-start-timecode-2564227659cfcddd = Задать стартовый таймкод…
 
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = Задать параметры перекрытия для инструмента «Рамка»
+
 ui-set-the-text-color-cb86a3068f3cd2c6 = Цвет текста
+
+ui-set-white-point-526c42ac4bcf95ae = Задать точку белого
 
 ui-settings-24158e92756cfab8 = Наборы:
 
@@ -3871,6 +4117,10 @@ ui-show-extras-options-67ca264f1367f13d = Параметры вспомогат�
 
 ui-show-font-names-in-english-61d1f0cd73a666f2 = Названия шрифтов латиницей
 
+ui-show-hide-all-panels-240e4d824315700b = Показать/скрыть все панели
+
+ui-show-hide-panels-f43db26049aad092 = Показать/скрыть панели
+
 ui-show-lab-color-readouts-3667678fd9563967 = Показывать значения Lab
 
 ui-show-mask-bb7af932dfbcbc66 = Показать маску
@@ -3888,6 +4138,8 @@ ui-show-or-hide-the-notes-panel-bcab173de052593d = Показать или ск�
 ui-show-overlay-2b962662d8b5b07e = Показать наложение
 
 ui-show-red-at-3-o-clock-9e2376b0aca2f277 = Красный в положении «3 часа»
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = Показать кольцо выборки
 
 ui-show-selected-region-b0ccb659eb616a65 = Показать выделенную область
 
@@ -3920,6 +4172,8 @@ ui-size-16021b2387e0b7d6 = Размер
 ui-size-464c095fe2d88604 = Размер:
 
 ui-size-jitter-930feff1bfab4a70 = Колебание размера
+
+ui-size-was-old-41f38564856f8aff = { $size } (было { $old })
 
 ui-skew-24d96b238f94890d = Наклон
 
@@ -4099,6 +4353,8 @@ ui-stroke-828b007bd6ed0c59 = Обвести…
 
 ui-stroke-catch-up-6f6524919c63b74e = Догонять мазком
 
+ui-stroke-color-705a1554bb23c6c0 = Цвет обводки
+
 ui-stroke-f205e2c5c77815ff = Обводка:
 
 ui-stroke-path-928631a432241fae = Обвести контур
@@ -4173,9 +4429,13 @@ ui-switched-to-cpu-rendering-266cbbc4f8316341 = Включена отрисов�
 
 ui-symbols-ce309d4c47a33a6c = Символы
 
+ui-symmetry-off-f51a8e00f2b6ab64 = Без симметрии
+
 ui-system-cb0a7d2969f9fa5e = Системная
 
 ui-system-info-2b64529f1a15bad2 = Информация о системе…
+
+ui-system-title-bar-b81774202f7af861 = Системная строка заголовка
 
 ui-table-e0f5d309b0015c11 = Таблица
 
@@ -4203,15 +4463,21 @@ ui-texture-each-tip-13b3a9738709601a = Текстура на каждый отп
 
 ui-the-current-gradient-pick-one-in-window-g-98e4325b38ed895f = Текущий градиент (выберите в Окно › Градиенты)
 
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = Компоновщик GPU не использовался: { $reason }
+
 ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = Лимит памяти общий для пикселей документа, встроенных данных и истории отмены. Память выделяется по мере необходимости; остальные нужды приложения требуют дополнительной памяти.
 
 ui-theme-dd3b8e572fff4d90 = Тема
 
 ui-these-settings-aren-t-available-in-photo-62584644c52c9f5a = Эти параметры пока недоступны в PhotoCraft.
 
+ui-thin-24348b0f6db9a923 = Тонкий
+
 ui-thin-c145211da00c0a28 = Тонкий
 
 ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = Версия для браузера хранит историю отмены в памяти. Настройки рабочих дисков применяются к настольному приложению.
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = Эта перерисовка на CPU заняла { $seconds } с.
 
 ui-threshold-37814356fd67177a = Порог…
 
@@ -4255,6 +4521,8 @@ ui-tiny-b98ce71d9bf0fc91 = Мелкий
 
 ui-titling-alternates-e71af003a54be91f = Титульные варианты
 
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = Чтобы перетаскивать файлы, запустите PhotoCraft в XWayland: `{ $command }`
+
 ui-toggle-count-group-visibility-a8b8977f8cce2fd1 = Вкл/выкл видимость группы счёта
 
 ui-toggle-last-state-2bcc1769eddf4498 = Переключить последнее состояние
@@ -4289,6 +4557,10 @@ ui-top-7622187e02308d3e = Сверху
 
 ui-top-edges-98f1a227efff9ac0 = Верхние края
 
+ui-top-left-35db253aba562917 = Верхний левый
+
+ui-top-right-9a12cffd0398f888 = Верхний правый
+
 ui-torn-edges-0a0957dc6e1d2e44 = Рваные края
 
 ui-total-1879317f42087d47 = Всего:
@@ -4311,6 +4583,8 @@ ui-transform-again-on-a-copy-6551fe558ac26832 = Дублировать и сно
 
 ui-transform-selection-7fd8ab33590e86b7 = Трансформировать выделение
 
+ui-transform-symmetry-308ef5a329d1f431 = Трансформировать симметрию
+
 ui-transmission-reference-61b3f73080d99b56 = Ссылка на передачу
 
 ui-transparency-eb207d2209c87129 = Прозрачность
@@ -4319,11 +4593,15 @@ ui-transparency-gamut-95fb3030d7d6ee09 = Прозрачность и цвето�
 
 ui-transparency-gamut-ffad1074b11dfbff = Прозрачность и цветовой охват…
 
+ui-transparency-threshold-d681456c819197c6 = Порог прозрачности
+
 ui-transparent-a757aaf321914e7b = Прозрачный
 
 ui-trap-6caa6b7e5fcbd054 = Приводка…
 
 ui-tree-773807562a90937d = Дерево…
+
+ui-triangle-2af10d61da454203 = Треугольник
 
 ui-triangle-tool-6e94c7252b8d1d2b = Треугольник
 
@@ -4356,6 +4634,8 @@ ui-ui-scale-1e1a04f2617db42f = Масштаб интерфейса
 ui-ultra-bold-0e750679c9b01556 = Ультраплотный
 
 ui-ultra-light-5c45c78dc6114def = Ультрасветлый
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = Недоступно в этом цветовом режиме
 
 ui-uncoated-cmyk-560a33ddf6798c06 = Немелованная бумага CMYK
 
@@ -4419,7 +4699,7 @@ ui-use-default-2576facc5f89bb0f = Использовать по умолчани
 
 ui-use-esc-to-commit-e1598c8a658934e5 = Завершать по Esc
 
-ui-use-file-open-to-open-an-image-2bbc42fe3569238f = Чтобы открыть изображение, выберите Файл › Открыть.
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = Выберите Файл › Открыть или вставьте скопированное изображение с помощью { $paste }.
 
 ui-use-global-light-66eb87d40446c5c1 = Использовать глобальный свет
 
@@ -4438,6 +4718,8 @@ ui-use-tablet-pressure-00db4939c100804d = Нажим планшета
 ui-use-tablet-pressure-to-change-pen-width-f9e994c47450ebe5 = Использовать нажим планшета для изменения ширины пера
 
 ui-use-the-embedded-profile-instead-of-the-w-b02d078da80fffa8 = Использовать встроенный профиль (вместо рабочего пространства)
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Использовать давление на трекпаде
 
 ui-username-a61beb67a6f8b107 = Имя пользователя
 
@@ -4491,6 +4773,8 @@ ui-view-options-b92a3701e2c81690 = Параметры вида
 
 ui-vignetting-fb47c91b049cbe4a = Виньетирование
 
+ui-violet-2882bc397b2e28dc = Фиолетовый
+
 ui-violet-orange-8d5548d2947ea07a = Фиолетовый, оранжевый
 
 ui-visibility-9c5e3cc2b47c1d7b = Видимость
@@ -4543,6 +4827,8 @@ ui-white-balance-as-shot-7a2ad0385cd5067e = Баланс белого: как с
 
 ui-white-bed13266c4c1f028 = Белый
 
+ui-white-matte-93f44761248dcc3d = На белом фоне
+
 ui-whites-ff68ffa0558b6aa1 = Белые
 
 ui-wia-support-f3d86cd3e89a31d7 = Поддержка WIA…
@@ -4594,6 +4880,8 @@ ui-workspace-807fbd6866246d70 = Рабочая среда…
 ui-world-ready-3d73486af33f4936 = Универсальный
 
 ui-x-08323007b4eada65 = X
+
+ui-x11-52a9397deddd2397 = X11
 
 ui-y-08322f07b4ead8b2 = Y
 

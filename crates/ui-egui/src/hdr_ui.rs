@@ -6,11 +6,11 @@ use photocraft_color::hdr::{HdrWorkbench, ToneMap};
 use serde_json::{Value, json};
 
 pub fn export(app: &mut PhotocraftApp) -> Result<Value, String> {
-    let pick = app.services.pick_save.as_mut().ok_or("no save picker configured")?;
-    let Some(path) = pick("SDR-preview.png") else { return Ok(Value::Null) };
-    let bytes = photocraft_engine::hdr_cmds::sdr_png(&app.session).map_err(|e| e.to_string())?;
-    app.services.write.as_mut().ok_or("no writer configured")?(&path, &bytes)?;
-    Ok(json!({"path":path,"bytes":bytes.len(),"colorSpace":"sRGB"}))
+    app.pick_save("SDR-preview.png", |app, path| {
+        let bytes = photocraft_engine::hdr_cmds::sdr_png(&app.session).map_err(|e| e.to_string())?;
+        app.services.write.as_mut().ok_or("no writer configured")?(&path, &bytes)?;
+        Ok(json!({"path":path,"bytes":bytes.len(),"colorSpace":"sRGB"}))
+    })
 }
 
 /// Genuine float swatch on the GPU; SDR fallback is explicitly a clipped approximation.
@@ -48,6 +48,7 @@ pub fn swatch(app: &PhotocraftApp, ui: &mut egui::Ui, rect: Rect, color: [f32; 4
                     output: 0,
                     doc_size: [1, 1],
                     zoom: rect.width().max(rect.height()),
+                    rotation: 0.0,
                     center: [0.5, 0.5],
                     shadow: false,
                     pixel_grid: false,

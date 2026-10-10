@@ -59,6 +59,23 @@ pub fn margin(layer: &Layer) -> i32 {
 /// Maximum distance (px) an effect is rendered from the layer's shape.
 pub const MAX_REACH: f32 = 512.0;
 
+/// Whether every enabled effect's maps are local: each map pixel depends only on the shape
+/// within [`margin`] of it (shifts, chamfer distances compared with a size, tent blurs), so
+/// maps built over a part of the layer's region padded by twice the margin equal the
+/// whole-region maps over that part (#1909). Not local: gradient strokes (laid out over the whole
+/// shape's extent), Precise glows and chiselled bevels (exact Euclidean distances, whose f32
+/// arithmetic depends on where the region starts) and noise (it speckles any coverage above
+/// zero, so it would pick up the blur's float noise, which depends on where the region starts).
+pub(crate) fn maps_are_local(layer: &Layer) -> bool {
+    layer.effects.items.iter().filter(|e| e.enabled()).all(|e| match e {
+        Effect::Stroke(s) => !matches!(s.paint, FxPaint::Gradient(_)),
+        Effect::DropShadow(s) | Effect::InnerShadow(s) => s.noise <= 0.0,
+        Effect::OuterGlow(g) | Effect::InnerGlow(g) => g.technique != GlowTechnique::Precise && g.noise <= 0.0,
+        Effect::BevelEmboss(b) => b.technique == BevelTechnique::Smooth,
+        _ => true,
+    })
+}
+
 /// A single-channel map over a rectangle.
 #[derive(Clone)]
 struct Map {
@@ -586,7 +603,9 @@ fn glow_map(shape: &Map, g: &Glow, inner: bool, origin: (i32, i32)) -> Map {
     };
     let mut m = match g.technique {
         GlowTechnique::Precise => {
-            let d = if inner && g.source == GlowSource::Edge { dist_inside(shape) } else { dist_outside(&src) };
+            // An inner glow, from either source, measures from the edge inwards; a centre glow is
+            // the inverse below (the distance outside is ≤ 0 everywhere inside, #966).
+            let d = if inner { dist_inside(shape) } else { dist_outside(&src) };
             let solid = g.size * g.spread;
             let soft = (g.size - solid).max(1e-3);
             let mut m = Map::new(shape.w, shape.h, 0.0);
@@ -708,8 +727,12 @@ fn paint_glow(dst: &mut Buffer, m: &Map, g: &Glow, shape_bounds: Rect, anchor: (
 
 /// Normalised weights of a centred box of (fractional) width `w`: tap `i` gets the overlap of
 /// `[i - 0.5, i + 0.5]` with `[-w/2, w/2]`.
+fn box_width(w: f32) -> f32 {
+    if w.is_nan() { 1.0 } else { w.clamp(1.0, MAX_REACH) }
+}
+
 fn box_weights(w: f32) -> Vec<f32> {
-    let w = w.max(1.0);
+    let w = box_width(w);
     let half = w / 2.0;
     let r = (half - 0.5).ceil().max(0.0) as i64;
     let v: Vec<f32> = (-r..=r).map(|i| ((i as f32 + 0.5).min(half) - (i as f32 - 0.5).max(-half)).max(0.0)).collect();
@@ -735,10 +758,11 @@ pub fn tent_kernel(w: f32) -> (i32, Vec<f32>) {
 /// Box geometry for a (fractional) width: (`r`, end-tap weight `f`, 1 / width) — the
 /// [`box_weights`] taps are `r - 1` full ones each side of the centre plus the two end taps at `f`.
 fn box_geom(bw: f32) -> (i64, f64, f64) {
-    let half = bw.max(1.0) / 2.0;
+    let bw = box_width(bw);
+    let half = bw / 2.0;
     let r = (half - 0.5).ceil().max(0.0) as i64;
     let f = f64::from((half - (r as f32 - 0.5)).clamp(0.0, 1.0));
-    (r, f, 1.0 / f64::from(bw.max(1.0)))
+    (r, f, 1.0 / f64::from(bw))
 }
 
 /// One box pass over `src` (zero outside it) evaluated at `x0 .. x0 + dst.len()`, as a running
@@ -1184,6 +1208,16 @@ pub(crate) fn build_maps_prepared(
 /// Far outside any shape (distance fill for cropped distance fields).
 const FAR: f32 = 1.0e9;
 
+/// Keep an exterior effect behind the layer's shape when Fill is partly or wholly
+/// transparent. The visible part beneath a fully opaque fill is already covered by the
+/// layer, so avoid attenuating anti-aliased edges twice in that case.
+fn knock_out_exterior(map: &mut Map, shape: &Map, fill_opacity: f32) {
+    let see_through = 1.0 - fill_opacity.clamp(0.0, 1.0);
+    for (coverage, alpha) in map.v.iter_mut().zip(&shape.v) {
+        *coverage *= 1.0 - alpha * see_through;
+    }
+}
+
 /// Composites `content` (the layer's own pixels over `big`, alpha already
 /// masked, clipped layers applied) plus its effects into `backdrop`.
 pub fn composite_with_effects(layer: &Layer, content: &Buffer, backdrop: &mut Buffer, maps: &FxMaps, layer_bounds: Rect, patterns: &[Pattern]) {
@@ -1206,13 +1240,18 @@ pub(crate) fn composite_with_effects_prepared(
     // unmasked fill and the mask applies to fill ∪ stroke), joined with a filled shape's outline.
     let kmask = |i: usize| vstroke.as_ref().and_then(|v| v.mask).and_then(|m| m.get(i)).copied().unwrap_or(1.0);
     let union = |i: usize, a: f32| vstroke.as_ref().and_then(|v| v.stroke.px.get(i)).map_or(a, |s| kmask(i) * (a + s[3] * (1.0 - a)));
-    let shape = if maps.outline {
+    // Transparency Shapes Layer off: the shape is the whole layer (its masks, as the maps were
+    // built), and the content's own transparency acts like fill opacity within it.
+    let shapeless = !layer.advanced.transparency_shapes;
+    let shape = if shapeless {
+        maps.crop(&maps.shape, big, 0.0)
+    } else if maps.outline {
         let o = maps.crop(&maps.shape, big, 0.0);
         Map { w, h, v: o.v.iter().zip(&content.px).enumerate().map(|(i, (o, p))| o.max(union(i, p[3]))).collect() }
     } else {
         Map { w, h, v: content.px.iter().enumerate().map(|(i, p)| union(i, p[3])).collect() }
     };
-    let relative = maps.outline || vstroke.is_some();
+    let relative = shapeless || maps.outline || vstroke.is_some();
     let fx = |i: usize, k: usize| maps.crop(&maps.per[i][k], big, 0.0);
     // Layer bounds (gradients aligned with the layer use the whole layer,
     // independent of the render rect).
@@ -1240,17 +1279,17 @@ pub(crate) fn composite_with_effects_prepared(
                 // The layer hides the shadow beneath it only where its fill is see-through: at
                 // 100 % fill the layer covers it anyway (and anti-aliased edges are not
                 // attenuated twice), at 0 % the shape shows the bare backdrop.
-                let see_through = 1.0 - layer.fill_opacity.clamp(0.0, 1.0);
-                for (v, a) in m.v.iter_mut().zip(&shape.v) {
-                    *v *= 1.0 - a * see_through;
-                }
+                knock_out_exterior(&mut m, &shape, layer.fill_opacity);
             }
             paint_color(&mut work, &m, rgb(&s.color), s.common.blend, s.common.opacity);
         }
     }
     for (i, e) in rev() {
         if let Effect::OuterGlow(g) = e {
-            paint_glow(&mut work, &fx(i, 0), g, sb, anchor, big, patterns);
+            let mut m = fx(i, 0);
+            // Keep the glow behind transparent fill while preserving opaque edge coverage.
+            knock_out_exterior(&mut m, &shape, layer.fill_opacity);
+            paint_glow(&mut work, &m, g, sb, anchor, big, patterns);
         }
     }
 
@@ -1259,6 +1298,10 @@ pub(crate) fn composite_with_effects_prepared(
     // applies: a colour overlay at 100 % replaces the colour of a half-transparent edge pixel and
     // keeps its alpha, as in Photoshop.
     let fill = layer.fill_opacity;
+    // Blend Interior Effects as Group: the interior effects (overlays, satin, inner glow) are
+    // combined with the content first, and fill opacity applies to the combination.
+    let interior_group = layer.advanced.blend_interior && fill < 1.0;
+    let content_fill = if interior_group { 1.0 } else { fill };
     let inside = |a: f32| a > INSIDE_EPS;
     // Within an outline (or a split-off vector stroke) the content's own transparency (a fading
     // gradient fill) acts like fill opacity: the effects still cover the whole shape.
@@ -1266,9 +1309,9 @@ pub(crate) fn composite_with_effects_prepared(
         if !inside(a) {
             0.0
         } else if relative {
-            fill * (kmask(i) * p[3] / a).min(1.0)
+            content_fill * (kmask(i) * p[3] / a).min(1.0)
         } else {
-            fill
+            content_fill
         }
     };
     let mut lay = Buffer { rect: big, px: content.px.iter().zip(&shape.v).enumerate().map(|(i, (p, a))| [p[0], p[1], p[2], lay_alpha(i, p, *a)]).collect() };
@@ -1301,6 +1344,11 @@ pub(crate) fn composite_with_effects_prepared(
     for (i, e) in rev() {
         if let Effect::InnerGlow(g) = e {
             paint_glow(&mut lay, &rel(fx(i, 0)), g, sb, anchor, big, patterns);
+        }
+    }
+    if interior_group {
+        for p in &mut lay.px {
+            p[3] *= fill.max(0.0);
         }
     }
     for (i, e) in rev() {
@@ -1377,7 +1425,17 @@ pub(crate) fn composite_with_effects_prepared(
                 let k = if maps.outline {
                     band * outline_share(shape.v[i], lay.px[i][3])
                 } else if inside(shape.v[i]) {
-                    if vector_shape { 0.0 } else { 1.0 }
+                    if vector_shape {
+                        0.0
+                    } else {
+                        // The stroke lies outside the layer's pixels. Beneath the layer it may show
+                        // only through the part of the pixel the shape doesn't cover (1 - a); the
+                        // layer composited on top covers c = a × fill, so the share beneath is
+                        // (1 - a) / (1 - c). At 100 % fill that is 1 (the layer hides the rest, as
+                        // before); at 0 % fill the interior stays clear (Fill 0 % + Outside stroke).
+                        let c = lay.px[i][3].clamp(0.0, 1.0);
+                        if c >= 1.0 { 1.0 } else { ((1.0 - shape.v[i].clamp(0.0, 1.0)) / (1.0 - c)).clamp(0.0, 1.0) }
+                    }
                 } else {
                     band
                 };
@@ -1517,9 +1575,9 @@ fn mix_premul(a: [f32; 4], b: [f32; 4], k: f32) -> [f32; 4] {
 /// `glow_map`, `bevel_maps` and `build_maps`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldKind {
-    /// `dist_outside` of the shape: precise outer and centre glows, bevels.
+    /// `dist_outside` of the shape: precise outer glows, bevels.
     Outside,
-    /// `dist_inside` of the shape: precise edge inner glows, bevels.
+    /// `dist_inside` of the shape: precise inner glows, bevels.
     Inside,
     /// Chamfer distance outside the shape: outside strokes, and the spread of drop shadows and
     /// softer outer glows ([`dilate`]).
@@ -1667,6 +1725,11 @@ mod tests {
         assert_eq!(r, 4);
         assert!(k[0] > 0.0 && k[0] < 1.0 / 25.0);
         assert_eq!(tent_kernel(1.0), (0, vec![1.0]));
+        // #1543: a huge, infinite or NaN width is capped, not turned into a kernel of 2^62 taps.
+        for w in [1e30, f32::INFINITY, f32::MAX] {
+            assert_eq!(tent_kernel(w), tent_kernel(MAX_REACH), "{w}");
+        }
+        assert_eq!(tent_kernel(f32::NAN), (0, vec![1.0]));
     }
 
     fn no_tex() -> TextureCtx<'static> {

@@ -1,6 +1,6 @@
 use photocraft_color::{Color, PixelFormat, SampleType};
 use photocraft_doc::TextLayer;
-use photocraft_doc::text::{CharStyle, FontFeature, Orientation, ParagraphRun, ParagraphStyle, TextAlign, TextDirection, TextRun, TextShape};
+use photocraft_doc::text::{Caps, CharStyle, FontFeature, Orientation, ParagraphRun, ParagraphStyle, TextAlign, TextDirection, TextRun, TextShape};
 use photocraft_geom::Affine;
 
 use crate::{TextEngine, fonts};
@@ -40,6 +40,27 @@ fn bundled_fonts_cover_latin() {
 }
 
 #[test]
+fn registering_fonts_moves_the_generation() {
+    let mut e = TextEngine::new();
+    let g = fonts::generation();
+    e.fonts.register_font_data(fonts::INTER_REGULAR.to_vec());
+    assert!(fonts::generation() > g);
+}
+
+#[test]
+fn literal_psd_tabs_shape_as_whitespace_without_shifting_text_offsets() {
+    let mut e = TextEngine::new();
+    let src = "A\tB";
+    let l = e.layout(&point(src, 20.0), 72.0);
+    let plain = e.layout(&point("AB", 20.0), 72.0);
+    assert_eq!(l.lines.len(), 1);
+    assert!(l.glyphs.iter().all(|g| g.id != 0), "a tab must not render a tofu glyph");
+    assert!(width(&l) > width(&plain), "the tab reserves whitespace");
+    assert!(l.clusters.iter().all(|c| c.range.end <= src.len()), "the source byte offsets stay valid");
+    assert!(l.caret(2).0 > l.caret(1).0, "caret moves across the tab");
+}
+
+#[test]
 fn metrics_are_stable_and_scale_with_dpi() {
     let mut e = TextEngine::new();
     let a = e.layout(&point("Hamburgefonstiv", 12.0), 72.0);
@@ -53,6 +74,20 @@ fn metrics_are_stable_and_scale_with_dpi() {
     // Point text: first baseline at the anchor.
     assert_eq!(a.lines[0].baseline, 0.0);
     assert!(a.lines[0].ascent > 8.0 && a.lines[0].ascent < 13.0);
+}
+
+#[test]
+fn small_caps_are_synthesized_when_the_font_has_no_small_caps_feature() {
+    let style = CharStyle { font_family: "Inter".into(), size_pt: 40.0, caps: Caps::SmallCaps, ..Default::default() };
+    let mut engine = TextEngine::new();
+    let small = engine.layout(&styled("aA", style), 72.0);
+    let upper = engine.layout(&styled("AA", CharStyle { font_family: "Inter".into(), size_pt: 40.0, ..Default::default() }), 72.0);
+    assert_eq!(small.glyphs.len(), 2);
+    assert_eq!(small.glyphs[0].id, upper.glyphs[0].id, "lowercase uses the uppercase glyph");
+    assert_eq!(small.glyphs[1].id, upper.glyphs[1].id, "uppercase remains uppercase");
+    let size = |layout: &crate::TextLayout, glyph: usize| layout.faces[layout.glyphs[glyph].face as usize].size_px;
+    assert!((size(&small, 0) - 28.0).abs() < 0.01, "{}", size(&small, 0));
+    assert!((size(&small, 1) - 40.0).abs() < 0.01, "{}", size(&small, 1));
 }
 
 #[test]
@@ -669,6 +704,48 @@ fn psd_round_trips_antialias_opentype_and_warp() {
     }
 }
 
+/// #1469: Some older PSD writers combine a zero PointBase with an enormous local ink origin.
+/// The TySh transform cancels that origin, so importing it as a zero-based layout puts text far
+/// off-canvas. Fold the descriptor origin into the imported transform and preserve it on a TySh
+/// round trip so every editing and export path uses the same position.
+#[test]
+fn legacy_tysh_point_origin_imports_and_round_trips_on_canvas() {
+    use photocraft_psd::descriptor::{Descriptor, Id, Value as D};
+
+    let source = styled("Name", CharStyle { font_family: "Inter".into(), size_pt: 120.0, ..Default::default() });
+    let mut tysh = crate::psd::parse_tysh(&crate::psd::build_tysh(&source, 72.0, None)).unwrap();
+    tysh.transform = Affine { m: [4.1667, 0.0, 0.0, 4.1667, -32375.0, -32887.5] };
+    let ink = [8050.0, 8160.0, 8220.0, 8300.0];
+    let rect = |class| {
+        D::Descriptor(
+            Descriptor::new(class)
+                .with("Left", D::UnitFloat { unit: *b"#Pnt", value: ink[0] })
+                .with("Top ", D::UnitFloat { unit: *b"#Pnt", value: ink[1] })
+                .with("Rght", D::UnitFloat { unit: *b"#Pnt", value: ink[2] })
+                .with("Btom", D::UnitFloat { unit: *b"#Pnt", value: ink[3] }),
+        )
+    };
+    tysh.text.items.retain(|(key, _)| !key.is("bounds") && !key.is("boundingBox"));
+    tysh.text.items.push((Id::new("bounds"), rect("bounds")));
+    tysh.text.items.push((Id::new("boundingBox"), rect("boundingBox")));
+    let data = crate::psd::write_tysh(&tysh);
+
+    let imported = crate::psd::text_layer_from_tysh(&data, 72.0).unwrap();
+    let expected = [4.1667, 0.0, 0.0, 4.1667, 1166.935, 1112.772];
+    for (got, want) in imported.transform.m.iter().zip(expected) {
+        assert!((got - want).abs() < 0.001, "{:?}", imported.transform.m);
+    }
+    let (_, rendered) = TextEngine::new().render(&imported, 72.0, PixelFormat::RGBA8);
+    let placed = rendered.surface.content_bounds();
+    assert!(!placed.is_empty(), "the normalized layer renders");
+    assert!((1000..3000).contains(&placed.x0) && (500..2000).contains(&placed.y0), "{placed:?}");
+
+    let round_trip = crate::psd::text_layer_from_tysh(&crate::psd::build_tysh(&imported, 72.0, Some(ink.map(|v| v as f32))), 72.0).unwrap();
+    for (got, want) in round_trip.transform.m.iter().zip(expected) {
+        assert!((got - want).abs() < 0.001, "{:?}", round_trip.transform.m);
+    }
+}
+
 /// Regression: a PSD whose text engine data has no `EngineDict` (or isn't a dictionary)
 /// panicked with `expect("EngineDict")` when the layer was written back (PSD export).
 #[test]
@@ -973,4 +1050,40 @@ fn word_and_line_navigation() {
     assert_eq!(kept, char_index(text, l.lines[1].range.start), "kept column");
     assert_eq!(jumped, char_index(text, l.lines[1].range.end), "own column");
     assert!(jumped > kept);
+}
+
+/// Thai text sample with above/below marks (sara i, mai ek, mai tho, mai han-akat, sara u).
+const THAI_SAMPLE: &str = "ภาษาไทย สวัสดีครับ ผู้ที่น้ำ";
+
+#[test]
+fn thai_in_latin_font_falls_back_to_installed_thai_font() {
+    // #1909: Thai typed in a Latin-only font (a newly chosen font has no PostScript name to find
+    // the original Thai face) must fall back to an installed Thai-capable font, not .notdef.
+    let mut e = TextEngine::with_system_fonts();
+    let Some(thai) = fonts::THAI_FAMILIES.iter().find(|f| e.fonts.has_family(f)) else {
+        eprintln!("skipped: no Thai-capable font installed");
+        return;
+    };
+    let l = e.layout(&point(THAI_SAMPLE, 24.0), 72.0);
+    assert!(!l.glyphs.is_empty());
+    assert!(l.glyphs.iter().all(|g| g.id != 0), "Thai drawn with .notdef although {thai} is installed");
+    // Latin next to Thai keeps the chosen font; only the Thai clusters fall back.
+    let l = e.layout(&point("Thai ไทย", 24.0), 72.0);
+    assert!(l.glyphs.iter().all(|g| g.id != 0));
+    let (first, last) = (l.glyphs.first().map(|g| g.face), l.glyphs.last().map(|g| g.face));
+    assert_ne!(first, last, "Latin and Thai drawn with the same face");
+}
+
+#[test]
+fn thai_fallback_candidates_cover_every_platform() {
+    // Logic-level half of #1909 (runs without Thai fonts): Windows, macOS and Linux each have a
+    // Thai-capable family in the fallback candidates, ahead of the broad last-resort fonts.
+    for order in [crate::cjk::script_order(None), crate::cjk::script_order(Some("ja"))] {
+        let fb = fonts::fallback_candidates(&order);
+        let last = fb.iter().position(|f| *f == "Arial Unicode MS").unwrap();
+        for fam in ["Leelawadee UI", "Tahoma", "Thonburi", "Noto Sans Thai"] {
+            let i = fb.iter().position(|f| *f == fam).unwrap_or_else(|| panic!("{fam} missing from {fb:?}"));
+            assert!(i < last, "{fam} after the last-resort fonts");
+        }
+    }
 }

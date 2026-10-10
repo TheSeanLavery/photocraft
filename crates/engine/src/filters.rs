@@ -4,7 +4,9 @@
 //! smart object, recording a smart filter), respects the selection, and is
 //! undoable. `filter.lastFilter` re-runs the most recent filter command.
 
-use photocraft_algo::{self as algo, Distribution, FilterParams, PolarMode, Preserve, RadialMethod, RippleSize, SpherizeMode, UndefinedAreas, WaveType};
+use photocraft_algo::{
+    self as algo, Distribution, FilterParams, PolarMode, Preserve, RadialMethod, RadialQuality, RippleSize, SpherizeMode, UndefinedAreas, WaveType,
+};
 use photocraft_doc::{LayerContent, SmartFilter};
 use serde_json::{Value, json};
 
@@ -65,6 +67,12 @@ pub fn params_for(id: &str, p: &Value) -> Option<FilterParams> {
         "filter.blur.radialBlur" => FilterParams::RadialBlur {
             amount: f(p, "amount", 10.0).clamp(1.0, 100.0),
             method: if s(p, "method", "spin") == "zoom" { RadialMethod::Zoom } else { RadialMethod::Spin },
+            quality: match s(p, "quality", "good") {
+                "draft" => RadialQuality::Draft,
+                "best" => RadialQuality::Best,
+                "good" => RadialQuality::Good,
+                _ => RadialQuality::Good,
+            },
             center_x: f(p, "centerX", 0.5),
             center_y: f(p, "centerY", 0.5),
         },
@@ -187,7 +195,7 @@ pub(crate) fn has_filterable_layer(s: &Session) -> std::result::Result<(), Strin
     match &l.content {
         LayerContent::Raster(_) => Ok(()),
         LayerContent::Smart(sm) if sm.cache.is_some() => Ok(()),
-        other => Err(format!("filters need a pixel layer (active layer is a {} layer)", other.kind_name())),
+        other => Err(format!("filters need a pixel layer (active layer is {} {} layer)", other.article(), other.kind_name())),
     }
 }
 
@@ -232,7 +240,20 @@ pub(crate) fn run_filter(s: &mut Session, id: &str, p: &Value) -> Result<Value> 
                 *surf = filter(surf, &fp, area, bounds, selection.as_ref(), doc_bounds.union(&content))?;
                 return Ok(fp.clone());
             }
+            // Filters that make pixels transparent (Color to Alpha) turn the Background into a
+            // normal layer first, as the erasers do: it can't hold transparency.
+            if fp.makes_transparency() {
+                crate::extra_cmds::background_to_layer_for_mask(doc, layer);
+            }
+            let locks = doc.effective_locks(layer);
             let l = doc.layer_mut(layer).ok_or(EngineError::NoLayer(layer))?;
+            if locks.pixels || locks.all {
+                return Err(EngineError::Other(format!("Could not complete your request because the layer \"{}\" is locked", l.name)));
+            }
+            // Putting the old alpha back (below) would leave unmixed colours fully opaque.
+            if locks.transparency && fp.makes_transparency() && matches!(l.content, LayerContent::Raster(_)) {
+                return Err(EngineError::Other(format!("Could not complete your request because the transparency of layer \"{}\" is locked", l.name)));
+            }
             let mut fp = fp.clone();
             crate::filters_ext::resolve_in_layer(&mut fp, l, bounds);
             let surf = match &mut l.content {
@@ -245,13 +266,39 @@ pub(crate) fn run_filter(s: &mut Session, id: &str, p: &Value) -> Result<Value> 
                 }
                 _ => return Err(EngineError::Other("not a pixel layer".into())),
             };
+            let before = locks.transparency.then(|| surf.clone());
             let content = surf.content_bounds();
             let area = algo::output_area(&fp, content, bounds, sel_bounds);
             *surf = filter(surf, &fp, area, bounds, selection.as_ref(), doc_bounds.union(&content))?;
+            if let Some(before) = &before {
+                keep_alpha(before, surf);
+            }
             Ok(fp)
         },
         move |fp| json!({ "layer": layer_id, "filter": serde_json::to_value(&fp).unwrap_or(Value::Null) }),
     )
+}
+
+/// Lock transparency: put the layer's alpha back after a filter, in the tiles it changed.
+fn keep_alpha(old: &photocraft_raster::Surface, new: &mut photocraft_raster::Surface) {
+    if old.format() != new.format() || !new.format().alpha {
+        return;
+    }
+    let mut coords: Vec<_> = new.tiles().filter(|(c, t)| old.tile(**c).is_none_or(|o| !std::sync::Arc::ptr_eq(o, t))).map(|(c, _)| *c).collect();
+    coords.extend(old.tiles().filter(|(c, _)| new.tile(**c).is_none()).map(|(c, _)| *c));
+    let n = new.channels();
+    for c in coords {
+        let r = c.rect();
+        let o = old.read_region(r);
+        let mut v = new.read_region(r);
+        for (pn, po) in v.chunks_exact_mut(n).zip(o.chunks_exact(n)) {
+            if let (Some(a), Some(b)) = (pn.last_mut(), po.last()) {
+                *a = *b;
+            }
+        }
+        new.write_region(r, &v);
+    }
+    new.prune();
 }
 
 macro_rules! filter_cmd {
@@ -285,7 +332,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "filter.blur.radialBlur",
             "Radial Blur…",
             ["Filter", "Blur"],
-            r##"{"amount":1..100=10,"method":"spin|zoom","centerX":0..1=0.5,"centerY":0..1=0.5}"##
+            r##"{"amount":1..100=10,"method":"spin|zoom","quality":"draft|good|best"="good","centerX":0..1=0.5,"centerY":0..1=0.5}"##
         ),
         filter_cmd!("filter.blur.surfaceBlur", "Surface Blur…", ["Filter", "Blur"], r##"{"radius":1..100=5,"threshold":2..255=15}"##),
         filter_cmd!(
@@ -555,6 +602,10 @@ mod tests {
     #[test]
     fn params_map_to_algorithm_units() {
         assert_eq!(params_for("filter.blur.gaussianBlur", &json!({"radius": 4.5})), Some(FilterParams::GaussianBlur { radius: 4.5 }));
+        assert_eq!(
+            params_for("filter.blur.radialBlur", &json!({"quality": "best"})),
+            Some(FilterParams::RadialBlur { amount: 10.0, method: RadialMethod::Spin, quality: RadialQuality::Best, center_x: 0.5, center_y: 0.5 })
+        );
         assert_eq!(
             params_for("filter.noise.addNoise", &json!({"amount": 10, "distribution": "gaussian", "monochromatic": true})),
             Some(FilterParams::AddNoise { amount: 10.0, distribution: Distribution::Gaussian, monochromatic: true, seed: 0 })

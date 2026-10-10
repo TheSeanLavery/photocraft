@@ -25,6 +25,7 @@
 pub mod atomic;
 pub mod autosave;
 mod convert;
+mod finite;
 #[cfg(not(target_arch = "wasm32"))]
 mod history;
 pub mod manifest;
@@ -63,6 +64,8 @@ pub enum FormatError {
     TooNew { found: u32, supported: u32 },
     #[error("limit exceeded: {0}")]
     LimitExceeded(String),
+    #[error("`{path}` is NaN or infinite, which a .pcraft manifest cannot hold; reset that value and save again")]
+    NonFinite { path: String },
     #[error("I/O: {0}")]
     Io(#[from] std::io::Error),
     #[error("manifest JSON: {0}")]

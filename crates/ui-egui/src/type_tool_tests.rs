@@ -15,7 +15,13 @@ use crate::PhotocraftApp;
 use crate::canvas::ViewXform;
 
 fn harness(ppp: f32, app: PhotocraftApp) -> Harness<'static, PhotocraftApp> {
-    let mut h = Harness::builder().with_size(vec2(1200.0, 800.0)).with_pixels_per_point(ppp).build_ui_state(
+    make_harness(ppp, app, false)
+}
+
+fn make_harness(ppp: f32, app: PhotocraftApp, render: bool) -> Harness<'static, PhotocraftApp> {
+    let builder = Harness::builder().with_size(vec2(1200.0, 800.0)).with_pixels_per_point(ppp);
+    let builder = if render { builder.wgpu() } else { builder };
+    let mut h = builder.build_ui_state(
         |ui, app: &mut PhotocraftApp| {
             let ctx = ui.ctx().clone();
             if !ctx.fonts(|f| f.families().contains(&egui::FontFamily::Name("medium".into()))) {
@@ -42,7 +48,13 @@ fn new_app() -> PhotocraftApp {
 
 fn xf(app: &PhotocraftApp) -> ViewXform {
     let v = &app.ui.views[0];
-    ViewXform { rect: crate::rulers::content_rect(app, app.last_canvas_rect), zoom: v.zoom, center: v.center, flip: app.ui.view.flip_horizontal }
+    ViewXform {
+        rect: crate::rulers::content_rect(app, app.last_canvas_rect),
+        zoom: v.zoom / app.canvas_ppp(),
+        center: v.center,
+        flip: app.ui.view.flip_horizontal,
+        rotation: v.rotation,
+    }
 }
 
 /// Screen position of a text-space point of layer `id`.
@@ -196,6 +208,26 @@ fn editing_psd_type_shows_our_layout_and_cancel_restores_it() {
     click(&mut h, p);
     assert_eq!(selection(&h), (3, 3));
     assert_eq!(h.state().session.active().unwrap().history.entries().len(), steps);
+}
+
+/// Preferences ▸ Type ▸ Use Escape to Commit (default on): with it off, Escape cancels the
+/// session like the Cancel button instead of committing.
+#[test]
+fn use_escape_to_commit_off_makes_escape_cancel_the_session() {
+    for (use_esc_to_commit, expected) in [(true, "HOxHOHO"), (false, "HOHOHO")] {
+        let mut app = new_app();
+        let id = LayerId(app.run("type.create", json!({"text": "HOHOHO", "size": 120, "x": 300, "y": 420})).unwrap()["layer"].as_u64().unwrap());
+        app.run("prefs.set", json!({"path": "type.useEscToCommit", "value": use_esc_to_commit})).unwrap();
+        let mut h = harness(1.0, app);
+        let p = glyph(&mut h, id, 2, 0.2);
+        click(&mut h, p);
+        super::insert(h.state_mut(), "x");
+        assert_eq!(text(h.state(), id).text, "HOxHOHO", "typing goes into the session");
+        h.key_press(egui::Key::Escape);
+        h.run_steps(2);
+        assert!(h.state().ui.text_edit.is_none(), "the session ends either way (useEscToCommit={use_esc_to_commit})");
+        assert_eq!(text(h.state(), id).text, expected, "useEscToCommit={use_esc_to_commit}");
+    }
 }
 
 fn size_at(app: &PhotocraftApp, id: LayerId, ci: usize) -> f32 {

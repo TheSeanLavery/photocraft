@@ -5,6 +5,10 @@ cmd-edit-purge-undo = Rückgängig
 
 ui-100-b99e3955e3a3aaad = 100 %
 
+ui-101-by-101-average-f0636a75b4938275 = 101 x 101 Pixel Durchschnitt
+
+ui-11-by-11-average-538d383a16a69bb7 = 11 x 11 Pixel Durchschnitt
+
 ui-125-a935b755da9ad666 = 125 %
 
 ui-150-e4edd655fc2bffc6 = 150 %
@@ -25,6 +29,8 @@ ui-200-0474234cf06e07be = 200 %
 
 ui-250-d924c64cd7e61f65 = 250 %
 
+ui-3-by-3-average-400d4f87bb7a72ef = 3 x 3 Pixel Durchschnitt
+
 ui-3-up-horizontal-4c23efd3482104f6 = 3 nebeneinander (horizontal)
 
 ui-3-up-stacked-bd2af67dd88044db = 3 gestapelt
@@ -36,6 +42,8 @@ ui-3-x-3-d62a922e1140f045 = 3 x 3
 ui-30-frames-30-fps-86855c252e2336e2 = 30 Frames @ 30 fps
 
 ui-300-a47499467194a093 = 300 %
+
+ui-31-by-31-average-f49ec39b911d80e3 = 31 x 31 Pixel Durchschnitt
 
 ui-32-bit-float-22185f2c23877e20 = 32 Bit (Gleitkomma)
 
@@ -49,7 +57,13 @@ ui-4-up-d91fc73e02cd5199 = 4-fach
 
 ui-4-x-4-7f4ba0051d29e745 = 4 x 4
 
+ui-5-by-5-average-393c80f9d8845bab = 5 x 5 Pixel Durchschnitt
+
 ui-5-x-5-7e182dd7405b6905 = 5 x 5
+
+ui-50-gray-da82e26ee3dda904 = 50 % Grau
+
+ui-51-by-51-average-f8031ef2f1c3a59f = 51 x 51 Pixel Durchschnitt
 
 ui-6-up-e29c4f2bcc87fe2f = 6-fach
 
@@ -105,11 +119,13 @@ ui-add-space-after-paragraph-8d433bc618644da4 = Abstand nach dem Absatz hinzufü
 
 ui-add-space-before-paragraph-b5705fff97b33fbd = Abstand vor dem Absatz hinzufügen
 
-ui-add-stop-222d40042180e9c6 = Stopp hinzufügen
+ui-add-stop-222d40042180e9c6 = Farbstopp hinzufügen
 
 ui-add-to-sample-0cd5c503d0859b13 = Zur Probe hinzufügen
 
 ui-add-to-selection-key-6677aa2346964f55 = Zur Auswahl hinzufügen  ({ $key })
+
+ui-add-to-swatches-3781607eddbada31 = Zu Farbfeldern hinzufügen
 
 ui-add-variable-c4a401c42d0911dd = + Variable hinzufügen
 
@@ -171,7 +187,9 @@ ui-all-caps-bd95058f066e700f = Großbuchstaben
 
 ui-all-layers-bf480d822a927800 = Alle Ebenen
 
-ui-all-shortcuts-reset-to-photoshop-default-a3203301431072bf = Alle Kurzbefehle wurden auf die Photoshop-Standards zurückgesetzt.
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = Alle Ebenen ohne Einstellungen
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Alle Kurzbefehle wurden auf die PhotoCraft-Standards zurückgesetzt.
 
 ui-all-slices-c7482a9e09ce788d = Alle Slices
 
@@ -187,11 +205,15 @@ ui-alt-18c9177e5dc52d62 = Alt
 
 ui-alt-click-to-define-a-source-point-to-cl-2228e77de216e323 = Alt-Klick legt einen Quellpunkt zum Klonen fest
 
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Der Alt-Klick ging an die Arbeitsumgebung, die Fenster mit Alt-Ziehen verschiebt. Stelle dort die Taste zum Verschieben von Fenstern auf Super oder raste Alt unter Fenster › Modifikatortasten ein.
+
 ui-altitude-074742fe1fc6d631 = Höhenwinkel
 
 ui-always-708f9a0c043b4c2e = Immer
 
 ui-always-create-smart-objects-when-placing-f474351a9f48ed99 = Beim Platzieren immer Smart-Objekte erstellen
+
+ui-always-show-overlay-b6be473be8ad3beb = Überlagerung immer anzeigen
 
 ui-always-use-pressure-for-opacity-1e9578afcf0ee902 = Druck immer für Deckkraft verwenden
 
@@ -204,6 +226,8 @@ ui-analysis-2c20cd1b6a7a0ec1 = Analyse
 ui-anamorphic-2-1-2-726f0be505a8bb59 = Anamorphotisch 2:1 (2)
 
 ui-anchor-a0ad95217456f9d4 = Anker:
+
+ui-and-n-more-6e37845d39302347 = …und { $n } weitere
 
 ui-android-1080p-d0218ca5b0b425f9 = Android 1080p
 
@@ -232,6 +256,8 @@ ui-appearance-layer-style-eb9a62f511fc8d0a = Erscheinungsbild (Ebenenstil)
 ui-apple-watch-45mm-b51f9e5f0f31c08f = Apple Watch 45 mm
 
 ui-applies-at-next-launch-d3533a97eceb1f8c = Wird beim nächsten Start angewendet.
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = Effekt an Arbeitsflächenbegrenzungen anwenden
 
 ui-apply-auto-tone-adf66ec80e3a0b08 = Automatische Tonwertkorrektur anwenden
 
@@ -323,6 +349,8 @@ ui-auto-show-hidden-panels-10d979553ed266c2 = Ausgeblendete Bedienfelder automat
 
 ui-auto-show-home-screen-c05e3fe894f84850 = Startbildschirm automatisch anzeigen
 
+ui-auto-show-overlay-59ff23a3b368166d = Überlagerung automatisch anzeigen
+
 ui-auto-tone-b0ded0d3730faa94 = Automatische Tonwertkorrektur
 
 ui-automate-846f7a3e78fb3639 = Automatisieren
@@ -397,7 +425,11 @@ ui-bitmap-d55ea07f32437944 = Bitmap
 
 ui-black-49e5cb1e3f075426 = Schwarz
 
-ui-black-point-compensation-0384ce18be7270ee = Tiefpunktkompensation
+ui-black-87de58185ee7e143 = Sehr fett (Black)
+
+ui-black-matte-7c051e0b8e0c064b = Schwarzer Hintergrund
+
+ui-black-point-compensation-0384ce18be7270ee = Tiefenkompensierung
 
 ui-black-white-3409104e8d55c181 = Schwarzweiß
 
@@ -409,11 +441,13 @@ ui-blacks-98cc796519744c6f = Schwarz
 
 ui-blank-document-presets-n-d0e843aa86912c17 = LEERE DOKUMENTVORGABEN ({ $n })
 
-ui-blend-if-7ad2aba688940595 = Fusionieren wenn
+ui-blend-if-47ff5afa1385a85d = Farbbereich:
+
+ui-blend-if-7ad2aba688940595 = Farbbereich
 
 ui-blend-mode-1d23e212a4d7c849 = Fusionsmodus
 
-ui-blending-9e95eba57ae2afba = Fusionieren
+ui-blending-9e95eba57ae2afba = Überblenden
 
 ui-blending-options-598a933392b032a0 = Fusionsoptionen
 
@@ -435,6 +469,8 @@ ui-blur-tool-82c3cb0310f74d48 = Weichzeichner-Werkzeug
 
 ui-bold-9841d4b252180f48 = Fett
 
+ui-bold-98d37886cf62c4a3 = Fett
+
 ui-bold-italic-ab996b432667b548 = Fett Kursiv
 
 ui-border-63cb7a79f7bde62f = Rand…
@@ -446,6 +482,10 @@ ui-both-axes-435ce184a29db821 = Beide Achsen
 ui-bottom-bada204837504c00 = Unten
 
 ui-bottom-edges-80ce9c3631b189f2 = Untere Kanten
+
+ui-bottom-left-a4a6bc5593eb6541 = Unten links
+
+ui-bottom-right-2acd3cb673e6fda2 = Unten rechts
 
 ui-box-blur-2b37bcd95ec2938f = Boxweichzeichner…
 
@@ -473,6 +513,8 @@ ui-brush-picker-93597b7bd47683ad = Pinsel-Auswahl
 
 ui-brush-pose-3617230f221ac6a6 = Pinselhaltung
 
+ui-brush-preset-options-ae5d75337b0c67ae = Pinselvorgaben-Optionen
+
 ui-brush-preset-picker-6265db6aad998442 = Pinselvorgaben-Auswahl
 
 ui-brush-preview-626c213d4519f731 = Pinsel-Vorschau
@@ -494,6 +536,8 @@ ui-brush-tool-1dc80beb2f69c731 = Pinsel-Werkzeug
 ui-brush-tool-options-316bdd41efd13f97 = Pinselwerkzeug-Optionen
 
 ui-brushes-4f3c0629bfac6281 = Pinsel
+
+ui-budget-mb-af9a1600ca07b419 = Grenzwert (MiB)
 
 ui-build-up-71f14d913a8a86b5 = Aufbau
 
@@ -520,6 +564,8 @@ ui-camera-raw-filter-29ed3a1dc4186978 = Camera-Raw-Filter…
 ui-camera-raw-filter-layer-1be4a91af7462ff0 = Camera-Raw-Filter ({ $layer })
 
 ui-camera-raw-isn-t-open-99ad694093e909ed = Camera Raw ist nicht geöffnet
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw ({ $name })
 
 ui-cancel-any-current-edits-esc-42764b5a3f8f4c7f = Aktuelle Bearbeitungen abbrechen (Esc)
 
@@ -559,7 +605,7 @@ ui-capture-the-visibility-position-and-styl-8f22cdb1fbdec74a = Erfasse Sichtbark
 
 ui-cascade-c23f311e1afc4997 = Überlappend
 
-ui-catch-up-on-stroke-end-18126419b8e9e76e = Auf Strichende aufholen
+ui-catch-up-on-stroke-end-18126419b8e9e76e = Am Strichende nachführen
 
 ui-center-crop-marks-383374e900158fce = Mittige Beschnittmarken
 
@@ -590,6 +636,8 @@ ui-channel-mixer-2f8e64f826eedfed = Kanalmixer…
 ui-channel-mixer-ec1e80a50b4c99b3 = Kanalmixer
 
 ui-channels-44d502bc3e71fbb7 = Kanäle
+
+ui-channels-67ef32de1bae7097 = Kanäle:
 
 ui-character-daf6ff1f129c38e6 = Zeichen
 
@@ -639,6 +687,8 @@ ui-clear-slices-0ed5aadb7420a613 = Slices löschen
 
 ui-clear-smart-filters-48da550cf14de2ca = Smart-Filter löschen
 
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = Klick auf die Pupille, um die Rotfärbung zu entfernen.
+
 ui-click-corner-drag-smooth-click-first-poi-1551d2e2b2e3984d = Klick: Ecke · Ziehen: weich · Ersten Punkt klicken: schließen · { $key } fertig · Esc abbrechen
 
 ui-click-select-anchor-drag-move-anchor-han-acc6bd478a1d5ab3 = Klick: Ankerpunkt auswählen · Ziehen: Ankerpunkt, Griff oder Segment verschieben · { $shift }-Klick: hinzufügen · { $alt }-Klick: ganzer Teilpfad
@@ -653,9 +703,15 @@ ui-click-to-add-text-b78b2772a89f1954 = Klicken, um Text hinzuzufügen
 
 ui-click-to-apply-key-click-to-clear-overri-e66d3fc7065013f5 = Klicken wendet an, { $key }-Klick löscht Überschreibungen, Doppelklick öffnet die Stiloptionen
 
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Klicken, um die Spaltenzahl zu ändern; Titelleiste zum Verschieben ziehen
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Klicken, um die Spaltenzahl zu ändern; zum Lösen der Werkzeuge ziehen
+
 ui-click-to-edit-the-gradient-14e67844a427ffaf = Klicke, um den Verlauf zu bearbeiten
 
 ui-click-to-fill-similar-colours-d4ad82ceb74861df = Klicken, um ähnliche Farben zu füllen
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = Klicken zum Auswählen · Esc zum Abbrechen
 
 ui-click-to-restore-the-current-colour-a3089de9e10e7d4e = Klicke, um die aktuelle Farbe wiederherzustellen
 
@@ -665,7 +721,7 @@ ui-click-to-zoom-in-key-click-to-zoom-out-d-86f98252869cedb8 = Klicken vergröß
 
 ui-click-with-the-note-tool-to-add-a-note-32cd19503d720141 = Klicke mit dem Notiz-Werkzeug, um eine Notiz hinzuzufügen.
 
-ui-clip-to-layer-below-65fed993dff9f7da = Auf die Ebene darunter beschneiden
+ui-clip-to-layer-below-65fed993dff9f7da = Auf darunterliegende Ebene begrenzen
 
 ui-clipboard-147505c6002376e7 = Zwischenablage
 
@@ -695,7 +751,7 @@ ui-cmd-0a21e77e563ab64d = Cmd
 
 ui-cmyk-color-6474848b58934068 = CMYK-Farbe
 
-ui-coated-cmyk-de8df338b2eec31f = Gestrichenes CMYK
+ui-coated-cmyk-de8df338b2eec31f = CMYK für gestrichenes Papier
 
 ui-collapse-all-groups-5ff301b203e9556d = Alle Gruppen einklappen
 
@@ -708,6 +764,8 @@ ui-collapse-panel-group-0b3e67928f0a3581 = Bedienfeldgruppe einklappen
 ui-color-73a9475ddd11219c = Farbe:
 
 ui-color-8beb3c381fb2f1ce = Farbe
+
+ui-color-a13d112d0512855e = Farbe…
 
 ui-color-adaptation-f7d5eb50532ba5ff = Farbanpassung
 
@@ -751,6 +809,12 @@ ui-color-overlay-e4ec9e391c16750a = Farbüberlagerung…
 
 ui-color-picker-ac18daa6e6202218 = Farbwähler
 
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Farbwähler (Füllfarbe)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Farbwähler (Konturfarbe)
+
+ui-color-picker-text-color-6873936c7cbaceb3 = Farbwähler (Textfarbe)
+
 ui-color-priority-138e732eacbefb9e = Farbpriorität
 
 ui-color-range-50f5b2b6eafe6017 = Farbbereich
@@ -768,6 +832,8 @@ ui-color-space-295320d7c66be8c4 = Farbraum
 ui-color-swatches-ac06e00181a24994 = Farbe & Farbfelder
 
 ui-color-table-0f9a9c9eee34022e = Farbtabelle…
+
+ui-color-to-alpha-5a172092ca34c10d = Farbe zu Alpha…
 
 ui-colorize-cc4a832f61eb6438 = Färben
 
@@ -805,6 +871,10 @@ ui-concise-d7b424e8b03095f1 = Kompakt
 
 ui-conditional-mode-change-d54fc31ea7bbaf9c = Bedingter Moduswechsel…
 
+ui-cone-83c7f5ac8fb13c68 = Kegel
+
+ui-cone-inverted-07c75939642bd114 = Kegel (umgekehrt)
+
 ui-conform-a4f74ad00fa62f5f = Anpassen
 
 ui-consolidate-all-to-tabs-8d663391c5754a08 = Alle in Registerkarten zusammenfassen
@@ -830,6 +900,8 @@ ui-content-aware-fill-needs-a-selection-on-a-da74ef5ec81c2a5f = Inhaltsbasiertes
 ui-content-aware-move-tool-2b8963bbe66001be = Inhaltsbasiert-verschieben-Werkzeug
 
 ui-content-aware-scale-379439a63f8f33a9 = Inhaltsbasiert skalieren
+
+ui-contents-b5e5b9d3f6d35ec1 = Inhalt:
 
 ui-contextual-alternates-faff0187fc6570f3 = Kontextuelle Alternativen
 
@@ -890,6 +962,8 @@ ui-corner-crop-marks-0bf86b15940411ea = Eck-Beschnittmarken
 ui-corner-radius-97bd53a5d5687970 = Eckenradius
 
 ui-correction-07f5c477ab7d049f = Korrektur
+
+ui-could-not-open-05042bf852b9a743 = Öffnen nicht möglich
 
 ui-could-not-transform-the-layer-is-empty-bc5f9720a6d7e4d4 = Transformieren nicht möglich: Die Ebene ist leer
 
@@ -963,6 +1037,8 @@ ui-create-new-style-from-the-selected-layer-538e544b12b2bb51 = Neuen Stil aus de
 
 ui-create-new-style-from-the-selected-type-683f13baccb54adf = Neuen Stil erstellen (aus dem ausgewählten Text)
 
+ui-create-new-swatch-df52baa4652be53b = Neues Farbfeld erstellen
+
 ui-create-new-tool-preset-7d4d468ee6c87460 = Neue Werkzeugvorgabe erstellen
 
 ui-create-texture-6370025c65a11dd4 = Textur erstellen
@@ -993,6 +1069,8 @@ ui-current-3a9c9b05372393f0 = aktuell
 
 ui-current-below-1799f701288bc2cb = Aktuelle und darunter
 
+ui-current-below-no-adjustments-ad3ef5ddcba453be = Aktuelle und darunter ohne Einstellungen
+
 ui-current-layer-530d0a7523724bb5 = Aktuelle Ebene
 
 ui-current-path-e40850189ad141b7 = Aktueller Pfad
@@ -1021,6 +1099,8 @@ ui-custom-dark-d02136fca4cc1968 = Benutzerdefiniert dunkel
 
 ui-custom-light-d0c46f600e83cca8 = Benutzerdefiniert hell
 
+ui-custom-pattern-b1725fbbdb358844 = Eigenes Muster:
+
 ui-custom-pixel-aspect-ratio-07f72205d30e0a49 = Benutzerdefiniertes Pixel-Seitenverhältnis…
 
 ui-custom-shape-tool-183aa3c7f0ae0715 = Werkzeug für benutzerdefinierte Formen
@@ -1034,6 +1114,10 @@ ui-cyan-097690ac4a1ce224 = Cyan
 ui-cyan-red-90bb919c7ee7207e = Cyan  ·  Rot
 
 ui-cyans-315a2bc1ef1499d5 = Cyantöne
+
+ui-cycle-orientation-d47100e364dd1ce9 = Ausrichtung wechseln
+
+ui-cycle-overlay-cd2523de1e12bc5b = Überlagerung wechseln
 
 ui-cycle-screen-mode-42f43477ff963284 = Bildschirmmodus durchschalten
 
@@ -1050,6 +1134,8 @@ ui-dark-1f7295a06447be87 = Dunkel
 ui-dark-gray-18764f09bb370c3a = Dunkelgrau
 
 ui-darken-a1fc662b2b849eb8 = Abdunkeln
+
+ui-darken-amount-4ff87ddb9162ea14 = Abdunklungsgrad
 
 ui-darker-color-7874c6c27c279e1b = Dunklere Farbe
 
@@ -1071,7 +1157,7 @@ ui-default-colours-d-702fa2ae170283a6 = Standardfarben (D)
 
 ui-default-features-5afc3e0f6e30c7ff = Standardfunktionen
 
-ui-default-photoshop-size-86c00542f2645621 = Standard-Photoshop-Größe
+ui-default-photocraft-size-42e29dd35050952b = Standard-PhotoCraft-Größe
 
 ui-default-printer-4c55958efe32b804 = Standarddrucker
 
@@ -1096,6 +1182,8 @@ ui-dehaze-622eced1257d8a96 = Dunst entfernen
 ui-delete-af3196ad6b727abc = Löschen
 
 ui-delete-all-empty-layers-261b6232e0a29af4 = Alle leeren Ebenen löschen
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = Auswahl löschen und füllen
 
 ui-delete-brush-817c814f80208444 = Pinsel löschen
 
@@ -1181,6 +1269,12 @@ ui-detailed-24dd2bea4b55d99f = Detailliert
 
 ui-details-b0d022b6f9b30237 = Details
 
+ui-developing-name-3ca6c158e9e9f235 = { $name } wird entwickelt
+
+ui-diagonal-6308486872486528 = Diagonal
+
+ui-diagonal-descending-b3d2c399a327a7d9 = Diagonal (absteigend)
+
 ui-diameter-81bc689924f8c26e = Durchmesser:
 
 ui-diamond-da3fa4d1e0537eed = Raute
@@ -1255,6 +1349,8 @@ ui-doc-flat-layered-d1f0265a090cb9bd = Dok: { $flat }/{ $layered }
 
 ui-doc-w-h-px-50fdf406f12771ce = Dok: { $w } × { $h } px
 
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Werkzeuge links andocken
+
 ui-document-a97acad20fc7786a = Dokument
 
 ui-document-bounds-22aa4578ff3193ff = Dokumentgrenzen
@@ -1269,6 +1365,10 @@ ui-dodge-a91837fc641e00f6 = Abwedeln
 
 ui-dodge-tool-adf6f6943af6246c = Abwedler-Werkzeug
 
+ui-domed-6b80f3fc40f5c94c = Gewölbt
+
+ui-domed-inverted-3a1408397cf5ea60 = Gewölbt (umgekehrt)
+
 ui-don-t-save-f65079b9d9723570 = Nicht speichern
 
 ui-don-t-show-again-de85ff9ea36a1410 = Nicht mehr anzeigen
@@ -1281,9 +1381,11 @@ ui-double-click-layer-mask-launches-select-a-22efb608b3f5aa5f = Doppelklick auf 
 
 ui-down-9707b0a0a788f20b = Nach unten
 
-ui-drag-a-crop-box-drag-inside-to-move-edge-e566d06268582827 = Freistellrahmen ziehen · innen ziehen verschiebt · Kanten skalieren ({ $ratio } Verhältnis, { $centre } zentriert) · Leertaste verschiebt beim Zeichnen · { $commit } übernimmt · Esc bricht ab
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = Freistellrahmen ziehen · innen ziehen verschiebt · Kanten skalieren ({ $ratio } Verhältnis, { $centre } zentriert) · Leertaste verschiebt beim Zeichnen · Pfeiltasten verschieben · X tauscht Ausrichtung · { $commit } übernimmt · Esc bricht ab
 
 ui-drag-a-rectangle-around-the-object-697b9c2e08d6e422 = Ziehe ein Rechteck um das Objekt
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = Ansicht drehen: im Bogen ziehen · Umschalt: 15°-Schritte
 
 ui-drag-lasso-or-click-points-polygonal-add-71afddda665b962c = Ziehen (Lasso) oder Punkte klicken (polygonal) · { $add } hinzufügen · { $sub } abziehen
 
@@ -1310,6 +1412,8 @@ ui-drop-shadow-373d11d86ce48f4a = Schlagschatten
 ui-drop-shadow-78382b6090e1266a = Schlagschatten…
 
 ui-drop-shadow-f8503ec97aa9876a = Schlagschatten
+
+ui-dual-axis-1c45b5825da6a58e = Duale Achse
 
 ui-dual-brush-2f0c9c277dcf4fe1 = Doppelpinsel
 
@@ -1351,11 +1455,15 @@ ui-edit-in-quick-mask-mode-q-db7789a2b660e3cc = Im Schnellmaskenmodus bearbeiten
 
 ui-edit-in-standard-mode-q-bbbe310f07228224 = Im Standardmodus bearbeiten  (Q)
 
+ui-edit-paste-3f6b4ca340b0bccc = Bearbeiten › Einfügen
+
 ui-edit-pins-0e5874a633e4c081 = Pins bearbeiten
 
 ui-edit-toolbar-a11e5956c01bb540 = Werkzeugleiste bearbeiten…
 
 ui-edit-type-226542c47a158ee1 = Text bearbeiten
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = Änderungen, die das ganze Dokument betreffen, etwa Füllmethode, Deckkraft oder Sichtbarkeit einer Ebene, zeichnen es vollständig neu.
 
 ui-effect-cache-mb-b8602a7895e3baab = Effekt-Cache (MB)
 
@@ -1451,7 +1559,13 @@ ui-export-preferences-6fca90d88bfd2b35 = Exporteinstellungen…
 
 ui-export-presets-6169cc0549331909 = Vorgaben exportieren
 
+ui-export-sdr-preview-a2e7aebcb62b91d6 = SDR-Vorschau exportieren…
+
 ui-export-selected-measurements-csv-0eb0251cb8ea2998 = Ausgewählte Messungen exportieren (CSV)
+
+ui-export-swatches-429d4e913cd22171 = Farbfelder exportieren…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = Farbfelder für Austausch exportieren…
 
 ui-exposure-96cd8f1e31d26ade = Belichtung…
 
@@ -1469,6 +1583,10 @@ ui-extra-large-914d919288053da8 = Extra groß
 
 ui-extrabold-d797c053724b9c04 = Extrafett
 
+ui-extrabold-fd6396c3deb95c21 = Extrafett
+
+ui-extralight-0704360f6be0647a = Extraleicht
+
 ui-extralight-bfbec65b923f0ded = Extraleicht
 
 ui-extras-0a7175b08c4cd3b0 = Extras
@@ -1478,6 +1596,8 @@ ui-extrude-f6557151eaa73968 = Extrudieren…
 ui-eyedropper-3a95c584b91b510c = Pipette
 
 ui-eyedropper-tool-582fc790d038817e = Pipetten-Werkzeug
+
+ui-eyedroppers-9220889b81a1f1b5 = Pipetten:
 
 ui-f-08324207b4eaf8fb = F
 
@@ -1523,6 +1643,8 @@ ui-fill-363a0aa33870e306 = Füllen…
 
 ui-fill-9a017e8f907356c6 = Füllung
 
+ui-fill-color-61734769aae23385 = Füllfarbe
+
 ui-fill-content-3ae9184569d9ebcb = Füllinhalt
 
 ui-fill-layer-ed1a89e942e1517f = Füllebene
@@ -1534,6 +1656,8 @@ ui-fill-opacity-d2845a79e831f763 = Füll-Deckkraft
 ui-fill-path-efc74479f9ba4931 = Pfad füllen
 
 ui-fill-path-with-foreground-color-e0a40f352bac250b = Pfad mit Vordergrundfarbe füllen
+
+ui-fill-screen-610513f68e54eeee = Bildschirm ausfüllen
 
 ui-film-video-560f45773f06554c = Film & Video
 
@@ -1617,9 +1741,9 @@ ui-flip-y-1afa77e9b1e09447 = Y spiegeln
 
 ui-flip-y-jitter-d13b18578906d4d3 = Y-Spiegel-Schwankung
 
-ui-float-all-in-windows-65bca24a36ad543a = Alle in Fenstern schweben
+ui-float-all-in-windows-65bca24a36ad543a = Alle in Fenstern schweben lassen
 
-ui-float-in-window-96e9f41d9d1ef30a = Im Fenster schweben
+ui-float-in-window-96e9f41d9d1ef30a = In Fenster schweben lassen
 
 ui-floating-point-2f2c0ab2ec3eb04f = Gleitkomma
 
@@ -1642,6 +1766,8 @@ ui-font-size-0e89b2d6970679b3 = Schriftgröße:
 ui-font-size-895dad4ca5641c1b = Schriftgröße
 
 ui-foreground-background-jitter-a3277e3862e2de93 = Vordergrund/Hintergrund-Schwankung
+
+ui-foreground-color-c4236e6fb45a0975 = Vordergrundfarbe
 
 ui-foreground-fff61f5769e5eef6 = Vordergrund
 
@@ -1672,6 +1798,8 @@ ui-frequency-b3a6c0ac1faacbc7 = Frequenz
 ui-from-4a340a8f62ba79f3 = Von
 
 ui-from-transparency-72b17acb155833bb = Aus Transparenz
+
+ui-fuchsia-8d83defd7f0120fc = Fuchsia
 
 ui-full-hd-portrait-39a9f8c4e7cf39c5 = Full HD Hochformat
 
@@ -1722,6 +1850,10 @@ ui-glow-color-772e4e38cbf4d5a1 = Scheinfarbe
 ui-glyphs-6bbe184f5faf7aa4 = Glyphen
 
 ui-glyphs-panel-87f62f44dbffad6a = Glyphen-Bedienfeld
+
+ui-golden-ratio-ff69929862f02a2d = Goldener Schnitt
+
+ui-golden-spiral-5757498b8af1d487 = Goldene Spirale
 
 ui-gpu-acceleration-could-not-continue-your-975aa8647d798084 = GPU-Beschleunigung konnte nicht fortgesetzt werden. Deine Dokumente sind unverändert.
 
@@ -1834,7 +1966,11 @@ ui-hardness-4dede17b575a2d21 = Härte:
 
 ui-hardness-bfda5bd2614de3e1 = Härte
 
+ui-hdr-output-474159eb0db7fb90 = HDR-Ausgabe
+
 ui-hdr-toning-916113b6e3eaa65e = HDR-Tonung…
+
+ui-hdr-workbench-847f1f37e6c4ef5a = HDR-Arbeitsbereich
 
 ui-hdv-1080-dvcpro-hd-720-1-33-7b6949db8c39123e = HDV 1080/DVCPRO HD 720 (1,33)
 
@@ -1954,11 +2090,15 @@ ui-import-brushes-4b123336676f918a = Pinsel importieren…
 
 ui-import-brushes-abr-a844dbcfa1f1fd72 = Pinsel importieren… (.abr)
 
-ui-import-photoshop-brushes-abr-f8af2cca0d2a4db2 = Photoshop-Pinsel (.abr) importieren
+ui-import-brushes-abr-bc61ea3383f9a612 = Pinsel (.abr) importieren
 
 ui-import-presets-09d2999d476d4eb6 = Vorgaben importieren
 
+ui-import-swatches-d6432c51430e3eba = Farbfelder importieren…
+
 ui-imported-20ac5b157259f56f = Importiert
+
+ui-impressionist-838b2d95b3fe039e = Impressionistisch
 
 ui-inches-36cac13fc3a9f4bf = Zoll
 
@@ -1981,6 +2121,8 @@ ui-indexed-color-0faa4bcde55c476b = Indizierte Farben
 ui-indexed-color-e2738c7c72cbcf55 = Indizierte Farben…
 
 ui-indexed-e432355755eef58c = Indiziert
+
+ui-indigo-5c3d440918ff0f31 = Indigo
 
 ui-inflate-ba6551601e2bc93a = Aufblasen
 
@@ -2048,9 +2190,13 @@ ui-isolate-layers-96a991a1f2af455a = Ebenen isolieren
 
 ui-italic-8b147cdb6dfb1a83 = Kursiv
 
+ui-italic-affc1f243d43a170 = Kursiv
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = Die Ebenen passen nicht in das GPU-Speicherbudget. Eine höhere Speichernutzung unter Voreinstellungen › Leistung erhöht das Budget, bis zu einem Viertel des Arbeitsspeichers dieses Computers.
+
 ui-join-the-artcraft-discord-d3ced290104ae3f3 = ArtCraft-Discord beitreten…
 
-ui-join-us-on-discord-e753e5c5ad79996e = Tritt uns auf Discord bei
+ui-join-us-on-discord-e753e5c5ad79996e = Tritt unserem Discord bei
 
 ui-jpeg-quality-4dae267814ddec9c = JPEG-Qualität
 
@@ -2082,6 +2228,8 @@ ui-keyboard-shortcuts-and-menus-dcc10360cc30a6b4 = Tastaturkurzbefehle und Menü
 
 ui-kind-8a583c65ea499095 = Art
 
+ui-knockout-114fcb275f7f7673 = Aussparung
+
 ui-kurtosis-ca8d45264309b563 = Kurtosis
 
 ui-lab-ba646e7e288e912e = Lab
@@ -2107,6 +2255,8 @@ ui-language-e2c202f6847daf21 = Sprache
 ui-language-options-82440e7bfffbd467 = Sprachoptionen
 
 ui-large-ba7eea47bc48e27a = Groß
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = Großes Dokument: Neuzeichnen auf der CPU
 
 ui-large-tabs-350b94c02256667a = Große Registerkarten
 
@@ -2196,6 +2346,10 @@ ui-levels-f40e2cec2bf50a90 = Tonwertkorrektur…
 
 ui-light-70bd780571c98a39 = Light
 
+ui-light-91417d2bc909cb4c = Licht
+
+ui-light-b8b902e993554a24 = Leicht
+
 ui-light-gray-90925fdbdadb1af0 = Hellgrau
 
 ui-lighten-ec047e5803ae908e = Aufhellen
@@ -2250,6 +2404,8 @@ ui-link-width-and-height-4f6db69f8fed488d = Breite und Höhe koppeln
 
 ui-link-with-layer-ad56115c85c3cd48 = Mit Ebene verknüpfen
 
+ui-linux-display-server-e35271f31f95faac = Linux-Anzeigeserver
+
 ui-liquify-e3ac8d1623d1f490 = Verflüssigen…
 
 ui-liquify-is-not-open-b8565caf511d21fb = Verflüssigen ist nicht geöffnet
@@ -2270,13 +2426,15 @@ ui-load-files-into-stack-930178906e61106e = Dateien in Stapel laden…
 
 ui-load-path-as-a-selection-4595274370f43a07 = Pfad als Auswahl laden
 
-ui-load-photoshop-brushes-abr-72def280fc39c975 = Photoshop-Pinsel (.abr) laden
-
 ui-load-selection-072d9465bd4fdf85 = Auswahl laden
 
 ui-load-selection-9879fb5ae763e63b = Auswahl laden…
 
 ui-localized-color-clusters-f881bf339dfd0b0e = Lokalisierte Farbcluster
+
+ui-location-297949d1a95f2298 = Position
+
+ui-location-d83b1142cca7d946 = Position:
 
 ui-lock-3868ab5ee29314b8 = Sperren
 
@@ -2311,6 +2469,8 @@ ui-login-prs-prs-commits-commits-added-dele-996e2b281989f2ff = @{ $login }: { $p
 ui-lorem-ipsum-2c0543a14119c706 = Lorem Ipsum
 
 ui-lossless-6d3d4f23fd266529 = Verlustfrei
+
+ui-low-resolution-previews-250ad01d7da7418c = Vorschau in niedriger Auflösung
 
 ui-lowercase-extension-764b510e00dc8f45 = Dateinamenserweiterung in Kleinschreibung
 
@@ -2370,9 +2530,9 @@ ui-match-rotation-7a132d325e47d99e = Drehung angleichen
 
 ui-match-zoom-b34963a9052abb53 = Zoom angleichen
 
-ui-matte-0bc82f5b5cbe5380 = Mattierung
+ui-matte-0bc82f5b5cbe5380 = Hintergrundfarbe
 
-ui-matting-fa48d55b7f61477b = Mattierung
+ui-matting-fa48d55b7f61477b = Randbereinigung
 
 ui-maximize-e8dce26570c5e4fd = Maximieren
 
@@ -2397,6 +2557,8 @@ ui-median-8a4a432f80729ec5 = Median:
 ui-median-b139c265acfc1003 = Median…
 
 ui-median-b93c3b35a9c8f19d = Median
+
+ui-medium-9ccd01b2e5f752af = Medium
 
 ui-medium-b9135835a9a61dd0 = Mittel
 
@@ -2496,6 +2658,8 @@ ui-monitor-rgb-b273d3d571b853c4 = Monitor-RGB
 
 ui-monochrome-910b1c7880814a4a = Monochrom
 
+ui-more-documents-702166de66a88b90 = Weitere Dokumente
+
 ui-more-panels-179b83bbde5b401d = Weitere Bedienfelder
 
 ui-more-points-5c45ec96f2353d79 = Mehr Punkte
@@ -2558,7 +2722,7 @@ ui-name-options-7816ca8286c5a7c4 = { $name } Optionen
 
 ui-name-properties-5e4cf3189af3bfd7 = { $name }-Eigenschaften
 
-ui-native-file-drag-and-drop-is-not-support-fc05bb70233ffab1 = Natives Ziehen und Ablegen von Dateien wird unter Wayland noch nicht unterstützt. Nutze Datei › Öffnen oder starte PhotoCraft unter XWayland mit `WAYLAND_DISPLAY= photocraft`.
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Natives Ziehen und Ablegen von Dateien wird unter Wayland noch nicht unterstützt. Nutze Datei › Öffnen oder kopiere das Bild im Dateimanager und füge es mit { $paste } ein.
 
 ui-native-file-drag-and-drop-is-unavailable-c005b509d62fed44 = Natives Ziehen und Ablegen von Dateien ist nicht verfügbar
 
@@ -2576,6 +2740,8 @@ ui-neutrals-d91575343a5749d7 = Neutrale
 
 ui-never-79b1a901034168fb = Nie
 
+ui-never-show-overlay-62e4d50ec1f95088 = Überlagerung nie anzeigen
+
 ui-new-a846017e1e12163f = Neu
 
 ui-new-adjustment-layer-464434a38030994f = Neue Anpassungsebene
@@ -2583,6 +2749,8 @@ ui-new-adjustment-layer-464434a38030994f = Neue Anpassungsebene
 ui-new-be4f217ebbcb229f = neu
 
 ui-new-blank-video-layer-ea35461303ae9a0f = Neue leere Videoebene
+
+ui-new-brush-preset-9a813a7c947ca0f2 = Neue Pinselvorgabe…
 
 ui-new-channel-b0696786256acc9c = Neuer Kanal
 
@@ -2622,6 +2790,10 @@ ui-new-smart-object-via-copy-5e9e49000e79ae76 = Neues Smart-Objekt durch Kopiere
 
 ui-new-style-a7c91bf676fef79e = Neuer Stil…
 
+ui-new-swatch-35500735beac1287 = Neues Farbfeld…
+
+ui-new-swatch-group-d508820c8747faca = Neue Farbfeldgruppe…
+
 ui-new-type-layer-54492c36fedddb70 = Neue Textebene
 
 ui-new-video-layer-from-file-8496588743a1a2dd = Neue Videoebene aus Datei…
@@ -2645,6 +2817,8 @@ ui-no-brush-presets-141118f4d478a018 = Keine Pinselvorgaben
 ui-no-character-style-73c8dcfbfc652fda = Kein Zeichenformat
 
 ui-no-color-53ad57e69832ea93 = Ohne Farbe
+
+ui-no-color-af875cad1534646c = Keine Farbe
 
 ui-no-color-management-72797e84b8a8f49a = Keine Farbverwaltung
 
@@ -2670,6 +2844,8 @@ ui-no-presets-of-this-type-e63b6fe12705a975 = Keine Vorgaben dieses Typs.
 
 ui-no-properties-5e9fb4da28181271 = Keine Eigenschaften
 
+ui-no-saved-presets-yet-70f97356610163a1 = Noch keine gespeicherten Vorgaben.
+
 ui-no-tool-presets-d36fc42f8a32fad0 = Keine Werkzeugvorgaben.
 
 ui-noise-abd7cd31052e10cb = Rauschen
@@ -2682,6 +2858,8 @@ ui-normal-63acd193c4316f68 = Normal
 
 ui-normal-tip-a57b8ea3cf7dfb65 = Normale Spitze
 
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = Keine Webfarbe: Klicken für die nächstliegende Webfarbe
+
 ui-not-in-dictionary-d8ff41d4854e2225 = Nicht im Wörterbuch:
 
 ui-note-paper-545e7d9fd9e62821 = Notizpapier
@@ -2691,6 +2869,8 @@ ui-note-tool-875c484cda5ed52f = Notiz-Werkzeug
 ui-notes-c54c5e311372a994 = Notizen
 
 ui-notes-f6acff3081c34a40 = Notizen…
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = Jetzt die Auswahl auf einen anderen Bereich ziehen
 
 ui-ntsc-colors-320223f7ddebd6fd = NTSC-Farben
 
@@ -2710,7 +2890,7 @@ ui-oil-paint-d15da1bf0e56bb43 = Ölgemälde…
 
 ui-ok-d840e3186b2b9581 = OK
 
-ui-oldstyle-752b6c78f33b5515 = Mediäval
+ui-oldstyle-752b6c78f33b5515 = Mediävalziffern
 
 ui-only-web-colors-db01f2d578449625 = Nur Webfarben
 
@@ -2719,6 +2899,8 @@ ui-opacity-5acd4a937a68dd2c = Deckkraft
 ui-opacity-b3b2ce99002fac62 = Deckkraft:
 
 ui-opacity-jitter-e9730861bc70adf2 = Deckkraftschwankung
+
+ui-opacity-threshold-3dbc5455a6a96857 = Deckkraft-Schwellenwert
 
 ui-open-109cf946d8c85fc3 = Öffnen
 
@@ -2736,7 +2918,11 @@ ui-open-documents-as-tabs-498095855e674b1d = Dokumente als Registerkarten öffne
 
 ui-open-feb00cb3f872449d = Öffnen…
 
+ui-open-in-camera-raw-c438bf24dab93647 = In Camera Raw öffnen
+
 ui-open-recent-fd5c6c7def1d08a2 = Zuletzt geöffnete Dateien
+
+ui-open-source-65fefae8d3d63fa4 = Open Source
 
 ui-opengl-c155bc2323d0d700 = OpenGL
 
@@ -2756,6 +2942,8 @@ ui-option-click-to-define-a-source-point-to-5b5ee481f271b16b = Options-Klick def
 
 ui-options-5493ee7052dcf71b = Optionen
 
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = Oder stelle Voreinstellungen › Leistung › Linux-Anzeigeserver auf X11: PhotoCraft startet dann immer unter XWayland.
+
 ui-orange-30b0f96deed67be5 = Orange
 
 ui-ordinals-55b1c642d8cd83bd = Ordnungszahlen
@@ -2773,6 +2961,8 @@ ui-other-66741785e8efeb5b = Weitere
 ui-other-9d71ccbd3d854465 = Weitere…
 
 ui-out-of-gamut-e75871a707c6856c = Außerhalb des Farbumfangs
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = Außerhalb des Druckfarbumfangs: Klicken für die nächstliegende druckbare Farbe
 
 ui-outer-bevel-7d01a8c0865cf836 = Abgeflachte Kante außen
 
@@ -2852,6 +3042,8 @@ ui-path-blur-17d53d9b965cbb17 = Pfadweichzeichner…
 
 ui-path-selection-tool-39aa008c0a0b4e3c = Pfadauswahl-Werkzeug
 
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }: Der Dateipfad enthält ungültige Zeichen. Benenne die Datei um und öffne sie erneut.
+
 ui-paths-d61b178bcbc28c11 = Pfade
 
 ui-paths-to-illustrator-7b78c4233ba0c2a5 = Pfade nach Illustrator…
@@ -2867,6 +3059,10 @@ ui-pattern-overlay-2c00f373e33ea06b = Musterüberlagerung
 ui-pattern-preview-e36e994295eca6bf = Muster-Vorschau
 
 ui-pattern-size-8bca37fd672238e4 = Mustergröße
+
+ui-pattern-stamp-3def986c64c12dcc = Musterstempel
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = Musterstempel-Werkzeug
 
 ui-patterns-1d6dc3afda393884 = Muster
 
@@ -2884,7 +3080,7 @@ ui-pencil-tool-45b01c785fc0cc2c = Bleistift-Werkzeug
 
 ui-percent-8d9b78a65d3fded4 = Prozent
 
-ui-perceptual-604774d02dd759c0 = Wahrnehmung
+ui-perceptual-604774d02dd759c0 = Perzeptiv
 
 ui-performance-36a965abac0e2cf3 = Leistung
 
@@ -2925,6 +3121,10 @@ ui-photography-3f6f5f0b96cf5ad6 = Fotografie
 ui-photomerge-a0b725f6319fdadd = Photomerge…
 
 ui-picas-1e454e45dcd42f55 = Pica
+
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = Ein Bildschirmpixel auswählen oder mit Esc abbrechen
+
+ui-pick-screen-color-b1eefd560cdcf751 = Bildschirmfarbe auswählen
 
 ui-picture-frame-cd0cafd49c6db476 = Bilderrahmen…
 
@@ -2982,6 +3182,8 @@ ui-plug-ins-2eee7753de7072ae = Plug-ins…
 
 ui-png-96c6af7e141c41aa = PNG
 
+ui-point-sample-10f1da74f87660f7 = 1 Pixel
+
 ui-point-size-5970a5e09d9eb10c = Punktgröße
 
 ui-pointillize-e5acd49400517880 = Punktieren…
@@ -3036,6 +3238,8 @@ ui-preset-details-fe13485ede717ede = VORGABENDETAILS
 
 ui-preset-manager-6c6eb4dfeb15b971 = Vorgaben-Manager…
 
+ui-preset-name-a0b4d9aa9b88ec7b = Name der Vorgabe
+
 ui-preset-type-32c84557b4de0f10 = Vorgabetyp
 
 ui-presets-1b0afee5f92d9181 = Vorgaben
@@ -3050,7 +3254,7 @@ ui-pressure-for-opacity-1419a5a294af5dca = Druck für Deckkraft
 
 ui-pressure-for-size-dc0ad4062f620320 = Druck für Größe
 
-ui-prevent-auto-nesting-in-and-out-of-artbo-6e413012244001b3 = Automatisches Einbetten in und aus Zeichenbereichen und Rahmen verhindern
+ui-prevent-auto-nesting-in-and-out-of-artbo-6e413012244001b3 = Automatisches Verschieben in oder aus Zeichenbereichen und Rahmen verhindern
 
 ui-preview-a43d5afecaa46489 = Vorschau
 
@@ -3068,7 +3272,7 @@ ui-print-resolution-5a7e54f05d0d7368 = Druckauflösung
 
 ui-print-size-c3553b862f76073b = Druckgröße
 
-ui-print-to-the-printer-6f2f84952fccebdd = (auf den Drucker drucken)
+ui-print-to-the-printer-6f2f84952fccebdd = (an den Drucker senden)
 
 ui-printer-58688b36b61eb171 = Drucker
 
@@ -3108,7 +3312,7 @@ ui-protect-foreground-color-14aad13f97c41918 = Vordergrundfarbe schützen
 
 ui-protect-texture-2748138f654ce0dd = Textur schützen
 
-ui-protect-tones-abdf4fdccb171b63 = Farbtöne schützen
+ui-protect-tones-abdf4fdccb171b63 = Tonwerte schützen
 
 ui-proximity-match-f0257a471ff21229 = Umgebungsabgleich
 
@@ -3117,6 +3321,8 @@ ui-psd-9722d07e146ad86a = PSD
 ui-pulled-string-mode-d7af51e1cb413a79 = Fadenmodus
 
 ui-punctuation-11ef795a1131b25d = Zeichensetzung
+
+ui-pupil-size-a21b8b198e346afe = Pupillengröße
 
 ui-puppet-warp-42fd3ea1b1bd5e75 = Marionetten-Verkrümmung
 
@@ -3198,7 +3404,7 @@ ui-recently-used-842fd3c3229a4724 = Zuletzt verwendet
 
 ui-reconstruct-d91663d6260a48cf = Rekonstruieren
 
-ui-record-a-sequence-of-edits-then-play-it-o-c0b04a30912e11e2 = Zeichne ● eine Folge von Bearbeitungen auf und gebe sie ▶ auf jedem Dokument wieder.
+ui-record-a-sequence-of-edits-then-play-it-o-c0b04a30912e11e2 = Zeichne ● eine Folge von Bearbeitungen auf und gib sie ▶ auf jedem Dokument wieder.
 
 ui-record-measurements-27204f02e302fdf7 = Messungen aufzeichnen
 
@@ -3211,6 +3417,10 @@ ui-rectangle-tool-124df2465a78b01e = Rechteck-Werkzeug
 ui-rectangular-marquee-tool-68c135809033d309 = Rechteckauswahl-Werkzeug
 
 ui-red-88116e7e0c857056 = Rot
+
+ui-red-eye-96b14bb055bf9143 = Rote Augen
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = Rote-Augen-Werkzeug
 
 ui-redefine-style-by-current-selection-49d130f0e168560a = Stil anhand der aktuellen Auswahl neu definieren
 
@@ -3225,6 +3435,8 @@ ui-reflected-5a58ced77d64b0ed = Reflektiert
 ui-reflected-gradient-6c5e3c479dbe643b = Reflektierter Verlauf
 
 ui-registration-marks-3a37216f2ea991e4 = Passmarken
+
+ui-regular-182bf85491dfe61c = Normal
 
 ui-regular-919edb23c43e78f9 = Regulär
 
@@ -3246,19 +3458,19 @@ ui-remove-all-pins-ca3eab656c957c74 = Alle Pins entfernen
 
 ui-remove-background-b72789446b869309 = Hintergrund entfernen
 
-ui-remove-black-matte-97560383fde065fd = Schwarze Mattierung entfernen
+ui-remove-black-matte-97560383fde065fd = Schwarzen Farbsaum entfernen
 
 ui-remove-f812c7145e261c23 = Entfernen
 
 ui-remove-planes-307e6b7371b10a9e = Flächen entfernen
 
-ui-remove-stop-b3cfcb6f0913bc69 = Stopp entfernen
+ui-remove-stop-b3cfcb6f0913bc69 = Farbstopp entfernen
 
 ui-remove-variable-b3fcd98c98224981 = Variable entfernen
 
 ui-remove-warp-split-2001259b1a57e117 = Verkrümmungsteilung entfernen
 
-ui-remove-white-matte-500d55b8910deeaf = Weiße Mattierung entfernen
+ui-remove-white-matte-500d55b8910deeaf = Weißen Farbsaum entfernen
 
 ui-rename-6c41bd2755ee176b = Umbenennen…
 
@@ -3292,11 +3504,15 @@ ui-replace-contents-9ff6031ca8edd123 = Inhalt ersetzen…
 
 ui-replace-footage-c9fc761dd7955682 = Material ersetzen…
 
+ui-replace-swatches-22ed7dc765dad82d = Farbfelder ersetzen…
+
 ui-report-an-issue-4db5116de1dae62d = Problem melden…
 
 ui-resample-13091491b016ab24 = Neu berechnen
 
 ui-reselect-8b42ed709f761c0e = Erneut auswählen
+
+ui-reset-28450354f52cb7ae = Zurücksetzen
 
 ui-reset-alignment-de99ce443912a85f = Ausrichtung zurücksetzen
 
@@ -3306,6 +3522,8 @@ ui-reset-gpu-backend-c242574510e63df8 = GPU-Backend zurücksetzen
 
 ui-reset-section-1555592178eaa045 = Abschnitt zurücksetzen
 
+ui-reset-swatches-99689ab8ada5eb9a = Farbfelder zurücksetzen
+
 ui-reset-the-brush-to-the-defaults-665697e36177d7c5 = Pinsel auf Standardwerte zurücksetzen
 
 ui-reset-to-default-dd87022c4b5251b6 = Auf Standard zurücksetzen
@@ -3313,6 +3531,8 @@ ui-reset-to-default-dd87022c4b5251b6 = Auf Standard zurücksetzen
 ui-reset-to-defaults-122368e92de6e29f = Auf Standardwerte zurücksetzen
 
 ui-reset-transform-c6a67438b8b36cb2 = Transformation zurücksetzen
+
+ui-reset-view-c0bdf39ad3792a63 = Ansicht zurücksetzen
 
 ui-reset-workspace-d7c759652b7ff2db = Arbeitsbereich zurücksetzen
 
@@ -3388,6 +3608,10 @@ ui-rotate-90-clockwise-6d6765d354cdf40d = 90° im Uhrzeigersinn drehen
 
 ui-rotate-90-counter-clockwise-dfd03fea27330629 = 90° gegen den Uhrzeigersinn drehen
 
+ui-rotate-view-db81b0d3c1a858dd = Ansicht drehen
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = Ansicht-drehen-Werkzeug
+
 ui-rotate-view-with-trackpad-3c15038ce738e009 = Ansicht mit Trackpad drehen
 
 ui-rotation-b6243111448bc781 = Drehung
@@ -3400,6 +3624,8 @@ ui-roundness-6a42c9613dbb06d8 = Rundung:
 
 ui-roundness-jitter-b4200a8afa26003c = Rundungsschwankung
 
+ui-rule-of-thirds-a9efcd425580c820 = Drittel-Regel
+
 ui-ruler-09c12bd133985e69 = Lineal
 
 ui-ruler-tool-5ffeee07041b5b45 = Lineal-Werkzeug
@@ -3410,11 +3636,15 @@ ui-rulers-grids-9cd93d2b76f5663d = Lineale & Raster
 
 ui-same-folder-66e0883669b7042f = Gleicher Ordner
 
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = Ein Pixel an beliebiger Stelle auf dem Bildschirm auswählen
+
 ui-sample-all-layers-fd67756ff1544318 = Alle Ebenen einbeziehen
 
 ui-sample-bd8090f687415b75 = Probe:
 
 ui-sample-foreground-colour-801c387e6c80ec96 = Abtasten: Vordergrundfarbe
+
+ui-sample-size-84705069550bbf3c = Aufnahmebereich:
 
 ui-sampled-colors-1f5ee4fbce9c06e5 = Aufgenommene Farben
 
@@ -3458,6 +3688,8 @@ ui-save-in-background-5b7c5c7e1adad12f = Im Hintergrund speichern
 
 ui-save-pixel-aspect-ratio-e5a86b374fc86001 = Pixel-Seitenverhältnis speichern
 
+ui-save-preset-2328ef2728084c33 = Vorgabe speichern…
+
 ui-save-selection-65137d0b89b4d128 = Auswahl speichern
 
 ui-save-selection-8e7ebec6daa582b4 = Auswahl speichern…
@@ -3476,6 +3708,8 @@ ui-scatter-0083f819f7085cc3 = Streuung
 
 ui-scattering-0fbe477093686f35 = Streuung
 
+ui-scope-8765632a779d5bdd = Umfang
+
 ui-scratch-disks-5b9608a9904fb227 = Auslagerungsfestplatten…
 
 ui-scratch-disks-7e9e89e4a230fe21 = Auslagerungsfestplatten
@@ -3486,7 +3720,7 @@ ui-scratch-size-84a35961e9202f6e = Auslagerung: { $size }
 
 ui-scratch-sizes-e11b8017f6a90ca9 = Auslagerungsgröße
 
-ui-screen-acc2f599851528d3 = Bildschirm
+ui-screen-acc2f599851528d3 = Negativ multiplizieren
 
 ui-screen-mode-c3aec49eb82bd7a6 = Bildschirmmodus
 
@@ -3496,9 +3730,13 @@ ui-script-events-manager-9b68ea8921c19d4a = Skriptereignis-Manager…
 
 ui-scripts-98ffef4200bb8b61 = Skripte
 
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = Zum Zoomen scrollen
+
 ui-scrubby-slider-acceleration-4df9378eec0d56f0 = Ziehregler-Beschleunigung
 
 ui-scrubby-zoom-be94ebd193e23a8a = Schleppzoom
+
+ui-seafoam-ebe537921cc90f2b = Meeresschaum
 
 ui-search-308efd5af041d729 = Suchen…
 
@@ -3542,9 +3780,13 @@ ui-select-text-to-apply-a-character-style-7b4786ca1b3b0a6e = Wähle Text aus, um
 
 ui-select-top-layer-c7f72dd94f5c4dd9 = Oberste Ebene auswählen
 
+ui-selected-3ee82e06f8c5ee8e = Ausgewählt
+
 ui-selection-89b473d8a650a4cb = Auswahl
 
 ui-selection-edges-10f0b5fc33c11b21 = Auswahlkanten
+
+ui-selection-preview-a4f0a0102c940143 = Auswahlvorschau:
 
 ui-selections-4e4591229b07e4a8 = Auswahlen
 
@@ -3555,6 +3797,8 @@ ui-selective-color-45e0a6dc7bb0a040 = Selektive Farbkorrektur…
 ui-selective-color-68c4fe8ed142ab94 = Selektive Farbkorrektur
 
 ui-semibold-44807ca6c9eff932 = Halbfett
+
+ui-semibold-f43621cc0429d1c1 = Halbfett
 
 ui-send-backward-d37960b7d2f8771e = Nach hinten
 
@@ -3568,9 +3812,13 @@ ui-set-additional-smoothing-options-99f0aaea54a2e922 = Zusätzliche Glättungsop
 
 ui-set-background-color-876066fdd53af1ec = Hintergrundfarbe festlegen
 
+ui-set-black-point-3a2fd412fb7bf324 = Schwarzpunkt festlegen
+
 ui-set-foreground-color-ab148f6fba123d15 = Vordergrundfarbe festlegen
 
 ui-set-measurement-scale-4b8d433a1e169e29 = Messskala festlegen…
+
+ui-set-neutral-gray-point-80347a56d69ad333 = Neutralen Graupunkt festlegen
 
 ui-set-painting-symmetry-options-8e98ad5d74801895 = Symmetrieoptionen für das Malen festlegen
 
@@ -3578,7 +3826,11 @@ ui-set-shape-fill-type-219ecb592293d193 = Fülltyp der Form festlegen
 
 ui-set-shape-stroke-type-a38ffaf96d142f94 = Konturtyp der Form festlegen
 
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = Überlagerungsoptionen für das Freistellungswerkzeug festlegen
+
 ui-set-the-text-color-cb86a3068f3cd2c6 = Textfarbe festlegen
+
+ui-set-white-point-526c42ac4bcf95ae = Weißpunkt festlegen
 
 ui-settings-cf6eec6fc8e57e62 = Einstellungen…
 
@@ -3656,6 +3908,10 @@ ui-show-font-names-in-english-61d1f0cd73a666f2 = Schriftnamen auf Englisch anzei
 
 ui-show-guides-42fe99c6ca434d17 = Hilfslinien anzeigen
 
+ui-show-hide-all-panels-240e4d824315700b = Alle Bedienfelder ein-/ausblenden
+
+ui-show-hide-panels-f43db26049aad092 = Bedienfelder ein-/ausblenden
+
 ui-show-lab-color-readouts-3667678fd9563967 = Lab-Farbwerte anzeigen
 
 ui-show-mask-bb7af932dfbcbc66 = Maske anzeigen
@@ -3671,6 +3927,8 @@ ui-show-or-hide-the-notes-panel-bcab173de052593d = Notiz-Bedienfeld ein- oder au
 ui-show-overlay-2b962662d8b5b07e = Overlay anzeigen
 
 ui-show-red-at-3-o-clock-9e2376b0aca2f277 = Rote Markierung bei 3 Uhr anzeigen
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = Aufnahmering anzeigen
 
 ui-show-selected-region-b0ccb659eb616a65 = Ausgewählten Bereich anzeigen
 
@@ -3701,6 +3959,8 @@ ui-size-16021b2387e0b7d6 = Größe
 ui-size-464c095fe2d88604 = Größe:
 
 ui-size-jitter-930feff1bfab4a70 = Größenschwankung
+
+ui-size-was-old-41f38564856f8aff = { $size } (vorher { $old })
 
 ui-skew-24d96b238f94890d = Neigen
 
@@ -3794,7 +4054,7 @@ ui-spin-blur-307f0ede289f7ae8 = Drehweichzeichner…
 
 ui-split-e1c981c6d30886e5 = Teilung:
 
-ui-split-warp-crosswise-b85d8f443adeb801 = Verkrümmung quer teilen
+ui-split-warp-crosswise-b85d8f443adeb801 = Verkrümmung kreuzweise teilen
 
 ui-split-warp-horizontally-f162ad00cafbf82c = Verkrümmung horizontal teilen
 
@@ -3858,7 +4118,9 @@ ui-stroke-395300372f89fcbf = Kontur
 
 ui-stroke-828b007bd6ed0c59 = Nachziehen…
 
-ui-stroke-catch-up-6f6524919c63b74e = Strich-Aufholen
+ui-stroke-catch-up-6f6524919c63b74e = Strich nachführen
+
+ui-stroke-color-705a1554bb23c6c0 = Konturfarbe
 
 ui-stroke-f205e2c5c77815ff = Kontur:
 
@@ -3934,11 +4196,15 @@ ui-switched-to-cpu-rendering-266cbbc4f8316341 = Auf CPU-Rendering umgeschaltet
 
 ui-symbols-ce309d4c47a33a6c = Symbole
 
+ui-symmetry-off-f51a8e00f2b6ab64 = Symmetrie aus
+
 ui-system-cb0a7d2969f9fa5e = System
 
 ui-system-info-2b64529f1a15bad2 = Systeminformationen…
 
 ui-system-info-b9782be2507c2422 = Systeminformationen
+
+ui-system-title-bar-b81774202f7af861 = System-Titelleiste
 
 ui-table-e0f5d309b0015c11 = Tabelle
 
@@ -3966,11 +4232,21 @@ ui-texture-each-tip-13b3a9738709601a = Textur pro Spitze
 
 ui-the-current-gradient-pick-one-in-window-g-98e4325b38ed895f = Der aktuelle Verlauf (wähle einen unter Fenster › Verläufe)
 
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = Der GPU-Compositor wurde nicht verwendet: { $reason }
+
+ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = Das Speicherbudget wird von Dokumentpixeln, eingebetteten Daten und dem Rückgängig-Verlauf gemeinsam genutzt. Es wächst bei Bedarf; anderer App-Speicher kommt hinzu.
+
 ui-theme-dd3b8e572fff4d90 = Design
 
 ui-these-settings-aren-t-available-in-photo-62584644c52c9f5a = Diese Einstellungen gibt es in PhotoCraft noch nicht.
 
+ui-thin-24348b0f6db9a923 = Haarfein
+
 ui-thin-c145211da00c0a28 = Dünn
+
+ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = Diese Browserversion hält den Rückgängig-Verlauf im Arbeitsspeicher. Arbeitsvolume-Einstellungen gelten für die Desktop-App.
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = Dieses Neuzeichnen auf der CPU dauerte { $seconds } s.
 
 ui-threshold-37814356fd67177a = Schwellenwert…
 
@@ -4006,6 +4282,8 @@ ui-tiny-b98ce71d9bf0fc91 = Winzig
 
 ui-titling-alternates-e71af003a54be91f = Titel-Alternativen
 
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = Um Dateien abzulegen, starte PhotoCraft unter XWayland: `{ $command }`
+
 ui-toggle-count-group-visibility-a8b8977f8cce2fd1 = Sichtbarkeit der Zählergruppe umschalten
 
 ui-toggle-last-state-2bcc1769eddf4498 = Letzten Status umschalten
@@ -4038,6 +4316,10 @@ ui-top-7622187e02308d3e = Oben
 
 ui-top-edges-98f1a227efff9ac0 = Obere Kanten
 
+ui-top-left-35db253aba562917 = Oben links
+
+ui-top-right-9a12cffd0398f888 = Oben rechts
+
 ui-torn-edges-0a0957dc6e1d2e44 = Gerissene Kanten
 
 ui-total-1879317f42087d47 = Gesamt:
@@ -4060,17 +4342,23 @@ ui-transform-again-on-a-copy-6551fe558ac26832 = Erneut auf Kopie transformieren
 
 ui-transform-selection-7fd8ab33590e86b7 = Auswahl transformieren
 
+ui-transform-symmetry-308ef5a329d1f431 = Symmetrie transformieren
+
 ui-transparency-eb207d2209c87129 = Transparenz
 
 ui-transparency-gamut-95fb3030d7d6ee09 = Transparenz & Farbumfang
 
 ui-transparency-gamut-ffad1074b11dfbff = Transparenz & Farbumfang…
 
+ui-transparency-threshold-d681456c819197c6 = Transparenz-Schwellenwert
+
 ui-transparent-a757aaf321914e7b = Transparent
 
 ui-trap-6caa6b7e5fcbd054 = Überfüllen…
 
 ui-tree-773807562a90937d = Baum…
+
+ui-triangle-2af10d61da454203 = Dreieck
 
 ui-triangle-tool-6e94c7252b8d1d2b = Dreieck-Werkzeug
 
@@ -4102,9 +4390,13 @@ ui-ui-font-size-50259308b290514b = UI-Schriftgröße
 
 ui-ui-scale-1e1a04f2617db42f = UI-Skalierung
 
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = In diesem Farbmodus nicht verfügbar
+
 ui-underline-9197a0635d04a901 = Unterstrichen
 
 ui-undo-0e28c6126a0cf889 = Rückgängig
+
+ui-undo-disk-space-grows-only-when-needed-u-86946daf63c3a558 = Der Speicherplatz für Rückgängig-Daten wächst nur bei Bedarf bis zu diesem Grenzwert. Null deaktiviert den Festplatten-Cache. Arbeitsvolume-Pfade gelten ab der nächsten Cache-Sitzung.
 
 ui-ungroup-layers-19858179651edb13 = Ebenengruppe auflösen
 
@@ -4126,7 +4418,7 @@ ui-unsaved-changes-d532ec89f9f9f566 = Ungespeicherte Änderungen
 
 ui-unsharp-mask-a3ea6158c30dde78 = Unscharf maskieren…
 
-ui-untagged-mode-3e6f1430e99ca115 = Nicht getaggtes { $mode }-Profil
+ui-untagged-mode-3e6f1430e99ca115 = { $mode } ohne Farbprofil
 
 ui-untitled-1-97df4df5570d0580 = Unbenannt-1
 
@@ -4148,7 +4440,7 @@ ui-use-default-2576facc5f89bb0f = Standard verwenden
 
 ui-use-esc-to-commit-e1598c8a658934e5 = Esc zum Übernehmen verwenden
 
-ui-use-file-open-to-open-an-image-2bbc42fe3569238f = Nutze Datei › Öffnen, um ein Bild zu öffnen.
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = Nutze Datei › Öffnen oder füge ein kopiertes Bild mit { $paste } ein.
 
 ui-use-global-light-66eb87d40446c5c1 = Globales Licht verwenden
 
@@ -4167,6 +4459,8 @@ ui-use-tablet-pressure-00db4939c100804d = Tablettdruck verwenden
 ui-use-tablet-pressure-to-change-pen-width-f9e994c47450ebe5 = Tablettdruck zum Ändern der Stiftbreite verwenden
 
 ui-use-the-embedded-profile-instead-of-the-w-b02d078da80fffa8 = Eingebettetes Profil verwenden (statt des Arbeitsfarbraums)
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Trackpad-Druck verwenden
 
 ui-username-a61beb67a6f8b107 = Benutzername
 
@@ -4219,6 +4513,8 @@ ui-view-c2ea750b659102ca = Ansicht
 ui-view-options-b92a3701e2c81690 = Ansichtsoptionen
 
 ui-vignetting-fb47c91b049cbe4a = Vignettierung
+
+ui-violet-2882bc397b2e28dc = Violett
 
 ui-violet-orange-8d5548d2947ea07a = Violett, Orange
 
@@ -4274,6 +4570,8 @@ ui-white-balance-as-shot-7a2ad0385cd5067e = Weißabgleich: Wie Aufnahme
 
 ui-white-bed13266c4c1f028 = Weiß
 
+ui-white-matte-93f44761248dcc3d = Weißer Hintergrund
+
 ui-whites-ff68ffa0558b6aa1 = Weiß
 
 ui-wia-support-f3d86cd3e89a31d7 = WIA-Unterstützung…
@@ -4311,6 +4609,8 @@ ui-workspace-654419423126d8e4 = Arbeitsbereich
 ui-workspace-807fbd6866246d70 = Arbeitsbereich…
 
 ui-world-ready-3d73486af33f4936 = World Ready
+
+ui-x11-52a9397deddd2397 = X11
 
 ui-yellow-blue-cbeeae4c68dac970 = Gelb  ·  Blau
 

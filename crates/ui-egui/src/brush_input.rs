@@ -457,7 +457,7 @@ mod tests {
     }
 
     fn xf() -> ViewXform {
-        ViewXform { rect: Rect::from_min_max(Pos2::ZERO, pos2(100.0, 100.0)), zoom: 2.0, center: [50.0; 2], flip: true }
+        ViewXform { rect: Rect::from_min_max(Pos2::ZERO, pos2(100.0, 100.0)), zoom: 2.0, center: [50.0; 2], flip: true, rotation: 0.0 }
     }
 
     fn button(pos: egui::Pos2, pressed: bool, button: PointerButton) -> Event {

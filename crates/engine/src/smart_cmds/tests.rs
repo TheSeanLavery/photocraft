@@ -1,5 +1,7 @@
 use super::*;
 
+mod selection;
+
 const DEPTHS: [u64; 3] = [8, 16, 32];
 const W: i32 = 64;
 const H: i32 = 48;
@@ -113,6 +115,31 @@ fn masked_layer_and_group_convert_within_rounding() {
     let before = flat(&s);
     convert(&mut s);
     assert!(max_diff(&flat(&s), &before) <= 1.0 / 255.0 + 1e-6);
+}
+
+#[test]
+fn pattern_fill_converts_to_editable_smart_object_without_losing_its_pattern() {
+    let mut s = session(8);
+    s.execute("layer.newFillLayer.pattern", json!({"pattern": "Bricks"})).unwrap();
+    let before = flat(&s);
+    let pattern_id = s.active().unwrap().doc.patterns[0].id.clone();
+    assert!(before.iter().any(|p| p[3] > 0.0), "the pattern fill is visible");
+
+    convert(&mut s);
+    assert!(max_diff(&flat(&s), &before) < 1e-6, "conversion keeps every pattern pixel");
+    let sm = active_smart(&s);
+    let SmartSource::Embedded { file_name, bytes } = &sm.source else { panic!("not embedded") };
+    let inner = decode_source(file_name, bytes).unwrap();
+    assert!(inner.patterns.iter().any(|p| p.id == pattern_id), "the embedded source keeps the pattern resource");
+
+    // The smart object's source remains live after opening and editing its contents.
+    let child = s.execute("layer.smartObjects.editContents", json!({})).unwrap()["document"].as_u64().unwrap() as usize;
+    assert_eq!(s.active_index(), Some(child));
+    assert!(s.active().unwrap().doc.patterns.iter().any(|p| p.id == pattern_id));
+    s.set_active(0);
+    assert!(max_diff(&flat(&s), &before) < 1e-6);
+    s.undo();
+    assert!(max_diff(&flat(&s), &before) < 1e-6);
 }
 
 #[test]
@@ -320,6 +347,10 @@ fn edit_contents_updates_the_parent() {
     s.undo();
     assert_eq!(flat(&s), before, "the update is one undoable step in the parent");
     s.redo();
+    // Editing the same smart object again switches to the open document, no second copy.
+    let open = s.documents().len();
+    let again = s.execute("layer.smartObjects.editContents", json!({})).unwrap();
+    assert_eq!((again["document"].as_u64(), s.active_index(), s.documents().len()), (Some(child as u64), Some(child), open));
     // Closing an edited contents document also commits it.
     s.set_active(child);
     s.edit("paint2", |doc, _| {

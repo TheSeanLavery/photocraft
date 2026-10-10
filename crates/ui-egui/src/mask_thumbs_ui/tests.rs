@@ -176,9 +176,9 @@ fn paths_list_the_layer_path_above_a_bottom_footer() {
     let p = h.get_by_label("Badge Shape Path").rect().center();
     click_with(&mut h, p, Modifiers::NONE);
     assert_eq!(h.state().ui.selected_path.as_deref(), Some("layer"));
-    // Footer: fill, stroke, load as selection, … (24 pt buttons, 2 pt apart).
+    // Footer: fill, stroke, load as selection, … (26 pt buttons, 2 pt apart).
     let footer = crate::vector_ui::paths_footer(&h.ctx).unwrap();
-    let p = pos2(footer.left() + 2.0 * 26.0 + 12.0, footer.center().y);
+    let p = pos2(footer.left() + 2.0 * 28.0 + 13.0, footer.center().y);
     click_with(&mut h, p, Modifiers::NONE);
     let sel = h.state().session.active().unwrap().doc.selection.clone().expect("selection from the shape path");
     let b = sel.content_bounds();
@@ -336,7 +336,12 @@ fn clicking_the_vector_mask_targets_it_for_the_path_tools() {
     let k = layer(&h, masked).vector_mask.unwrap().path.subpaths[0].knots[0].anchor;
     assert_eq!((k.x, k.y), (25.0, 12.0));
     // The Pen adds a subpath to it.
-    h.state_mut().ui.pen = Some(crate::vector_ui::PenPath { knots: vec![[[150.0, 10.0]; 3], [[190.0, 10.0]; 3], [[190.0, 40.0]; 3]], dragging: false });
+    h.state_mut().ui.pen = Some(crate::vector_ui::PenPath {
+        knots: vec![[[150.0, 10.0]; 3], [[190.0, 10.0]; 3], [[190.0, 40.0]; 3]],
+        unlinked: Vec::new(),
+        dragging: false,
+        adjusting_last: false,
+    });
     crate::vector_ui::pen_commit(h.state_mut(), true);
     assert_eq!(layer(&h, masked).vector_mask.unwrap().path.subpaths.len(), 2);
     assert!(h.state().session.active().unwrap().doc.work_path.is_none(), "not a work path");
