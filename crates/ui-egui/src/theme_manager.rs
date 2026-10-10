@@ -177,74 +177,100 @@ pub(crate) fn show(app: &mut PhotocraftApp, ctx: &Context) {
     let entries: Vec<(String, String)> =
         app.theme_rt.catalog.list().iter().filter_map(|item| Some((item.get("id")?.as_str()?.into(), item.get("name")?.as_str()?.into()))).collect();
     let pairs: Vec<(String, &str)> = entries.iter().map(|(id, name)| (id.clone(), name.as_str())).collect();
-    egui::Window::new(tl!("Theme Manager"))
-        .id(egui::Id::new("theme-manager"))
+    let historical = crate::theme::Tokens::get(ctx).appearance != crate::theme::Appearance::Modern;
+    let id = egui::Id::new("theme-manager");
+    let position_id = id.with("caption-position");
+    let mut drag = egui::Vec2::ZERO;
+    let mut caption_closed = false;
+    let mut window = egui::Window::new(tl!("Theme Manager"))
+        .id(id)
+        .title_bar(!historical)
+        .movable(!historical)
         .open(&mut open)
         .collapsible(false)
         .default_pos((ctx.content_rect().center() - egui::vec2(350.0, 260.0)).max(ctx.content_rect().min))
-        .default_size(egui::vec2(700.0, 520.0))
-        .show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(tl!("Saved theme"));
-                crate::widgets::dropdown(ui, "manager-theme", &mut selected, &pairs, 240.0);
-                if crate::widgets::secondary_button(ui, tl!("Duplicate"), 0.0).clicked() {
-                    action = Some("duplicate");
-                }
-                if crate::widgets::secondary_button(ui, tl!("Reset Changes"), 0.0).clicked() {
-                    action = Some("reset");
-                }
-            });
-            ui.label(tl!("Edit the definition below. Duplicate a built-in theme before changing it."));
-            if let Ok(pack) = ThemePack::parse(&manager.json) {
-                ui.label(crate::i18n::fmt(tl!("Draft: {name}"), &[("name", &pack.name)]));
+        .default_size(egui::vec2(700.0, 520.0));
+    if historical && let Some(position) = ctx.data(|d| d.get_temp::<egui::Pos2>(position_id)) {
+        window = window.current_pos(position);
+    }
+    let shown = window.show(ctx, |ui| {
+        if let Some((caption, closed)) = crate::historical::window_caption(ui, tl!("Theme Manager")) {
+            drag = caption.drag_delta();
+            caption_closed = closed;
+        }
+        ui.horizontal(|ui| {
+            ui.label(tl!("Saved theme"));
+            crate::widgets::dropdown(ui, "manager-theme", &mut selected, &pairs, 240.0);
+            if crate::widgets::secondary_button(ui, tl!("Duplicate"), 0.0).clicked() {
+                action = Some("duplicate");
             }
-            ScrollArea::vertical().max_height(340.0).id_salt("theme-definition-scroll").show(ui, |ui| {
-                ui.add(
-                    egui::TextEdit::multiline(&mut manager.json)
-                        .font(egui::TextStyle::Monospace)
-                        .desired_width(f32::INFINITY)
-                        .desired_rows(18)
-                        .char_limit(crate::theme_pack::MAX_THEME_BYTES),
-                );
-            });
-            if manager.json.len() > crate::theme_pack::MAX_THEME_BYTES {
-                while manager.json.len() > crate::theme_pack::MAX_THEME_BYTES {
-                    manager.json.pop();
-                }
-                manager.error = Some(tl!("Theme definition exceeds 64 KiB").into());
+            if crate::widgets::secondary_button(ui, tl!("Reset Changes"), 0.0).clicked() {
+                action = Some("reset");
             }
-            if let Some(error) = &manager.error {
-                ui.colored_label(crate::theme::Tokens::get(ctx).warning, error);
-            }
-            if let Some((requested, actual)) = crate::theme_fonts::status(ctx)
-                && requested != actual
-            {
-                ui.label(crate::i18n::fmt(tl!("Font {requested} is unavailable; using {actual}."), &[("requested", &requested), ("actual", &actual)]));
-            }
-            if manager.previewing {
-                ui.label(tl!("Preview is active. Cancel restores your saved theme."));
-            }
-            ui.horizontal(|ui| {
-                if ui.add_enabled(app.services.pick_theme.is_some(), egui::Button::new(tl!("Import…"))).clicked() {
-                    action = Some("import-file");
-                }
-                if ui.add_enabled(app.services.pick_save.is_some() && app.services.write.is_some(), egui::Button::new(tl!("Export…"))).clicked() {
-                    action = Some("export-file");
-                }
-                if crate::widgets::secondary_button(ui, tl!("Copy JSON"), 0.0).clicked() {
-                    ctx.copy_text(manager.json.clone());
-                }
-                if crate::widgets::secondary_button(ui, tl!("Preview"), 0.0).clicked() {
-                    action = Some("preview");
-                }
-                if crate::widgets::secondary_button(ui, tl!("Apply"), 0.0).clicked() {
-                    action = Some("apply");
-                }
-                if crate::widgets::secondary_button(ui, tl!("Cancel"), 0.0).clicked() {
-                    action = Some("cancel");
-                }
-            });
         });
+        ui.label(tl!("Edit the definition below. Duplicate a built-in theme before changing it."));
+        if let Ok(pack) = ThemePack::parse(&manager.json) {
+            ui.label(crate::i18n::fmt(tl!("Draft: {name}"), &[("name", &pack.name)]));
+        }
+        ScrollArea::vertical().max_height(340.0).id_salt("theme-definition-scroll").show(ui, |ui| {
+            ui.add(
+                egui::TextEdit::multiline(&mut manager.json)
+                    .font(egui::TextStyle::Monospace)
+                    .desired_width(f32::INFINITY)
+                    .desired_rows(18)
+                    .char_limit(crate::theme_pack::MAX_THEME_BYTES),
+            );
+        });
+        if manager.json.len() > crate::theme_pack::MAX_THEME_BYTES {
+            while manager.json.len() > crate::theme_pack::MAX_THEME_BYTES {
+                manager.json.pop();
+            }
+            manager.error = Some(tl!("Theme definition exceeds 64 KiB").into());
+        }
+        if let Some(error) = &manager.error {
+            ui.colored_label(crate::theme::Tokens::get(ctx).warning, error);
+        }
+        if let Some((requested, actual)) = crate::theme_fonts::status(ctx)
+            && requested != actual
+        {
+            ui.label(crate::i18n::fmt(tl!("Font {requested} is unavailable; using {actual}."), &[("requested", &requested), ("actual", &actual)]));
+        }
+        if manager.previewing {
+            ui.label(tl!("Preview is active. Cancel restores your saved theme."));
+        }
+        ui.horizontal(|ui| {
+            if ui.add_enabled_ui(app.services.pick_theme.is_some(), |ui| crate::widgets::secondary_button(ui, tl!("Import…"), 0.0)).inner.clicked() {
+                action = Some("import-file");
+            }
+            if ui
+                .add_enabled_ui(app.services.pick_save.is_some() && app.services.write.is_some(), |ui| {
+                    crate::widgets::secondary_button(ui, tl!("Export…"), 0.0)
+                })
+                .inner
+                .clicked()
+            {
+                action = Some("export-file");
+            }
+            if crate::widgets::secondary_button(ui, tl!("Copy JSON"), 0.0).clicked() {
+                ctx.copy_text(manager.json.clone());
+            }
+            if crate::widgets::secondary_button(ui, tl!("Preview"), 0.0).clicked() {
+                action = Some("preview");
+            }
+            if crate::widgets::secondary_button(ui, tl!("Apply"), 0.0).clicked() {
+                action = Some("apply");
+            }
+            if crate::widgets::secondary_button(ui, tl!("Cancel"), 0.0).clicked() {
+                action = Some("cancel");
+            }
+        });
+    });
+    if let Some(shown) = shown {
+        ctx.data_mut(|d| d.insert_temp(position_id, shown.response.rect.min + drag));
+    }
+    if caption_closed {
+        open = false;
+    }
     app.ui.theme_manager = Some(manager);
     let result = if !open || ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
         command(app, ctx, "cancel", &Value::Null).map(|_| ())
@@ -433,5 +459,53 @@ mod tests {
         h.run_steps(3);
         assert!(h.state().ui.theme_manager.is_none());
         assert_eq!(Tokens::get(&ctx), before);
+    }
+    #[test]
+    fn historical_manager_caption_drags_and_close_restores_preview_at_all_scales() {
+        use egui_kittest::{Harness, kittest::Queryable};
+        for (id, left_close) in [("builtin.windows-98-se", false), ("builtin.mac-os-9-1", true), ("builtin.system-6", true)] {
+            for scale in [1.0, 1.5, 2.0] {
+                let app = PhotocraftApp::new(Session::new(), Services::default());
+                let mut h = Harness::builder().with_size(egui::vec2(1000.0, 760.0)).with_pixels_per_point(scale).build_ui_state(
+                    |ui, app| {
+                        themes::sync(app, ui.ctx());
+                        show(app, ui.ctx());
+                    },
+                    app,
+                );
+                crate::PhotocraftApp::setup_context(&h.ctx, ThemeKind::Classic);
+                let ctx = h.ctx.clone();
+                themes::select(h.state_mut(), &ctx, id).unwrap();
+                let before = Tokens::get(&ctx);
+                command(h.state_mut(), &ctx, "manager", &json!({"id":id})).unwrap();
+                h.run_steps(4);
+                let original = h.get_by_label("Close").rect().center();
+                let at = original + egui::vec2(if left_close { 100.0 } else { -100.0 }, 0.0);
+                h.event(egui::Event::PointerMoved(at));
+                h.step();
+                h.event(egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: true, modifiers: egui::Modifiers::NONE });
+                h.step();
+                let delta = egui::vec2(30.0, 18.0);
+                h.event(egui::Event::PointerMoved(at + delta));
+                h.step();
+                h.event(egui::Event::PointerButton { pos: at + delta, button: egui::PointerButton::Primary, pressed: false, modifiers: egui::Modifiers::NONE });
+                h.run_steps(3);
+                let moved = h.get_by_label("Close").rect().center() - original;
+                assert!((moved - delta).length() < 1.0, "{id} {scale}x drag {moved:?}");
+                let mut value: Value = serde_json::from_str(&h.state().ui.theme_manager.as_ref().unwrap().json).unwrap();
+                value["colors"]["card"] = json!("#AABBCC");
+                command(h.state_mut(), &ctx, "draft", &json!({"json":value.to_string()})).unwrap();
+                h.run_steps(3);
+                h.get_by_label("Preview").click();
+                h.run_steps(3);
+                assert!(h.state().ui.theme_manager.as_ref().unwrap().previewing);
+                assert_eq!(Tokens::get(&ctx).card, egui::Color32::from_rgb(170, 187, 204));
+                assert!((h.get_by_label("Import…").rect().height() - h.get_by_label("Apply").rect().height()).abs() < 0.01);
+                h.get_by_label("Close").click();
+                h.run_steps(3);
+                assert!(h.state().ui.theme_manager.is_none());
+                assert_eq!(Tokens::get(&ctx), before);
+            }
+        }
     }
 }

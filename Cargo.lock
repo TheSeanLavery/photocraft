@@ -3391,6 +3391,7 @@ dependencies = [
  "arboard",
  "eframe",
  "egui",
+ "egui_kittest",
  "fmv-macos-events",
  "log",
  "open",

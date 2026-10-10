@@ -225,6 +225,28 @@ PHOTOCRAFT_THEME_FILE="$PWD/plan/evidence/live-acceptance/live.theme.json" \
 ```
 
 The example writes normal and recovered PNGs plus `acceptance.json` with the build mode and
-asserted outcomes. This proves the native override path; desktop Theme Manager file-picker
-interaction, release theme-library storage, and browser import/export/persistence require
-separate runtime acceptance.
+asserted outcomes. This proves the native override path.
+
+The desktop `theme_library_acceptance` example exercises the shared production native
+library reader, atomic writer, background watcher, and Theme Manager in a release build.
+It clicks Preview, Apply, Cancel, Reset Changes, Import, and Export; verifies persisted
+selection and a fresh session; rejects malformed/oversized imports; and checks that
+cancelled picks leave the draft and files alone. A valid library recovery clears its
+previous error only while that message is still current, preserving unrelated status.
+It also checks that external edits preserve drafts, defer during preview, and cannot
+overwrite a newer Apply with a stale background read.
+
+```sh
+cargo build --release -p photocraft --example theme_library_acceptance
+target/release/examples/theme_library_acceptance "$PWD/plan/evidence/library-acceptance" 1
+```
+
+Use a fresh evidence directory and leave `PHOTOCRAFT_THEME_FILE` unset; repeat at scales
+`1.5` and `2` in separate directories. The example uses caller-owned paths injected at
+the chooser boundary and the native bounded reader/atomic writer. It does not open or
+visually verify the host file dialog, and does not access user settings or editing windows.
+Browser import/export/persistence still requires separate runtime acceptance.
+
+Historical Theme Manager windows use the theme's caption and close control. Dragging
+the caption moves the window; closing it restores a preview like Cancel. Import and
+Export follow the same theme button metrics and disabled treatment as the other actions.

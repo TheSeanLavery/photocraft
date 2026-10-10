@@ -125,6 +125,20 @@ pub(crate) struct Runtime {
     pub(crate) last_preferences: Option<(Theme, String)>,
     pub(crate) preview_preferences: Option<(Theme, String)>,
     pub(crate) applied: Option<(String, u64)>,
+    library_notice: Option<String>,
+}
+
+fn library_error(app: &mut PhotocraftApp, message: String) {
+    app.ui.status = message.clone();
+    app.theme_rt.library_notice = Some(message);
+}
+
+fn library_recovered(app: &mut PhotocraftApp) {
+    if let Some(message) = app.theme_rt.library_notice.take()
+        && app.ui.status == message
+    {
+        app.ui.status = "Theme library reloaded".into();
+    }
 }
 
 pub(crate) fn load(app: &mut PhotocraftApp) {
@@ -132,7 +146,7 @@ pub(crate) fn load(app: &mut PhotocraftApp) {
     match load().and_then(|text| text.map(|s| Catalog::parse(&s)).transpose()) {
         Ok(Some(catalog)) => app.theme_rt.catalog = catalog,
         Ok(None) => (),
-        Err(error) => app.ui.status = format!("Theme library unavailable; using built-in themes: {error}"),
+        Err(error) => library_error(app, format!("Theme library unavailable; using built-in themes: {error}")),
     }
 }
 
@@ -143,13 +157,16 @@ pub(crate) fn poll(app: &mut PhotocraftApp, ctx: &Context) {
     }
     let update = app.services.poll_themes.as_mut().and_then(|poll| poll(ctx));
     match update {
-        Some(Ok(Some(mut catalog))) if catalog.packs != app.theme_rt.catalog.packs => {
-            catalog.revision = app.theme_rt.catalog.revision.saturating_add(1);
-            app.theme_rt.catalog = catalog;
-            app.theme_rt.applied = None;
-            sync(app, ctx);
+        Some(Ok(Some(mut catalog))) => {
+            library_recovered(app);
+            if catalog.packs != app.theme_rt.catalog.packs {
+                catalog.revision = app.theme_rt.catalog.revision.saturating_add(1);
+                app.theme_rt.catalog = catalog;
+                app.theme_rt.applied = None;
+                sync(app, ctx);
+            }
         }
-        Some(Err(error)) => app.ui.status = format!("Theme library unchanged: {error}"),
+        Some(Err(error)) => library_error(app, format!("Theme library unchanged: {error}")),
         _ => (),
     }
 }
@@ -215,6 +232,7 @@ pub(crate) fn store(app: &mut PhotocraftApp, candidate: Catalog) -> Result<(), S
     let text = candidate.serialize()?;
     if let Some(save) = app.services.save_themes.as_mut() {
         save(&text)?;
+        library_recovered(app);
     }
     app.theme_rt.catalog = candidate;
     app.theme_rt.applied = None;
@@ -479,6 +497,70 @@ mod tests {
         assert_eq!(Tokens::get(&ctx).card, egui::Color32::from_rgb(17, 34, 51));
     }
     #[test]
+    fn library_recovery_clears_its_own_error_even_when_contents_are_unchanged() {
+        let ctx = Context::default();
+        let source = Rc::new(RefCell::new(None));
+        let receiver = source.clone();
+        let mut app = PhotocraftApp::new(Session::new(), Services { poll_themes: Some(Box::new(move |_| receiver.borrow_mut().take())), ..Default::default() });
+        app.theme_rt.catalog.insert(pack("silver"), false).unwrap();
+        select(&mut app, &ctx, "silver").unwrap();
+        let revision = app.theme_rt.catalog.revision;
+        *source.borrow_mut() = Some(Err("partial JSON".into()));
+        poll(&mut app, &ctx);
+        assert!(app.ui.status.starts_with("Theme library unchanged:"));
+        *source.borrow_mut() = Some(Ok(None));
+        poll(&mut app, &ctx);
+        assert!(app.ui.status.starts_with("Theme library unchanged:"));
+        *source.borrow_mut() = Some(Ok(Some(app.theme_rt.catalog.clone())));
+        poll(&mut app, &ctx);
+        assert_eq!(app.ui.status, "Theme library reloaded");
+        assert_eq!(app.theme_rt.catalog.revision, revision);
+        *source.borrow_mut() = Some(Err("partial JSON".into()));
+        poll(&mut app, &ctx);
+        app.ui.status = "Document saved".into();
+        *source.borrow_mut() = Some(Ok(Some(app.theme_rt.catalog.clone())));
+        poll(&mut app, &ctx);
+        assert_eq!(app.ui.status, "Document saved");
+        assert!(app.theme_rt.library_notice.is_none());
+    }
+    #[test]
+    fn library_save_clears_its_error_only_after_success() {
+        let fail = Rc::new(std::cell::Cell::new(true));
+        let writer = fail.clone();
+        let mut app = PhotocraftApp::new(
+            Session::new(),
+            Services { save_themes: Some(Box::new(move |_| if writer.get() { Err("disk full".into()) } else { Ok(()) })), ..Default::default() },
+        );
+        library_error(&mut app, "Theme library unchanged: partial JSON".into());
+        let notice = app.ui.status.clone();
+        assert!(store(&mut app, Catalog::default()).is_err());
+        assert_eq!(app.ui.status, notice);
+        fail.set(false);
+        store(&mut app, Catalog::default()).unwrap();
+        assert_eq!(app.ui.status, "Theme library reloaded");
+        library_error(&mut app, notice);
+        app.ui.status = "Document saved".into();
+        store(&mut app, Catalog::default()).unwrap();
+        assert_eq!(app.ui.status, "Document saved");
+    }
+    #[test]
+    fn library_recovery_clears_startup_error() {
+        let ctx = Context::default();
+        let source = Rc::new(RefCell::new(Some(Ok(Some(Catalog::default())))));
+        let receiver = source.clone();
+        let mut app = PhotocraftApp::new(
+            Session::new(),
+            Services {
+                load_themes: Some(Box::new(|| Err("partial JSON".into()))),
+                poll_themes: Some(Box::new(move |_| receiver.borrow_mut().take())),
+                ..Default::default()
+            },
+        );
+        assert!(app.ui.status.starts_with("Theme library unavailable;"));
+        poll(&mut app, &ctx);
+        assert_eq!(app.ui.status, "Theme library reloaded");
+    }
+    #[test]
     fn preview_defers_external_updates_and_cancel_adopts_the_latest_valid_library() {
         let ctx = Context::default();
         let source = Rc::new(RefCell::new(None));
@@ -487,6 +569,8 @@ mod tests {
         app.theme_rt.catalog.insert(pack("silver"), false).unwrap();
         select(&mut app, &ctx, "silver").unwrap();
         command(&mut app, &ctx, "manager", &json!({"id":"silver"})).unwrap();
+        *source.borrow_mut() = Some(Err("partial JSON".into()));
+        poll(&mut app, &ctx);
         let mut preview = pack("silver");
         preview.colors.insert("card".into(), "#ff0000".into());
         let draft = serde_json::to_string(&preview).unwrap();
@@ -504,5 +588,7 @@ mod tests {
         poll(&mut app, &ctx);
         assert_eq!(Tokens::get(&ctx).card, egui::Color32::from_rgb(17, 34, 51));
         assert_eq!(app.ui.theme_id, "silver");
+        assert!(!app.ui.status.starts_with("Theme library unchanged:"));
+        assert!(app.theme_rt.library_notice.is_none());
     }
 }

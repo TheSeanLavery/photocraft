@@ -343,20 +343,37 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut Ui) -> bool {
     true
 }
 
-/// App-drawn modal caption; the shell keeps its existing dragging and close semantics.
+/// App-drawn modal caption; the shell keeps its existing dragging semantics.
 pub fn dialog_caption(ui: &mut Ui, title: &str) -> Option<Response> {
+    caption(ui, title, false).map(|(drag, _)| drag)
+}
+
+/// Floating app window caption. The caller owns movement and close/cancel behavior.
+pub fn window_caption(ui: &mut Ui, title: &str) -> Option<(Response, bool)> {
+    caption(ui, title, true)
+}
+
+fn caption(ui: &mut Ui, title: &str, closable: bool) -> Option<(Response, bool)> {
     let t = Tokens::get(ui.ctx());
     if t.appearance == Appearance::Modern {
         return None;
     }
     let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), theme::LayoutTokens::get(ui.ctx()).title_bar_height), Sense::drag());
     if t.appearance == Appearance::Windows98 {
-        ui.painter().rect_filled(rect, 0.0, t.accent);
+        let mut mesh = egui::Mesh::default();
+        mesh.colored_vertex(rect.left_top(), t.accent);
+        mesh.colored_vertex(rect.right_top(), t.accent_soft);
+        mesh.colored_vertex(rect.right_bottom(), t.accent_soft);
+        mesh.colored_vertex(rect.left_bottom(), t.accent);
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 2, 3);
+        ui.painter().add(mesh);
     } else {
         stripes(ui, rect, t);
     }
     let color = if t.appearance == Appearance::Windows98 { t.accent_text } else { t.text };
-    let galley = crate::tab_strip::elided(ui, title, crate::theme_fonts::control(ui.ctx(), 12.0, true), color, (rect.width() - 12.0).max(1.0));
+    let reserved = if closable { 42.0 } else { 12.0 };
+    let galley = crate::tab_strip::elided(ui, title, crate::theme_fonts::control(ui.ctx(), 12.0, true), color, (rect.width() - reserved).max(1.0));
     let at = if t.appearance == Appearance::Windows98 {
         pos2(rect.left() + 4.0, rect.center().y - galley.size().y / 2.0)
     } else {
@@ -366,7 +383,30 @@ pub fn dialog_caption(ui: &mut Ui, title: &str) -> Option<Response> {
         ui.painter().rect_filled(Rect::from_min_size(at - vec2(4.0, 1.0), galley.size() + vec2(8.0, 2.0)), 0.0, t.chrome);
     }
     ui.painter().galley(at, galley, color);
-    Some(response)
+    let closed = if closable {
+        let close = Rect::from_center_size(
+            pos2(if t.appearance == Appearance::Windows98 { rect.right() - 11.0 } else { rect.left() + 11.0 }, rect.center().y),
+            vec2(13.0, 13.0),
+        );
+        let close_response = ui.interact(close, ui.id().with("window-caption-close"), Sense::click());
+        close_response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), tl!("Close")));
+        if t.appearance == Appearance::Windows98 {
+            bevel(ui, close, t.chrome, !close_response.is_pointer_button_down_on(), t);
+            let x = close.shrink(4.0);
+            ui.painter().line_segment([x.left_top(), x.right_bottom()], Stroke::new(1.0, t.text));
+            ui.painter().line_segment([x.right_top(), x.left_bottom()], Stroke::new(1.0, t.text));
+        } else {
+            ui.painter().rect_filled(close, 0.0, t.chrome);
+            ui.painter().rect_stroke(close, 0.0, Stroke::new(1.0, t.text), StrokeKind::Inside);
+            if close_response.is_pointer_button_down_on() {
+                ui.painter().rect_filled(close.shrink(3.0), 0.0, t.text);
+            }
+        }
+        close_response.on_hover_text(tl!("Close")).clicked()
+    } else {
+        false
+    };
+    Some((response, closed))
 }
 
 #[cfg(test)]

@@ -43,3 +43,6 @@ fmv-macos-events = "=0.1.0"
 [build-dependencies]
 # Icon + VERSIONINFO for photocraft.exe; build.rs only uses it when targeting Windows.
 winresource = "0.1"
+
+[dev-dependencies]
+egui_kittest = { workspace = true, features = ["wgpu", "snapshot", "eframe"] }

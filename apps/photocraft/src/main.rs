@@ -29,6 +29,7 @@ mod gpu_startup;
 mod linux_libs;
 mod monitor_profile;
 mod services;
+mod theme_storage;
 // Windows gets pen pressure from winit (WM_POINTER); the web runner has its own listener.
 #[cfg(any(target_os = "macos", target_os = "linux", test))]
 mod tablet;
