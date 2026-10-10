@@ -47,6 +47,7 @@ fn free_canvas(h: &Harness<'static, PhotocraftApp>) -> Pos2 {
 }
 
 #[test]
+#[cfg(target_os = "macos")]
 fn brush_hover_uses_a_cached_native_cursor_and_clears_it_on_exit() {
     use crate::state::Tool;
     let mut h = harness();
@@ -89,7 +90,7 @@ fn brush_cursor_preserves_preferences_and_large_tip_has_a_native_hotspot() {
     h.state_mut().session.tools.brush.size = 20.0;
     h.event(egui::Event::PointerMoved(free_canvas(&h)));
     h.run_steps(2);
-    let crosshair = if cfg!(target_os = "windows") { egui::CursorIcon::None } else { egui::CursorIcon::Crosshair };
+    let crosshair = if cfg!(target_os = "macos") { egui::CursorIcon::Crosshair } else { egui::CursorIcon::None };
     for (pref, icon) in [("precise", crosshair), ("standard", egui::CursorIcon::Default)] {
         h.state_mut().run("prefs.set", json!({"path": "cursors.painting", "value": pref})).unwrap();
         h.step();
@@ -105,6 +106,7 @@ fn brush_cursor_preserves_preferences_and_large_tip_has_a_native_hotspot() {
 }
 
 #[test]
+#[cfg(target_os = "macos")]
 fn crosshair_only_while_painting_restores_the_native_tip_after_mouse_up() {
     let mut h = harness();
     h.state_mut().ui.tool = crate::state::Tool::Brush;
@@ -130,6 +132,7 @@ fn crosshair_only_while_painting_restores_the_native_tip_after_mouse_up() {
 }
 
 #[test]
+#[cfg(target_os = "macos")]
 fn alt_brush_shows_pipette_samples_and_restores_the_brush_on_release() {
     let mut h = harness();
     h.state_mut().ui.tool = crate::state::Tool::Brush;

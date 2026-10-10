@@ -478,9 +478,11 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             let (mut menus_right, mut controls_left) = (full.left(), full.right());
             ui.horizontal_centered(|ui| {
                 let side = if t.pro { 18.0 } else { 20.0 };
-                let (mark, _) = ui.allocate_exact_size(vec2(side, side), Sense::hover());
-                crate::brand::paint_mark(ui, mark);
-                ui.add_space(6.0);
+                if !system {
+                    let (mark, _) = ui.allocate_exact_size(vec2(side, side), Sense::hover());
+                    crate::brand::paint_mark(ui, mark);
+                    ui.add_space(6.0);
+                }
                 // With the macOS menu bar the menus are at the top of the screen instead.
                 menus_right = if app.services.native_menu.is_some() { ui.cursor().left() } else { crate::menus::menu_bar(app, ui) };
                 // The menu bar takes the whole row, so the right-hand group gets its own rect:
