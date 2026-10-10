@@ -79,6 +79,7 @@ pub struct Typography {
     pub button: Option<f32>,
     pub heading: Option<f32>,
     pub monospace: Option<f32>,
+    pub caption: Option<f32>,
 }
 
 /// Validated, resolved style. Creating it does not alter the current UI.
@@ -215,7 +216,9 @@ impl ThemePack {
         {
             return Err(format!("unsupported UI font family `{family}`"));
         }
-        for (name, value) in [("small", ty.small), ("body", ty.body), ("button", ty.button), ("heading", ty.heading), ("monospace", ty.monospace)] {
+        for (name, value) in
+            [("small", ty.small), ("body", ty.body), ("button", ty.button), ("heading", ty.heading), ("monospace", ty.monospace), ("caption", ty.caption)]
+        {
             validate_number(name, value, 6.0, 64.0)?;
         }
         if let Some(v) = g.radius_small {
@@ -273,6 +276,9 @@ impl ResolvedTheme {
         if let Some([x, _]) = g.button_padding {
             layout.button_padding_x = x;
         }
+        if let Some(v) = self.typography.caption {
+            layout.caption_font_size = v;
+        }
         if let Some(v) = self.typography.button {
             layout.button_font_size = v;
         }
@@ -290,6 +296,7 @@ impl ResolvedTheme {
         layout.layer_row_height = layout.layer_row_height.max(layout.tab_font_size + 6.0);
         layout.layer_thumbnail_size = layout.layer_thumbnail_size.min(layout.layer_row_height - 4.0);
         if self.tokens.appearance != crate::theme::Appearance::Modern {
+            layout.title_bar_height = layout.title_bar_height.max(layout.caption_font_size + 2.0);
             layout.menu_bar_height = layout.menu_bar_height.max(layout.tab_font_size + 6.0);
             layout.options_bar_height = layout.options_bar_height.max(layout.field_height + 2.0).max(layout.tab_font_size + 6.0);
             layout.status_bar_height = layout.status_bar_height.max(layout.field_height + 2.0).max(layout.tab_font_size + 4.0);
@@ -602,6 +609,25 @@ mod tests {
         pack.resolve().unwrap().apply(&ctx);
         let layout = crate::theme::LayoutTokens::get(&ctx);
         assert!(layout.button_height >= 30.0 && layout.field_height >= 32.0);
+    }
+
+    #[test]
+    fn caption_size_round_trips_guards_height_and_resets() {
+        let mut pack = ThemePack::parse(include_str!("../../../assets/themes/system-6.json")).unwrap();
+        pack.typography.caption = Some(24.0);
+        let restored = ThemePack::parse(&serde_json::to_string(&pack).unwrap()).unwrap();
+        assert_eq!(restored.typography.caption, Some(24.0));
+        let ctx = egui::Context::default();
+        restored.resolve().unwrap().apply(&ctx);
+        let layout = crate::theme::LayoutTokens::get(&ctx);
+        assert_eq!(layout.caption_font_size, 24.0);
+        assert!(layout.title_bar_height >= 26.0);
+        fixture().resolve().unwrap().apply(&ctx);
+        assert_eq!(crate::theme::LayoutTokens::get(&ctx).caption_font_size, 12.0);
+        for value in [0.0, 65.0, f32::INFINITY, f32::NAN] {
+            pack.typography.caption = Some(value);
+            assert!(pack.resolve().is_err());
+        }
     }
 
     #[test]

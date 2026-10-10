@@ -452,6 +452,7 @@ pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
 pub struct LayoutTokens {
     pub button_height: f32,
     pub button_font_size: f32,
+    pub caption_font_size: f32,
     pub field_font_size: f32,
     pub tab_font_size: f32,
     pub button_padding_x: f32,
@@ -485,6 +486,7 @@ impl LayoutTokens {
         Self {
             button_height: if pro { 28.0 } else { 30.0 },
             button_font_size: 13.0,
+            caption_font_size: 12.0,
             field_font_size: 12.0,
             tab_font_size: 12.5,
             button_padding_x: 14.0,

@@ -92,6 +92,8 @@ reproduction; dedicated historical control rendering is still being built.
   `ui.inspect.themeFont` exposes requested and actual family. Browser builds use the registered
   fallback stack when historical faces are unavailable. Current family registrations are cached
   for the app session; restart after installing an additional face.
+- `typography.caption`: app-drawn historical app, dialog and floating-window title size,
+  6–64 points (default 12). Caption height grows only when needed to contain the text.
 - `typography`: egui text-style sizes, 6–64 points; `button`, `monospace` and `body` also size
   shared custom button text, numeric fields and pill tabs. Current named font families and other
   explicitly sized custom widgets retain their existing fonts and sizes.

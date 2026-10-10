@@ -285,7 +285,7 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut Ui) -> bool {
         return false;
     }
     let native_inset = if cfg!(target_os = "macos") && app.integrated_titlebar { 78.0 } else { 0.0 };
-    let height = theme::LayoutTokens::get(ui.ctx()).title_bar_height.max(if native_inset > 0.0 { 28.0 } else { 0.0 });
+    let height = caption_height(ui).max(if native_inset > 0.0 { 28.0 } else { 0.0 });
     egui::Panel::top("historical-caption").exact_size(height).frame(egui::Frame::NONE.fill(t.chrome).inner_margin(0)).show(ui, |ui| {
         let r = ui.max_rect();
         let drag = ui.interact(r, ui.id().with("caption-drag"), Sense::click_and_drag());
@@ -310,7 +310,7 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut Ui) -> bool {
         } else {
             stripes(ui, r, t);
         }
-        let font = crate::theme_fonts::control(ui.ctx(), 12.0, true);
+        let font = crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).caption_font_size, true);
         let text = app.session.active().map_or_else(|| "PhotoCraft".into(), |s| format!("{} — PhotoCraft", s.doc.name));
         let max = (r.width() - 80.0 - native_inset).max(1.0);
         let galley = crate::tab_strip::elided(ui, &text, font, if t.appearance == Appearance::Windows98 { t.accent_text } else { t.text }, max);
@@ -367,12 +367,20 @@ pub fn window_caption(ui: &mut Ui, title: &str) -> Option<(Response, bool)> {
     caption(ui, title, true)
 }
 
+// Real font metrics matter for installed faces and unusually large user type sizes.
+fn caption_height(ui: &Ui) -> f32 {
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let font = crate::theme_fonts::control(ui.ctx(), layout.caption_font_size, true);
+    let text_height = ui.fonts_mut(|fonts| fonts.row_height(&font));
+    layout.title_bar_height.max(text_height + 2.0)
+}
+
 fn caption(ui: &mut Ui, title: &str, closable: bool) -> Option<(Response, bool)> {
     let t = Tokens::get(ui.ctx());
     if t.appearance == Appearance::Modern {
         return None;
     }
-    let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), theme::LayoutTokens::get(ui.ctx()).title_bar_height), Sense::drag());
+    let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), caption_height(ui)), Sense::drag());
     if t.appearance == Appearance::Windows98 {
         let mut mesh = egui::Mesh::default();
         mesh.colored_vertex(rect.left_top(), t.accent);
@@ -387,7 +395,13 @@ fn caption(ui: &mut Ui, title: &str, closable: bool) -> Option<(Response, bool)>
     }
     let color = if t.appearance == Appearance::Windows98 { t.accent_text } else { t.text };
     let reserved = if closable { 42.0 } else { 12.0 };
-    let galley = crate::tab_strip::elided(ui, title, crate::theme_fonts::control(ui.ctx(), 12.0, true), color, (rect.width() - reserved).max(1.0));
+    let galley = crate::tab_strip::elided(
+        ui,
+        title,
+        crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).caption_font_size, true),
+        color,
+        (rect.width() - reserved).max(1.0),
+    );
     let at = if t.appearance == Appearance::Windows98 {
         pos2(rect.left() + 4.0, rect.center().y - galley.size().y / 2.0)
     } else {
@@ -452,6 +466,38 @@ mod tests {
         assert_ne!(profiles[1], profiles[2]);
         assert!(ThemePack::parse(r#"{"version":1,"id":"x","name":"X","base":"classic","appearance":"unknown"}"#).is_err());
         assert!(ThemePack::parse(r#"{"version":1,"id":"x","name":"X","base":"classic","typography":{"family":"unknown"}}"#).is_err());
+    }
+
+    #[test]
+    fn captions_contain_actual_font_rows_at_all_scales_and_sizes() {
+        use egui_kittest::Harness;
+        for scale in [1.0, 1.5, 2.0] {
+            let mut initialized = false;
+            let mut h = Harness::builder().with_size(vec2(900.0, 300.0)).with_pixels_per_point(scale).build_ui_state(
+                |ui, measured| {
+                    if !initialized {
+                        crate::PhotocraftApp::setup_context(ui.ctx(), theme::ThemeKind::Classic);
+                        initialized = true;
+                        return;
+                    }
+                    if let Some((response, _)) = window_caption(ui, "PhotoCraft caption") {
+                        let font = crate::theme_fonts::control(ui.ctx(), theme::LayoutTokens::get(ui.ctx()).caption_font_size, true);
+                        *measured = (response.rect.height(), ui.fonts_mut(|fonts| fonts.row_height(&font)));
+                    }
+                },
+                (0.0_f32, 0.0_f32),
+            );
+            for id in IDS {
+                for size in [12.0, 16.0, 24.0, 64.0] {
+                    let mut pack = preset(id).unwrap();
+                    pack.typography.caption = Some(size);
+                    pack.resolve().unwrap().apply(&h.ctx);
+                    h.run_steps(4);
+                    let (height, row) = *h.state();
+                    assert!(height >= row + 2.0, "{id} {scale} {size}: {height} vs {row}");
+                }
+            }
+        }
     }
 
     #[test]
