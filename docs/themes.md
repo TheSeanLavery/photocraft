@@ -85,7 +85,7 @@ reproduction; dedicated historical control rendering is still being built.
   accepts 80–600 points and supplies the initial Color group height without overwriting
   user-resized heights or saving preview dimensions.
 - `typography.family`: optional registered UI family: `Inter`, `JetBrains Mono`,
-  `Microsoft Sans Serif`, `Geneva`, `Chicago`, `Charcoal`, `Chicago Kare`, or `W95FA`. Native builds read these faces
+  `MS Sans Serif`, `Microsoft Sans Serif`, `Geneva`, `Chicago`, `Charcoal`, `Chicago Kare`, or `W95FA`. Native builds read these faces
   from known installed-font locations, with bounded reads and parsing; no font files enter
   this repository. The built-in Inter stack remains the fallback. Missing Chicago uses Chicago Kare when configured, then installed Geneva, then Inter.
   Missing Charcoal uses installed Geneva when available, then Inter. The manager reports substitutions;
@@ -340,8 +340,9 @@ input emits a build warning and omits the subset. `PHOTOCRAFT_THEME_FONTS_REQUIR
 makes absent or invalid input a build error. Pin the external checkout for reproducible
 release artifacts. This does not change the existing release workflow's font pin.
 
-Native installed/runtime faces remain preferred, with bundled faces available as a
-fallback. WASM uses the bundled subset directly. Compatibility family requests,
+Native installed/runtime faces remain preferred for literal family requests, with bundled
+faces available as a fallback. The historical `MS Sans Serif` alias described below
+prefers W95FA. WASM uses the bundled subset directly. Compatibility family requests,
 Chicago Kare size calibration, glyph fallback, and Theme Manager's actual-face report
 are shared. About PhotoCraft exposes the complete embedded notices under
 “Historical UI font licenses.” Builds without this input omit that section.
@@ -401,7 +402,7 @@ logical geometry scales with the display. Theme JSON can change these values at 
 
 | Area | Windows 98 SE | Mac OS 9.1 / System 6 | Review result |
 |---|---|---|---|
-| App caption | 18 | 18 | Separate historical caption; integrated macOS traffic lights reserve at least 28. Caption faces/weights remain under review. |
+| App caption | 18 | 18 | Separate historical caption; integrated macOS traffic lights reserve at least 28. Independent caption family/weight; Windows uses 11-point bold. Platinum face remains approximate. |
 | Menu bar | 18 | 20 | Separate compact row, with 2-point menu margins. Long localized menus still need a broader review. |
 | Tool options | 24 | 24 | Controls fit the row; specialized tool states remain under review. |
 | Document tabs | 20 | 20 | Theme font and compact geometry; long labels elide. |
@@ -452,3 +453,28 @@ the real bundled W95FA through the Microsoft compatibility alias on a native har
 These are PhotoCraft renders, not original operating-system screenshots or a fresh
 browser release verification. Tests cover independent roles, provider substitution,
 weight/spacing/elision, Preview/Cancel, Apply/export, and modern-theme reset.
+
+
+### Windows 98 historical font alias
+
+The Windows 98 SE preset now requests `MS Sans Serif`. This is a compatibility alias,
+not a redistributed copy of Microsoft's raster font. It prefers the licensed W95FA
+recreation (bundled or configured locally), then installed Microsoft Sans Serif, then
+Inter. The actual family is reported by Theme Manager and `ui.inspect.themeFont`.
+
+An explicit `Microsoft Sans Serif` request retains its existing priority: installed
+Microsoft Sans Serif, then W95FA when that face is unavailable, then Inter. Explicit
+`W95FA` point sizes remain raw. Both compatibility aliases apply the existing
+12.5/11 calibration only when they resolve to W95FA; other faces are not scaled.
+Default geometry remains caption/menu/options 18/18/24 logical points. This distinction
+lets the historical preset use the recreation even on a machine containing the later
+scalable Microsoft face, without changing existing custom packs requesting that face.
+
+[Microsoft's Windows font guidance](https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-fonts)
+identifies MS Sans Serif for Windows 95/98. Its [Microsoft Sans Serif family description](https://learn.microsoft.com/en-us/typography/font-list/microsoft-sans-serif)
+describes the later face as metrically compatible with the earlier bitmap font. Original
+font bytes remain absent from this repository; W95FA's license is handled by the existing
+optional UI-font bundle. Default release-font wiring and final browser acceptance remain
+separate work in the active historical-theme goal.
+
+Chrome/font follow-up evidence: `plan/evidence/ms-sans-alias/` contains nine fresh full-app renders at 100/150/200%, three top-bar comparisons, and three Windows font before/after strips. These are PhotoCraft renders, not original OS screenshots. The Windows stock alias now prefers W95FA even when the later Microsoft Sans Serif is installed. The alias registry, fallback priority, unchanged literal Microsoft request, and repeated-apply sizing are regression-tested.

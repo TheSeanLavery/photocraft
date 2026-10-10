@@ -9,7 +9,7 @@ fn embedded_font(family: &str) -> Option<FontData> {
     checked_font(bytes.to_vec(), family)
 }
 
-pub const FAMILIES: [&str; 8] = ["Inter", "JetBrains Mono", "Microsoft Sans Serif", "Geneva", "Chicago", "Charcoal", "Chicago Kare", "W95FA"];
+pub const FAMILIES: [&str; 9] = ["Inter", "JetBrains Mono", "MS Sans Serif", "Microsoft Sans Serif", "Geneva", "Chicago", "Charcoal", "Chicago Kare", "W95FA"];
 
 #[derive(Clone, Debug)]
 struct Families {
@@ -45,6 +45,7 @@ pub(crate) fn install(ctx: &Context, fonts: &mut FontDefinitions) {
             }
         }
     }
+    resolved.push(("MS Sans Serif".into(), historical_windows_face(fonts).into()));
     let mac = if fonts.font_data.contains_key("Geneva") { "Geneva" } else { "Inter" };
     // The supplied machine may not contain these historical faces. Never silently claim them.
     for family in ["Chicago", "Charcoal"] {
@@ -67,6 +68,18 @@ pub(crate) fn install(ctx: &Context, fonts: &mut FontDefinitions) {
         fonts.families.insert(FontFamily::Name(requested.clone().into()), stack);
     }
     ctx.data_mut(|d| d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(resolved) }));
+}
+
+/// A distinct historical request prefers the licensed raster-style recreation;
+/// Microsoft's later scalable compatibility face retains its existing priority.
+fn historical_windows_face(fonts: &FontDefinitions) -> &'static str {
+    if fonts.font_data.contains_key("W95FA") {
+        "W95FA"
+    } else if fonts.font_data.contains_key("Microsoft Sans Serif") {
+        "Microsoft Sans Serif"
+    } else {
+        "Inter"
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -308,10 +321,11 @@ fn chicago_recreation_alias(ctx: &Context, font: &FontId) -> bool {
 /// pixel at 12.5 points. Correct the 11-point compatibility default only when
 /// it resolves to the recreation; explicit W95FA sizes remain raw.
 fn windows_recreation_alias(ctx: &Context, font: &FontId) -> bool {
-    matches!(&font.family, FontFamily::Name(name) if name.as_ref() == "Microsoft Sans Serif")
+    let FontFamily::Name(name) = &font.family else { return false };
+    matches!(name.as_ref(), "MS Sans Serif" | "Microsoft Sans Serif")
         && ctx
             .data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families")))
-            .is_some_and(|families| families.resolved.iter().any(|(requested, actual)| requested == "Microsoft Sans Serif" && actual == "W95FA"))
+            .is_some_and(|families| families.resolved.iter().any(|(requested, actual)| requested == name.as_ref() && actual == "W95FA"))
 }
 
 pub(crate) fn calibrated(ctx: &Context, mut font: FontId) -> FontId {
@@ -348,6 +362,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn historical_windows_alias_prefers_recreation_then_compatible_face_then_inter() {
+        let mut fonts = FontDefinitions::default();
+        assert_eq!(historical_windows_face(&fonts), "Inter");
+        fonts.font_data.insert("Microsoft Sans Serif".into(), Arc::new(FontData::from_static(photocraft_text::fonts::INTER_REGULAR)));
+        assert_eq!(historical_windows_face(&fonts), "Microsoft Sans Serif");
+        fonts.font_data.insert("W95FA".into(), Arc::new(FontData::from_static(photocraft_text::fonts::INTER_REGULAR)));
+        assert_eq!(historical_windows_face(&fonts), "W95FA");
+        // Verify the installed registry too: legacy Microsoft requests keep
+        // their original preference even when a W95 recreation is present.
+        let ctx = Context::default();
+        let mut definitions = FontDefinitions::default();
+        definitions.font_data.insert("Inter".into(), Arc::new(FontData::from_static(photocraft_text::fonts::INTER_REGULAR)));
+        install(&ctx, &mut definitions);
+        let actual = historical_windows_face(&definitions);
+        let registry = ctx.data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families"))).unwrap();
+        assert!(registry.resolved.contains(&("MS Sans Serif".into(), actual.into())));
+        assert_eq!(definitions.families[&FontFamily::Name("MS Sans Serif".into())][0], actual);
+        if definitions.font_data.contains_key("Microsoft Sans Serif") {
+            assert!(registry.resolved.contains(&("Microsoft Sans Serif".into(), "Microsoft Sans Serif".into())));
+        }
+    }
+
+    #[test]
     fn caption_roles_round_trip_remain_independent_and_reset() {
         let ctx = Context::default();
         crate::PhotocraftApp::setup_context(&ctx, crate::theme::ThemeKind::Classic);
@@ -358,7 +395,7 @@ mod tests {
         assert_eq!(restored, pack);
         restored.resolve().unwrap().apply(&ctx);
         let body = control(&ctx, 11.0, false);
-        assert_eq!(body.family, FontFamily::Name("Microsoft Sans Serif".into()));
+        assert_eq!(body.family, FontFamily::Name("MS Sans Serif".into()));
         assert_eq!(caption(&ctx, 11.0), crate::theme::semibold(11.0));
         assert!(!caption_embolden(&ctx));
         assert_eq!(caption_status(&ctx), Some(("Inter".into(), "Inter".into(), true, false)));
@@ -377,7 +414,8 @@ mod tests {
     fn caption_weight_tracks_the_resolved_face_including_fallbacks() {
         let ctx = Context::default();
         crate::PhotocraftApp::setup_context(&ctx, crate::theme::ThemeKind::Classic);
-        let pack = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap();
+        let mut pack = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap();
+        pack.typography.family = Some("Microsoft Sans Serif".into());
         pack.resolve().unwrap().apply(&ctx);
         // Provider resolution is explicit, so unavailable faces use genuine
         // Inter semibold; recreated Chicago must not acquire a second stroke.
@@ -509,30 +547,41 @@ mod tests {
     #[test]
     fn windows_recreation_calibrates_only_the_compatibility_alias() {
         let ctx = Context::default();
-        let pack = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap().resolve().unwrap();
+        let base = crate::theme_pack::ThemePack::parse(include_str!("../../../assets/themes/windows-98-se.json")).unwrap();
         let set_actual = |actual: &str| {
             ctx.data_mut(|d| {
                 d.insert_temp(
                     egui::Id::new("theme-font-families"),
-                    Families { resolved: Arc::new(vec![("Microsoft Sans Serif".into(), actual.into()), ("W95FA".into(), "W95FA".into())]) },
+                    Families {
+                        resolved: Arc::new(vec![
+                            ("MS Sans Serif".into(), actual.into()),
+                            ("Microsoft Sans Serif".into(), actual.into()),
+                            ("W95FA".into(), "W95FA".into()),
+                        ]),
+                    },
                 );
             });
         };
-        set_actual("W95FA");
-        for _ in 0..3 {
-            pack.apply(&ctx);
-            assert!((control(&ctx, 11.0, false).size - 12.5).abs() < 0.001);
-            assert!((number(&ctx, 11.0).size - 12.5).abs() < 0.001);
-            assert!((ctx.global_style().text_styles[&egui::TextStyle::Body].size - 12.5).abs() < 0.001);
-            assert_eq!(crate::theme::LayoutTokens::get(&ctx).menu_bar_height, 18.0);
-        }
-        set(&ctx, Some("W95FA"));
-        assert_eq!(control(&ctx, 11.0, false).size, 11.0);
-        for actual in ["Microsoft Sans Serif", "Inter"] {
-            set_actual(actual);
-            pack.apply(&ctx);
+        for requested in ["MS Sans Serif", "Microsoft Sans Serif"] {
+            let mut pack = base.clone();
+            pack.typography.family = Some(requested.into());
+            let pack = pack.resolve().unwrap();
+            set_actual("W95FA");
+            for _ in 0..3 {
+                pack.apply(&ctx);
+                assert!((control(&ctx, 11.0, false).size - 12.5).abs() < 0.001);
+                assert!((number(&ctx, 11.0).size - 12.5).abs() < 0.001);
+                assert!((ctx.global_style().text_styles[&egui::TextStyle::Body].size - 12.5).abs() < 0.001);
+                assert_eq!(crate::theme::LayoutTokens::get(&ctx).menu_bar_height, 18.0);
+            }
+            set(&ctx, Some("W95FA"));
             assert_eq!(control(&ctx, 11.0, false).size, 11.0);
-            assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 11.0);
+            for actual in ["Microsoft Sans Serif", "Inter"] {
+                set_actual(actual);
+                pack.apply(&ctx);
+                assert_eq!(control(&ctx, 11.0, false).size, 11.0);
+                assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 11.0);
+            }
         }
         crate::theme::apply(&ctx, crate::theme::ThemeKind::Classic);
         assert_eq!(ctx.global_style().text_styles[&egui::TextStyle::Body].size, 12.5);
@@ -555,7 +604,10 @@ mod tests {
             fonts.families.insert(FontFamily::Name("Microsoft Sans Serif".into()), vec!["W95FA".into(), "Inter".into()]);
             ctx.set_fonts(fonts);
             ctx.data_mut(|d| {
-                d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(vec![("Microsoft Sans Serif".into(), "W95FA".into())]) });
+                d.insert_temp(
+                    egui::Id::new("theme-font-families"),
+                    Families { resolved: Arc::new(vec![("MS Sans Serif".into(), "W95FA".into()), ("Microsoft Sans Serif".into(), "W95FA".into())]) },
+                );
             });
             h.run_steps(4);
             for (method, params) in [
@@ -567,7 +619,7 @@ mod tests {
                 assert!(matches!(outcome, crate::control::Outcome::Done(ref v) if v.get("ok") == Some(&serde_json::Value::Bool(true))));
                 h.run_steps(4);
             }
-            assert_eq!(status(&ctx), Some(("Microsoft Sans Serif".into(), "W95FA".into())));
+            assert_eq!(status(&ctx), Some(("MS Sans Serif".into(), "W95FA".into())));
             assert!((control(&ctx, 11.0, false).size - 12.5).abs() < 0.001);
             let layout = crate::theme::LayoutTokens::get(&ctx);
             assert_eq!(layout.title_bar_height, 18.0);
