@@ -460,17 +460,41 @@ pub fn dropdown<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, op
     let t = Tokens::get(ui.ctx());
     let label = options.iter().find(|(v, _)| v == current).map(|(_, l)| tl!(l)).unwrap_or("—");
     let mut changed = false;
-    egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon).show_ui(ui, |ui| {
-        for (v, l) in options {
-            let selected = v == current;
-            let text = egui::RichText::new(tl!(l));
-            let text = if selected && (t.bevel || t.appearance != theme::Appearance::Modern) { text.color(t.accent_text) } else { text };
-            if ui.selectable_label(selected, text).clicked() {
-                *current = v.clone();
-                changed = true;
-            }
-        }
-    });
+    let historical = t.appearance != theme::Appearance::Modern;
+    let width = if historical {
+        let available = ui.available_width().max(0.0);
+        if width.is_finite() { width.clamp(0.0, available) } else { available }
+    } else {
+        width
+    };
+    let mut draw = |ui: &mut Ui| {
+        let combo = egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon);
+        let combo = if historical { combo.truncate() } else { combo };
+        combo
+            .show_ui(ui, |ui| {
+                for (v, l) in options {
+                    let selected = v == current;
+                    let text = egui::RichText::new(tl!(l));
+                    let text = if selected && (t.bevel || historical) { text.color(t.accent_text) } else { text };
+                    if ui.selectable_label(selected, text).clicked() {
+                        *current = v.clone();
+                        changed = true;
+                    }
+                }
+            })
+            .response
+            .on_hover_text(label);
+    };
+    if historical {
+        // ComboBox width is a minimum. Constrain its text layout separately so a
+        // long preset/translated label cannot enlarge a compact Properties card.
+        ui.scope(|ui| {
+            ui.set_width(width);
+            draw(ui);
+        });
+    } else {
+        draw(ui);
+    }
     changed
 }
 
@@ -585,6 +609,45 @@ pub fn fmt_num2(v: f64) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn historical_dropdown_long_labels_fit_requested_width_and_keep_selection() {
+        use egui_kittest::kittest::Queryable;
+        const LONG: &str = "An unusually long color lookup preset name with additional translated description";
+        for source in [
+            include_str!("../../../assets/themes/windows-98-se.json"),
+            include_str!("../../../assets/themes/mac-os-9-1.json"),
+            include_str!("../../../assets/themes/system-6.json"),
+        ] {
+            for scale in [1.0, 1.5, 2.0] {
+                let resolved = crate::theme_pack::ThemePack::parse(source).unwrap().resolve().unwrap();
+                let mut initialized = false;
+                let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(320.0, 240.0)).with_pixels_per_point(scale).build_ui(|ui| {
+                    if !initialized {
+                        crate::PhotocraftApp::setup_context(ui.ctx(), crate::theme::ThemeKind::Classic);
+                        initialized = true;
+                        return;
+                    }
+                    resolved.apply(ui.ctx());
+                    let mut value = ui.data(|d| d.get_temp::<i32>(egui::Id::new("chosen"))).unwrap_or(0);
+                    ui.horizontal(|ui| {
+                        let row = ui.scope(|ui| {
+                            super::dropdown(ui, "long-dropdown", &mut value, &[(0, LONG), (1, "Other Entry")], 120.0);
+                        });
+                        assert!(row.response.rect.width() <= 120.5, "{scale}: {:?}", row.response.rect);
+                        ui.label("Following control");
+                    });
+                    ui.data_mut(|d| d.insert_temp(egui::Id::new("chosen"), value));
+                });
+                h.run_steps(3);
+                h.get_by_value(LONG).click();
+                h.run_steps(3);
+                h.get_by_label("Other Entry").click();
+                h.run_steps(3);
+                assert_eq!(h.ctx.data(|d| d.get_temp::<i32>(egui::Id::new("chosen"))), Some(1));
+            }
+        }
+    }
+
     #[test]
     fn classic_dropdown_selected_text_uses_the_runtime_selection_color() {
         use egui_kittest::kittest::Queryable;
