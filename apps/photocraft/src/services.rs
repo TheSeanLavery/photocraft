@@ -21,6 +21,24 @@ const OPEN_EXTS: &[&str] = &[
     "pfm", "heic", "heif", "hif", "dng", "cr2", "cr3", "nef", "nrw", "arw", "pef", "orf", "rw2", "raf", "abr", "grd",
 ];
 
+/// File Open includes every implemented decoder and document importer.
+fn open_extensions() -> Vec<&'static str> {
+    let mut extensions = OPEN_EXTS.to_vec();
+    for ext in ["ora", "svg", "svgz"] {
+        if !extensions.contains(&ext) {
+            extensions.push(ext);
+        }
+    }
+    for codec in photocraft_codecs::Format::ALL.into_iter().filter(|f| f.caps().read) {
+        for ext in codec.extensions() {
+            if !extensions.contains(ext) {
+                extensions.push(ext);
+            }
+        }
+    }
+    extensions
+}
+
 /// Writable save formats with the suggested extension first.
 fn save_filters(suggested: &str) -> Vec<(&'static str, &'static [&'static str])> {
     let ext = Path::new(suggested).extension().map(|e| e.to_string_lossy().to_ascii_lowercase()).unwrap_or_default();
@@ -146,14 +164,14 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
             crate::crash_guard::guard("Export", || photocraft_io::export(doc, path, &opts).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string()))
         })),
         pick_open: Some(Box::new(|| {
-            let path = rfd::FileDialog::new().add_filter("All Formats", OPEN_EXTS).add_filter("PhotoCraft", &["pcraft"]).pick_file()?;
+            let path = rfd::FileDialog::new().add_filter("All Formats", &open_extensions()).add_filter("PhotoCraft", &["pcraft"]).pick_file()?;
             // A read failure goes back to the app, which reports it like any other open failure.
             let bytes = photocraft_format::read_file(&path).map_err(|e| e.to_string());
             Some((path.to_string_lossy().to_string(), bytes))
         })),
         pick_open_paths: Some(Box::new(|| {
             rfd::FileDialog::new()
-                .add_filter("All Formats", OPEN_EXTS)
+                .add_filter("All Formats", &open_extensions())
                 .add_filter("PhotoCraft", &["pcraft"])
                 .pick_files()
                 .map(|paths| paths.into_iter().map(|path| path.to_string_lossy().into_owned()).collect())
@@ -352,11 +370,10 @@ fn show_save_destination(suggested: &str, frame: &eframe::Frame, ctx: &egui::Con
 mod tests {
     #[test]
     fn every_readable_codec_is_discoverable_in_the_native_open_panel() {
-        let filters = open_filters();
-        let all = &filters.iter().find(|(name, _)| *name == "All Formats").unwrap().1;
+        let all = super::open_extensions();
         for codec in photocraft_codecs::Format::ALL.into_iter().filter(|f| f.caps().read) {
-            for ext in open_filter_extensions(codec.extensions()) {
-                assert!(all.contains(&ext), "{codec:?}: {ext}");
+            for ext in codec.extensions() {
+                assert!(all.contains(ext), "{codec:?}: {ext}");
             }
         }
     }
