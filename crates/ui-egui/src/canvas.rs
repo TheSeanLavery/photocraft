@@ -3231,7 +3231,7 @@ mod tests {
         tool_event(&mut app, ToolEvent::Up { x: 40.0, y: 40.0 }, egui::Modifiers::NONE);
         let events = serde_json::to_value(&app.session.collaboration.canonical_outbox).unwrap();
         let events = events.as_array().unwrap();
-        assert!(events.iter().any(|e| e["message"]["operation"]["type"] == "strokeBegin"));
+        assert_eq!(events.iter().filter(|e| e["message"]["operation"]["type"] == "strokeBegin").count(), 1);
         assert!(events.iter().any(|e| e["message"]["operation"]["type"] == "strokeEnd"));
         assert!(
             events.iter().filter(|e| e["message"]["operation"]["type"] == "strokeChunk").any(|e| e["message"]["operation"]["points"]
@@ -3240,7 +3240,10 @@ mod tests {
                 .iter()
                 .any(|p| p["pressure"].as_f64() == Some(0.75)))
         );
-        assert!(!app.session.journal.iter().any(|(id, _)| id == "paint.stroke"));
+        assert!(
+            !events.iter().any(|event| { event["message"]["operation"]["type"] == "command" && event["message"]["operation"]["edit"]["id"] == "paint.stroke" })
+        );
+        assert_eq!(app.session.journal.iter().filter(|(id, _)| id == "paint.stroke").count(), 1, "Actions records one accepted stroke input");
         assert_eq!(app.session.collaboration.own_history().len(), 1);
         assert!(crate::menus::is_enabled(&app, "edit.undo"));
         assert!(crate::menus::is_enabled(&app, "edit.redo"));

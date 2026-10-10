@@ -1012,7 +1012,7 @@ impl Session {
                 collab.strokes.iter_mut().find(|stroke| stroke.start.id == *id).and_then(|stroke| {
                     let before = stroke.before_document.take()?;
                     let points: Vec<_> = stroke.chunks.iter().flatten().map(|point| serde_json::json!([point.x, point.y, point.pressure, point.tilt_x, point.tilt_y, point.rotation, point.time, point.wheel])).collect();
-                    let params = serde_json::json!({"layer":stroke.start.layer.0,"brush":stroke.start.brush,"color":stroke.start.brush.color,"erase":stroke.start.brush.erase,"seed":stroke.start.brush.seed,"zoom":stroke.start.zoom,"points":points});
+                    let params = serde_json::json!({"target":"pixels","brush":stroke.start.brush,"color":stroke.start.brush.color,"erase":stroke.start.brush.erase,"seed":stroke.start.brush.seed,"zoom":stroke.start.zoom,"points":points});
                     Some((before, params))
                 })
             } else {
@@ -1332,6 +1332,25 @@ mod tests {
             host.try_undo().unwrap();
             assert_eq!(pixels(&host), before_drop);
         }
+    }
+    #[test]
+    fn room_actions_record_streamed_brush_inputs_without_painting_twice() {
+        let mut host = session(16);
+        host.execute("actions.record", json!({"name":"Pressure stroke"})).unwrap();
+        begin(&mut host, "host", "recorded-stream", [0.2, 0.5, 0.9, 1.0]);
+        chunk(&mut host, "host", "recorded-stream", 0, vec![StrokePoint::new(5.0, 5.0, 0.25), StrokePoint::new(15.0, 5.0, 0.75)]);
+        end(&mut host, "host", "recorded-stream", 1);
+        host.execute("actions.stop", json!({})).unwrap();
+        let action = host.execute("actions.get", json!({"action":"Pressure stroke"})).unwrap();
+        let steps = action["steps"].as_array().unwrap();
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0][0], "paint.stroke");
+        assert_eq!(steps[0][1]["points"][0][2], 0.25);
+        assert_eq!(steps[0][1]["points"][1][2], 0.75);
+        assert_eq!(host.collaboration.own_history().len(), 1);
+        assert!(
+            !host.collaboration.canonical_outbox.iter().any(|event| matches!(&event.message.operation, Operation::Command{edit} if edit.id=="paint.stroke"))
+        );
     }
     #[test]
     fn room_actions_play_dispatches_each_step_and_preserves_nested_authorization() {
