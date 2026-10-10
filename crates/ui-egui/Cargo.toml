@@ -45,6 +45,8 @@ sys-locale = "=0.3.2"
 
 [dev-dependencies]
 photocraft-cms = { workspace = true }
+sha2 = "0.10"
+skrifa = "0.44"
 photocraft-io = { workspace = true }
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot", "eframe"] }
 # Benchmark helpers for the `--json` benches `cargo xtask perf` runs (in-process RSS, percentiles).
@@ -55,3 +57,5 @@ photocraft-psd = { workspace = true }
 [build-dependencies]
 serde_json = { workspace = true }
 toml = "1"
+sha2 = "0.10"
+skrifa = "0.44"

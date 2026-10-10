@@ -4214,4 +4214,69 @@ ui-zoom-with-scroll-wheel-405e9e1a41be72fa = 以滾輪縮放
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = 以觸控板捏合縮放
 
 ui-collaboration-977b20dea89dd78c = 協作…
+
 ui-collaboration-view-settings-cd37c80a120a2d5e = 協作檢視設定
+
+# Runtime and historical themes
+
+ui-apply-theme-940745b76f98edfc = 套用佈景主題
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = 取消佈景主題預覽
+
+ui-caption-font-01f956c20c42c9c8 = 標題字型
+
+ui-copy-json-fc4e8907ed0b8b94 = 複製 JSON
+
+ui-draft-name-c0af463d8e1619b5 = 草稿：{ $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = 複製佈景主題
+
+ui-edit-theme-definition-7f259c436cbc367b = 編輯佈景主題定義
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = 編輯下方的定義。修改內建佈景主題前請先建立副本。
+
+ui-export-theme-9924f16b219aa424 = 匯出主題…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = 字型 { $requested } 無法使用；使用 { $actual }。
+
+ui-import-theme-a399ac79528870d5 = 匯入主題…
+
+ui-list-themes-3674d7aab0c03693 = 主題清單
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Mac OS 9.1 Platinum 佈景主題
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Macintosh System 6 佈景主題
+
+ui-preview-theme-7eced90e6da56ad4 = 預覽佈景主題
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = 正在預覽。取消後將還原已儲存的佈景主題。
+
+ui-remove-theme-f449889ab3dc13fe = 移除主題
+
+ui-reset-changes-91bb267473e72bf7 = 重設變更
+
+ui-reset-theme-09df599fa743782b = 重設佈景主題
+
+ui-saved-theme-c30bc5d2b3c69847 = 已儲存的佈景主題
+
+ui-scroll-down-fff28769afb825f2 = 向下捲動
+
+ui-scroll-left-58498927306bf4d7 = 向左捲動
+
+ui-scroll-right-3171dac9aaa15648 = 向右捲動
+
+ui-scroll-up-ae49a1e892131037 = 向上捲動
+
+ui-select-theme-85a12011f3908f5a = 選取主題
+
+ui-theme-details-a78c7b85de9ad366 = 主題詳細資料
+
+ui-theme-manager-43184a7204b2f7ef = 佈景主題管理員
+
+ui-theme-manager-5e06c12bd6d5d9a9 = 佈景主題管理員…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = 佈景主題定義超過 64 KiB
+
+ui-theme-id-2057ac72399d5a4d = 主題 ID
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE 佈景主題

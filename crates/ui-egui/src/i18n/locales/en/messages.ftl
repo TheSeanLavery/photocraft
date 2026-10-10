@@ -6329,4 +6329,69 @@ ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Zoom with scroll wheel
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Zoom with trackpad pinch
 
 ui-collaboration-977b20dea89dd78c = Collaboration…
+
 ui-collaboration-view-settings-cd37c80a120a2d5e = Collaboration View Settings
+
+# Runtime and historical themes
+
+ui-apply-theme-940745b76f98edfc = Apply Theme
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = Cancel Theme Preview
+
+ui-caption-font-01f956c20c42c9c8 = Caption font
+
+ui-copy-json-fc4e8907ed0b8b94 = Copy JSON
+
+ui-draft-name-c0af463d8e1619b5 = Draft: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = Duplicate Theme
+
+ui-edit-theme-definition-7f259c436cbc367b = Edit Theme Definition
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = Edit the definition below. Duplicate a built-in theme before changing it.
+
+ui-export-theme-9924f16b219aa424 = Export Theme…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = Font { $requested } is unavailable; using { $actual }.
+
+ui-import-theme-a399ac79528870d5 = Import Theme…
+
+ui-list-themes-3674d7aab0c03693 = List Themes
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Mac OS 9.1 Platinum Theme
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Macintosh System 6 Theme
+
+ui-preview-theme-7eced90e6da56ad4 = Preview Theme
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = Preview is active. Cancel restores your saved theme.
+
+ui-remove-theme-f449889ab3dc13fe = Remove Theme
+
+ui-reset-changes-91bb267473e72bf7 = Reset Changes
+
+ui-reset-theme-09df599fa743782b = Reset Theme
+
+ui-saved-theme-c30bc5d2b3c69847 = Saved theme
+
+ui-scroll-down-fff28769afb825f2 = Scroll down
+
+ui-scroll-left-58498927306bf4d7 = Scroll left
+
+ui-scroll-right-3171dac9aaa15648 = Scroll right
+
+ui-scroll-up-ae49a1e892131037 = Scroll up
+
+ui-select-theme-85a12011f3908f5a = Select Theme
+
+ui-theme-details-a78c7b85de9ad366 = Theme Details
+
+ui-theme-manager-43184a7204b2f7ef = Theme Manager
+
+ui-theme-manager-5e06c12bd6d5d9a9 = Theme Manager…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Theme definition exceeds 64 KiB
+
+ui-theme-id-2057ac72399d5a4d = Theme id
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE Theme

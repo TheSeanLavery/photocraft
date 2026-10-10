@@ -8,6 +8,7 @@
 //! The highlight is view state only (egui memory), per top-level menu; it follows the pointer too,
 //! so the mouse and the keyboard share one highlighted row like a native menu.
 
+use crate::scroll_area::ScrollArea;
 use egui::containers::menu::{MenuState, SubMenu, find_menu_root};
 use egui::{Id, Key, Modifiers, Rect, Sense, Ui, pos2, vec2};
 
@@ -325,7 +326,7 @@ pub fn level(ui: &mut Ui, depth: usize, nav: &mut Nav, rows: impl FnOnce(&mut Ui
     // pt, on the first): a scroll area never grows past that, so every menu stuck at that height
     // and scrolled even on a tall window (#235). Ask for the room the window has; auto-shrink then
     // fits the area to its rows, so a menu scrolls only when they don't fit.
-    let out = egui::ScrollArea::vertical()
+    let out = ScrollArea::vertical()
         .id_salt(("menu-level", depth))
         .max_height(height)
         .min_scrolled_height(height)

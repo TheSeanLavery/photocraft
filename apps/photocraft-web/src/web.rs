@@ -49,7 +49,7 @@ pub fn start() {
                     let inbox: Inbox = Arc::default();
                     let mut app = PhotocraftApp::new(Session::new(), services(inbox.clone(), cc.egui_ctx.clone()));
                     listen_pen(&pen_target, app.stylus.feed.clone());
-                    app.set_theme(&cc.egui_ctx, ThemeKind::Pro);
+                    // The shared preferences tick applies the persisted catalog selection.
                     if let Some(rs) = cc.wgpu_render_state.clone()
                         && !force_cpu
                     {
@@ -137,6 +137,9 @@ impl eframe::App for WebShell {
 
 fn services(inbox: Inbox, ctx: egui::Context) -> Services {
     let open_inbox = inbox.clone();
+    let theme_inbox = photocraft_ui_egui::ThemeInbox::default();
+    let theme_output = theme_inbox.clone();
+    let theme_ctx = ctx.clone();
     Services {
         import: Some(Box::new(|name: &str, bytes: &[u8]| photocraft_io::import(name, bytes).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string()))),
         export: Some(Box::new(|doc: &Document, path: &str, settings: &photocraft_ui_egui::ExportSettings| {
@@ -165,6 +168,33 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
             });
             None
         })),
+        theme_inbox: Some(theme_inbox),
+        pick_theme: Some(Box::new(move || {
+            let inbox = theme_output.clone();
+            let ctx = theme_ctx.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                let Some(file) = rfd::AsyncFileDialog::new().add_filter("PhotoCraft Theme", &["json"]).pick_file().await else { return };
+                let limit = photocraft_ui_egui::theme_pack::MAX_THEME_BYTES;
+                let result = if file.inner().size() > limit as f64 {
+                    Err(format!("theme exceeds {limit} bytes"))
+                } else {
+                    match wasm_bindgen_futures::JsFuture::from(file.inner().array_buffer()).await {
+                        Err(error) => Err(format!("theme read failed: {error:?}")),
+                        Ok(buffer) => {
+                            let bytes = js_sys::Uint8Array::new(&buffer);
+                            if bytes.length() as usize > limit {
+                                Err(format!("theme exceeds {limit} bytes"))
+                            } else {
+                                String::from_utf8(bytes.to_vec()).map_err(|e| e.to_string())
+                            }
+                        }
+                    }
+                };
+                inbox.lock().unwrap_or_else(|e| e.into_inner()).push(result);
+                ctx.request_repaint();
+            });
+            Ok(None)
+        })),
         // No save dialog on the web: the suggested name becomes the download name.
         pick_save: Some(Box::new(|suggested: &str| {
             let name = std::path::Path::new(suggested).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| suggested.to_string());
@@ -179,11 +209,15 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
         // Preferences live in the browser's localStorage.
         load_prefs: Some(Box::new(|| local_storage()?.get_item(PREFS_KEY).ok().flatten())),
         save_prefs: Some(Box::new(|text: &str| local_storage().ok_or("no localStorage")?.set_item(PREFS_KEY, text).map_err(|e| format!("{e:?}")))),
+        load_themes: Some(Box::new(|| local_storage().ok_or("no localStorage")?.get_item(THEMES_KEY).map_err(|e| format!("{e:?}")))),
+        save_themes: Some(Box::new(|text| local_storage().ok_or("no localStorage")?.set_item(THEMES_KEY, text).map_err(|e| format!("{e:?}")))),
+        poll_themes: None,
         ..Default::default()
     }
 }
 
 const PREFS_KEY: &str = "photocraft.preferences";
+const THEMES_KEY: &str = "photocraft.themes";
 
 fn local_storage() -> Option<web_sys::Storage> {
     web_sys::window()?.local_storage().ok().flatten()

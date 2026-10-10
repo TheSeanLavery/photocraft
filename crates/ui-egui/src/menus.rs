@@ -56,6 +56,22 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("window.theme.studio", "Studio Theme", &["Window", "Theme"], None),
     ("window.theme.studioLight", "Studio Light Theme", &["Window", "Theme"], None),
     ("window.theme.classic", "Classic Theme", &["Window", "Theme"], None),
+    ("window.theme.windows-98-se", "Windows 98 SE Theme", &["Window", "Theme"], None),
+    ("window.theme.mac-os-9-1", "Mac OS 9.1 Platinum Theme", &["Window", "Theme"], None),
+    ("window.theme.system-6", "Macintosh System 6 Theme", &["Window", "Theme"], None),
+    ("window.theme.manager", "Theme Manager…", &["Window", "Theme"], None),
+    ("window.theme.preview", "Preview Theme", &[], None),
+    ("window.theme.apply", "Apply Theme", &[], None),
+    ("window.theme.cancel", "Cancel Theme Preview", &[], None),
+    ("window.theme.draft", "Edit Theme Definition", &[], None),
+    ("window.theme.duplicate", "Duplicate Theme", &[], None),
+    ("window.theme.reset", "Reset Theme", &[], None),
+    ("window.theme.list", "List Themes", &[], None),
+    ("window.theme.get", "Theme Details", &[], None),
+    ("window.theme.select", "Select Theme", &[], None),
+    ("window.theme.import", "Import Theme…", &[], None),
+    ("window.theme.export", "Export Theme…", &[], None),
+    ("window.theme.remove", "Remove Theme", &[], None),
     ("edit.search", "Search…", &["Edit"], Some("Cmd+K")),
     ("help.discord", "Join the ArtCraft Discord…", &["Help"], None),
     ("help.website", "PhotoCraft Website", &["Help"], None),
@@ -315,6 +331,11 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
             }
             app.run("prefs.set", json!({"values": {"interface.language": code}}))
         }
+        "window.theme.windows-98-se" | "window.theme.mac-os-9-1" | "window.theme.system-6" => {
+            crate::themes::select(app, ctx, &format!("builtin.{}", id.trim_start_matches("window.theme.")))?;
+            Ok(Value::Null)
+        }
+        id if id.starts_with("window.theme.") => crate::themes::command(app, ctx, id.trim_start_matches("window.theme."), &params),
         "edit.search" => {
             app.ui.palette_open = !app.ui.palette_open;
             Ok(Value::Null)
@@ -563,7 +584,11 @@ const MODE_CHECKS: [&str; 11] = ["rgb", "grayscale", "cmyk", "lab", "multichanne
 fn checked(app: &PhotocraftApp, id: &str) -> Option<bool> {
     use photocraft_doc::{ColorMode, SampleType};
     if let Some(name) = id.strip_prefix("window.theme.").filter(|n| *n != "toggle") {
-        return Some(crate::theme::ThemeKind::from_name(name) == Some(app.ui.theme));
+        let theme_id = format!("builtin.{name}");
+        if crate::theme::ThemeKind::from_name(name).is_some() || crate::historical::IDS.contains(&theme_id.as_str()) {
+            return Some(app.ui.theme_id == theme_id);
+        }
+        return None;
     }
     if let Some(c) = crate::view_cmds::checked(app, id) {
         return Some(c);
@@ -1538,5 +1563,20 @@ mod quick_export_label_tests {
             let layer = items.iter().find(|i| i.id == "layer.quickExportAsPng").unwrap();
             assert_eq!(layer.label, "Quick Export as PNG", "layer export always creates PNG");
         }
+    }
+    #[test]
+    fn theme_menu_checks_the_selected_preset_instead_of_its_inherited_base() {
+        let ctx = egui::Context::default();
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        for id in crate::historical::IDS {
+            crate::themes::select(&mut app, &ctx, id).unwrap();
+            let command = format!("window.theme.{}", id.trim_start_matches("builtin."));
+            assert_eq!(checked(&app, &command), Some(true));
+            assert_eq!(checked(&app, "window.theme.classic"), Some(false));
+            assert_eq!(checked(&app, "window.theme.manager"), None);
+        }
+        app.set_theme(&ctx, crate::theme::ThemeKind::Classic);
+        assert_eq!(checked(&app, "window.theme.classic"), Some(true));
+        assert_eq!(checked(&app, "window.theme.windows-98-se"), Some(false));
     }
 }

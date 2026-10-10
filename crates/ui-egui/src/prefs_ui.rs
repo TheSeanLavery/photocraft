@@ -7,6 +7,7 @@
 //! change them with `prefs.get` / `prefs.set`); this module only edits a working copy in a dialog
 //! and commits it with those commands on Apply or OK.
 
+use crate::scroll_area::ScrollArea;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use egui::{Color32, RichText, Sense, vec2};
@@ -28,7 +29,6 @@ pub struct Runtime {
     /// This instance's preferences as of `saved_rev`: the base of the three-way merge on save.
     saved_value: Option<Value>,
     save_retry: SaveRetry,
-    theme_pref: Option<Theme>,
     next_autosave_ms: f64,
     autosaved: HashMap<DocId, CheckpointStamp>,
     pending_autosaves: HashMap<DocId, CheckpointStamp>,
@@ -113,7 +113,7 @@ pub fn pasteboard_color(app: &PhotocraftApp) -> Option<Color32> {
     })
 }
 
-fn theme_kind(t: Theme) -> ThemeKind {
+pub(crate) fn theme_kind(t: Theme) -> ThemeKind {
     match t {
         Theme::Pro => ThemeKind::Pro,
         Theme::ProMedium => ThemeKind::ProMedium,
@@ -123,7 +123,7 @@ fn theme_kind(t: Theme) -> ThemeKind {
     }
 }
 
-fn theme_pref(k: ThemeKind) -> Theme {
+pub(crate) fn theme_pref(k: ThemeKind) -> Theme {
     match k {
         ThemeKind::Pro => Theme::Pro,
         ThemeKind::ProMedium => Theme::ProMedium,
@@ -146,6 +146,12 @@ pub fn load(app: &mut PhotocraftApp) {
         && let Err(e) = app.session.load_prefs_json(&text)
     {
         app.ui.status = format!("Preferences were reset: {e}");
+    }
+    // Normalize before recording the loaded revision or opening a preferences draft.
+    // Migration must not look like a user edit or cause a redundant save on the first frame.
+    if app.session.prefs().interface.theme_id.is_empty() {
+        let id = theme_kind(app.session.prefs().interface.theme).registry_id();
+        app.session.prefs.edit(|p| p.interface.theme_id = id.into());
     }
     crate::dock::restore(app);
     app.sync_recent();
@@ -280,19 +286,7 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
         load(app);
     }
     sync_display_scale(app, ctx);
-    // Interface theme: a preference change applies to the UI; a theme picked from the Window
-    // menu is stored as the preference.
-    let pref = app.session.prefs().interface.theme;
-    if app.prefs_rt.theme_pref != Some(pref) {
-        app.prefs_rt.theme_pref = Some(pref);
-        if app.ui.theme != theme_kind(pref) {
-            app.set_theme(ctx, theme_kind(pref));
-        }
-    } else if theme_pref(app.ui.theme) != pref {
-        let t = theme_pref(app.ui.theme);
-        app.session.prefs.edit(|p| p.interface.theme = t);
-        app.prefs_rt.theme_pref = Some(t);
-    }
+    crate::themes::sync(app, ctx);
     crate::theme::set_ui_font_size(ctx, app.session.prefs().interface.ui_font_size);
     presets_store(app);
     sync_tooltips(app, ctx);
@@ -935,7 +929,7 @@ pub fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Valu
     match f.get("__prefsui").and_then(Value::as_str).unwrap_or("") {
         "prefs" => {
             f.insert("__gpuInfo".into(), json!(app.perf.gpu_info.lines()));
-            prefs_body(ui, f);
+            prefs_body(ui, f, &app.theme_rt.catalog);
         }
         "shortcuts" => shortcuts_body(app, ui, f),
         "presets" => presets_body(app, ui, f),
@@ -1009,7 +1003,7 @@ fn color_of(s: &str) -> Color32 {
 }
 
 /// Preferences: section list on the left, the section's settings on the right.
-fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
+fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>, catalog: &crate::themes::Catalog) {
     let t = Tokens::get(ui.ctx());
     let mut section = f.get("section").and_then(Value::as_str).unwrap_or("general").to_string();
     let mut values = f.get("values").cloned().unwrap_or(Value::Null);
@@ -1029,7 +1023,7 @@ fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                     ui.painter().rect_filled(rect, t.radius_sm, t.hover);
                 }
                 let color = if sel {
-                    t.text
+                    if t.bevel || t.appearance != crate::theme::Appearance::Modern { t.accent_text } else { t.text }
                 } else if empty {
                     t.text_faint
                 } else {
@@ -1037,7 +1031,7 @@ fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
                 };
                 // Translated section names can be longer than the column: elide them (the full
                 // name is the tooltip) instead of drawing over the settings.
-                let mut job = egui::text::LayoutJob::simple_singleline(tl!(title).to_string(), crate::theme::medium(12.5), color);
+                let mut job = egui::text::LayoutJob::simple_singleline(tl!(title).to_string(), crate::theme_fonts::control(ui.ctx(), 12.5, false), color);
                 job.wrap = egui::text::TextWrapping::truncate_at_width(rect.width() - 12.0);
                 let galley = ui.painter().layout_job(job);
                 let elided = galley.elided;
@@ -1052,16 +1046,16 @@ fn prefs_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
         ui.vertical(|ui| {
             ui.set_width(540.0);
             let title = SECTIONS.iter().find(|(id, _)| *id == section).map_or("General", |(_, t)| *t);
-            ui.label(RichText::new(tl!(&title)).font(crate::theme::semibold(14.0)).color(t.text));
+            ui.label(RichText::new(tl!(&title)).font(crate::theme_fonts::control(ui.ctx(), 14.0, true)).color(t.text));
             ui.add_space(6.0);
-            egui::ScrollArea::vertical().max_height(390.0).id_salt("prefs-scroll").show(ui, |ui| {
+            ScrollArea::vertical().max_height(390.0).id_salt("prefs-scroll").show(ui, |ui| {
                 let order: Vec<String> =
                     f.get("__order").and_then(|o| o.get(&section)).and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
                 if !has_visible_fields(&values, &section) {
                     ui.add_space(4.0);
                     ui.label(RichText::new(tl!("These settings aren't available in PhotoCraft yet.")).color(t.text_faint));
                 } else if let Some(obj) = values.get_mut(&section).and_then(Value::as_object_mut) {
-                    section_fields(ui, &section, obj, &order, lang);
+                    section_fields(ui, &section, obj, &order, lang, catalog);
                     if section == "performance" {
                         gpu_status_rows(ui, f.get("__gpuInfo"), obj);
                     }
@@ -1150,7 +1144,7 @@ fn export_field_visible(obj: &Map<String, Value>, key: &str) -> bool {
 
 /// Generic editor for a section's fields: checkboxes, dropdowns for choices, colour swatches,
 /// number fields with the preference's range, text fields.
-fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>, order: &[String], lang: crate::i18n::Lang) {
+fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>, order: &[String], lang: crate::i18n::Lang, catalog: &crate::themes::Catalog) {
     let t = Tokens::get(ui.ctx());
     if section == "performance" {
         rendering_mode_row(ui, obj);
@@ -1164,12 +1158,13 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
     }
     let mut keys: Vec<String> = order.iter().filter(|k| obj.contains_key(*k)).cloned().collect();
     keys.extend(obj.keys().filter(|k| !order.contains(k)).cloned());
-    egui::Grid::new(("prefs-grid", section)).num_columns(2).spacing([14.0, 7.0]).show(ui, |ui| {
+    egui::Grid::new(("prefs-grid", section)).num_columns(2).spacing(crate::theme::LayoutTokens::get(ui.ctx()).preference_spacing).show(ui, |ui| {
         for k in keys {
             let path = format!("{section}.{k}");
             // Settings nothing reads yet stay out of the dialog (issue #204); their stored values
             // pass through untouched.
-            if prefs::is_hidden(&path)
+            if path == "interface.themeId"
+                || prefs::is_hidden(&path)
                 || (path == "tools.useTrackpadPressure" && !cfg!(target_os = "macos"))
                 || (section == "performance" && matches!(k.as_str(), "useGpu" | "gpuBackend" | "renderingMode"))
                 || (section == "export" && !export_field_visible(obj, &k))
@@ -1189,6 +1184,30 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
                     let mut b = *b;
                     crate::widgets::checkbox(ui, &mut b, &label);
                     obj.insert(k, json!(b));
+                }
+                Value::String(s) if path == "interface.theme" => {
+                    ui.label(RichText::new(tl!(&label)).color(t.text_dim));
+                    let legacy = Theme::parse(s).unwrap_or_default();
+                    let mut current =
+                        obj.get("themeId").and_then(Value::as_str).filter(|id| !id.is_empty()).unwrap_or(theme_kind(legacy).registry_id()).to_string();
+                    // Legacy agents can edit only the enum in a draft. Show that pending
+                    // choice; prefs.set normalizes its stable ID when the draft is applied.
+                    if catalog.get(&current).and_then(|pack| pack.resolve().ok()).is_some_and(|resolved| resolved.tokens.kind != theme_kind(legacy)) {
+                        current = theme_kind(legacy).registry_id().into();
+                    }
+                    let choices: Vec<(String, String)> = catalog
+                        .list()
+                        .into_iter()
+                        .filter_map(|entry| Some((entry.get("id")?.as_str()?.to_string(), entry.get("name")?.as_str()?.to_string())))
+                        .collect();
+                    let pairs: Vec<(String, &str)> = choices.iter().map(|(id, name)| (id.clone(), name.as_str())).collect();
+                    if crate::widgets::dropdown(ui, "pref-theme", &mut current, &pairs, 220.0)
+                        && let Some(pack) = catalog.get(&current)
+                        && let Ok(resolved) = pack.resolve()
+                    {
+                        obj.insert("themeId".into(), json!(current));
+                        obj.insert(k, json!(theme_pref(resolved.tokens.kind).name()));
+                    }
                 }
                 Value::String(s) if path == "interface.language" => {
                     ui.label(RichText::new(tl!(&label)).color(t.text_dim));
@@ -1352,7 +1371,7 @@ fn shortcuts_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String
         }
     }
     let needle = filter.to_ascii_lowercase();
-    egui::ScrollArea::vertical().max_height(420.0).id_salt("shortcuts-scroll").show(ui, |ui| {
+    ScrollArea::vertical().max_height(420.0).id_salt("shortcuts-scroll").show(ui, |ui| {
         let mut last_top = String::new();
         egui::Grid::new("shortcut-grid").num_columns(3).spacing([12.0, 3.0]).striped(true).show(ui, |ui| {
             for (id, label, path, def) in &items {
@@ -1450,7 +1469,7 @@ fn shortcuts_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String
 
 fn toolbar_tab(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     let mut hidden: Vec<String> = f.get("toolbarHidden").and_then(|v| serde_json::from_value(v.clone()).ok()).unwrap_or_default();
-    egui::ScrollArea::vertical().max_height(380.0).id_salt("toolbar-scroll").show(ui, |ui| {
+    ScrollArea::vertical().max_height(380.0).id_salt("toolbar-scroll").show(ui, |ui| {
         egui::Grid::new("toolbar-grid").num_columns(2).spacing([16.0, 4.0]).show(ui, |ui| {
             for tool in crate::state::Tool::ALL {
                 let name = format!("{tool:?}");
@@ -1489,7 +1508,7 @@ fn presets_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, 
         .and_then(|v| serde_json::from_value::<Vec<String>>(v).ok())
         .unwrap_or_default();
     let mut selected = f.get("selected").and_then(Value::as_u64).unwrap_or(0) as usize;
-    egui::ScrollArea::vertical().max_height(260.0).id_salt("preset-list").show(ui, |ui| {
+    ScrollArea::vertical().max_height(260.0).id_salt("preset-list").show(ui, |ui| {
         for (i, name) in list.iter().enumerate() {
             if ui.selectable_label(i == selected, name).clicked() {
                 selected = i;
@@ -1556,7 +1575,7 @@ fn mismatch_body(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
         ]
     };
     for (v, label) in opts {
-        ui.radio_value(&mut action, v.to_string(), *label);
+        crate::widgets::radio_value(ui, &mut action, v.to_string(), label);
     }
     f.insert("action".into(), json!(action));
 }

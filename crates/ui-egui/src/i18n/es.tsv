@@ -2101,6 +2101,7 @@
 	Load Selection	Cargar selección
 # Command-id override: under Edit > Purge a bare "Deshacer" reads as an action, not the history.
 @id	edit.purge.undo	Historial de deshacer
+
 # Rendering mode and recovery
 	Rendering Mode	Modo de renderizado
 	Automatic (recommended)	Automático (recomendado)
@@ -2236,3 +2237,39 @@ cameraRaw	Amount	Cantidad
 
 	Collaboration…	Colaboración…
 	Collaboration View Settings	Ajustes de vista de colaboración
+# Runtime theme library
+	List Themes	Lista de temas
+	Theme Details	Detalles del tema
+	Select Theme	Seleccionar tema
+	Import Theme…	Importar tema…
+	Export Theme…	Exportar tema…
+	Remove Theme	Eliminar tema
+	Theme id	ID del tema
+# Theme Manager
+	Theme Manager…	Gestor de temas…
+	Preview Theme	Vista previa del tema
+	Apply Theme	Aplicar tema
+	Cancel Theme Preview	Cancelar vista previa del tema
+	Edit Theme Definition	Editar definición del tema
+	Duplicate Theme	Duplicar tema
+	Reset Theme	Restablecer tema
+	Theme Manager	Gestor de temas
+	Reset Changes	Restablecer cambios
+	Copy JSON	Copiar JSON
+	Edit the definition below. Duplicate a built-in theme before changing it.	Edita la definición a continuación. Duplica un tema integrado antes de modificarlo.
+	Theme definition exceeds 64 KiB	La definición del tema supera los 64 KiB
+	Preview is active. Cancel restores your saved theme.	La vista previa está activa. Cancelar restaura el tema guardado.
+	Saved theme	Tema guardado
+	Draft: {name}	Borrador: {name}
+	Duplicate	Duplicar
+	Import…	Importar…
+# Historical appearance profiles
+	Windows 98 SE Theme	Tema Windows 98 SE
+	Mac OS 9.1 Platinum Theme	Tema Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Tema Macintosh System 6
+	Font {requested} is unavailable; using {actual}.	La fuente {requested} no está disponible; se usa {actual}.
+	Scroll left	Desplazar a la izquierda
+	Scroll right	Desplazar a la derecha
+	Scroll up	Desplazar hacia arriba
+	Scroll down	Desplazar hacia abajo
+	Caption font	Fuente del título

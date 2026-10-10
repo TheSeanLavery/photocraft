@@ -798,7 +798,7 @@ mod tests {
     #[test]
     fn themes_move_to_the_app_menus_appearance() {
         let mut a = app(false);
-        a.ui.theme = crate::theme::ThemeKind::Classic;
+        a.set_theme(&egui::Context::default(), crate::theme::ThemeKind::Classic);
         let l = photocraft_layout(&crate::menus::menu_items(&a), Lang::EN, "auto");
         let app_menu = l.bar.menu(MenuRole::App).unwrap();
         let Some(Node::Submenu { children, .. }) = app_menu.children.iter().find(|n| matches!(n, Node::Submenu { label, .. } if label == "Appearance")) else {

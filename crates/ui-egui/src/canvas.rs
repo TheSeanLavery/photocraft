@@ -15,6 +15,12 @@ use crate::state::{Tool, View};
 /// Largest texture side we upload; bigger documents display downsampled until the GPU path lands.
 pub const MAX_TEXTURE: u32 = 4096;
 
+/// Historical document edges use a crisp rule instead of the modern soft pasteboard shadow.
+fn canvas_border(border: photocraft_engine::prefs::CanvasBorder, appearance: crate::theme::Appearance) -> photocraft_engine::prefs::CanvasBorder {
+    use photocraft_engine::prefs::CanvasBorder;
+    if appearance != crate::theme::Appearance::Modern && border == CanvasBorder::DropShadow { CanvasBorder::Line } else { border }
+}
+
 pub struct CanvasCache {
     pub revision: u64,
     pub texture: Option<egui::TextureHandle>,
@@ -1179,17 +1185,25 @@ fn tabs(app: &mut PhotocraftApp, ui: &mut egui::Ui) -> TabStrip {
     let dragging = crate::layer_transfer::pointer_if_armed(app, ui.ctx());
     let mut drag_over = None;
     let mut doc_tabs = Vec::with_capacity(tab_count);
-    let frame = egui::Frame::NONE.fill(t.canvas).inner_margin(egui::Margin { left: 8, right: 8, top: 6, bottom: 4 }).show(ui, |ui| {
+    let historical = t.appearance != crate::theme::Appearance::Modern;
+    let layout = crate::theme::LayoutTokens::get(ui.ctx());
+    let margin =
+        if historical { egui::Margin::symmetric(layout.panel_padding.round() as i8, 2) } else { egui::Margin { left: 8, right: 8, top: 6, bottom: 4 } };
+    let frame = egui::Frame::NONE.fill(t.canvas).inner_margin(margin).show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 4.0;
             for (i, st) in app.session.documents().iter().enumerate() {
                 let sel = Some(i) == active && !focused_open;
                 let name = format!("{}{}", st.doc.name, if st.is_dirty() { " *" } else { "" });
                 let meta = format!("{}/{}", mode_label(&st.doc), st.doc.depth.bits());
-                let name_g = ui.painter().layout_no_wrap(name, crate::theme::medium(12.5), t.text);
+                let name_g = ui.painter().layout_no_wrap(
+                    name,
+                    if historical { crate::theme_fonts::control(ui.ctx(), layout.tab_font_size, false) } else { crate::theme::medium(12.5) },
+                    t.text,
+                );
                 let meta_g = ui.painter().layout_no_wrap(meta, egui::FontId::proportional(10.5), t.text_faint);
                 let w = name_g.size().x + meta_g.size().x + 44.0;
-                let (r, resp) = ui.allocate_exact_size(egui::vec2(w, 26.0), Sense::click());
+                let (r, resp) = ui.allocate_exact_size(egui::vec2(w, layout.document_tab_height), Sense::click());
                 resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, sel, &st.doc.name));
                 doc_tabs.push(r);
                 if sel {
@@ -1224,10 +1238,14 @@ fn tabs(app: &mut PhotocraftApp, ui: &mut egui::Ui) -> TabStrip {
             // Files opening in the background: a tab with a progress underline; × cancels.
             for (job, name, frac) in crate::jobs_ui::open_tabs(app) {
                 let sel = app.jobs.focus == Some(job);
-                let name_g = ui.painter().layout_no_wrap(name, crate::theme::medium(12.5), t.text);
+                let name_g = ui.painter().layout_no_wrap(
+                    name,
+                    if historical { crate::theme_fonts::control(ui.ctx(), layout.tab_font_size, false) } else { crate::theme::medium(12.5) },
+                    t.text,
+                );
                 let meta_g = ui.painter().layout_no_wrap(format!("{:.0}%", frac * 100.0), egui::FontId::proportional(10.5), t.text_faint);
                 let w = name_g.size().x + meta_g.size().x + 44.0;
-                let (r, resp) = ui.allocate_exact_size(egui::vec2(w, 26.0), Sense::click());
+                let (r, resp) = ui.allocate_exact_size(egui::vec2(w, layout.document_tab_height), Sense::click());
                 if sel {
                     ui.painter().rect_filled(r, t.radius_sm, t.card);
                     ui.painter().rect_stroke(r, t.radius_sm, Stroke::new(1.0, t.card_border), egui::StrokeKind::Inside);
@@ -1655,7 +1673,15 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         crate::monitor_status::check_window(app, &ctx);
     }
     let full = rect;
-    let rect = if primary { crate::rulers::content_rect(app, rect) } else { rect };
+    let bar_area = if primary { crate::rulers::content_rect(app, rect) } else { rect };
+    let rect = if crate::theme::Tokens::get(ui.ctx()).appearance != crate::theme::Appearance::Modern {
+        crate::scroll_area::content_rect(ui, bar_area)
+    } else {
+        bar_area
+    };
+    if primary && crate::theme::Tokens::get(ui.ctx()).appearance != crate::theme::Appearance::Modern {
+        app.last_canvas_rect = rect;
+    }
     let doc = app.session.documents()[idx].doc.clone();
     let size = [doc.size.width, doc.size.height];
     if view.doc_size != size {
@@ -1684,7 +1710,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         }
         None => paint_dots(ui, rect),
     }
-    let border = app.session.prefs().interface.canvas_border;
+    let border = canvas_border(app.session.prefs().interface.canvas_border, crate::theme::Tokens::get(&ctx).appearance);
     let drop_shadow = border == photocraft_engine::prefs::CanvasBorder::DropShadow;
     // Drop shadow, checkerboard, document image.
     let img_rect = xf.doc_rect(doc.bounds());
@@ -2154,7 +2180,9 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         crate::canvas_tool_menu::show(app, &ctx);
         crate::snap_ui::draw(app, &painter, &xf);
         if border == photocraft_engine::prefs::CanvasBorder::Line {
-            painter.rect_stroke(img_rect, 0.0, Stroke::new(1.0, Color32::from_gray(20)), egui::StrokeKind::Outside);
+            let tokens = crate::theme::Tokens::get(&ctx);
+            let color = if tokens.appearance == crate::theme::Appearance::Modern { Color32::from_gray(20) } else { tokens.card_border };
+            painter.rect_stroke(img_rect, 0.0, Stroke::new(1.0, color), egui::StrokeKind::Outside);
         }
         crate::type_tool::draw_overlay(app, &painter, &xf);
         crate::transform_tool::draw_overlay(app, &painter, &xf);
@@ -2293,7 +2321,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     // Scrollbars (scrollbars.rs): drawn over the canvas edges, they take the pointer there.
     let t0 = crate::gpu_canvas::now_ms();
     let before = view.center;
-    let over_bars = crate::scrollbars::show(ui, rect, &mut view, flip, egui::Id::new(("pc-canvas", idx)));
+    let over_bars = crate::scrollbars::show(ui, bar_area, &mut view, flip, egui::Id::new(("pc-canvas", idx)));
     ctx.data_mut(|d| d.insert_temp(bars_id, over_bars));
     if view.center != before {
         ctx.request_repaint();
@@ -3447,6 +3475,20 @@ mod tests {
     #[test]
     fn wayland_start_screen_hint_does_not_claim_file_drop_works() {
         assert_ne!(start_screen_drop_hint(true), start_screen_drop_hint(false));
+    }
+
+    #[test]
+    fn historical_canvas_edges_replace_only_soft_shadows() {
+        use crate::theme::Appearance;
+        use photocraft_engine::prefs::CanvasBorder;
+        for appearance in [Appearance::Windows98, Appearance::Platinum, Appearance::System6] {
+            assert_eq!(canvas_border(CanvasBorder::DropShadow, appearance), CanvasBorder::Line);
+            assert_eq!(canvas_border(CanvasBorder::Line, appearance), CanvasBorder::Line);
+            assert_eq!(canvas_border(CanvasBorder::None, appearance), CanvasBorder::None);
+        }
+        for border in [CanvasBorder::DropShadow, CanvasBorder::Line, CanvasBorder::None] {
+            assert_eq!(canvas_border(border, Appearance::Modern), border);
+        }
     }
 
     #[test]

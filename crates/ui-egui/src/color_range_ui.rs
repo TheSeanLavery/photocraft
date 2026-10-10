@@ -285,9 +285,12 @@ fn preview(app: &mut PhotocraftApp, ctx: &egui::Context, f: &Map<String, Value>)
     app.color_range.as_ref()?.mask.as_ref().map(|t| (t.id(), [w, h], k))
 }
 
-/// Photoshop-style radio button.
+/// Preserve the existing modern Color Range control; use period painters for historical packs.
 fn radio(ui: &mut egui::Ui, on: bool, label: &str) -> egui::Response {
     let t = Tokens::get(ui.ctx());
+    if t.appearance != crate::theme::Appearance::Modern {
+        return crate::widgets::radio(ui, on, label);
+    }
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 5.0;
         let (r, resp) = ui.allocate_exact_size(vec2(14.0, 14.0), Sense::click());

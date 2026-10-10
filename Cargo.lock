@@ -4950,6 +4950,8 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
+ "sha2",
+ "skrifa",
  "sys-locale",
  "toml",
  "unic-langid",

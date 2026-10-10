@@ -3,6 +3,7 @@
 //! `select.loadSelection`, `select.saveSelection`, …); the targeted channel and the eyes live in
 //! the engine's `DocState::channel_view`, so agents see the same state through `inspect`.
 
+use crate::scroll_area::ScrollArea;
 use egui::{Align2, Color32, Rect, RichText, Sense, Stroke, StrokeKind, pos2, vec2};
 use photocraft_doc::ColorIndicates;
 use photocraft_engine::channel_cmds::{self, ChannelTarget};
@@ -87,7 +88,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let rows_h = if fill { ui.available_height() - footer } else { f32::INFINITY };
     let mut mask_click = None;
     let mut drawn = Vec::new();
-    egui::ScrollArea::vertical().max_height(rows_h).min_scrolled_height(if fill { rows_h } else { 0.0 }).auto_shrink([false, !fill]).show(ui, |ui| {
+    ScrollArea::vertical().max_height(rows_h).min_scrolled_height(if fill { rows_h } else { 0.0 }).auto_shrink([false, !fill]).show(ui, |ui| {
         for row in rows {
             let (name, thumb_idx, slot, visible, selected) = match row {
                 Row::Composite => (

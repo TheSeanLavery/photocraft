@@ -2199,3 +2199,36 @@
 
 	Collaboration…	Zusammenarbeit…
 	Collaboration View Settings	Ansichtseinstellungen für Zusammenarbeit
+
+# Runtime and historical themes
+	Apply Theme	Design anwenden
+	Cancel Theme Preview	Designvorschau abbrechen
+	Duplicate Theme	Design duplizieren
+	Edit Theme Definition	Designdefinition bearbeiten
+	Export Theme…	Design exportieren…
+	Import Theme…	Design importieren…
+	List Themes	Designs auflisten
+	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum-Design
+	Macintosh System 6 Theme	Macintosh System 6-Design
+	Preview Theme	Designvorschau
+	Remove Theme	Design entfernen
+	Reset Theme	Design zurücksetzen
+	Select Theme	Design auswählen
+	Theme Details	Designdetails
+	Theme Manager…	Designverwaltung…
+	Windows 98 SE Theme	Windows 98 SE-Design
+	Caption font	Titelschrift
+	Copy JSON	JSON kopieren
+	Draft: {name}	Entwurf: {name}
+	Edit the definition below. Duplicate a built-in theme before changing it.	Bearbeiten Sie die Definition unten. Duplizieren Sie ein integriertes Design, bevor Sie es ändern.
+	Font {requested} is unavailable; using {actual}.	Schrift {requested} ist nicht verfügbar; {actual} wird verwendet.
+	Preview is active. Cancel restores your saved theme.	Die Vorschau ist aktiv. Abbrechen stellt das gespeicherte Design wieder her.
+	Reset Changes	Änderungen zurücksetzen
+	Saved theme	Gespeichertes Design
+	Scroll down	Nach unten scrollen
+	Scroll left	Nach links scrollen
+	Scroll right	Nach rechts scrollen
+	Scroll up	Nach oben scrollen
+	Theme Manager	Designverwaltung
+	Theme definition exceeds 64 KiB	Die Designdefinition überschreitet 64 KiB
+	Theme id	Design-ID

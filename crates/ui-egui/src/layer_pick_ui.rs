@@ -7,6 +7,7 @@
 //! two commands an agent would run. Painting tools keep their plain right-click (the Brush
 //! Preset picker, #268); the ⌘/Ctrl variant reaches the layer list from them too.
 
+use crate::scroll_area::ScrollArea;
 use egui::{Color32, Context, Modifiers};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -82,7 +83,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &Context) {
             ui.set_width(w);
             ui.spacing_mut().item_spacing.y = 0.0;
             // A long list scrolls instead of running off the screen.
-            egui::ScrollArea::vertical().max_height((screen.height() - 24.0).max(48.0)).show(ui, |ui| {
+            ScrollArea::vertical().max_height((screen.height() - 24.0).max(48.0)).show(ui, |ui| {
                 ui.set_width(w);
                 for (layer, name) in &menu.layers {
                     let b = egui::Button::selectable(Some(*layer) == active, name.as_str()).truncate().min_size(egui::vec2(w, 22.0));

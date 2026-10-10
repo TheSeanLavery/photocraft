@@ -2597,3 +2597,36 @@ cameraRaw	Whites	Brancos
 
 	Collaboration…	Colaboração…
 	Collaboration View Settings	Configurações de visualização da colaboração
+
+# Runtime and historical themes
+	Apply Theme	Aplicar tema
+	Cancel Theme Preview	Cancelar prévia do tema
+	Duplicate Theme	Duplicar tema
+	Edit Theme Definition	Editar definição do tema
+	Export Theme…	Exportar tema…
+	Import Theme…	Importar tema…
+	List Themes	Listar temas
+	Mac OS 9.1 Platinum Theme	Tema Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Tema Macintosh System 6
+	Preview Theme	Visualizar tema
+	Remove Theme	Remover tema
+	Reset Theme	Redefinir tema
+	Select Theme	Selecionar tema
+	Theme Details	Detalhes do tema
+	Theme Manager…	Gerenciador de temas…
+	Windows 98 SE Theme	Tema Windows 98 SE
+	Caption font	Fonte do título
+	Copy JSON	Copiar JSON
+	Draft: {name}	Rascunho: {name}
+	Edit the definition below. Duplicate a built-in theme before changing it.	Edite a definição abaixo. Duplique um tema integrado antes de alterá-lo.
+	Font {requested} is unavailable; using {actual}.	A fonte {requested} está indisponível; usando {actual}.
+	Preview is active. Cancel restores your saved theme.	A prévia está ativa. Cancelar restaura seu tema salvo.
+	Reset Changes	Redefinir alterações
+	Saved theme	Tema salvo
+	Scroll down	Rolar para baixo
+	Scroll left	Rolar para a esquerda
+	Scroll right	Rolar para a direita
+	Scroll up	Rolar para cima
+	Theme Manager	Gerenciador de temas
+	Theme definition exceeds 64 KiB	A definição do tema excede 64 KiB
+	Theme id	ID do tema

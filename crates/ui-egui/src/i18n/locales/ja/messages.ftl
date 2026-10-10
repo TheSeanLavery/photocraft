@@ -4210,4 +4210,69 @@ ui-zoom-with-scroll-wheel-405e9e1a41be72fa = スクロールホイールでズ�
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = トラックパッドのピンチでズーム
 
 ui-collaboration-977b20dea89dd78c = 共同編集…
+
 ui-collaboration-view-settings-cd37c80a120a2d5e = 共同編集の表示設定
+
+# Runtime and historical themes
+
+ui-apply-theme-940745b76f98edfc = テーマを適用
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = テーマのプレビューをキャンセル
+
+ui-caption-font-01f956c20c42c9c8 = タイトルのフォント
+
+ui-copy-json-fc4e8907ed0b8b94 = JSON をコピー
+
+ui-draft-name-c0af463d8e1619b5 = 下書き: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = テーマを複製
+
+ui-edit-theme-definition-7f259c436cbc367b = テーマ定義を編集
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = 以下の定義を編集します。組み込みテーマを変更する前に複製してください。
+
+ui-export-theme-9924f16b219aa424 = テーマを書き出し…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = フォント { $requested } がないため、{ $actual } を使用します。
+
+ui-import-theme-a399ac79528870d5 = テーマを読み込み…
+
+ui-list-themes-3674d7aab0c03693 = テーマ一覧
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Mac OS 9.1 Platinum テーマ
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Macintosh System 6 テーマ
+
+ui-preview-theme-7eced90e6da56ad4 = テーマをプレビュー
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = プレビュー中です。キャンセルすると保存済みのテーマに戻ります。
+
+ui-remove-theme-f449889ab3dc13fe = テーマを削除
+
+ui-reset-changes-91bb267473e72bf7 = 変更をリセット
+
+ui-reset-theme-09df599fa743782b = テーマをリセット
+
+ui-saved-theme-c30bc5d2b3c69847 = 保存済みのテーマ
+
+ui-scroll-down-fff28769afb825f2 = 下にスクロール
+
+ui-scroll-left-58498927306bf4d7 = 左にスクロール
+
+ui-scroll-right-3171dac9aaa15648 = 右にスクロール
+
+ui-scroll-up-ae49a1e892131037 = 上にスクロール
+
+ui-select-theme-85a12011f3908f5a = テーマを選択
+
+ui-theme-details-a78c7b85de9ad366 = テーマの詳細
+
+ui-theme-manager-43184a7204b2f7ef = テーママネージャー
+
+ui-theme-manager-5e06c12bd6d5d9a9 = テーママネージャー…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = テーマ定義が 64 KiB を超えています
+
+ui-theme-id-2057ac72399d5a4d = テーマID
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE テーマ

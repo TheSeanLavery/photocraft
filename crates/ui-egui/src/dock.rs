@@ -10,6 +10,7 @@
 //! with Window › Workspace › New Workspace…, reset by Reset Workspace, and remembered across
 //! launches in the preferences (`panelLayout`) while Remember Workspace Changes is on.
 
+use crate::scroll_area::ScrollArea;
 use std::collections::BTreeMap;
 
 use egui::{Rect, Sense, Stroke, pos2, vec2};
@@ -233,6 +234,26 @@ impl DockLayout {
     /// the filler gets its preferred height (Layers: ~10 rows, #147); when the column is still
     /// too short every group gives way down to its minimum height.
     pub fn heights_for(&self, shown: &[Group], avail: f32, strip: f32) -> Vec<(Group, f32)> {
+        self.heights_for_metrics(shown, avail, strip, &crate::theme::LayoutTokens::for_kind(crate::theme::ThemeKind::Classic))
+    }
+
+    fn heights_for_metrics(&self, shown: &[Group], avail: f32, strip: f32, metrics: &crate::theme::LayoutTokens) -> Vec<(Group, f32)> {
+        let default = |g: Group| {
+            if g == Group::Color && metrics.color_panel_height > 0.0 {
+                metrics.color_panel_height
+            } else {
+                Group::ALL.iter().position(|group| *group == g).and_then(|i| metrics.dock_group_heights.get(i)).copied().unwrap_or_else(|| g.default_height())
+            }
+        };
+        let compact = |g: Group| {
+            Group::ALL
+                .iter()
+                .position(|group| *group == g)
+                .and_then(|i| metrics.dock_group_compact_heights.get(i))
+                .copied()
+                .unwrap_or_else(|| g.compact_height())
+                .min(default(g))
+        };
         let avail = if avail.is_finite() { avail.max(0.0) } else { 0.0 };
         let filler = shown.iter().rposition(|g| !self.is_collapsed(*g));
         let mut hs: Vec<f32> = shown
@@ -244,14 +265,14 @@ impl DockLayout {
                 } else if Some(i) == filler {
                     0.0
                 } else {
-                    self.height(*g)
+                    self.heights.get(g).filter(|h| h.is_finite()).map_or_else(|| default(*g), |h| h.clamp(g.min_height(), MAX_HEIGHT))
                 }
             })
             .collect();
         if let Some(f) = filler {
-            let gaps = GAP * shown.len().saturating_sub(1) as f32;
+            let gaps = metrics.dock_group_gap * shown.len().saturating_sub(1) as f32;
             let min_fill = shown.get(f).map_or(0.0, |g| g.min_height());
-            let pref_fill = shown.get(f).map_or(0.0, |g| g.preferred_fill());
+            let pref_fill = shown.get(f).map_or(0.0, |g| if *g == Group::Layers { metrics.dock_preferred_fill } else { g.min_height() });
             let used: f32 = hs.iter().sum::<f32>() + gaps;
             let mut deficit = (used + pref_fill - avail).max(0.0);
             for i in (0..f).rev() {
@@ -263,7 +284,7 @@ impl DockLayout {
                     continue;
                 }
                 if let Some(h) = hs.get_mut(i) {
-                    let give = (*h - g.compact_height()).max(0.0).min(deficit);
+                    let give = (*h - compact(*g)).max(0.0).min(deficit);
                     *h -= give;
                     deficit -= give;
                 }
@@ -357,12 +378,20 @@ fn strips_id() -> egui::Id {
 /// group's tab content.
 pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut body: impl FnMut(&mut PhotocraftApp, &mut egui::Ui, Group, usize)) {
     let t = Tokens::get(ui.ctx());
-    let strip = if t.pro { 28.0 } else { 40.0 };
+    let metrics = crate::theme::LayoutTokens::get(ui.ctx());
+    let strip = if t.appearance != crate::theme::Appearance::Modern {
+        metrics.tab_height + metrics.panel_padding * 2.0
+    } else if t.pro {
+        28.0
+    } else {
+        40.0
+    };
     let order: Vec<Group> = app.ui.dock.order().into_iter().filter(|g| shown.contains(g)).collect();
     let area = ui.available_rect_before_wrap();
-    let heights = app.ui.dock.heights_for(&order, area.height(), strip);
+    // Theme defaults affect only groups the user has not resized; preview never writes them.
+    let heights = app.ui.dock.heights_for_metrics(&order, area.height(), strip, &metrics);
     let locked = app.session.prefs().workspace_locked;
-    let rects = rects_after_layout(&heights, area);
+    let rects = rects_after_layout_with_gap(&heights, area, metrics.dock_group_gap);
     let mut actions: Vec<Action> = Vec::new();
     let mut dragging: Option<Group> = None;
     let mut strips: Vec<StripRects> = Vec::with_capacity(rects.len());
@@ -370,7 +399,13 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
         let collapsed = app.ui.dock.is_collapsed(g);
         let mut child = ui.new_child(egui::UiBuilder::new().id_salt(("dock-group", g.key())).max_rect(rect));
         child.set_clip_rect(rect.intersect(ui.clip_rect()));
-        child.spacing_mut().item_spacing.y = if t.pro { 0.0 } else { 6.0 };
+        child.spacing_mut().item_spacing.y = if t.appearance != crate::theme::Appearance::Modern {
+            metrics.row_gap
+        } else if t.pro {
+            0.0
+        } else {
+            6.0
+        };
         let before = *g.tab_mut(&mut app.ui.dock_tabs);
         let mut sel = before;
         let tabs = g.tabs(t.pro);
@@ -380,7 +415,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
                 ui.set_min_height(inner);
                 body(app, ui, g, tab);
             } else {
-                egui::ScrollArea::vertical()
+                ScrollArea::vertical()
                     .id_salt(("dock-scroll", g.key(), tab))
                     .max_height(inner)
                     .auto_shrink([false, false])
@@ -434,7 +469,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
         });
         // Splitter in the gap below this group: resizes it against the next expanded group.
         if i + 1 < rects.len() && !collapsed && rects.iter().skip(i + 1).any(|(n, _)| !app.ui.dock.is_collapsed(*n)) {
-            let gap = Rect::from_min_size(pos2(rect.left(), rect.bottom()), vec2(rect.width(), GAP)).expand2(vec2(0.0, 2.0));
+            let gap = Rect::from_min_size(pos2(rect.left(), rect.bottom()), vec2(rect.width(), metrics.dock_group_gap)).expand2(vec2(0.0, 2.0));
             let sresp = ui.interact(gap, ui.id().with(("dock-splitter", g.key())), Sense::drag());
             if sresp.hovered() || sresp.dragged() {
                 ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
@@ -449,8 +484,8 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
     if let (Some(g), Some(p)) = (dragging, ui.ctx().pointer_interact_pos()) {
         let before = drop_before(&order, &rects, g, p.y);
         let line_y = match before.and_then(|b| rects.iter().find(|(x, _)| *x == b)) {
-            Some((_, r)) => r.top() - GAP / 2.0,
-            None => rects.last().map_or(area.top(), |(_, r)| r.bottom() + GAP / 2.0),
+            Some((_, r)) => r.top() - metrics.dock_group_gap / 2.0,
+            None => rects.last().map_or(area.top(), |(_, r)| r.bottom() + metrics.dock_group_gap / 2.0),
         };
         ui.painter().line_segment([pos2(area.left(), line_y), pos2(area.right(), line_y)], Stroke::new(3.0, t.accent));
     }
@@ -475,13 +510,13 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
     }
 }
 
-fn rects_after_layout(heights: &[(Group, f32)], area: Rect) -> Vec<(Group, Rect)> {
+fn rects_after_layout_with_gap(heights: &[(Group, f32)], area: Rect, gap: f32) -> Vec<(Group, Rect)> {
     let mut y = area.top();
     heights
         .iter()
         .map(|(g, h)| {
             let r = Rect::from_min_size(pos2(area.left(), y), vec2(area.width(), h.max(0.0)));
-            y = r.bottom() + GAP;
+            y = r.bottom() + gap;
             (*g, r)
         })
         .collect()
