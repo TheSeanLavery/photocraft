@@ -2013,3 +2013,22 @@
 	Export Theme…	Exportovat motiv…
 	Remove Theme	Odstranit motiv
 	Theme id	ID motivu
+
+# Theme Manager
+	Theme Manager…	Správce motivů…
+	Preview Theme	Náhled motivu
+	Apply Theme	Použít motiv
+	Cancel Theme Preview	Zrušit náhled motivu
+	Edit Theme Definition	Upravit definici motivu
+	Duplicate Theme	Duplikovat motiv
+	Reset Theme	Obnovit motiv
+	Theme Manager	Správce motivů
+	Reset Changes	Obnovit změny
+	Copy JSON	Kopírovat JSON
+	Edit the definition below. Duplicate a built-in theme before changing it.	Upravte definici níže. Před změnou vestavěného motivu vytvořte jeho kopii.
+	Theme definition exceeds 64 KiB	Definice motivu přesahuje 64 KiB
+	Preview is active. Cancel restores your saved theme.	Náhled je aktivní. Zrušení obnoví uložený motiv.
+	Saved theme	Uložený motiv
+	Draft: {name}	Koncept: {name}
+	Duplicate	Duplikovat
+	Import…	Importovat…

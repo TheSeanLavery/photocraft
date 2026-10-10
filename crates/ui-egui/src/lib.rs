@@ -105,6 +105,7 @@ pub mod stroke_trail;
 pub mod stylus;
 mod tab_strip;
 pub mod theme;
+mod theme_manager;
 pub mod theme_pack;
 pub mod themes;
 mod timeline_ui;
@@ -168,6 +169,10 @@ pub type Inbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<u8>)>>>;
 pub type LoadTextFn = Box<dyn FnMut() -> Option<String>>;
 /// Persist the preferences text.
 pub type SaveTextFn = Box<dyn FnMut(&str) -> Result<(), String>>;
+/// Interactive theme-file import; browser callbacks deliver results through ThemeInbox.
+pub type PickThemeFn = Box<dyn FnMut() -> Result<Option<String>, String>>;
+/// Async theme import results, separate from document-open events.
+pub type ThemeInbox = std::sync::Arc<std::sync::Mutex<Vec<Result<String, String>>>>;
 /// Load the bounded theme library; distinguish missing storage from malformed/unreadable data.
 pub type LoadThemesFn = Box<dyn FnMut() -> Result<Option<String>, String>>;
 /// Autosave a document snapshot for crash recovery: (snapshot, revision, original path).
@@ -215,6 +220,8 @@ pub struct Services {
     pub save_prefs: Option<SaveTextFn>,
     pub load_themes: Option<LoadThemesFn>,
     pub save_themes: Option<SaveTextFn>,
+    pub pick_theme: Option<PickThemeFn>,
+    pub theme_inbox: Option<ThemeInbox>,
     /// Crash-recovery autosave (Preferences › File Handling) and recovery at launch.
     pub autosave: Option<AutosaveFn>,
     pub discard_autosave: Option<DiscardAutosaveFn>,
@@ -844,10 +851,11 @@ impl eframe::App for PhotocraftApp {
         }
         self.collect_screenshots(ctx);
         self.issue_screenshots(ctx);
+        theme_manager::tick(self, ctx);
         prefs_ui::tick(self, ctx);
         #[cfg(not(target_arch = "wasm32"))]
         {
-            if self.live_tokens.poll(ctx, self.ui.theme) {
+            if self.theme_rt.preview_preferences.is_none() && self.live_tokens.poll(ctx, self.ui.theme) {
                 self.checker = None;
                 self.ui.status = "Theme reloaded".into();
             }
@@ -929,6 +937,7 @@ impl eframe::App for PhotocraftApp {
         workspace_ui::windows(self, &ctx);
         palette::show(self, &ctx);
         dialogs::show(self, &ctx);
+        theme_manager::show(self, &ctx);
         jobs_ui::dialog(self, &ctx);
         discard_ui::show(self, &ctx);
         distort_ui::show(self, &ctx);
@@ -1010,6 +1019,10 @@ impl PhotocraftApp {
     }
 
     pub fn set_theme(&mut self, ctx: &egui::Context, kind: theme::ThemeKind) {
+        self.theme_rt.preview_preferences = None;
+        if let Some(manager) = self.ui.theme_manager.as_mut() {
+            manager.previewing = false;
+        }
         self.ui.theme = kind;
         self.ui.theme_id = kind.id().into();
         self.session.prefs.edit(|p| {

@@ -9,7 +9,7 @@
 | Studio Light | Studio on light surfaces |
 | Classic | Windows-2000 bevels, square corners, navy selection |
 
-Switch themes with the sun icon, Window → Theme, or `ui.set {"theme":"classic"}` over the control channel.
+Switch themes with the sun icon, Window → Theme, or `ui.set {"theme":"classic"}` over the control channel. Use Window → Theme → Theme Manager… for editable runtime packs, preview/Apply/Cancel and file import/export; see [themes.md](themes.md) for the versioned schema and persistence.
 
 ## Rules
 

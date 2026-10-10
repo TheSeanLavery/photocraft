@@ -52,13 +52,16 @@ fn themes_file() -> Option<PathBuf> {
 }
 
 fn read_themes(path: &Path) -> Result<Option<String>, String> {
+    read_theme_text(path, photocraft_ui_egui::themes::MAX_LIBRARY_BYTES)
+}
+
+fn read_theme_text(path: &Path, limit: usize) -> Result<Option<String>, String> {
     use std::io::Read;
     let file = match std::fs::File::open(path) {
         Ok(file) => file,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(e.to_string()),
     };
-    let limit = photocraft_ui_egui::themes::MAX_LIBRARY_BYTES;
     let metadata = file.metadata().map_err(|e| e.to_string())?;
     if !metadata.is_file() {
         return Err("theme library must be a regular file".into());
@@ -126,11 +129,19 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
             let bytes = std::fs::read(&path).ok()?;
             Some((path.to_string_lossy().to_string(), bytes))
         })),
+        pick_theme: Some(Box::new(|| {
+            let Some(path) = rfd::FileDialog::new().add_filter("PhotoCraft Theme", &["json"]).pick_file() else { return Ok(None) };
+            read_theme_text(&path, photocraft_ui_egui::theme_pack::MAX_THEME_BYTES)?.ok_or_else(|| "theme file no longer exists".into()).map(Some)
+        })),
         pick_save: Some(Box::new(|suggested: &str| {
             let p = std::path::Path::new(suggested);
             let mut d = rfd::FileDialog::new();
-            for (name, exts) in save_filters(suggested) {
-                d = d.add_filter(name, exts);
+            if suggested.ends_with(".theme.json") {
+                d = d.add_filter("PhotoCraft Theme", &["json"]);
+            } else {
+                for (name, exts) in save_filters(suggested) {
+                    d = d.add_filter(name, exts);
+                }
             }
             if let Some(name) = p.file_name() {
                 d = d.set_file_name(name.to_string_lossy());
@@ -146,6 +157,7 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
             photocraft_codecs::encode(&img, photocraft_codecs::Format::Png, &EncodeOptions::default()).map_err(|e| e.to_string())
         })),
         inbox: None,
+        theme_inbox: None,
         open_url: Some(Box::new(|url: &str| open::that(url).map_err(|e| e.to_string()))),
         clipboard_set_image: Some({
             let clip = clip.clone();
@@ -283,6 +295,10 @@ mod theme_storage_tests {
         assert_eq!(read_themes(&path).unwrap(), None);
         write_atomic(&path, br#"{"version":1,"packs":[]}"#).unwrap();
         assert_eq!(read_themes(&path).unwrap().as_deref(), Some(r#"{"version":1,"packs":[]}"#));
+        // A standalone pack has a smaller limit than the library container.
+        std::fs::write(&path, " ".repeat(photocraft_ui_egui::theme_pack::MAX_THEME_BYTES + 1)).unwrap();
+        assert!(read_theme_text(&path, photocraft_ui_egui::theme_pack::MAX_THEME_BYTES).is_err());
+        assert!(read_themes(&path).is_ok());
         let file = std::fs::File::create(&path).unwrap();
         file.set_len((photocraft_ui_egui::themes::MAX_LIBRARY_BYTES + 1) as u64).unwrap();
         assert!(read_themes(&path).is_err());

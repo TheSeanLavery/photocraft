@@ -541,6 +541,8 @@ pub struct DockTabs {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiState {
+    #[serde(default)]
+    pub theme_manager: Option<crate::theme_manager::Manager>,
     pub tool: Tool,
     /// Recently opened file paths, most-recent first (File › Open Recent). Capped; de-duplicated.
     #[serde(default)]
@@ -667,6 +669,7 @@ pub struct UiState {
 impl Default for UiState {
     fn default() -> Self {
         Self {
+            theme_manager: None,
             tool: Tool::Brush,
             recent_files: Vec::new(),
             text_edit: None,

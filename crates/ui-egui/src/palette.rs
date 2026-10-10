@@ -84,6 +84,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                     let lang = crate::i18n::Lang::from_pref(&app.session.prefs().interface.language);
                     let mut hits: Vec<(i32, String, String, Option<String>, bool)> = crate::menus::menu_items(app)
                         .into_iter()
+                        .filter(|m| !m.id.starts_with("window.theme.") || !m.path.is_empty())
                         .filter_map(|m| {
                             let path_en = m.path.join(" › ");
                             let path = m.path.iter().map(|p| crate::i18n::tr(lang, p)).collect::<Vec<_>>().join(" › ");

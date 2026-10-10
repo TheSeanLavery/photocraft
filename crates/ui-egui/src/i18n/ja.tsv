@@ -2003,3 +2003,22 @@
 	Export Theme…	テーマを書き出し…
 	Remove Theme	テーマを削除
 	Theme id	テーマID
+
+# Theme Manager
+	Theme Manager…	テーママネージャー…
+	Preview Theme	テーマをプレビュー
+	Apply Theme	テーマを適用
+	Cancel Theme Preview	テーマのプレビューをキャンセル
+	Edit Theme Definition	テーマ定義を編集
+	Duplicate Theme	テーマを複製
+	Reset Theme	テーマをリセット
+	Theme Manager	テーママネージャー
+	Reset Changes	変更をリセット
+	Copy JSON	JSON をコピー
+	Edit the definition below. Duplicate a built-in theme before changing it.	以下の定義を編集します。組み込みテーマを変更する前に複製してください。
+	Theme definition exceeds 64 KiB	テーマ定義が 64 KiB を超えています
+	Preview is active. Cancel restores your saved theme.	プレビュー中です。キャンセルすると保存済みのテーマに戻ります。
+	Saved theme	保存済みのテーマ
+	Draft: {name}	下書き: {name}
+	Duplicate	複製
+	Import…	読み込み…

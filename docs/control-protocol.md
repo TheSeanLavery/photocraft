@@ -13,6 +13,13 @@ with command IDs `window.theme.<action>` and the same parameters:
 | `ui.theme.select` | `id` | Selected ID and preference storage availability |
 | `ui.theme.export` | `id` | ID and portable `json` string |
 | `ui.theme.remove` | `id` | Removed ID; built-ins and the selected theme cannot be removed |
+| `ui.theme.manager` | optional `id` | Open editor for a catalog theme (defaults to visible theme) |
+| `ui.theme.draft` | `json` string | Set the unsaved editor text; invalid partial edits are allowed |
+| `ui.theme.preview` | none | Validate and preview the draft without changing saved preferences |
+| `ui.theme.apply` | none | Save the validated draft and selected ID; editor stays open |
+| `ui.theme.cancel` | none | Close editor and restore saved appearance |
+| `ui.theme.duplicate` | none | Create a custom draft from the current editor definition |
+| `ui.theme.reset` | none | Discard editor changes and restore the catalog definition |
 
 `ui.inspect` includes `themeId` for the actual resolved theme and the existing `theme` built-in
 base. Preferences expose the requested ID at `interface.themeId`, with `interface.theme` as

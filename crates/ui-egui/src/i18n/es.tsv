@@ -1999,3 +1999,22 @@
 	Export Theme…	Exportar tema…
 	Remove Theme	Eliminar tema
 	Theme id	ID del tema
+
+# Theme Manager
+	Theme Manager…	Gestor de temas…
+	Preview Theme	Vista previa del tema
+	Apply Theme	Aplicar tema
+	Cancel Theme Preview	Cancelar vista previa del tema
+	Edit Theme Definition	Editar definición del tema
+	Duplicate Theme	Duplicar tema
+	Reset Theme	Restablecer tema
+	Theme Manager	Gestor de temas
+	Reset Changes	Restablecer cambios
+	Copy JSON	Copiar JSON
+	Edit the definition below. Duplicate a built-in theme before changing it.	Edita la definición a continuación. Duplica un tema integrado antes de modificarlo.
+	Theme definition exceeds 64 KiB	La definición del tema supera los 64 KiB
+	Preview is active. Cancel restores your saved theme.	La vista previa está activa. Cancelar restaura el tema guardado.
+	Saved theme	Tema guardado
+	Draft: {name}	Borrador: {name}
+	Duplicate	Duplicar
+	Import…	Importar…

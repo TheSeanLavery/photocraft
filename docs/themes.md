@@ -112,5 +112,27 @@ services (for example in an offscreen harness), changes are session-only and com
 report `persisted:false`.
 
 The environment-variable file adapter is native-only and applies after the selected library
-theme as an explicit live override. Theme Manager, browser file-picker import/download,
+theme as an explicit live override outside a manager preview. Browser runtime verification,
 historical widget styles and font selection are subsequent parts of the theme-engine work.
+
+
+## Theme Manager
+
+Open **Window › Theme › Theme Manager…**, or find it in the command palette. Choose a theme,
+then **Duplicate** to edit a built-in under a custom ID. The definition editor accepts the same
+versioned JSON used by runtime files. **Preview** validates the draft and changes the app's
+appearance without changing saved preferences or the theme catalog. Invalid edits keep the
+last valid preview. **Apply** saves the validated definition and selected ID; **Cancel**, Escape,
+or the window close button restores the saved theme. **Reset Changes** reloads the selected
+catalog definition. Switching to another catalog entry discards the draft and preview.
+
+**Import…** opens a JSON picker and loads a validated draft; Apply stores it. **Export…** saves
+or downloads a portable `.theme.json` file. **Copy JSON** puts the editor text on the clipboard.
+Native reads are bounded to 64 KiB. Browser imports check size before reading, handle read
+errors, and deliver their result asynchronously. A file picker cancellation changes nothing.
+
+The manager reports persistence errors and keeps the editor open. If saving the selected ID
+fails after writing the catalog, it rolls back the catalog write; a rollback failure is reported
+explicitly. Built-in definitions cannot be overwritten. Importing an existing custom ID and
+pressing Apply replaces that custom definition. Commands taking parameters remain available
+to agents, while the command palette exposes the interactive manager and built-in selectors.

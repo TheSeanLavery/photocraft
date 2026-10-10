@@ -120,8 +120,9 @@ impl Catalog {
 #[derive(Default)]
 pub(crate) struct Runtime {
     pub catalog: Catalog,
-    last_preferences: Option<(Theme, String)>,
-    applied: Option<(String, u64)>,
+    pub(crate) last_preferences: Option<(Theme, String)>,
+    pub(crate) preview_preferences: Option<(Theme, String)>,
+    pub(crate) applied: Option<(String, u64)>,
 }
 
 pub(crate) fn load(app: &mut PhotocraftApp) {
@@ -133,7 +134,7 @@ pub(crate) fn load(app: &mut PhotocraftApp) {
     }
 }
 
-fn apply_pack(app: &mut PhotocraftApp, ctx: &Context, pack: &ThemePack) -> Result<(), String> {
+pub(crate) fn apply_pack(app: &mut PhotocraftApp, ctx: &Context, pack: &ThemePack) -> Result<(), String> {
     let resolved = pack.resolve()?;
     resolved.apply(ctx);
     app.ui.theme = resolved.tokens.kind;
@@ -147,6 +148,16 @@ fn apply_pack(app: &mut PhotocraftApp, ctx: &Context, pack: &ThemePack) -> Resul
 /// Migrate legacy preferences and observe changes made through prefs.set or the built-in menu.
 pub(crate) fn sync(app: &mut PhotocraftApp, ctx: &Context) {
     let interface = &app.session.prefs().interface;
+    let current = (interface.theme, interface.theme_id.clone());
+    if app.theme_rt.preview_preferences.as_ref() == Some(&current) {
+        return;
+    }
+    if app.theme_rt.preview_preferences.take().is_some() {
+        app.theme_rt.applied = None;
+        if let Some(manager) = app.ui.theme_manager.as_mut() {
+            manager.previewing = false;
+        }
+    }
     let fallback = interface.theme;
     let mut id = interface.theme_id.clone();
     let legacy_changed = app.theme_rt.last_preferences.as_ref().is_some_and(|(old_theme, old_id)| *old_theme != fallback && *old_id == id);
@@ -180,7 +191,7 @@ pub(crate) fn sync(app: &mut PhotocraftApp, ctx: &Context) {
     app.theme_rt.applied = Some(key);
 }
 
-fn store(app: &mut PhotocraftApp, candidate: Catalog) -> Result<(), String> {
+pub(crate) fn store(app: &mut PhotocraftApp, candidate: Catalog) -> Result<(), String> {
     let text = candidate.serialize()?;
     if let Some(save) = app.services.save_themes.as_mut() {
         save(&text)?;
@@ -202,6 +213,10 @@ pub fn select(app: &mut PhotocraftApp, ctx: &Context, id: &str) -> Result<(), St
         app.session.prefs.edit(|p| p.interface = before);
         return Err(format!("theme selection could not be saved: {error}"));
     }
+    app.theme_rt.preview_preferences = None;
+    if let Some(manager) = app.ui.theme_manager.as_mut() {
+        manager.previewing = false;
+    }
     apply_pack(app, ctx, &pack)?;
     app.theme_rt.last_preferences = Some((app.session.prefs().interface.theme, id.into()));
     app.theme_rt.applied = Some((id.into(), app.theme_rt.catalog.revision));
@@ -212,6 +227,7 @@ pub fn select(app: &mut PhotocraftApp, ctx: &Context, id: &str) -> Result<(), St
 pub fn command(app: &mut PhotocraftApp, ctx: &Context, action: &str, params: &Value) -> Result<Value, String> {
     let id = || params.get("id").and_then(Value::as_str).ok_or_else(|| "missing string `id`".to_string());
     match action {
+        "manager" | "draft" | "preview" | "apply" | "cancel" | "duplicate" | "reset" => crate::theme_manager::command(app, ctx, action, params),
         "list" => Ok(json!({"selected": app.ui.theme_id, "requested": app.session.prefs().interface.theme_id, "themes": app.theme_rt.catalog.list()})),
         "get" | "export" => {
             let id = id()?;

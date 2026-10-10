@@ -1995,3 +1995,22 @@
 	Export Theme…	匯出主題…
 	Remove Theme	移除主題
 	Theme id	主題 ID
+
+# Theme Manager
+	Theme Manager…	佈景主題管理員…
+	Preview Theme	預覽佈景主題
+	Apply Theme	套用佈景主題
+	Cancel Theme Preview	取消佈景主題預覽
+	Edit Theme Definition	編輯佈景主題定義
+	Duplicate Theme	複製佈景主題
+	Reset Theme	重設佈景主題
+	Theme Manager	佈景主題管理員
+	Reset Changes	重設變更
+	Copy JSON	複製 JSON
+	Edit the definition below. Duplicate a built-in theme before changing it.	編輯下方的定義。修改內建佈景主題前請先建立副本。
+	Theme definition exceeds 64 KiB	佈景主題定義超過 64 KiB
+	Preview is active. Cancel restores your saved theme.	正在預覽。取消後將還原已儲存的佈景主題。
+	Saved theme	已儲存的佈景主題
+	Draft: {name}	草稿：{name}
+	Duplicate	複製
+	Import…	匯入…
