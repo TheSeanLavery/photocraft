@@ -2438,3 +2438,8 @@ cameraRaw	Roughness	Неровность
 
 	Collaboration…	Совместная работа…
 	Collaboration View Settings	Настройки вида совместной работы
+
+# Save format chooser
+	Continue	Продолжить
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Этот формат сохраняет сведённое изображение. Используйте «Сохранить копию», чтобы сохранить редактируемый документ.
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm выбирает подтип по глубине цвета и каналам изображения.

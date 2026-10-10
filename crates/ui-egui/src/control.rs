@@ -271,6 +271,14 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
         }
         "ui.menu.list" => ok(serde_json::to_value(crate::menus::menu_items(app)).unwrap_or_default()),
         "ui.inspect" => ok(inspect(app, ctx)),
+        "ui.saveFormat.inspect" => ok(
+            json!({"selected": app.save_format_choice(), "formats": crate::save_formats::document_formats().iter().map(|f| json!({"name": f.name, "extensions": f.extensions})).collect::<Vec<_>>()}),
+        ),
+        "ui.saveFormat.confirm" => match s("format") {
+            Some(format) => wrap(app.choose_save_format(Some(format))),
+            None => err("format must be a string"),
+        },
+        "ui.saveFormat.cancel" => wrap(app.choose_save_format(None)),
         "ui.set" => {
             if let Some(field) = p.as_object().and_then(|o| o.keys().find(|k| !UI_SET_FIELDS.contains(&k.as_str()))) {
                 return err(format!("unknown field `{field}` (fields: {})", UI_SET_FIELDS.join(", ")));
@@ -789,6 +797,7 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
     let dialogs: Vec<Value> =
         app.ui.dialogs.iter().map(|d| json!({"id": d.id, "kind": d.kind, "title": crate::dialogs::title(d), "fields": d.fields})).collect();
     json!({
+        "saveFormat": app.save_format_choice(),
         "window": {"width": screen.width(), "height": screen.height(), "pixelsPerPoint": ctx.pixels_per_point()},
         "collaboration": {"ui": app.ui.collaboration, "room": app.session.collaboration.room, "revision": app.session.collaboration.applied_revision, "document": app.session.collaboration.document_id, "history": app.session.collaboration.own_history()},
         "tool": app.ui.tool,

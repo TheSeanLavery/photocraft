@@ -2165,3 +2165,8 @@ cameraRaw	Color	Barvy
 
 	Collaboration…	Spolupráce…
 	Collaboration View Settings	Nastavení zobrazení spolupráce
+
+# Save format chooser
+	Continue	Pokračovat
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Tento formát uloží sloučený obrázek. Chcete-li zachovat upravitelný dokument, použijte Uložit kopii.
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm vybírá podtyp podle bitové hloubky a kanálů obrázku.

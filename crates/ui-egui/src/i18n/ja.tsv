@@ -2148,3 +2148,8 @@ cameraRaw	Color	カラー
 
 	Collaboration…	共同編集…
 	Collaboration View Settings	共同編集の表示設定
+
+# Save format chooser
+	Continue	続行
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	この形式では統合された画像を保存します。編集可能なドキュメントを保持するには「コピーを保存」を使用してください。
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm は画像のビット深度とチャンネルに応じてサブタイプを選択します。

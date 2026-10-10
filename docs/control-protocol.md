@@ -407,3 +407,16 @@ controls; `view.hdrDiagnostics` returns a sampled stop histogram. `app.exportSdr
 `{"path":"preview.png"}` writes the matched sRGB PNG through the authorized write
 root. `ui.menu.invoke` id `window.hdrWorkbench` toggles the panel. See
 [HDR Workbench](hdr-workbench.md) for float colors, swatches and export restrictions.
+
+## Save format chooser
+
+On macOS, Save As and Save a Copy show an editor format chooser before the native destination
+sheet. The native panel does not offer a file-type dropdown. Control clients can use:
+
+- `ui.saveFormat.inspect`: `selected` extension (null when closed) and the current build's writable
+  format names/extensions.
+- `ui.saveFormat.confirm {format: "bmp"}`: validate the format, replace the suggested suffix and
+  continue to the native destination sheet. Unsupported/import-only formats leave the chooser open.
+- `ui.saveFormat.cancel`: close the chooser without opening a destination sheet or writing.
+
+These methods choose a format only; the existing authorized save commands handle file writes.

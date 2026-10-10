@@ -2577,3 +2577,8 @@ cameraRaw	Blending	Pembauran
 
 	Collaboration…	Kolaborasi…
 	Collaboration View Settings	Pengaturan Tampilan Kolaborasi
+
+# Save format chooser
+	Continue	Lanjutkan
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Format ini menyimpan gambar yang diratakan. Gunakan Simpan Salinan untuk mempertahankan dokumen yang dapat diedit.
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm memilih subtipe berdasarkan kedalaman bit dan kanal gambar.

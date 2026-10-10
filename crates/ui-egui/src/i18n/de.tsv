@@ -2199,3 +2199,8 @@
 
 	Collaboration…	Zusammenarbeit…
 	Collaboration View Settings	Ansichtseinstellungen für Zusammenarbeit
+
+# Save format chooser
+	Continue	Weiter
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Dieses Format speichert ein reduziertes Bild. Verwenden Sie Kopie speichern, um Ihr bearbeitbares Dokument zu behalten.
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm wählt den Untertyp anhand der Farbtiefe und der Bildkanäle.
