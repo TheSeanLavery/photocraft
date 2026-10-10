@@ -25,6 +25,7 @@ pub mod collab_cmds;
 pub mod collab_resources;
 pub mod color_cmds;
 pub mod commands;
+mod compact_move;
 pub mod comps_cmds;
 pub mod cutout_cmds;
 pub mod display_color;
@@ -317,6 +318,7 @@ pub struct Session {
     /// Background jobs (see [`jobs`]).
     jobs: jobs::Jobs,
     history_cache: history_cache::Cache,
+    compact_move: Option<compact_move::Run>,
 }
 
 /// Move item `i` of `v` to position `to`, clamped to the end. Returns where it went; `None` when
@@ -470,6 +472,10 @@ impl Session {
 
     /// Apply an undoable edit to the active document.
     pub fn edit<R>(&mut self, label: &str, f: impl FnOnce(&mut Document, &mut Option<LayerId>) -> Result<R>) -> Result<R> {
+        self.edit_with_cache(label, true, f)
+    }
+
+    pub(crate) fn edit_with_cache<R>(&mut self, label: &str, poll: bool, f: impl FnOnce(&mut Document, &mut Option<LayerId>) -> Result<R>) -> Result<R> {
         let restrict = self.color_restrict;
         let st = self.active_mut().ok_or(EngineError::NoDocument)?;
         let before = st.doc.clone();
@@ -486,6 +492,7 @@ impl Session {
         let key = self.coalesce_request.clone();
         let st = self.active_mut().ok_or(EngineError::NoDocument)?;
         let layers = st.layer_target();
+        st.history.clear_current_archive();
         if key.is_none() || st.coalesce != key || !st.history.can_undo() {
             st.history.record(label, before, layers);
         } else {
@@ -495,7 +502,9 @@ impl Session {
         st.revision += 1;
         st.last_damage = None;
         self.history_cache.dirty = true;
-        self.poll_history_cache();
+        if poll {
+            self.poll_history_cache();
+        }
         Ok(r)
     }
 
