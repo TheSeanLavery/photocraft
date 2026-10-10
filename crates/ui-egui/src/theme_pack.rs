@@ -41,6 +41,21 @@ pub struct Geometry {
     pub slider_width: Option<f32>,
     pub dropdown_width: Option<f32>,
     pub icon_width: Option<f32>,
+    pub button_height: Option<f32>,
+    pub field_height: Option<f32>,
+    pub tab_height: Option<f32>,
+    pub panel_padding: Option<f32>,
+    pub panel_gap: Option<f32>,
+    pub row_gap: Option<f32>,
+    pub title_bar_height: Option<f32>,
+    pub options_bar_height: Option<f32>,
+    pub status_bar_height: Option<f32>,
+    pub tool_button_size: Option<f32>,
+    pub toolbar_padding: Option<f32>,
+    pub rail_button_size: Option<f32>,
+    pub preference_spacing: Option<[f32; 2]>,
+    pub menu_margin: Option<f32>,
+    pub dialog_margin: Option<f32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -135,6 +150,29 @@ impl ThemePack {
             validate_number(name, value, 16.0, 1024.0)?;
         }
         validate_number("iconWidth", g.icon_width, 8.0, 64.0)?;
+        for (name, value) in [
+            ("buttonHeight", g.button_height),
+            ("fieldHeight", g.field_height),
+            ("tabHeight", g.tab_height),
+            ("titleBarHeight", g.title_bar_height),
+            ("optionsBarHeight", g.options_bar_height),
+            ("statusBarHeight", g.status_bar_height),
+            ("toolButtonSize", g.tool_button_size),
+            ("railButtonSize", g.rail_button_size),
+        ] {
+            validate_number(name, value, 16.0, 96.0)?;
+        }
+        for (name, value) in [
+            ("panelPadding", g.panel_padding),
+            ("panelGap", g.panel_gap),
+            ("rowGap", g.row_gap),
+            ("toolbarPadding", g.toolbar_padding),
+            ("menuMargin", g.menu_margin),
+            ("dialogMargin", g.dialog_margin),
+        ] {
+            validate_number(name, value, 0.0, 32.0)?;
+        }
+        validate_pair("preferenceSpacing", g.preference_spacing, 0.0, 32.0)?;
         let ty = &self.typography;
         for (name, value) in [("small", ty.small), ("body", ty.body), ("button", ty.button), ("heading", ty.heading), ("monospace", ty.monospace)] {
             validate_number(name, value, 6.0, 64.0)?;
@@ -158,6 +196,43 @@ impl ThemePack {
 impl ResolvedTheme {
     pub fn apply(&self, ctx: &egui::Context) {
         crate::theme::apply_tokens(ctx, self.tokens);
+        let g = &self.geometry;
+        let mut layout = crate::theme::LayoutTokens::for_kind(self.tokens.kind);
+        macro_rules! apply_layout {
+            ($($field:ident),*) => { $(if let Some(v) = g.$field { layout.$field = v; })* };
+        }
+        apply_layout!(
+            button_height,
+            field_height,
+            tab_height,
+            panel_padding,
+            panel_gap,
+            row_gap,
+            title_bar_height,
+            options_bar_height,
+            status_bar_height,
+            tool_button_size,
+            toolbar_padding,
+            rail_button_size,
+            preference_spacing
+        );
+        if let Some([x, _]) = g.button_padding {
+            layout.button_padding_x = x;
+        }
+        if let Some(v) = self.typography.button {
+            layout.button_font_size = v;
+        }
+        if let Some(v) = self.typography.monospace {
+            layout.field_font_size = v;
+        }
+        if let Some(v) = self.typography.body {
+            layout.tab_font_size = v;
+        }
+        // Text still fits if a user chooses a large type size with compact geometry.
+        layout.button_height = layout.button_height.max(layout.button_font_size + 6.0);
+        layout.field_height = layout.field_height.max(layout.field_font_size + 8.0);
+        layout.tab_height = layout.tab_height.max(layout.tab_font_size + 6.0);
+        layout.apply(ctx);
         ctx.global_style_mut(|s| {
             let g = &self.geometry;
             if let Some([x, y]) = g.item_spacing {
@@ -177,6 +252,12 @@ impl ResolvedTheme {
             }
             if let Some(v) = g.icon_width {
                 s.spacing.icon_width = v;
+            }
+            if let Some(v) = g.menu_margin {
+                s.spacing.menu_margin = egui::Margin::same(v.round() as i8);
+            }
+            if let Some(v) = g.dialog_margin {
+                s.spacing.window_margin = egui::Margin::same(v.round() as i8);
             }
             let ty = &self.typography;
             for (style, size) in [
@@ -302,6 +383,79 @@ mod tests {
         assert_eq!(style.text_styles[&TextStyle::Body].size, 11.0);
         assert_eq!(Tokens::get(&ctx).bevel_width, 2.0);
         assert_eq!(style.visuals.widgets.inactive.bg_stroke.color, Tokens::get(&ctx).bevel_shadow);
+    }
+
+    #[test]
+    fn runtime_geometry_reaches_drawn_controls_and_resets_when_switching_themes() {
+        use std::cell::RefCell;
+        use std::rc::Rc;
+        let measured = Rc::new(RefCell::new(Vec::new()));
+        let capture = measured.clone();
+        let mut initialized = false;
+        let mut harness = egui_kittest::Harness::builder().with_size(egui::vec2(400.0, 300.0)).build_ui(move |ui| {
+            if !initialized {
+                crate::PhotocraftApp::setup_context(ui.ctx(), ThemeKind::Classic);
+                initialized = true;
+                return;
+            }
+            let mut value = 5.0;
+            let field = crate::widgets::value_field(ui, &mut value, 0.0..=10.0, "px", 80.0);
+            let button = crate::widgets::secondary_button(ui, "Apply", 0.0);
+            *capture.borrow_mut() = vec![field.rect, button.rect];
+        });
+        let mut pack = fixture();
+        pack.geometry.field_height = Some(20.0);
+        pack.geometry.button_height = Some(23.0);
+        pack.geometry.button_padding = Some([8.0, 2.0]);
+        pack.typography.monospace = Some(11.0);
+        pack.typography.button = Some(11.0);
+        for scale in [1.0, 1.5, 2.0] {
+            harness.ctx.set_pixels_per_point(scale);
+            pack.resolve().unwrap().apply(&harness.ctx);
+            harness.run_steps(3);
+            let rects = measured.borrow();
+            // Numeric interaction is inside its painted field and successive controls don't overlap.
+            assert!(rects[0].height() <= 20.0);
+            assert!((rects[1].height() - 23.0).abs() < 0.1);
+            assert!(rects[0].bottom() < rects[1].top());
+        }
+        crate::theme::apply(&harness.ctx, ThemeKind::Classic);
+        harness.run_steps(3);
+        assert!((measured.borrow()[1].height() - 30.0).abs() < 0.1);
+    }
+
+    #[test]
+    fn geometry_limits_and_large_text_do_not_allow_clipped_custom_controls() {
+        for field in [
+            "buttonHeight",
+            "fieldHeight",
+            "tabHeight",
+            "panelPadding",
+            "panelGap",
+            "rowGap",
+            "titleBarHeight",
+            "optionsBarHeight",
+            "statusBarHeight",
+            "toolButtonSize",
+            "toolbarPadding",
+            "railButtonSize",
+            "menuMargin",
+            "dialogMargin",
+        ] {
+            for value in [-1.0, 200.0] {
+                let text = serde_json::json!({"version":1,"id":"test","name":"Test","base":"classic","geometry":{field:value}}).to_string();
+                assert!(ThemePack::parse(&text).is_err(), "{field}={value}");
+            }
+        }
+        let mut pack = fixture();
+        pack.geometry.button_height = Some(16.0);
+        pack.geometry.field_height = Some(16.0);
+        pack.typography.button = Some(24.0);
+        pack.typography.monospace = Some(24.0);
+        let ctx = egui::Context::default();
+        pack.resolve().unwrap().apply(&ctx);
+        let layout = crate::theme::LayoutTokens::get(&ctx);
+        assert!(layout.button_height >= 30.0 && layout.field_height >= 32.0);
     }
 
     #[test]

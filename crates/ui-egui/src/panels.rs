@@ -53,7 +53,10 @@ fn slot_tool(ui: &egui::Ui, current: Tool, slot: &[Tool], key: egui::Id) -> Tool
 
 pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
-    let (w1, bx, m) = if t.pro { (40.0, 30.0, 5i8) } else { (50.0, 36.0, 7i8) };
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let bx = layout.tool_button_size;
+    let m = layout.toolbar_padding.round() as i8;
+    let w1 = bx + f32::from(m) * 2.0;
     // Photoshop switches to a double-column toolbar only when one column doesn't fit.
     let slots: usize = TOOL_SECTIONS.iter().map(|g| g.len()).sum();
     let double = toolbar_needs_double(slots, TOOL_SECTIONS.len(), bx, t.pro, ui.available_rect_before_wrap().height());
@@ -251,9 +254,12 @@ fn c32(c: [f32; 4]) -> Color32 {
 
 fn color_chips(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
-    let (rect, _) = ui.allocate_exact_size(vec2(36.0, 38.0), Sense::hover());
-    let bg = Rect::from_min_size(rect.min + vec2(13.0, 13.0), vec2(21.0, 21.0));
-    let fg = Rect::from_min_size(rect.min + vec2(2.0, 2.0), vec2(21.0, 21.0));
+    let tool_size = theme::LayoutTokens::get(ui.ctx()).tool_button_size;
+    let original_size = theme::LayoutTokens::for_kind(t.kind).tool_button_size;
+    let scale = if tool_size == original_size { 1.0 } else { (tool_size / 36.0).min(1.0) };
+    let (rect, _) = ui.allocate_exact_size(vec2(36.0, 38.0) * scale, Sense::hover());
+    let bg = Rect::from_min_size(rect.min + vec2(13.0, 13.0) * scale, vec2(21.0, 21.0) * scale);
+    let fg = Rect::from_min_size(rect.min + vec2(2.0, 2.0) * scale, vec2(21.0, 21.0) * scale);
     let p = ui.painter();
     p.rect_filled(bg, 5.0, c32(app.session.tools.background));
     p.rect_stroke(bg, 5.0, Stroke::new(1.0, t.field_border), StrokeKind::Outside);
@@ -270,10 +276,10 @@ fn color_chips(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     }
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 0.0;
-        if icons::button(ui, "arrow-left-right", 18.0, false, tl!("Swap colours (X)")).clicked() {
+        if icons::button(ui, "arrow-left-right", 18.0 * scale, false, tl!("Swap colours (X)")).clicked() {
             let _ = app.run("tools.swapColors", json!({}));
         }
-        if icons::button(ui, "contrast", 18.0, false, tl!("Default colours (D)")).clicked() {
+        if icons::button(ui, "contrast", 18.0 * scale, false, tl!("Default colours (D)")).clicked() {
             let _ = app.run("tools.defaultColors", json!({}));
         }
     });
@@ -283,9 +289,10 @@ fn color_chips(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
 
 pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
+    let control_size = (theme::LayoutTokens::get(ui.ctx()).title_bar_height - 4.0).clamp(16.0, 28.0);
     let left = if cfg!(target_os = "macos") && app.integrated_titlebar { 78 } else { 10 };
     egui::Panel::top("title_bar")
-        .exact_size(if t.pro { 32.0 } else { 38.0 })
+        .exact_size(theme::LayoutTokens::get(ui.ctx()).title_bar_height)
         .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin { left, right: 10, top: 0, bottom: 0 }))
         .show(ui, |ui| {
             let full = ui.max_rect();
@@ -319,12 +326,13 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                             app.ui.workspace = ws;
                             crate::menus::apply_workspace(app);
                         }
-                        if icons::button(ui, "search", 28.0, app.ui.palette_open, &crate::shortcuts::tip_label(app, "Search commands", "edit.search")).clicked()
+                        if icons::button(ui, "search", control_size, app.ui.palette_open, &crate::shortcuts::tip_label(app, "Search commands", "edit.search"))
+                            .clicked()
                         {
                             app.ui.palette_open = !app.ui.palette_open;
                         }
                         let theme_icon = if t.dark() { "sun" } else { "moon" };
-                        if icons::button(ui, theme_icon, 28.0, false, tl!("Switch theme")).clicked() {
+                        if icons::button(ui, theme_icon, control_size, false, tl!("Switch theme")).clicked() {
                             let next = app.ui.theme.next();
                             app.set_theme(ui.ctx(), next);
                         }
@@ -396,8 +404,10 @@ mod title_tests {
 
 pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let icon_size = layout.field_height.clamp(16.0, 24.0);
     egui::Panel::top("options_bar")
-        .exact_size(if t.pro { 36.0 } else { 42.0 })
+        .exact_size(theme::LayoutTokens::get(ui.ctx()).options_bar_height)
         .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(10, 0)))
         .show(ui, |ui| {
             let r = ui.max_rect();
@@ -461,7 +471,7 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                         if widgets::value_field(ui, &mut o, 0.0..=100.0, "%", 62.0).changed() {
                             b.opacity = o / 100.0;
                         }
-                        if icons::button(ui, "circle-dot", 24.0, b.pressure_opacity, tl!("Always use pressure for opacity")).clicked() {
+                        if icons::button(ui, "circle-dot", icon_size, b.pressure_opacity, tl!("Always use pressure for opacity")).clicked() {
                             b.pressure_opacity = !b.pressure_opacity;
                         }
                         opt_label(ui, tl!("Flow"));
@@ -469,15 +479,15 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                         if widgets::value_field(ui, &mut f, 1.0..=100.0, "%", 62.0).changed() {
                             b.flow = f / 100.0;
                         }
-                        let _ = icons::button(ui, "sparkles", 24.0, false, tl!("Enable airbrush-style build-up effects"));
+                        let _ = icons::button(ui, "sparkles", icon_size, false, tl!("Enable airbrush-style build-up effects"));
                         opt_label(ui, tl!("Smoothing"));
                         smoothing_field(ui, b, 58.0);
-                        let _ = icons::button(ui, "settings", 24.0, false, tl!("Set additional smoothing options"));
+                        let _ = icons::button(ui, "settings", icon_size, false, tl!("Set additional smoothing options"));
                         widgets::vline(ui, 22.0);
-                        if icons::button(ui, "circle-dot", 24.0, b.pressure_size, tl!("Always use pressure for size")).clicked() {
+                        if icons::button(ui, "circle-dot", icon_size, b.pressure_size, tl!("Always use pressure for size")).clicked() {
                             b.pressure_size = !b.pressure_size;
                         }
-                        let _ = icons::button(ui, "arrow-left-right", 24.0, false, tl!("Set painting symmetry options"));
+                        let _ = icons::button(ui, "arrow-left-right", icon_size, false, tl!("Set painting symmetry options"));
                     }
                     // Pencil: Photoshop's options (no hardness or flow: the pencil is always hard).
                     Tool::Pencil => {
@@ -547,7 +557,7 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                         .iter()
                         .enumerate()
                         {
-                            if icons::button(ui, icon, 24.0, app.ui.selection_mode == i as u8, tip).clicked() {
+                            if icons::button(ui, icon, icon_size, app.ui.selection_mode == i as u8, tip).clicked() {
                                 app.ui.selection_mode = i as u8;
                             }
                         }
@@ -656,7 +666,7 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                             ("reflected", "arrow-left-right", tl!("Reflected Gradient")),
                             ("diamond", "diamond", tl!("Diamond Gradient")),
                         ] {
-                            if icons::button(ui, icon, 24.0, app.ui.tool_options.gradient_style == style, tip).clicked() {
+                            if icons::button(ui, icon, icon_size, app.ui.tool_options.gradient_style == style, tip).clicked() {
                                 app.ui.tool_options.gradient_style = style.into();
                             }
                         }
@@ -688,7 +698,7 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                         if widgets::secondary_button(ui, tl!("Clear"), 0.0).clicked() {
                             o.crop_ratio.clear();
                         }
-                        let _ = icons::button(ui, "grid-3x3", 24.0, true, tl!("Overlay: Rule of Thirds"));
+                        let _ = icons::button(ui, "grid-3x3", icon_size, true, tl!("Overlay: Rule of Thirds"));
                         widgets::checkbox(ui, &mut o.crop_delete, tl!("Delete Cropped Pixels"));
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             if icons::button(
@@ -728,12 +738,12 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                             ("panel-right", tl!("Align right edges"), "layer.align.rightEdges"),
                         ] {
                             let on = app.session.is_enabled(cmd);
-                            if ui.add_enabled_ui(on, |ui| icons::button(ui, icon, 24.0, false, tip)).inner.clicked() {
+                            if ui.add_enabled_ui(on, |ui| icons::button(ui, icon, icon_size, false, tip)).inner.clicked() {
                                 let _ = app.run(cmd, json!({}));
                             }
                         }
                         ui.add_space(6.0);
-                        let more = icons::button(ui, "ellipsis", 24.0, false, tl!("Align and distribute"));
+                        let more = icons::button(ui, "ellipsis", icon_size, false, tl!("Align and distribute"));
                         egui::Popup::menu(&more).show(|ui| {
                             ui.set_min_width(200.0);
                             let mut section = |ui: &mut egui::Ui, title: &str, prefix: &str| {
@@ -846,7 +856,7 @@ fn hint(ui: &mut egui::Ui, s: &str) {
 pub fn status_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     egui::Panel::bottom("status_bar")
-        .exact_size(if t.pro { 24.0 } else { 30.0 })
+        .exact_size(theme::LayoutTokens::get(ui.ctx()).status_bar_height)
         .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(10, 0)))
         .show(ui, |ui| {
             let r = ui.max_rect();
@@ -906,7 +916,8 @@ pub fn right_dock(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         dock_panels(app, ui, &p, &t);
     }
     // Narrow icon rail (always visible): shows, expands or collapses panel groups.
-    let (rw, rb) = if t.pro { (36.0, 28.0) } else { (44.0, 32.0) };
+    let rb = theme::LayoutTokens::get(ui.ctx()).rail_button_size;
+    let rw = rb + if t.pro { 8.0 } else { 12.0 };
     egui::Panel::right("rail").resizable(false).exact_size(rw).frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(4, 8))).show(
         ui,
         |ui| {
@@ -1322,7 +1333,7 @@ fn layers(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             });
         });
         // Docks zero the item spacing: keep the Opacity and Fill fields apart (#155).
-        ui.add_space((theme::ROW_GAP - ui.spacing().item_spacing.y).max(0.0));
+        ui.add_space((theme::LayoutTokens::get(ui.ctx()).row_gap - ui.spacing().item_spacing.y).max(0.0));
         ui.horizontal(|ui| {
             let lock_label = if t.pro { tl!("Lock:") } else { tl!("Lock") };
             let fill_label = if t.pro { tl!("Fill:") } else { tl!("Fill") };

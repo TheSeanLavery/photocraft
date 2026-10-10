@@ -204,7 +204,7 @@ pub fn pill_tabs(ui: &mut Ui, id: egui::Id, area: Rect, tabs: &[&str], selected:
         area,
         tabs,
         selected,
-        theme::medium(12.5),
+        theme::medium(theme::LayoutTokens::get(ui.ctx()).tab_font_size),
         20.0,
         44.0,
         |i| i == sel,

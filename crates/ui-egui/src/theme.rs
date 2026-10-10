@@ -355,6 +355,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
 
 /// Apply resolved tokens to both shared widgets and stock egui controls in the same frame.
 pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
+    LayoutTokens::for_kind(t.kind).apply(ctx);
     ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-theme"), t));
     let mut v = if t.dark() { Visuals::dark() } else { Visuals::light() };
     v.panel_fill = t.chrome;
@@ -420,6 +421,62 @@ pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
         s.spacing.scroll = if t.bevel { egui::style::ScrollStyle::solid() } else { egui::style::ScrollStyle::thin() };
         s.spacing.tooltip_width = 280.0;
     });
+}
+
+/// Shared layout proportions used by app-drawn controls and chrome.
+/// Defaults preserve the existing built-in appearances; runtime packs override these independently.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LayoutTokens {
+    pub button_height: f32,
+    pub button_font_size: f32,
+    pub field_font_size: f32,
+    pub tab_font_size: f32,
+    pub button_padding_x: f32,
+    pub field_height: f32,
+    pub tab_height: f32,
+    pub panel_padding: f32,
+    pub panel_gap: f32,
+    pub row_gap: f32,
+    pub title_bar_height: f32,
+    pub options_bar_height: f32,
+    pub status_bar_height: f32,
+    pub tool_button_size: f32,
+    pub toolbar_padding: f32,
+    pub rail_button_size: f32,
+    pub preference_spacing: [f32; 2],
+}
+
+impl LayoutTokens {
+    pub fn for_kind(kind: ThemeKind) -> Self {
+        let pro = Tokens::for_kind(kind).pro;
+        Self {
+            button_height: if pro { 28.0 } else { 30.0 },
+            button_font_size: 13.0,
+            field_font_size: 12.0,
+            tab_font_size: 12.5,
+            button_padding_x: 14.0,
+            field_height: 24.0,
+            tab_height: if pro { 26.0 } else { 24.0 },
+            panel_padding: 8.0,
+            panel_gap: if pro { 2.0 } else { 6.0 },
+            row_gap: ROW_GAP,
+            title_bar_height: if pro { 32.0 } else { 38.0 },
+            options_bar_height: if pro { 36.0 } else { 42.0 },
+            status_bar_height: if pro { 24.0 } else { 30.0 },
+            tool_button_size: if pro { 30.0 } else { 36.0 },
+            toolbar_padding: if pro { 5.0 } else { 7.0 },
+            rail_button_size: if pro { 28.0 } else { 32.0 },
+            preference_spacing: [14.0, 7.0],
+        }
+    }
+
+    pub fn get(ctx: &egui::Context) -> Self {
+        ctx.data(|d| d.get_temp(egui::Id::new("photocraft-layout"))).unwrap_or_else(|| Self::for_kind(Tokens::get(ctx).kind))
+    }
+
+    pub(crate) fn apply(self, ctx: &egui::Context) {
+        ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-layout"), self));
+    }
 }
 
 /// Seconds the pointer rests on a control before its tooltip shows.

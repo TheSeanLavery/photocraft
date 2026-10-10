@@ -24,7 +24,22 @@ invalid or incomplete saves retain the last working appearance and produce a sta
     "bevelWidth": 2,
     "itemSpacing": [6, 4],
     "buttonPadding": [8, 3],
-    "controlSize": [18, 18]
+    "controlSize": [20, 20],
+    "buttonHeight": 23,
+    "fieldHeight": 20,
+    "tabHeight": 22,
+    "panelPadding": 4,
+    "panelGap": 3,
+    "rowGap": 3,
+    "titleBarHeight": 26,
+    "optionsBarHeight": 30,
+    "statusBarHeight": 24,
+    "toolButtonSize": 26,
+    "toolbarPadding": 4,
+    "railButtonSize": 24,
+    "preferenceSpacing": [8, 4],
+    "menuMargin": 2,
+    "dialogMargin": 10
   },
   "typography": {
     "small": 10,
@@ -54,7 +69,14 @@ reproduction; dedicated historical control rendering is still being built.
   `controlSize` pair 8–128 points; `sliderWidth` and `dropdownWidth` 16–1024 points;
   `iconWidth` 8–64 points. `bevelWidth` accepts 1–2; 2 draws nested raised/sunken edges
   in shared bevel surfaces, while 1 preserves the existing Classic appearance.
-- `typography`: standard egui text-style sizes, 6–64 points. Current named font families and
+- App-drawn geometry: `buttonHeight`, `fieldHeight`, `tabHeight`, `titleBarHeight`,
+  `optionsBarHeight`, `statusBarHeight`, `toolButtonSize`, `railButtonSize` accept 16–96 points.
+  `panelPadding`, `panelGap`, `rowGap`, `toolbarPadding`, `menuMargin`, `dialogMargin` accept
+  0–32 points; `preferenceSpacing` is a horizontal/vertical pair, each 0–32 points.
+  `buttonPadding` also controls horizontal padding in custom buttons. Defaults preserve existing
+  themes. Buttons, numeric fields and tabs grow when needed to fit the configured type size.
+- `typography`: egui text-style sizes, 6–64 points; `button`, `monospace` and `body` also size
+  shared custom button text, numeric fields and pill tabs. Current named font families and other
   explicitly sized custom widgets retain their existing fonts and sizes.
 
 Files are limited to 64 KiB. Numbers must be finite and within the documented ranges. The

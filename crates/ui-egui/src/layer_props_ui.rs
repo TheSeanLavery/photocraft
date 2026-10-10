@@ -7,7 +7,7 @@ use photocraft_doc::{Layer, LayerContent};
 use serde_json::{Value, json};
 
 use crate::props_layout::{LABEL_GAP, LABEL_W, quick_actions_ui, section};
-use crate::theme::{ROW_GAP, Tokens};
+use crate::theme::Tokens;
 use crate::{PhotocraftApp, widgets};
 
 /// `edit.transform` params that scale the content box `b` = [x0, y0, x1, y1] to `w` x `h`, keeping
@@ -117,7 +117,7 @@ pub fn properties(app: &mut PhotocraftApp, ui: &mut egui::Ui, layer: &Layer) {
                     run.extend(transform_params(layer.id.0, bb, None, Some(v), linked).map(|p| ("edit.transform".to_string(), p)));
                 }
             });
-            ui.add_space(ROW_GAP);
+            ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = LABEL_GAP;
                 if let Some(v) = field(ui, "x", "X", b.x0 as f32, w) {
@@ -128,7 +128,7 @@ pub fn properties(app: &mut PhotocraftApp, ui: &mut egui::Ui, layer: &Layer) {
                     run.push(("layer.translate".into(), json!({"layer": layer.id.0, "dx": 0, "dy": (v - b.y0 as f32).round() as i32})));
                 }
             });
-            ui.add_space(ROW_GAP);
+            ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
         }
     }
     // Gradient fills: their gradient first, as in Photoshop's Properties panel.
@@ -155,7 +155,7 @@ pub fn properties(app: &mut PhotocraftApp, ui: &mut egui::Ui, layer: &Layer) {
                 }
             }
         });
-        ui.add_space(ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
     }
     for (id, p) in run.drain(..) {
         if let Err(e) = app.run(&id, p) {

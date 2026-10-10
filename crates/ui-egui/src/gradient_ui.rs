@@ -628,7 +628,7 @@ pub fn properties(app: &mut PhotocraftApp, ui: &mut egui::Ui, layer: &Layer) {
     let mut runs: Vec<Value> = Vec::new();
     if section(ui, "gradient-fill", "Gradient") {
         stops_editor(app, ui, layer);
-        ui.add_space(crate::theme::ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
     }
     if section(ui, "gradient-fill-options", "Gradient Options") {
         ui.horizontal(|ui| {
@@ -646,7 +646,7 @@ pub fn properties(app: &mut PhotocraftApp, ui: &mut egui::Ui, layer: &Layer) {
                 runs.push(json!({"style": s}));
             }
         });
-        ui.add_space(crate::theme::ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
         // Two label+field columns filling the panel.
         let w = field_width(ui.available_width(), 2, PROP_LABEL_W);
         ui.horizontal(|ui| {
@@ -661,7 +661,7 @@ pub fn properties(app: &mut PhotocraftApp, ui: &mut egui::Ui, layer: &Layer) {
                 runs.push(json!({"scale": v}));
             }
         });
-        ui.add_space(crate::theme::ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
         ui.horizontal_wrapped(|ui| {
             let mut r = reverse;
             if widgets::checkbox(ui, &mut r, "Reverse").changed() {
@@ -676,11 +676,11 @@ pub fn properties(app: &mut PhotocraftApp, ui: &mut egui::Ui, layer: &Layer) {
                 runs.push(json!({"align": a}));
             }
         });
-        ui.add_space(crate::theme::ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
         if widgets::secondary_button(ui, "Reset Alignment", ui.available_width()).on_hover_text(tl!("Centre the gradient (offset 0, 0)")).clicked() {
             runs.push(json!({"offset": [0, 0]}));
         }
-        ui.add_space(crate::theme::ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
     }
     for mut p in runs {
         p["layer"] = json!(id);

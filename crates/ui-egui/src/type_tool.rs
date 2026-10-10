@@ -994,7 +994,6 @@ pub fn character_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bo
 /// fill the panel width (#155).
 fn type_sections(app: &mut PhotocraftApp, ui: &mut egui::Ui, character: bool, paragraph: bool) {
     use crate::props_layout::{COL_GAP, LABEL_GAP, LABEL_W, field_width, section};
-    use crate::theme::ROW_GAP;
     let Some((c, para)) = styles_at(app) else { return };
     let t = crate::theme::Tokens::get(ui.ctx());
     // Row helper: `ui.horizontal` with the column gap, then the shared row gap.
@@ -1003,7 +1002,7 @@ fn type_sections(app: &mut PhotocraftApp, ui: &mut egui::Ui, character: bool, pa
             ui.spacing_mut().item_spacing.x = COL_GAP;
             add(ui)
         });
-        ui.add_space(ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
     };
     if character && section(ui, "character", tl!("Character")) {
         let full = ui.available_width();
@@ -1134,7 +1133,7 @@ fn type_sections(app: &mut PhotocraftApp, ui: &mut egui::Ui, character: bool, pa
                 }
             }
         });
-        ui.add_space(ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
     }
     if paragraph && section(ui, "paragraph", tl!("Paragraph")) {
         use photocraft_doc::text::TextAlign as A;
@@ -1163,7 +1162,7 @@ fn type_sections(app: &mut PhotocraftApp, ui: &mut egui::Ui, character: bool, pa
                 }
             }
         });
-        ui.add_space(ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
         row(ui, &mut |ui| {
             if let Some(v) = num_field(ui, "→|", "Indent left margin", para.start_indent_pt, -1296.0..=1296.0, "pt", w) {
                 apply(app, ui.ctx(), json!({"startIndent": v}));
@@ -1189,7 +1188,7 @@ fn type_sections(app: &mut PhotocraftApp, ui: &mut egui::Ui, character: bool, pa
         if crate::widgets::checkbox(ui, &mut hy, "Hyphenate").changed() {
             apply(app, ui.ctx(), json!({"hyphenate": hy}));
         }
-        ui.add_space(ROW_GAP);
+        ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
     }
 }
 
@@ -1250,7 +1249,7 @@ fn type_options(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             }
         });
     });
-    ui.add_space(crate::theme::ROW_GAP);
+    ui.add_space(crate::theme::LayoutTokens::get(ui.ctx()).row_gap);
     if let Some(id) = run
         && let Err(e) = app.run(&id, json!({}))
     {

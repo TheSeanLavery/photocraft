@@ -68,7 +68,7 @@ pub fn section(ui: &mut egui::Ui, id: &str, title: &str) -> bool {
     let t = Tokens::get(ui.ctx());
     let key = egui::Id::new(("props-section", id));
     let mut open = ui.data(|d| d.get_temp::<bool>(key)).unwrap_or(true);
-    ui.add_space(theme::ROW_GAP);
+    ui.add_space(theme::LayoutTokens::get(ui.ctx()).row_gap);
     widgets::hairline(ui);
     let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), SECTION_H), Sense::click());
     if resp.hovered() {
@@ -90,7 +90,7 @@ pub fn section(ui: &mut egui::Ui, id: &str, title: &str) -> bool {
     resp.widget_info(move || egui::WidgetInfo::selected(egui::WidgetType::CollapsingHeader, true, open, &label));
     record(ui.ctx(), title, r);
     if open {
-        ui.add_space(theme::ROW_GAP / 2.0);
+        ui.add_space(theme::LayoutTokens::get(ui.ctx()).row_gap / 2.0);
     }
     open
 }
@@ -167,7 +167,7 @@ pub fn quick_actions_ui(app: &PhotocraftApp, ui: &mut egui::Ui, content: &LayerC
                 }
             }
         });
-        ui.add_space(theme::ROW_GAP);
+        ui.add_space(theme::LayoutTokens::get(ui.ctx()).row_gap);
     }
     out
 }

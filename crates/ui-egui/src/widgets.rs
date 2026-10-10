@@ -61,32 +61,37 @@ pub fn card_ex(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, colla
     if t.pro {
         return pro_panel(ui, id, tabs, selected, collapsed, body);
     }
-    let frame = egui::Frame::NONE
-        .fill(t.card)
-        .stroke(Stroke::new(1.0, t.card_border))
-        .corner_radius(CornerRadius::same(t.radius as u8))
-        .inner_margin(egui::Margin { left: 8, right: 8, top: 6, bottom: if collapsed { 6 } else { 10 } });
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let padding = layout.panel_padding.round() as i8;
+    let frame =
+        egui::Frame::NONE.fill(t.card).stroke(Stroke::new(1.0, t.card_border)).corner_radius(CornerRadius::same(t.radius as u8)).inner_margin(egui::Margin {
+            left: padding,
+            right: padding,
+            top: (padding - 2).max(0),
+            bottom: if collapsed { (padding - 2).max(0) } else { (padding + 2).min(34) },
+        });
     let out = frame
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
             // Registered before the tabs so they keep their clicks; drags fall through to it.
-            let strip_rect = Rect::from_min_size(ui.cursor().min, vec2(ui.available_width(), 22.0));
+            let strip_rect = Rect::from_min_size(ui.cursor().min, vec2(ui.available_width(), (layout.tab_height - 2.0).max(14.0)));
             let strip = ui.interact(strip_rect, ui.id().with((id, "strip")), Sense::click_and_drag());
             // Pill tabs left of the menu button; they elide or overflow into a chevron (#151).
-            let (row, _) = ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::hover());
+            let (row, _) = ui.allocate_exact_size(vec2(ui.available_width(), layout.tab_height), Sense::hover());
             let tip = crate::i18n::fmt(tl!("{name} options"), &[("name", tl!(tabs.get(*selected).copied().unwrap_or(id)))]);
-            let menu_rect = Rect::from_min_max(pos2(row.right() - 22.0, row.top() + 1.0), pos2(row.right(), row.bottom() - 1.0));
-            let menu = crate::icons::button(&mut ui.new_child(egui::UiBuilder::new().max_rect(menu_rect)), "ellipsis", 22.0, false, &tip);
+            let menu_size = (layout.tab_height - 2.0).clamp(14.0, 22.0);
+            let menu_rect = Rect::from_min_max(pos2(row.right() - menu_size, row.top() + 1.0), pos2(row.right(), row.bottom() - 1.0));
+            let menu = crate::icons::button(&mut ui.new_child(egui::UiBuilder::new().max_rect(menu_rect)), "ellipsis", menu_size, false, &tip);
             let area = Rect::from_min_max(row.min, pos2((menu_rect.left() - 4.0).max(row.left()), row.bottom()));
             let tabs_out = crate::tab_strip::pill_tabs(ui, ui.id().with((id, "tabs")), area, tabs, selected);
             if !collapsed {
-                ui.add_space(6.0);
+                ui.add_space(layout.panel_gap);
                 body(ui, *selected);
             }
             CardResponse { strip, menu, tab_double_clicked: tabs_out.double_clicked, tabs: tabs_out.tabs, chevron: tabs_out.chevron }
         })
         .inner;
-    ui.add_space(6.0);
+    ui.add_space(layout.panel_gap);
     out
 }
 
@@ -94,9 +99,10 @@ pub fn card_ex(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, colla
 fn pro_panel(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, collapsed: bool, body: impl FnOnce(&mut Ui, usize)) -> CardResponse {
     let t = Tokens::get(ui.ctx());
     let width = ui.available_width();
+    let layout = theme::LayoutTokens::get(ui.ctx());
     // Tab strip. Its background senses drags (move the group) and double-clicks (collapse);
     // the tabs, registered after it, keep their clicks.
-    let (strip, _) = ui.allocate_exact_size(vec2(width, 26.0), Sense::hover());
+    let (strip, _) = ui.allocate_exact_size(vec2(width, layout.tab_height), Sense::hover());
     let strip_resp = ui.interact(strip, ui.id().with((id, "strip")), Sense::click_and_drag());
     let rounding = if collapsed { CornerRadius::same(3) } else { CornerRadius { nw: 3, ne: 3, sw: 0, se: 0 } };
     ui.painter().rect_filled(strip, rounding, t.tab_strip);
@@ -114,21 +120,21 @@ fn pro_panel(ui: &mut Ui, id: &str, tabs: &[&str], selected: &mut usize, collaps
         egui::Frame::NONE
             .fill(t.card)
             .corner_radius(CornerRadius { nw: 0, ne: 0, sw: 3, se: 3 })
-            .inner_margin(egui::Margin { left: 8, right: 8, top: 8, bottom: 8 })
+            .inner_margin(egui::Margin::same(layout.panel_padding.round() as i8))
             .show(ui, |ui| {
-                ui.set_width(width - 16.0);
+                ui.set_width((width - layout.panel_padding.round() * 2.0).max(0.0));
                 body(ui, *selected);
             });
     }
-    ui.add_space(2.0);
+    ui.add_space(layout.panel_gap);
     CardResponse { strip: strip_resp, menu: mresp, tab_double_clicked: tabs_out.double_clicked, tabs: tabs_out.tabs, chevron: tabs_out.chevron }
 }
 
 pub fn pill_tab(ui: &mut Ui, label: &str, selected: bool) -> Response {
     let t = Tokens::get(ui.ctx());
-    let font = theme::medium(12.5);
+    let font = theme::medium(theme::LayoutTokens::get(ui.ctx()).tab_font_size);
     let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), font, t.text);
-    let size = vec2(galley.size().x + 20.0, 24.0);
+    let size = vec2(galley.size().x + 20.0, theme::LayoutTokens::get(ui.ctx()).tab_height);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
     if selected {
         surface(ui, rect, t.hover, true);
@@ -146,7 +152,7 @@ pub fn pill_tab(ui: &mut Ui, label: &str, selected: bool) -> Response {
 /// Monospace numeric field with a dimmed unit suffix, Photoshop style. Drag to scrub.
 pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive<f32>, suffix: &str, width: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    let (rect, _) = ui.allocate_exact_size(vec2(width, 24.0), Sense::hover());
+    let (rect, _) = ui.allocate_exact_size(vec2(width, theme::LayoutTokens::get(ui.ctx()).field_height), Sense::hover());
     surface(ui, rect, t.field, false);
     if !t.bevel {
         ui.painter().rect_stroke(rect, t.radius_sm, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
@@ -165,7 +171,10 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
             ui.style_mut().visuals.widgets.inactive.bg_stroke = Stroke::NONE;
             ui.style_mut().visuals.widgets.hovered.bg_stroke = Stroke::NONE;
             ui.style_mut().visuals.widgets.hovered.weak_bg_fill = Color32::TRANSPARENT;
-            ui.style_mut().override_font_id = Some(theme::mono(12.0));
+            ui.style_mut().override_font_id = Some(theme::mono(theme::LayoutTokens::get(ui.ctx()).field_font_size));
+            // DragValue is a button internally: its stock minimum/padding must fit our painted field.
+            ui.spacing_mut().interact_size.y = field.height();
+            ui.spacing_mut().button_padding.y = 0.0;
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_sized(
                     field.size(),
@@ -179,7 +188,13 @@ pub fn value_field(ui: &mut Ui, value: &mut f32, range: std::ops::RangeInclusive
         }
     };
     if !suffix.is_empty() {
-        ui.painter().text(pos2(rect.right() - 6.0, rect.center().y), Align2::RIGHT_CENTER, suffix, theme::mono(11.0), t.text_faint);
+        ui.painter().text(
+            pos2(rect.right() - 6.0, rect.center().y),
+            Align2::RIGHT_CENTER,
+            suffix,
+            theme::mono((theme::LayoutTokens::get(ui.ctx()).field_font_size - 1.0).max(6.0)),
+            t.text_faint,
+        );
     }
     resp
 }
@@ -308,9 +323,10 @@ pub fn secondary_button(ui: &mut Ui, label: &str, min_width: f32) -> Response {
 
 fn button_impl(ui: &mut Ui, label: &str, min_width: f32, bg: Color32, fg: Color32, primary: bool) -> Response {
     let t = Tokens::get(ui.ctx());
-    let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), theme::medium(13.0), fg);
-    let h = if t.pro { 28.0 } else { 30.0 };
-    let size = vec2((galley.size().x + 28.0).max(min_width), h);
+    let layout = theme::LayoutTokens::get(ui.ctx());
+    let galley = ui.painter().layout_no_wrap(tl!(label).to_owned(), theme::medium(layout.button_font_size), fg);
+    let h = layout.button_height;
+    let size = vec2((galley.size().x + layout.button_padding_x * 2.0).max(min_width), h);
     let (rect, resp) = ui.allocate_exact_size(size, Sense::click());
     // Painted text: name the button for accessibility (and so tests and agents can find it).
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, ui.is_enabled(), label));
