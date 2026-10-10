@@ -9,7 +9,7 @@
 | Studio Light | Studio on light surfaces |
 | Classic | Windows-2000 bevels, square corners, navy selection |
 
-Switch themes with the sun icon, Window → Theme, or `ui.set {"theme":"classic"}` over the control channel.
+Switch themes with the sun icon, Window → Theme, or `ui.set {"theme":"classic"}` over the control channel. Use Window → Theme → Theme Manager… for editable runtime packs, preview/Apply/Cancel and file import/export; see [themes.md](themes.md) for the versioned schema and persistence.
 
 ## Rules
 
@@ -158,3 +158,8 @@ gives `90`. Shared value fields apply plain numbers live and arithmetic when edi
 finishes, preserving rounded/integer workflows. Field limits and integer rounding
 still apply; invalid expressions, division by zero, and non-finite results are rejected.
 Expressions are evaluated locally as arithmetic, never as scripts.
+
+Historical runtime presets (Windows 98 SE, Mac OS 9.1 Platinum, Macintosh System 6) are
+available in Window → Theme and Theme Manager. They are under historical acceptance; see
+[themes.md](themes.md) for implemented render strategies, font substitutions and remaining
+control-state work. Existing five themes keep their original default renderer and fonts.

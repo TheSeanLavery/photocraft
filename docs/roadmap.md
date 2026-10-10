@@ -36,6 +36,10 @@ PDF import and animation remain open; see [format catalog and limits](export-for
 
 ## Honest parity assessment (2026-10-05)
 
+2026-10-10 themes integration: the regenerated preference audit measures 56 unused
+settings out of 141; runtime theme selection is connected to Preferences and the
+Theme Manager. Historical visual fidelity remains an ongoing acceptance task.
+
 2026-10-06 infrastructure update: undo now has demand-grown compressed scratch
 storage with shared 4 GiB managed-RAM / 8 GiB disk defaults. Exact restoration,
 quota/error atomicity and asynchronous cleanup are covered by regression tests;

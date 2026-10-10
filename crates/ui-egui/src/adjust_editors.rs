@@ -866,14 +866,19 @@ fn hue_saturation(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
 fn color_balance(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
     let tone_id = cx.mem.with("cb-tone");
     let mut tone_ix: usize = ui.data(|d| d.get_temp(tone_id)).unwrap_or(1);
-    ui.horizontal(|ui| {
+    let tone_row = |ui: &mut egui::Ui| {
         label(ui, tl!("Tone:"));
         for (i, l) in [tl!("Shadows"), tl!("Midtones"), tl!("Highlights")].iter().enumerate() {
-            if ui.radio(tone_ix == i, *l).clicked() {
+            if crate::widgets::radio(ui, tone_ix == i, l).clicked() {
                 tone_ix = i;
             }
         }
-    });
+    };
+    if Tokens::get(ui.ctx()).appearance != crate::theme::Appearance::Modern {
+        ui.horizontal_wrapped(tone_row);
+    } else {
+        ui.horizontal(tone_row);
+    }
     ui.data_mut(|d| d.insert_temp(tone_id, tone_ix));
     let key = ["shadows", "midtones", "highlights"][tone_ix.min(2)];
     let mut vals = nums(v, key, [0.0; 3]);
@@ -949,7 +954,7 @@ fn photo_filter(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
     let mode_id = cx.mem.with("pf-mode");
     let mut use_color: bool = ui.data(|d| d.get_temp(mode_id)).unwrap_or(preset.is_none());
     ui.horizontal(|ui| {
-        if ui.radio(!use_color, tl!("Filter:")).clicked() {
+        if crate::widgets::radio(ui, !use_color, tl!("Filter:")).clicked() {
             use_color = false;
         }
         let mut sel = preset.unwrap_or("custom").to_string();
@@ -965,7 +970,7 @@ fn photo_filter(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
         }
     });
     ui.horizontal(|ui| {
-        if ui.radio(use_color, tl!("Color:")).clicked() {
+        if crate::widgets::radio(ui, use_color, tl!("Color:")).clicked() {
             use_color = true;
         }
         let r = ui.add_enabled_ui(use_color, |ui| color_button(ui, &mut c)).inner;
@@ -1100,7 +1105,8 @@ fn gradient_map(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
         label(ui, tl!("Preset:"));
         let mut opts: Vec<(usize, &str)> = vec![(usize::MAX, tl!("Custom"))];
         opts.extend(presets.iter().enumerate().map(|(i, p)| (i, p.0)));
-        if widgets::dropdown(ui, &format!("{:?}-gm-preset", cx.mem), &mut preset, &opts, 190.0)
+        let preset_width = if t.appearance != crate::theme::Appearance::Modern { ui.available_width().min(190.0) } else { 190.0 };
+        if widgets::dropdown(ui, &format!("{:?}-gm-preset", cx.mem), &mut preset, &opts, preset_width)
             && let Some(p) = presets.get(preset)
         {
             stops = p.1.clone();

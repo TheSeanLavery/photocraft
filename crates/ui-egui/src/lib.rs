@@ -66,6 +66,7 @@ pub mod gpu_canvas;
 pub mod gpu_status;
 pub mod gradient_ui;
 pub mod hdr_ui;
+mod historical;
 pub mod hold_keys;
 pub mod i18n;
 mod icon_data;
@@ -117,6 +118,7 @@ mod rgb_histogram;
 pub mod rulers;
 mod save_choice;
 pub mod save_formats;
+pub mod scroll_area;
 pub mod scrollbars;
 pub mod shortcut_dispatch;
 pub mod shortcuts;
@@ -130,6 +132,12 @@ pub mod stroke_trail;
 pub mod stylus;
 mod tab_strip;
 pub mod theme;
+mod theme_fonts;
+mod theme_manager;
+pub mod theme_pack;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod theme_watch;
+pub mod themes;
 pub mod tiff_options_ui;
 mod timeline_ui;
 mod titlebar;
@@ -213,6 +221,14 @@ pub type Inbox = std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<u8>)>>>;
 pub type LoadTextFn = Box<dyn FnMut() -> Option<String>>;
 /// Persist the preferences text.
 pub type SaveTextFn = Box<dyn FnMut(&str) -> Result<(), String>>;
+/// Interactive theme-file import; browser callbacks deliver results through ThemeInbox.
+pub type PickThemeFn = Box<dyn FnMut() -> Result<Option<String>, String>>;
+/// Async theme import results, separate from document-open events.
+pub type ThemeInbox = std::sync::Arc<std::sync::Mutex<Vec<Result<String, String>>>>;
+/// Load the bounded theme library; distinguish missing storage from malformed/unreadable data.
+pub type LoadThemesFn = Box<dyn FnMut() -> Result<Option<String>, String>>;
+/// Platform background updates; missing files retain the last valid catalog.
+pub type PollThemesFn = Box<dyn FnMut(&egui::Context) -> Option<Result<Option<themes::Catalog>, String>>>;
 /// Queue an immutable document/history checkpoint. Success means accepted, not saved.
 pub type AutosaveFn =
     Box<dyn FnMut(&std::sync::Arc<Document>, photocraft_ops::HistoryCheckpoint, u64, Option<&str>, Option<&str>, serde_json::Value) -> Result<(), String>>;
@@ -306,6 +322,11 @@ pub struct Services {
     pub save_prefs: Option<SaveTextFn>,
     /// The native window is connected directly to a Wayland compositor.
     pub is_wayland: bool,
+    pub load_themes: Option<LoadThemesFn>,
+    pub save_themes: Option<SaveTextFn>,
+    pub poll_themes: Option<PollThemesFn>,
+    pub pick_theme: Option<PickThemeFn>,
+    pub theme_inbox: Option<ThemeInbox>,
     /// Crash-recovery autosave (Preferences › File Handling) and recovery at launch.
     pub autosave: Option<AutosaveFn>,
     pub discard_autosave: Option<DiscardAutosaveFn>,
@@ -479,6 +500,7 @@ pub struct PhotocraftApp {
     pub perf: gpu_canvas::Perf,
     /// Preferences, autosave and snapping runtime state (see `prefs_ui`, `snap_ui`).
     pub(crate) prefs_rt: prefs_ui::Runtime,
+    pub(crate) theme_rt: themes::Runtime,
     /// Close, Revert or Exit parked behind the unsaved-changes prompt (see `discard_ui`).
     pub(crate) discard: Option<discard_ui::Prompt>,
     /// A Save As to a layered TIFF parked behind the TIFF Options prompt (see `tiff_options_ui`).
@@ -494,7 +516,7 @@ pub struct PhotocraftApp {
     pub background_jobs: bool,
     /// Background job bookkeeping: opening tabs, control replies waiting on a job.
     pub jobs: jobs_ui::JobsUi,
-    #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+    #[cfg(not(target_arch = "wasm32"))]
     live_tokens: theme::live::LiveTokens,
 }
 
@@ -575,6 +597,7 @@ impl PhotocraftApp {
             started: None,
             perf: Default::default(),
             prefs_rt: Default::default(),
+            theme_rt: Default::default(),
             discard: None,
             tiff_options: None,
             allow_close: false,
@@ -582,12 +605,13 @@ impl PhotocraftApp {
             brush_input: Default::default(),
             background_jobs: false,
             jobs: Default::default(),
-            #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+            #[cfg(not(target_arch = "wasm32"))]
             live_tokens: theme::live::LiveTokens::from_env(),
         };
         // Saved preferences (and recovered documents) are in place before the first frame.
         prefs_ui::load(&mut app);
         notices::wayland_file_drop_guidance(&mut app);
+        themes::load(&mut app);
         // File › Scripts › Script Events Manager: "Start Application".
         photocraft_engine::automate_cmds::fire_event(&mut app.session, "startApplication");
         app
@@ -1055,10 +1079,6 @@ impl eframe::App for PhotocraftApp {
         self.last_frame_time = now;
         self.sync_views();
         self.check_gpu(ctx);
-        #[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
-        if self.live_tokens.poll(ctx, self.ui.theme) {
-            self.checker = None;
-        }
         self.drain_control(ctx);
         native_menu::run(self, ctx);
         if self.ui.text_edit.is_some() && !self.ui.tool.is_type() {
@@ -1070,10 +1090,22 @@ impl eframe::App for PhotocraftApp {
         transform_tool::end_if_left(self);
         self.collect_screenshots(ctx);
         self.issue_screenshots(ctx);
+        themes::poll(self, ctx);
+        theme_manager::tick(self, ctx);
         prefs_ui::tick(self, ctx);
         monitor_status::poll(self, ctx);
         // Control requests and persisted preferences can change the language in this frame.
         i18n::sync_context(ctx, &self.session.prefs().interface.language);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if self.theme_rt.preview_preferences.is_none() && self.live_tokens.poll(ctx, self.ui.theme) {
+                self.checker = None;
+                self.ui.status = "Theme reloaded".into();
+            }
+            if let Some(error) = self.live_tokens.take_error() {
+                self.ui.status = format!("Theme unchanged: {error}");
+            }
+        }
         // A window bigger than its display (1440 × 900 on 1366 × 768) runs under the taskbar:
         // maximize it into the work area once (#315).
         work_area::fit_window(ctx);
@@ -1179,6 +1211,7 @@ impl eframe::App for PhotocraftApp {
         palette::show(self, &ctx);
         hdr_ui::show(self, &ctx);
         dialogs::show(self, &ctx);
+        theme_manager::show(self, &ctx);
         jobs_ui::dialog(self, &ctx);
         discard_ui::show(self, &ctx);
         tiff_options_ui::show(self, &ctx);
@@ -1291,8 +1324,19 @@ impl PhotocraftApp {
     }
 
     pub fn set_theme(&mut self, ctx: &egui::Context, kind: theme::ThemeKind) {
+        self.theme_rt.preview_preferences = None;
+        if let Some(manager) = self.ui.theme_manager.as_mut() {
+            manager.previewing = false;
+        }
         self.ui.theme = kind;
+        self.ui.theme_id = kind.registry_id().into();
+        self.session.prefs.edit(|p| {
+            p.interface.theme = prefs_ui::theme_pref(kind);
+            p.interface.theme_id = kind.registry_id().into();
+        });
         theme::apply(ctx, kind);
+        #[cfg(not(target_arch = "wasm32"))]
+        self.live_tokens.invalidate();
         self.checker = None;
     }
 

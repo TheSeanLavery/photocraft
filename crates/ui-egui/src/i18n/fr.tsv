@@ -2595,3 +2595,35 @@ cameraRaw	Blending	Fusion
 	Continue	Continuer
 	This format saves a flattened image. Use Save a Copy to keep your editable document.	Ce format enregistre une image aplatie. Utilisez Enregistrer une copie pour conserver votre document modifiable.
 	Netpbm chooses the subtype from the image depth and channels.	Netpbm choisit le sous-type selon la profondeur de couleur et les canaux de l’image.
+# Runtime and historical themes
+	Apply Theme	Appliquer le thème
+	Cancel Theme Preview	Annuler l’aperçu du thème
+	Duplicate Theme	Dupliquer le thème
+	Edit Theme Definition	Modifier la définition du thème
+	Export Theme…	Exporter le thème…
+	Import Theme…	Importer un thème…
+	List Themes	Lister les thèmes
+	Mac OS 9.1 Platinum Theme	Thème Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Thème Macintosh System 6
+	Preview Theme	Afficher l’aperçu du thème
+	Remove Theme	Supprimer le thème
+	Reset Theme	Réinitialiser le thème
+	Select Theme	Sélectionner un thème
+	Theme Details	Détails du thème
+	Theme Manager…	Gestionnaire de thèmes…
+	Windows 98 SE Theme	Thème Windows 98 SE
+	Caption font	Police des titres
+	Copy JSON	Copier le JSON
+	Draft: {name}	Brouillon : {name}
+	Edit the definition below. Duplicate a built-in theme before changing it.	Modifiez la définition ci-dessous. Dupliquez un thème intégré avant de le modifier.
+	Font {requested} is unavailable; using {actual}.	La police {requested} est indisponible ; utilisation de {actual}.
+	Preview is active. Cancel restores your saved theme.	L’aperçu est actif. Annuler rétablit votre thème enregistré.
+	Reset Changes	Réinitialiser les modifications
+	Saved theme	Thème enregistré
+	Scroll down	Défiler vers le bas
+	Scroll left	Défiler vers la gauche
+	Scroll right	Défiler vers la droite
+	Scroll up	Défiler vers le haut
+	Theme Manager	Gestionnaire de thèmes
+	Theme definition exceeds 64 KiB	La définition du thème dépasse 64 Kio
+	Theme id	Identifiant du thème

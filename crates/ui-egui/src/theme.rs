@@ -26,6 +26,15 @@ pub enum ThemeKind {
 }
 
 impl ThemeKind {
+    pub fn registry_id(self) -> &'static str {
+        match self {
+            Self::Pro => "builtin.pro",
+            Self::ProMedium => "builtin.proMedium",
+            Self::Studio => "builtin.studio",
+            Self::StudioLight => "builtin.studioLight",
+            Self::Classic => "builtin.classic",
+        }
+    }
     pub const ALL: [ThemeKind; 5] = [ThemeKind::Pro, ThemeKind::ProMedium, ThemeKind::Studio, ThemeKind::StudioLight, ThemeKind::Classic];
     pub fn label(self) -> &'static str {
         match self {
@@ -63,9 +72,21 @@ impl ThemeKind {
     }
 }
 
+/// Renderer strategy, independent of the inherited palette/layout defaults.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Appearance {
+    #[default]
+    Modern,
+    Windows98,
+    Platinum,
+    System6,
+}
+
 /// Colour and shape tokens.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Tokens {
+    pub appearance: Appearance,
     pub kind: ThemeKind,
     /// Window chrome (title bar, toolbars).
     pub chrome: Color32,
@@ -102,6 +123,13 @@ pub struct Tokens {
     pub radius_lg: f32,
     /// Classic theme draws 3D bevels instead of flat fills.
     pub bevel: bool,
+    /// Raised/sunken edge colors; runtime themes can tune all four bevel tones.
+    pub bevel_highlight: Color32,
+    pub bevel_light: Color32,
+    pub bevel_shadow: Color32,
+    pub bevel_dark: Color32,
+    /// One edge for the existing Classic theme, two nested edges for period controls.
+    pub bevel_width: f32,
     /// Pro (Photoshop-grammar) layout: tab strips, flat panels, checkboxes, pill buttons.
     pub pro: bool,
     /// Panel tab-strip background (Pro).
@@ -115,6 +143,7 @@ pub struct Tokens {
     /// The custom title bar's Close button while hovered (Windows' red), and its glyph.
     pub caption_close: Color32,
     pub caption_close_text: Color32,
+    pub row_selected_text: Color32,
 }
 
 impl Tokens {
@@ -132,6 +161,7 @@ impl Tokens {
                 hover: Color32::from_rgb(98, 98, 98),
                 pressed: Color32::from_rgb(112, 112, 112),
                 text: Color32::from_rgb(238, 238, 238),
+                row_selected_text: Color32::from_rgb(238, 238, 238),
                 text_dim: Color32::from_rgb(212, 212, 212),
                 text_faint: Color32::from_rgb(160, 160, 160),
                 icon: Color32::from_rgb(226, 226, 226),
@@ -154,6 +184,7 @@ impl Tokens {
                 hover: Color32::from_rgb(66, 66, 66),
                 pressed: Color32::from_rgb(78, 78, 78),
                 text: Color32::from_rgb(222, 222, 222),
+                row_selected_text: Color32::from_rgb(222, 222, 222),
                 text_dim: Color32::from_rgb(178, 178, 178),
                 text_faint: Color32::from_rgb(128, 128, 128),
                 icon: Color32::from_rgb(200, 200, 200),
@@ -170,7 +201,13 @@ impl Tokens {
                 radius_sm: 3.0,
                 radius: 4.0,
                 radius_lg: 6.0,
+                appearance: Appearance::Modern,
                 bevel: false,
+                bevel_highlight: Color32::WHITE,
+                bevel_light: Color32::from_gray(223),
+                bevel_shadow: Color32::from_gray(64),
+                bevel_dark: Color32::BLACK,
+                bevel_width: 1.0,
                 pro: true,
                 tab_strip: Color32::from_rgb(38, 38, 38),
                 row_selected: Color32::from_rgb(82, 82, 82),
@@ -192,6 +229,7 @@ impl Tokens {
                 hover: Color32::from_rgb(44, 44, 48),
                 pressed: Color32::from_rgb(56, 56, 62),
                 text: Color32::from_rgb(236, 236, 240),
+                row_selected_text: Color32::from_rgb(236, 236, 240),
                 text_dim: Color32::from_rgb(150, 150, 158),
                 text_faint: Color32::from_rgb(96, 96, 104),
                 icon: Color32::from_rgb(196, 196, 204),
@@ -208,7 +246,13 @@ impl Tokens {
                 radius_sm: 6.0,
                 radius: 8.0,
                 radius_lg: 12.0,
+                appearance: Appearance::Modern,
                 bevel: false,
+                bevel_highlight: Color32::WHITE,
+                bevel_light: Color32::from_gray(223),
+                bevel_shadow: Color32::from_gray(64),
+                bevel_dark: Color32::BLACK,
+                bevel_width: 1.0,
                 pro: false,
                 tab_strip: Color32::TRANSPARENT,
                 row_selected: Color32::TRANSPARENT,
@@ -230,6 +274,7 @@ impl Tokens {
                 hover: Color32::from_rgb(232, 232, 237),
                 pressed: Color32::from_rgb(220, 220, 226),
                 text: Color32::from_rgb(24, 24, 28),
+                row_selected_text: Color32::from_rgb(24, 24, 28),
                 text_dim: Color32::from_rgb(96, 96, 106),
                 text_faint: Color32::from_rgb(150, 150, 160),
                 icon: Color32::from_rgb(60, 60, 68),
@@ -246,7 +291,13 @@ impl Tokens {
                 radius_sm: 6.0,
                 radius: 8.0,
                 radius_lg: 12.0,
+                appearance: Appearance::Modern,
                 bevel: false,
+                bevel_highlight: Color32::WHITE,
+                bevel_light: Color32::from_gray(223),
+                bevel_shadow: Color32::from_gray(64),
+                bevel_dark: Color32::BLACK,
+                bevel_width: 1.0,
                 pro: false,
                 tab_strip: Color32::TRANSPARENT,
                 row_selected: Color32::TRANSPARENT,
@@ -268,6 +319,7 @@ impl Tokens {
                 hover: Color32::from_rgb(226, 222, 214),
                 pressed: Color32::from_rgb(190, 186, 178),
                 text: Color32::BLACK,
+                row_selected_text: Color32::BLACK,
                 text_dim: Color32::from_rgb(64, 64, 64),
                 text_faint: Color32::from_rgb(128, 128, 128),
                 icon: Color32::BLACK,
@@ -284,7 +336,13 @@ impl Tokens {
                 radius_sm: 0.0,
                 radius: 0.0,
                 radius_lg: 0.0,
+                appearance: Appearance::Modern,
                 bevel: true,
+                bevel_highlight: Color32::WHITE,
+                bevel_light: Color32::from_gray(223),
+                bevel_shadow: Color32::from_gray(64),
+                bevel_dark: Color32::BLACK,
+                bevel_width: 1.0,
                 pro: false,
                 tab_strip: Color32::from_rgb(212, 208, 200),
                 row_selected: Color32::from_rgb(10, 36, 106),
@@ -354,6 +412,7 @@ pub fn install_fonts_with(ctx: &egui::Context, cjk: crate::cjk_fonts::Sources) {
         stack.extend(fallback.iter().cloned());
         fonts.families.insert(FontFamily::Name(fam.into()), stack);
     }
+    crate::theme_fonts::install(ctx, &mut fonts);
     let size = ui_font_size(ctx);
     for (name, data) in &mut fonts.font_data {
         size_ui_font(ctx, name, Arc::make_mut(data));
@@ -442,6 +501,13 @@ pub fn mono(size: f32) -> FontId {
 /// Apply a theme to egui's global style and publish its tokens.
 pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     let t = Tokens::for_kind(kind);
+    apply_tokens(ctx, t);
+}
+
+/// Apply resolved tokens to both shared widgets and stock egui controls in the same frame.
+pub(crate) fn apply_tokens(ctx: &egui::Context, t: Tokens) {
+    crate::theme_fonts::set(ctx, None);
+    LayoutTokens::for_kind(t.kind).apply(ctx);
     ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-theme"), t));
     let mut v = if t.dark() { Visuals::dark() } else { Visuals::light() };
     v.panel_fill = t.chrome;
@@ -458,11 +524,12 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     v.menu_corner_radius = CornerRadius::same(t.radius as u8);
     v.window_shadow = egui::Shadow { offset: [0, 10], blur: 32, spread: 0, color: t.shadow };
     v.popup_shadow = egui::Shadow { offset: [0, 6], blur: 20, spread: 0, color: t.shadow };
-    v.selection.bg_fill = if t.bevel || t.pro { t.accent } else { t.accent_soft };
+    v.selection.bg_fill = if t.bevel || t.pro || t.appearance != Appearance::Modern { t.accent } else { t.accent_soft };
     v.selection.stroke = Stroke::new(1.0, t.accent_text);
     v.slider_trailing_fill = true;
     v.handle_shape = egui::style::HandleShape::Circle;
     v.striped = false;
+    v.disabled_alpha = if t.appearance == Appearance::System6 { 1.0 } else { 0.5 };
     let r = CornerRadius::same(t.radius_sm as u8);
     let w = &mut v.widgets;
     w.noninteractive.bg_fill = t.card;
@@ -478,10 +545,14 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     ] {
         wv.bg_fill = bg;
         wv.weak_bg_fill = bg;
-        wv.bg_stroke = if t.bevel { Stroke::new(1.0, Color32::from_gray(64)) } else { Stroke::new(1.0, stroke) };
+        wv.bg_stroke = if t.bevel { Stroke::new(1.0, t.bevel_shadow) } else { Stroke::new(1.0, stroke) };
         wv.fg_stroke = Stroke::new(1.0, t.text);
         wv.corner_radius = r;
         wv.expansion = 0.0;
+    }
+    if t.appearance != Appearance::Modern {
+        v.window_shadow = egui::Shadow { offset: [1, 1], blur: 0, spread: 0, color: t.shadow };
+        v.popup_shadow = egui::Shadow { offset: [1, 1], blur: 0, spread: 0, color: t.shadow };
     }
     ctx.set_visuals(v);
     ctx.global_style_mut(|s| {
@@ -504,9 +575,99 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
         s.visuals.indent_has_left_vline = false;
         s.interaction.tooltip_delay = TOOLTIP_DELAY;
         // Thin overlay scrollbars that appear on hover (Photoshop/macOS style).
-        s.spacing.scroll = if t.bevel { egui::style::ScrollStyle::solid() } else { egui::style::ScrollStyle::thin() };
+        s.spacing.scroll = if t.bevel || t.appearance != Appearance::Modern { egui::style::ScrollStyle::solid() } else { egui::style::ScrollStyle::thin() };
         s.spacing.tooltip_width = 280.0;
     });
+}
+
+/// Shared layout proportions used by app-drawn controls and chrome.
+/// Defaults preserve the existing built-in appearances; runtime packs override these independently.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LayoutTokens {
+    pub button_height: f32,
+    pub button_font_size: f32,
+    pub caption_font_size: f32,
+    pub field_font_size: f32,
+    pub tab_font_size: f32,
+    pub button_padding_x: f32,
+    pub field_height: f32,
+    pub scroll_bar_width: f32,
+    pub slider_thumb_size: [f32; 2],
+    pub slider_track_height: f32,
+    pub tab_height: f32,
+    pub panel_padding: f32,
+    pub panel_gap: f32,
+    pub row_gap: f32,
+    pub menu_bar_height: f32,
+    pub document_tab_height: f32,
+    pub layer_row_height: f32,
+    pub layer_thumbnail_size: f32,
+    pub swatch_size: f32,
+    pub color_panel_height: f32,
+    pub dock_group_heights: [f32; 6],
+    pub dock_group_compact_heights: [f32; 6],
+    pub dock_preferred_fill: f32,
+    pub dock_group_gap: f32,
+    pub dock_width: f32,
+    pub dock_min_width: f32,
+    pub dock_max_width: f32,
+    pub title_bar_height: f32,
+    pub options_bar_height: f32,
+    pub status_bar_height: f32,
+    pub tool_button_size: f32,
+    pub toolbar_padding: f32,
+    pub rail_button_size: f32,
+    pub preference_spacing: [f32; 2],
+}
+
+impl LayoutTokens {
+    pub fn for_kind(kind: ThemeKind) -> Self {
+        let pro = Tokens::for_kind(kind).pro;
+        Self {
+            button_height: if pro { 28.0 } else { 30.0 },
+            button_font_size: 13.0,
+            caption_font_size: 12.0,
+            field_font_size: 12.0,
+            tab_font_size: 12.5,
+            button_padding_x: 14.0,
+            field_height: 24.0,
+            scroll_bar_width: 12.0,
+            slider_thumb_size: [10.0, 14.0],
+            slider_track_height: 4.0,
+            tab_height: if pro { 26.0 } else { 24.0 },
+            panel_padding: 8.0,
+            panel_gap: if pro { 2.0 } else { 6.0 },
+            row_gap: ROW_GAP,
+            menu_bar_height: 20.0,
+            document_tab_height: 26.0,
+            layer_row_height: if pro { 32.0 } else { 46.0 },
+            layer_thumbnail_size: if pro { 24.0 } else { 34.0 },
+            swatch_size: 0.0,
+            color_panel_height: 0.0,
+            dock_group_heights: [190.0, 250.0, 270.0, 210.0, 200.0, 320.0],
+            dock_group_compact_heights: [130.0, 160.0, 160.0, 140.0, 130.0, 200.0],
+            dock_preferred_fill: 500.0,
+            dock_group_gap: 6.0,
+            dock_width: if pro { 290.0 } else { 300.0 },
+            dock_min_width: 250.0,
+            dock_max_width: 520.0,
+            title_bar_height: if pro { 32.0 } else { 38.0 },
+            options_bar_height: if pro { 36.0 } else { 42.0 },
+            status_bar_height: if pro { 24.0 } else { 30.0 },
+            tool_button_size: if pro { 30.0 } else { 36.0 },
+            toolbar_padding: if pro { 5.0 } else { 7.0 },
+            rail_button_size: if pro { 28.0 } else { 32.0 },
+            preference_spacing: [14.0, 7.0],
+        }
+    }
+
+    pub fn get(ctx: &egui::Context) -> Self {
+        ctx.data(|d| d.get_temp(egui::Id::new("photocraft-layout"))).unwrap_or_else(|| Self::for_kind(Tokens::get(ctx).kind))
+    }
+
+    pub(crate) fn apply(self, ctx: &egui::Context) {
+        ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-layout"), self));
+    }
 }
 
 /// Seconds the pointer rests on a control before its tooltip shows.
@@ -586,136 +747,130 @@ mod tests {
     }
 }
 
-/// Development feature: live design-token overrides.
-///
-/// Set `PHOTOCRAFT_THEME_FILE=/path/tokens.json` in a debug build; the file is polled and applied
-/// on change, so colours, radii and sizes can be tuned without recompiling. Keys are `Tokens` field
-/// names; values are `"#rrggbb"`, `"#rrggbbaa"` or numbers. Compiled out of release builds.
-#[cfg(all(debug_assertions, not(target_arch = "wasm32")))]
+/// Native release/debug theme-file adapter. Shared parsing also builds for WASM.
+/// Set `PHOTOCRAFT_THEME_FILE` to a versioned theme pack or legacy token file.
+#[cfg(not(target_arch = "wasm32"))]
 pub mod live {
-    use super::Tokens;
-    use egui::Color32;
-    use std::time::SystemTime;
+    use super::ThemeKind;
+    use crate::theme_pack::{MAX_THEME_BYTES, ThemePack};
+    use crate::theme_watch::FileWatch;
+    use std::path::PathBuf;
 
     #[derive(Default)]
     pub struct LiveTokens {
-        path: Option<std::path::PathBuf>,
-        stamp: Option<SystemTime>,
-        last_check: f64,
+        watch: Option<FileWatch<String>>,
+        kind: Option<ThemeKind>,
+        last_valid: Option<String>,
+        last_error: Option<String>,
+        pending_error: Option<String>,
+    }
+
+    fn validated_text(text: &str) -> Result<String, String> {
+        ThemePack::parse_file(text, ThemeKind::Studio)?.resolve()?;
+        Ok(text.into())
     }
 
     impl LiveTokens {
         pub fn from_env() -> Self {
-            Self { path: std::env::var_os("PHOTOCRAFT_THEME_FILE").map(Into::into), ..Default::default() }
+            Self::from_path(std::env::var_os("PHOTOCRAFT_THEME_FILE").map(Into::into))
         }
-
-        /// Re-apply overrides if the file changed. Returns true when tokens were updated.
-        pub fn poll(&mut self, ctx: &egui::Context, kind: super::ThemeKind) -> bool {
-            let Some(path) = &self.path else { return false };
-            let now = ctx.input(|i| i.time);
-            if now - self.last_check < 0.4 {
-                ctx.request_repaint_after(std::time::Duration::from_millis(400));
-                return false;
+        pub fn from_path(path: Option<PathBuf>) -> Self {
+            Self { watch: path.map(|p| FileWatch::new(p, MAX_THEME_BYTES, validated_text)), ..Default::default() }
+        }
+        pub fn take_error(&mut self) -> Option<String> {
+            self.pending_error.take()
+        }
+        pub fn invalidate(&mut self) {
+            self.kind = None;
+        }
+        fn error(&mut self, error: String) {
+            if self.last_error.as_ref() != Some(&error) {
+                self.pending_error = Some(error.clone());
             }
-            self.last_check = now;
-            ctx.request_repaint_after(std::time::Duration::from_millis(400));
-            let Ok(meta) = std::fs::metadata(path) else { return false };
-            let stamp = meta.modified().ok();
-            if stamp == self.stamp {
-                return false;
-            }
-            self.stamp = stamp;
-            let Ok(text) = std::fs::read_to_string(path) else { return false };
-            match serde_json::from_str::<serde_json::Value>(&text) {
-                Ok(v) => {
-                    super::apply(ctx, kind);
-                    let mut t = Tokens::get(ctx);
-                    let unknown = apply_overrides(&mut t, &v);
-                    ctx.data_mut(|d| d.insert_temp(egui::Id::new("photocraft-theme"), t));
-                    if !unknown.is_empty() {
-                        log::warn!("unknown token keys: {unknown:?}");
-                    }
-                    true
+            self.last_error = Some(error);
+        }
+        /// Only consumes validated background results; no stat/read calls or waits on the UI thread.
+        pub fn poll(&mut self, ctx: &egui::Context, kind: ThemeKind) -> bool {
+            let Some(watch) = self.watch.as_mut() else { return false };
+            let update = watch.poll(ctx);
+            let mut changed = self.kind != Some(kind);
+            self.kind = Some(kind);
+            match update {
+                Some(Ok(Some(text))) => {
+                    self.last_valid = Some(text);
+                    self.last_error = None;
+                    changed = true;
                 }
-                Err(e) => {
-                    log::warn!("theme file: {e}");
-                    false
+                Some(Ok(None)) => self.error("theme file is unavailable; retaining the last valid appearance".into()),
+                Some(Err(error)) => self.error(error),
+                None => (),
+            }
+            if changed && let Some(text) = &self.last_valid {
+                // Legacy flat token files inherit the current base; versioned packs carry their own.
+                match ThemePack::parse_file(text, kind).and_then(|pack| pack.resolve()) {
+                    Ok(resolved) => {
+                        resolved.apply(ctx);
+                        return true;
+                    }
+                    Err(error) => self.error(error),
                 }
             }
+            false
         }
-    }
-
-    fn color(v: &serde_json::Value) -> Option<Color32> {
-        let s = v.as_str()?.trim_start_matches('#');
-        let b = |i: usize| u8::from_str_radix(s.get(i..i + 2)?, 16).ok();
-        match s.len() {
-            6 => Some(Color32::from_rgb(b(0)?, b(2)?, b(4)?)),
-            8 => Some(Color32::from_rgba_unmultiplied(b(0)?, b(2)?, b(4)?, b(6)?)),
-            _ => None,
-        }
-    }
-
-    /// Apply JSON overrides onto tokens; returns unknown keys.
-    pub fn apply_overrides(t: &mut Tokens, v: &serde_json::Value) -> Vec<String> {
-        let mut unknown = Vec::new();
-        let Some(obj) = v.as_object() else { return unknown };
-        for (k, val) in obj {
-            macro_rules! c {
-                ($($f:ident),*) => {
-                    match k.as_str() {
-                        $(stringify!($f) => { if let Some(c) = color(val) { t.$f = c; } })*
-                        "radius_sm" => { if let Some(x) = val.as_f64() { t.radius_sm = x as f32; } }
-                        "radius" => { if let Some(x) = val.as_f64() { t.radius = x as f32; } }
-                        "radius_lg" => { if let Some(x) = val.as_f64() { t.radius_lg = x as f32; } }
-                        _ => unknown.push(k.clone()),
-                    }
-                };
-            }
-            c!(
-                caption_close,
-                caption_close_text,
-                chrome,
-                canvas,
-                canvas_dot,
-                dock,
-                card,
-                card_border,
-                field,
-                field_border,
-                hover,
-                pressed,
-                text,
-                text_dim,
-                text_faint,
-                icon,
-                accent,
-                accent_soft,
-                accent_border,
-                accent_text,
-                separator,
-                shadow,
-                primary_bg,
-                primary_text,
-                danger,
-                warning,
-                tab_strip,
-                row_selected
-            );
-        }
-        unknown
     }
 
     #[cfg(test)]
     mod tests {
         use super::*;
 
+        fn wait(live: &mut LiveTokens, ctx: &egui::Context, kind: ThemeKind, error: bool) {
+            let until = std::time::Instant::now() + std::time::Duration::from_secs(4);
+            loop {
+                let changed = live.poll(ctx, kind);
+                if (error && live.pending_error.is_some()) || (!error && changed) {
+                    return;
+                }
+                assert!(std::time::Instant::now() < until, "background result did not arrive");
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+        }
         #[test]
-        fn overrides_apply_and_report_unknown() {
-            let mut t = Tokens::for_kind(super::super::ThemeKind::Pro);
-            let unknown = apply_overrides(&mut t, &serde_json::json!({"card": "#102030", "radius": 9, "nope": 1}));
-            assert_eq!(t.card, Color32::from_rgb(16, 32, 48));
-            assert_eq!(t.radius, 9.0);
-            assert_eq!(unknown, vec!["nope".to_string()]);
+        fn failed_save_retains_style_and_recovery_updates_all_controls() {
+            let path = std::env::temp_dir().join(format!("photocraft-theme-{}-{:?}.json", std::process::id(), std::thread::current().id()));
+            let ctx = egui::Context::default();
+            let mut live = LiveTokens::from_path(Some(path.clone()));
+            std::fs::write(&path, r##"{"card":"#102030"}"##).unwrap();
+            wait(&mut live, &ctx, ThemeKind::Studio, false);
+            let before = super::super::Tokens::get(&ctx);
+            std::fs::write(&path, "{partial").unwrap();
+            wait(&mut live, &ctx, ThemeKind::Studio, true);
+            assert_eq!(super::super::Tokens::get(&ctx), before);
+            assert!(live.take_error().is_some());
+            assert!(live.take_error().is_none());
+            super::super::apply(&ctx, ThemeKind::Studio);
+            live.invalidate();
+            assert!(live.poll(&ctx, ThemeKind::Studio));
+            assert_eq!(super::super::Tokens::get(&ctx), before);
+            std::fs::write(&path, r##"{"card":"#334455"}"##).unwrap();
+            wait(&mut live, &ctx, ThemeKind::Studio, false);
+            assert_eq!(ctx.global_style().visuals.window_fill, egui::Color32::from_rgb(51, 68, 85));
+            std::fs::remove_file(&path).unwrap();
+            wait(&mut live, &ctx, ThemeKind::Studio, true);
+            assert_eq!(ctx.global_style().visuals.window_fill, egui::Color32::from_rgb(51, 68, 85));
+        }
+        #[test]
+        fn selecting_the_same_base_reapplies_the_file_and_bad_edits_keep_the_last_valid_style() {
+            let path = std::env::temp_dir().join(format!("photocraft-theme-reselect-{}-{:?}.json", std::process::id(), std::thread::current().id()));
+            let ctx = egui::Context::default();
+            let mut live = LiveTokens::from_path(Some(path.clone()));
+            std::fs::write(&path, r##"{"card":"#102030"}"##).unwrap();
+            wait(&mut live, &ctx, ThemeKind::Studio, false);
+            let expected = super::super::Tokens::get(&ctx);
+            super::super::apply(&ctx, ThemeKind::Studio);
+            live.invalidate();
+            assert!(live.poll(&ctx, ThemeKind::Studio));
+            assert_eq!(super::super::Tokens::get(&ctx), expected);
+            std::fs::remove_file(path).unwrap();
         }
     }
 }

@@ -200,6 +200,9 @@ impl Default for General {
 #[serde(default, rename_all = "camelCase")]
 pub struct Interface {
     pub theme: Theme,
+    /// Stable shell theme ID. Empty in legacy preferences; the shell migrates it from `theme`.
+    /// `theme` remains the built-in fallback when an external pack is unavailable.
+    pub theme_id: String,
     /// Pasteboard colour in standard screen mode (`canvasCustomColor` when "custom").
     pub canvas_color: CanvasColor,
     pub canvas_custom_color: String,
@@ -225,6 +228,7 @@ impl Default for Interface {
     fn default() -> Self {
         Self {
             theme: Theme::ProMedium,
+            theme_id: String::new(),
             canvas_color: CanvasColor::Default,
             canvas_custom_color: "#282828".into(),
             canvas_border: CanvasBorder::DropShadow,
@@ -1012,6 +1016,11 @@ fn set_path(root: &mut Value, path: &str, value: Value) -> std::result::Result<(
 
 /// Validate one value for `path` before it is stored (choices, ranges, colours).
 fn check_value(path: &str, v: &Value) -> std::result::Result<(), String> {
+    if path == "interface.themeId"
+        && !v.as_str().is_some_and(|s| s.len() <= 64 && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-')))
+    {
+        return Err("`interface.themeId` must be empty or a stable ID of at most 64 ASCII letters, digits, dots, underscores or hyphens".into());
+    }
     if path == "performance.renderingMode" && v.is_null() {
         return Ok(()); // Legacy policy, resolved from useGpu and gpuBackend.
     }
@@ -1377,6 +1386,12 @@ fn prefs_set(s: &mut Session, p: &Value) -> Result<Value> {
             s.color.settings = saved_color;
             return Err(bad(cmd, e));
         }
+    }
+    // Older clients edit the built-in enum without a stable ID. Normalize within the
+    // transaction so Apply snapshots and immediately persisted preferences agree.
+    if s.prefs().interface.theme != saved_prefs.interface.theme && s.prefs().interface.theme_id == saved_prefs.interface.theme_id {
+        let id = format!("builtin.{}", s.prefs().interface.theme.name());
+        s.prefs.edit(|prefs| prefs.interface.theme_id = id);
     }
     s.apply_prefs();
     let view = s.prefs_view();

@@ -1,5 +1,8 @@
 //! Native platform services: file dialogs (rfd), filesystem, codecs.
 
+use crate::theme_storage::{read_selected_theme, theme_services};
+#[cfg(test)]
+use crate::theme_storage::{read_theme_text, read_themes};
 use photocraft_codecs::{ChannelLayout, EncodeOptions, Image, SampleType as CS};
 use photocraft_color::{ColorMode, SampleType};
 use photocraft_doc::{Document, Layer, Size};
@@ -38,6 +41,10 @@ pub fn config_dir() -> Option<PathBuf> {
 
 pub fn prefs_file() -> Option<PathBuf> {
     config_dir().map(|d| d.join("preferences.json"))
+}
+
+fn themes_file() -> Option<PathBuf> {
+    config_dir().map(|d| d.join("Themes").join("library.json"))
 }
 
 /// The brush preset store (one file per preset group plus tip bitmaps; see
@@ -101,6 +108,7 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
     let recovery_queue = recovery.clone();
     let recovery_discard = recovery.clone();
     let recovery_poll = recovery.clone();
+    let (load_themes, save_themes, poll_themes) = theme_services(themes_file());
     let clip: Rc<RefCell<Option<arboard::Clipboard>>> = Rc::default();
     let automation_read = automation.clone().map(|workspace| {
         Box::new(move |path: &str| {
@@ -152,12 +160,19 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         })),
         choose_save_format: cfg!(target_os = "macos"),
         save_destination: Some(Box::new(show_save_destination)),
+        pick_theme: Some(Box::new(|| {
+            let path = rfd::FileDialog::new().add_filter("PhotoCraft Theme", &["json"]).pick_file();
+            read_selected_theme(path.as_deref())
+        })),
         pick_save: Some(Box::new(|suggested: &str| {
             let p = std::path::Path::new(suggested);
             let mut d = rfd::FileDialog::new();
-            let filters = save_filters(suggested);
-            for (name, exts) in filters.into_iter().take(if cfg!(target_os = "macos") { 1 } else { usize::MAX }) {
-                d = d.add_filter(name, exts);
+            if suggested.ends_with(".theme.json") {
+                d = d.add_filter("PhotoCraft Theme", &["json"]);
+            } else {
+                for (name, exts) in save_filters(suggested).into_iter().take(if cfg!(target_os = "macos") { 1 } else { usize::MAX }) {
+                    d = d.add_filter(name, exts);
+                }
             }
             if let Some(name) = p.file_name() {
                 d = d.set_file_name(name.to_string_lossy());
@@ -174,6 +189,7 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
             photocraft_codecs::encode(&img, photocraft_codecs::Format::Png, &EncodeOptions::default()).map_err(|e| e.to_string())
         })),
         inbox: None,
+        theme_inbox: None,
         open_url: Some(Box::new(|url: &str| open::that(url).map_err(|e| e.to_string()))),
         clipboard_set_image: Some({
             let clip = clip.clone();
@@ -205,6 +221,9 @@ pub fn native(automation: Option<photocraft_automation::AuthorizedWorkspace>) ->
         }),
         load_prefs: Some(Box::new(|| std::fs::read_to_string(prefs_file()?).ok())),
         save_prefs: Some(Box::new(|text: &str| write_atomic(&prefs_file().ok_or("no config directory")?, text.as_bytes()))),
+        load_themes: Some(load_themes),
+        save_themes: Some(save_themes),
+        poll_themes: Some(poll_themes),
         // The same immutable RAM checkpoint supplies pixels and undo/redo to the background writer.
         autosave: Some(Box::new(move |doc, history, revision, path, key, context| {
             recovery_queue.borrow_mut().queue(doc, history, revision, path, key, context)
@@ -526,5 +545,73 @@ mod tests {
         std::fs::write(&bin, tga_1x1()).unwrap();
         assert_eq!(image_from_files(&[tga]), Some((1, 1, vec![255, 0, 0, 255])));
         assert!(image_from_files(&[bin]).is_none());
+    }
+}
+
+#[cfg(test)]
+mod theme_storage_tests {
+    use super::*;
+
+    #[test]
+    fn theme_library_reads_are_bounded_and_missing_storage_is_distinct_from_bad_storage() {
+        let path = std::env::temp_dir().join(format!("photocraft-theme-library-{}-{:?}.json", std::process::id(), std::thread::current().id()));
+        assert_eq!(read_themes(&path).unwrap(), None);
+        assert_eq!(read_selected_theme(None).unwrap(), None);
+        assert!(read_selected_theme(Some(&path)).is_err());
+        write_atomic(&path, br#"{"version":1,"packs":[]}"#).unwrap();
+        assert_eq!(read_themes(&path).unwrap().as_deref(), Some(r#"{"version":1,"packs":[]}"#));
+        // A standalone pack has a smaller limit than the library container.
+        std::fs::write(&path, " ".repeat(photocraft_ui_egui::theme_pack::MAX_THEME_BYTES + 1)).unwrap();
+        assert!(read_theme_text(&path, photocraft_ui_egui::theme_pack::MAX_THEME_BYTES).is_err());
+        assert!(read_selected_theme(Some(&path)).is_err());
+        assert!(read_themes(&path).is_ok());
+        let file = std::fs::File::create(&path).unwrap();
+        file.set_len((photocraft_ui_egui::themes::MAX_LIBRARY_BYTES + 1) as u64).unwrap();
+        assert!(read_themes(&path).is_err());
+        drop(file);
+        std::fs::write(&path, [0xff, 0xfe]).unwrap();
+        assert!(read_themes(&path).is_err());
+        std::fs::remove_file(path).unwrap();
+    }
+    #[test]
+    fn native_library_callbacks_deliver_validated_external_changes_and_recover() {
+        use photocraft_ui_egui::{theme_pack::ThemePack, themes::Catalog};
+        use std::time::{Duration, Instant};
+        fn next(poll: &mut photocraft_ui_egui::PollThemesFn) -> Result<Option<Catalog>, String> {
+            let ctx = egui::Context::default();
+            let until = Instant::now() + Duration::from_secs(4);
+            loop {
+                if let Some(v) = poll(&ctx) {
+                    return v;
+                }
+                assert!(Instant::now() < until);
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        }
+        let root = std::env::temp_dir().join(format!("photocraft-library-watch-{}-{:?}", std::process::id(), std::thread::current().id()));
+        let path = root.join("library.json");
+        let (mut load, mut save, mut poll) = theme_services(Some(path.clone()));
+        let mut catalog = Catalog::default();
+        catalog
+            .insert(ThemePack::parse(r##"{"version":1,"id":"silver","name":"Silver","base":"classic","colors":{"card":"#102030"}}"##).unwrap(), false)
+            .unwrap();
+        let text = catalog.serialize().unwrap();
+        save(&text).unwrap();
+        assert_eq!(load().unwrap(), Some(text));
+        assert_eq!(next(&mut poll).unwrap().unwrap().get("silver").unwrap().colors["card"], "#102030");
+        let mut changed = catalog.get("silver").unwrap();
+        changed.colors.insert("card".into(), "#334455".into());
+        catalog.insert(changed, true).unwrap();
+        write_atomic(&path, catalog.serialize().unwrap().as_bytes()).unwrap();
+        assert_eq!(next(&mut poll).unwrap().unwrap().get("silver").unwrap().colors["card"], "#334455");
+        std::fs::write(&path, "{partial").unwrap();
+        assert!(next(&mut poll).is_err());
+        save(&catalog.serialize().unwrap()).unwrap();
+        assert!(next(&mut poll).unwrap().is_some());
+        std::fs::remove_file(&path).unwrap();
+        assert!(next(&mut poll).unwrap().is_none());
+        drop(poll);
+        drop(save);
+        std::fs::remove_dir(root).unwrap();
     }
 }

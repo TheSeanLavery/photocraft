@@ -7,6 +7,7 @@
 //! `tools.setBrush` ([`crate::brush_panel::commit_gesture`]) and applies the returned [`Pick`]
 //! with [`apply`], so every change is a journaled command (Rule 1).
 
+use crate::scroll_area::ScrollArea;
 use std::collections::BTreeSet;
 
 use egui::{Color32, RichText, Sense, Stroke, pos2, vec2};
@@ -130,7 +131,7 @@ pub fn body(ui: &mut egui::Ui, b: &mut BrushSettings, presets: &[BrushPreset]) -
     });
     ui.add_space(4.0);
     let filter = view.filter.trim().to_lowercase();
-    egui::ScrollArea::vertical().id_salt("brush-picker-presets").max_height(300.0).auto_shrink([false, true]).show(ui, |ui| {
+    ScrollArea::vertical().id_salt("brush-picker-presets").max_height(300.0).auto_shrink([false, true]).show(ui, |ui| {
         ui.spacing_mut().item_spacing.y = 1.0;
         for (label, items) in grouped_presets(presets) {
             let items: Vec<&BrushPreset> =

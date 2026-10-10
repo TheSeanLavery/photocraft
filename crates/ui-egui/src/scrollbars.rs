@@ -112,17 +112,60 @@ struct Drag {
 
 /// The two bars' rectangles inside `rect` (bottom, right), given which are shown.
 pub fn bar_rects(rect: Rect, horizontal: bool, vertical: bool) -> (Option<Rect>, Option<Rect>) {
-    let right = if vertical { rect.right() - THICKNESS } else { rect.right() };
-    let bottom = if horizontal { rect.bottom() - THICKNESS } else { rect.bottom() };
+    bar_rects_with_width(rect, horizontal, vertical, THICKNESS)
+}
+
+fn bar_rects_with_width(rect: Rect, horizontal: bool, vertical: bool, width: f32) -> (Option<Rect>, Option<Rect>) {
+    let width = width.min(rect.width().max(0.0)).min(rect.height().max(0.0));
+    let right = if vertical { rect.right() - width } else { rect.right() };
+    let bottom = if horizontal { rect.bottom() - width } else { rect.bottom() };
     let h = horizontal.then(|| Rect::from_min_max(pos2(rect.left(), bottom), pos2(right, rect.bottom())));
     let v = vertical.then(|| Rect::from_min_max(pos2(right, rect.top()), pos2(rect.right(), bottom)));
     (h, v)
+}
+
+fn show_historical(ui: &Ui, outer: Rect, view: &mut View, flip: bool, key: Id) -> bool {
+    let content = crate::scroll_area::content_rect(ui, outer);
+    let [w, h] = view.doc_size;
+    let mut over = false;
+    for axis in 0..2 {
+        let center = if axis == 0 { if flip { w as f32 - view.center[0] } else { view.center[0] } } else { view.center[1] };
+        let len = if axis == 0 { w as f32 } else { h as f32 };
+        let visible = if axis == 0 { content.width() } else { content.height() };
+        let Some(span) = Span::of(len, center, visible, view.zoom) else { continue };
+        let extent = span.extent(view.zoom).unwrap_or((span.v0, span.v1));
+        let bar = if axis == 0 {
+            Rect::from_min_max(content.left_bottom(), pos2(content.right(), outer.bottom()))
+        } else {
+            Rect::from_min_max(content.right_top(), pos2(outer.right(), content.bottom()))
+        };
+        let (offset, hovered) = crate::scroll_area::bar(
+            ui,
+            bar,
+            axis,
+            crate::scroll_area::ScrollRange { offset: span.v0 - extent.0, visible: span.v1 - span.v0, total: extent.1 - extent.0 },
+            key.with(("historical-bar", axis)),
+            true,
+        );
+        let new_center = extent.0 + offset + (span.v1 - span.v0) / 2.0;
+        if axis == 0 {
+            view.center[0] = if flip { w as f32 - new_center } else { new_center };
+        } else {
+            view.center[1] = new_center;
+        }
+        over |= hovered;
+    }
+    ui.painter().rect_filled(Rect::from_min_max(content.max, outer.max), 0.0, crate::theme::Tokens::get(ui.ctx()).chrome);
+    over
 }
 
 /// Show the scrollbars of the canvas `rect` and apply their drags and page clicks to `view`.
 /// `flip` is View › Flip Horizontal (the bar then runs the other way through the image).
 /// Returns true when the pointer is over a bar (the canvas then leaves the pointer alone).
 pub fn show(ui: &Ui, rect: Rect, view: &mut View, flip: bool, key: Id) -> bool {
+    if crate::theme::Tokens::get(ui.ctx()).appearance != crate::theme::Appearance::Modern {
+        return show_historical(ui, rect, view, flip, key);
+    }
     let [w, h] = view.doc_size;
     let zoom = view.zoom;
     // Horizontal axis in "screen order": with the view flipped, run the image backwards.
@@ -134,7 +177,7 @@ pub fn show(ui: &Ui, rect: Rect, view: &mut View, flip: bool, key: Id) -> bool {
     if ex.is_none() && ey.is_none() {
         return false;
     }
-    let (hr, vr) = bar_rects(rect, ex.is_some(), ey.is_some());
+    let (hr, vr) = bar_rects_with_width(rect, ex.is_some(), ey.is_some(), crate::scroll_area::width(ui));
     let t = crate::theme::Tokens::get(ui.ctx());
     let painter = ui.painter_at(rect);
     let mut over = false;
@@ -417,6 +460,34 @@ mod tests {
                 set_view(&mut h, 0.1, [-50.0, 9000.0]);
                 if !overscroll {
                     assert_eq!(view(&h).center, [1000.0, 750.0]);
+                }
+            }
+        }
+
+        #[test]
+        fn historical_canvas_arrows_flip_correctly_and_never_paint() {
+            use egui_kittest::kittest::Queryable;
+            for id in crate::historical::IDS {
+                for scale in [1.0, 1.5, 2.0] {
+                    let mut h = harness(false);
+                    crate::historical::preset(id).unwrap().resolve().unwrap().apply(&h.ctx);
+                    h.ctx.set_pixels_per_point(scale);
+                    h.state_mut().ui.tool = crate::state::Tool::Brush;
+                    set_view(&mut h, 1.0, [1000.0, 750.0]);
+                    h.get_by_label("Scroll right").click();
+                    h.run_steps(3);
+                    assert_eq!(view(&h).center, [1016.0, 750.0]);
+                    h.state_mut().ui.view.flip_horizontal = true;
+                    h.run_steps(2);
+                    h.get_by_label("Scroll right").click();
+                    h.run_steps(3);
+                    assert_eq!(view(&h).center, [1000.0, 750.0]);
+                    set_view(&mut h, 0.1, [-500.0, 0.0]);
+                    assert_eq!(view(&h).center, [1000.0, 750.0]);
+                    let at = h.get_by_label("Scroll right").rect().center();
+                    click(&mut h, at);
+                    assert_eq!(view(&h).center, [1000.0, 750.0], "inactive arrows cannot move a fitting view");
+                    assert!(!h.state().session.journal.iter().any(|(id, _)| id == "paint.stroke"), "scrollbar input never reaches the brush");
                 }
             }
         }

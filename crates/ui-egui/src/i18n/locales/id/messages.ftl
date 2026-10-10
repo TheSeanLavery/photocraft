@@ -5088,4 +5088,69 @@ ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Zoom dengan roda scroll
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Zoom dengan cubit trackpad
 
 ui-collaboration-977b20dea89dd78c = Kolaborasi…
+
 ui-collaboration-view-settings-cd37c80a120a2d5e = Pengaturan Tampilan Kolaborasi
+
+# Runtime and historical themes
+
+ui-apply-theme-940745b76f98edfc = Terapkan Tema
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = Batalkan Pratinjau Tema
+
+ui-caption-font-01f956c20c42c9c8 = Font Judul
+
+ui-copy-json-fc4e8907ed0b8b94 = Salin JSON
+
+ui-draft-name-c0af463d8e1619b5 = Draf: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = Duplikat Tema
+
+ui-edit-theme-definition-7f259c436cbc367b = Edit Definisi Tema
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = Edit definisi di bawah. Duplikat tema bawaan sebelum mengubahnya.
+
+ui-export-theme-9924f16b219aa424 = Ekspor Tema…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = Font { $requested } tidak tersedia; menggunakan { $actual }.
+
+ui-import-theme-a399ac79528870d5 = Impor Tema…
+
+ui-list-themes-3674d7aab0c03693 = Daftar Tema
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Tema Mac OS 9.1 Platinum
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Tema Macintosh System 6
+
+ui-preview-theme-7eced90e6da56ad4 = Pratinjau Tema
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = Pratinjau aktif. Batalkan untuk memulihkan tema tersimpan.
+
+ui-remove-theme-f449889ab3dc13fe = Hapus Tema
+
+ui-reset-changes-91bb267473e72bf7 = Atur Ulang Perubahan
+
+ui-reset-theme-09df599fa743782b = Atur Ulang Tema
+
+ui-saved-theme-c30bc5d2b3c69847 = Tema tersimpan
+
+ui-scroll-down-fff28769afb825f2 = Gulir ke bawah
+
+ui-scroll-left-58498927306bf4d7 = Gulir ke kiri
+
+ui-scroll-right-3171dac9aaa15648 = Gulir ke kanan
+
+ui-scroll-up-ae49a1e892131037 = Gulir ke atas
+
+ui-select-theme-85a12011f3908f5a = Pilih Tema
+
+ui-theme-details-a78c7b85de9ad366 = Detail Tema
+
+ui-theme-manager-43184a7204b2f7ef = Pengelola Tema
+
+ui-theme-manager-5e06c12bd6d5d9a9 = Pengelola Tema…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Definisi tema melebihi 64 KiB
+
+ui-theme-id-2057ac72399d5a4d = ID tema
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Tema Windows 98 SE

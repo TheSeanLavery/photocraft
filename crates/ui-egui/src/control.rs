@@ -279,6 +279,7 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             None => err("format must be a string"),
         },
         "ui.saveFormat.cancel" => wrap(app.choose_save_format(None)),
+        method if method.starts_with("ui.theme.") => wrap(crate::themes::command(app, ctx, method.trim_start_matches("ui.theme."), p)),
         "ui.set" => {
             if let Some(field) = p.as_object().and_then(|o| o.keys().find(|k| !UI_SET_FIELDS.contains(&k.as_str()))) {
                 return err(format!("unknown field `{field}` (fields: {})", UI_SET_FIELDS.join(", ")));
@@ -823,6 +824,9 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "dialogs": dialogs,
         "windows": app.ui.windows,
         "theme": app.ui.theme,
+        "themeId": app.ui.theme_id,
+        "themeFont": crate::theme_fonts::status(ctx).map(|(requested, actual)| json!({"requested":requested,"actual":actual})),
+        "themeCaptionFont": crate::theme_fonts::caption_status(ctx).map(|(requested, actual, bold, synthesized)| json!({"requested":requested,"actual":actual,"bold":bold,"synthesized":synthesized})),
         "status": app.ui.status,
         "statusError": app.ui.status_error,
         "notices": app.ui.notices,

@@ -2296,6 +2296,7 @@
 	4 x 4	4 × 4
 	5 x 5	5 × 5
 	Grid:	Сетка:
+
 # Rendering mode and recovery
 	Rendering Mode	Режим отрисовки
 	Automatic (recommended)	Автоматически (рекомендуется)
@@ -2443,3 +2444,37 @@ cameraRaw	Roughness	Неровность
 	Continue	Продолжить
 	This format saves a flattened image. Use Save a Copy to keep your editable document.	Этот формат сохраняет сведённое изображение. Используйте «Сохранить копию», чтобы сохранить редактируемый документ.
 	Netpbm chooses the subtype from the image depth and channels.	Netpbm выбирает подтип по глубине цвета и каналам изображения.
+# Runtime theme library
+	List Themes	Список тем
+	Theme Details	Сведения о теме
+	Select Theme	Выбрать тему
+	Import Theme…	Импортировать тему…
+	Export Theme…	Экспортировать тему…
+	Remove Theme	Удалить тему
+	Theme id	ID темы
+# Theme Manager
+	Theme Manager…	Менеджер тем…
+	Preview Theme	Предпросмотр темы
+	Apply Theme	Применить тему
+	Cancel Theme Preview	Отменить предпросмотр темы
+	Edit Theme Definition	Изменить определение темы
+	Duplicate Theme	Дублировать тему
+	Reset Theme	Сбросить тему
+	Theme Manager	Менеджер тем
+	Reset Changes	Сбросить изменения
+	Copy JSON	Копировать JSON
+	Edit the definition below. Duplicate a built-in theme before changing it.	Измените определение ниже. Перед изменением встроенной темы создайте её копию.
+	Theme definition exceeds 64 KiB	Определение темы превышает 64 КиБ
+	Preview is active. Cancel restores your saved theme.	Предпросмотр активен. Отмена восстановит сохранённую тему.
+	Saved theme	Сохранённая тема
+	Draft: {name}	Черновик: {name}
+# Historical appearance profiles
+	Windows 98 SE Theme	Тема Windows 98 SE
+	Mac OS 9.1 Platinum Theme	Тема Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Тема Macintosh System 6
+	Font {requested} is unavailable; using {actual}.	Шрифт {requested} недоступен; используется {actual}.
+	Scroll left	Прокрутить влево
+	Scroll right	Прокрутить вправо
+	Scroll up	Прокрутить вверх
+	Scroll down	Прокрутить вниз
+	Caption font	Шрифт заголовка

@@ -2582,3 +2582,35 @@ cameraRaw	Blending	Pembauran
 	Continue	Lanjutkan
 	This format saves a flattened image. Use Save a Copy to keep your editable document.	Format ini menyimpan gambar yang diratakan. Gunakan Simpan Salinan untuk mempertahankan dokumen yang dapat diedit.
 	Netpbm chooses the subtype from the image depth and channels.	Netpbm memilih subtipe berdasarkan kedalaman bit dan kanal gambar.
+# Runtime and historical themes
+	Apply Theme	Terapkan Tema
+	Cancel Theme Preview	Batalkan Pratinjau Tema
+	Duplicate Theme	Duplikat Tema
+	Edit Theme Definition	Edit Definisi Tema
+	Export Theme…	Ekspor Tema…
+	Import Theme…	Impor Tema…
+	List Themes	Daftar Tema
+	Mac OS 9.1 Platinum Theme	Tema Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Tema Macintosh System 6
+	Preview Theme	Pratinjau Tema
+	Remove Theme	Hapus Tema
+	Reset Theme	Atur Ulang Tema
+	Select Theme	Pilih Tema
+	Theme Details	Detail Tema
+	Theme Manager…	Pengelola Tema…
+	Windows 98 SE Theme	Tema Windows 98 SE
+	Caption font	Font Judul
+	Copy JSON	Salin JSON
+	Draft: {name}	Draf: {name}
+	Edit the definition below. Duplicate a built-in theme before changing it.	Edit definisi di bawah. Duplikat tema bawaan sebelum mengubahnya.
+	Font {requested} is unavailable; using {actual}.	Font {requested} tidak tersedia; menggunakan {actual}.
+	Preview is active. Cancel restores your saved theme.	Pratinjau aktif. Batalkan untuk memulihkan tema tersimpan.
+	Reset Changes	Atur Ulang Perubahan
+	Saved theme	Tema tersimpan
+	Scroll down	Gulir ke bawah
+	Scroll left	Gulir ke kiri
+	Scroll right	Gulir ke kanan
+	Scroll up	Gulir ke atas
+	Theme Manager	Pengelola Tema
+	Theme definition exceeds 64 KiB	Definisi tema melebihi 64 KiB
+	Theme id	ID tema

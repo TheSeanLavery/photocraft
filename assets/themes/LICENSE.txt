@@ -1,0 +1,2 @@
+PhotoCraft historical theme definitions are original work by PhotoCraft contributors.
+Licensed under MIT OR Apache-2.0; see LICENSE-MIT and LICENSE-APACHE at the repository root.

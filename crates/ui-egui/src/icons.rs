@@ -112,6 +112,12 @@ pub fn tool_icon(t: Tool) -> &'static str {
 /// Selected and hover fill shared by square icon buttons. Returns the icon tint.
 pub fn button_chrome(ui: &egui::Ui, rect: Rect, selected: bool, hovered: bool) -> Color32 {
     let t = Tokens::get(ui.ctx());
+    if t.appearance != crate::theme::Appearance::Modern {
+        if selected || hovered {
+            crate::historical::surface(ui, rect, t.chrome, !selected);
+        }
+        return t.icon;
+    }
     if selected {
         ui.painter().rect_filled(rect, t.radius_sm, t.accent_soft);
         ui.painter().rect_stroke(rect, t.radius_sm, egui::Stroke::new(1.0, t.accent_border), egui::StrokeKind::Inside);

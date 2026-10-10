@@ -2029,6 +2029,7 @@
 	4 x 4	4 × 4
 	5 x 5	5 × 5
 	Grid:	Mřížka:
+
 # Rendering mode and recovery
 	Rendering Mode	Režim vykreslování
 	Automatic (recommended)	Automaticky (doporučeno)
@@ -2170,3 +2171,39 @@ cameraRaw	Color	Barvy
 	Continue	Pokračovat
 	This format saves a flattened image. Use Save a Copy to keep your editable document.	Tento formát uloží sloučený obrázek. Chcete-li zachovat upravitelný dokument, použijte Uložit kopii.
 	Netpbm chooses the subtype from the image depth and channels.	Netpbm vybírá podtyp podle bitové hloubky a kanálů obrázku.
+# Runtime theme library
+	List Themes	Seznam motivů
+	Theme Details	Podrobnosti motivu
+	Select Theme	Vybrat motiv
+	Import Theme…	Importovat motiv…
+	Export Theme…	Exportovat motiv…
+	Remove Theme	Odstranit motiv
+	Theme id	ID motivu
+# Theme Manager
+	Theme Manager…	Správce motivů…
+	Preview Theme	Náhled motivu
+	Apply Theme	Použít motiv
+	Cancel Theme Preview	Zrušit náhled motivu
+	Edit Theme Definition	Upravit definici motivu
+	Duplicate Theme	Duplikovat motiv
+	Reset Theme	Obnovit motiv
+	Theme Manager	Správce motivů
+	Reset Changes	Obnovit změny
+	Copy JSON	Kopírovat JSON
+	Edit the definition below. Duplicate a built-in theme before changing it.	Upravte definici níže. Před změnou vestavěného motivu vytvořte jeho kopii.
+	Theme definition exceeds 64 KiB	Definice motivu přesahuje 64 KiB
+	Preview is active. Cancel restores your saved theme.	Náhled je aktivní. Zrušení obnoví uložený motiv.
+	Saved theme	Uložený motiv
+	Draft: {name}	Koncept: {name}
+	Duplicate	Duplikovat
+	Import…	Importovat…
+# Historical appearance profiles
+	Windows 98 SE Theme	Motiv Windows 98 SE
+	Mac OS 9.1 Platinum Theme	Motiv Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Motiv Macintosh System 6
+	Font {requested} is unavailable; using {actual}.	Písmo {requested} není dostupné; používá se {actual}.
+	Scroll left	Posunout vlevo
+	Scroll right	Posunout vpravo
+	Scroll up	Posunout nahoru
+	Scroll down	Posunout dolů
+	Caption font	Písmo titulku

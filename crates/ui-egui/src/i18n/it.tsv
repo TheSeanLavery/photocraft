@@ -2238,3 +2238,38 @@ cameraRaw	Amount	Quantità
 	Continue	Continua
 	This format saves a flattened image. Use Save a Copy to keep your editable document.	Questo formato salva un’immagine con i livelli uniti. Usa Salva una copia per conservare il documento modificabile.
 	Netpbm chooses the subtype from the image depth and channels.	Netpbm sceglie il sottotipo in base alla profondità di bit e ai canali dell’immagine.
+# Runtime and historical themes
+	Apply Theme	Applica tema
+	Cancel Theme Preview	Annulla anteprima tema
+	Duplicate Theme	Duplica tema
+	Edit Theme Definition	Modifica definizione tema
+	Export Theme…	Esporta tema…
+	Import Theme…	Importa tema…
+	List Themes	Elenca temi
+	Mac OS 9.1 Platinum Theme	Tema Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Tema Macintosh System 6
+	Preview Theme	Anteprima tema
+	Remove Theme	Rimuovi tema
+	Reset Theme	Ripristina tema
+	Select Theme	Seleziona tema
+	Theme Details	Dettagli tema
+	Theme Manager…	Gestore temi…
+	Windows 98 SE Theme	Tema Windows 98 SE
+	Caption font	Carattere del titolo
+	Copy JSON	Copia JSON
+	Draft: {name}	Bozza: {name}
+	Edit the definition below. Duplicate a built-in theme before changing it.	Modifica la definizione qui sotto. Duplica un tema integrato prima di modificarlo.
+	Font {requested} is unavailable; using {actual}.	Il carattere {requested} non è disponibile; viene usato {actual}.
+	Preview is active. Cancel restores your saved theme.	L’anteprima è attiva. Annulla ripristina il tema salvato.
+	Reset Changes	Ripristina modifiche
+	Saved theme	Tema salvato
+	Scroll down	Scorri in basso
+	Scroll left	Scorri a sinistra
+	Scroll right	Scorri a destra
+	Scroll up	Scorri in alto
+	Theme Manager	Gestore temi
+	Theme definition exceeds 64 KiB	La definizione del tema supera 64 KiB
+	Theme id	ID tema
+
+	Duplicate	Duplica
+	Import…	Importa…
