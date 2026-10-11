@@ -4,12 +4,14 @@ use serde_json::{Value, json};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
 pub type DestinationFn = Box<dyn FnMut(&str, &eframe::Frame, &egui::Context, Sender<Option<String>>)>;
+type Completion = Box<dyn FnOnce(&mut PhotocraftApp, bool)>;
 type Then = Box<dyn FnOnce(&mut PhotocraftApp, String) -> Result<Value, String>>;
 pub(crate) struct Pending {
     suggested: String,
     format: Option<String>,
     answer: Option<Receiver<Option<String>>>,
     then: Then,
+    completion: Option<Completion>,
 }
 
 impl PhotocraftApp {
@@ -29,7 +31,7 @@ impl PhotocraftApp {
             return Err("no save destination service".into());
         }
         let format = std::path::Path::new(suggested).extension().and_then(|e| e.to_str()).unwrap_or("psd").to_ascii_lowercase();
-        self.save_choice = Some(Pending { suggested: suggested.into(), format: Some(format), answer: None, then: Box::new(then) });
+        self.save_choice = Some(Pending { suggested: suggested.into(), format: Some(format), answer: None, then: Box::new(then), completion: None });
         Ok(json!({"fileDialog": "save"}))
     }
 
@@ -72,7 +74,11 @@ impl PhotocraftApp {
             p.format = None;
             Ok(json!({"fileDialog":"save"}))
         } else {
-            self.save_choice = None;
+            if let Some(p) = self.save_choice.take()
+                && let Some(done) = p.completion
+            {
+                done(self, false);
+            }
             Ok(json!({"cancelled":true}))
         }
     }
@@ -101,12 +107,37 @@ impl PhotocraftApp {
             _ => None,
         };
         let Some(p) = self.save_choice.take() else { return };
-        if let Some(path) = answer
-            && let Err(error) = (p.then)(self, path)
-        {
-            self.ui.status = error;
-            self.ui.status_error = true;
+        self.complete_document_save(p, answer);
+    }
+
+    fn complete_document_save(&mut self, p: Pending, answer: Option<String>) {
+        let success = if let Some(path) = answer {
+            match (p.then)(self, path) {
+                Ok(_) => true,
+                Err(error) => {
+                    self.ui.status = error;
+                    self.ui.status_error = true;
+                    false
+                }
+            }
+        } else {
+            false
+        };
+        if let Some(done) = p.completion {
+            done(self, success);
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn answer_document_save_for_test(&mut self, answer: Option<String>) {
+        let pending = self.save_choice.take().expect("pending save");
+        self.complete_document_save(pending, answer);
+    }
+
+    pub(crate) fn after_document_save(&mut self, done: impl FnOnce(&mut Self, bool) + 'static) -> bool {
+        let Some(p) = self.save_choice.as_mut() else { return false };
+        p.completion = Some(Box::new(done));
+        true
     }
 }
 

@@ -21,6 +21,7 @@ pub struct Prompt {
     /// The document the command was aimed at (`document` param, else the active one), if it has one.
     target: Option<DocId>,
     docs: Vec<DocId>,
+    answered: Vec<(DocId, u64)>,
 }
 
 fn index_of(app: &PhotocraftApp, id: DocId) -> Option<usize> {
@@ -65,7 +66,7 @@ pub fn intercept(app: &mut PhotocraftApp, id: &str, params: &Value) -> bool {
     if docs.is_empty() {
         return false;
     }
-    let prompt = Prompt { id: id.to_string(), params: params.clone(), target, docs };
+    let prompt = Prompt { id: id.to_string(), params: params.clone(), target, docs, answered: Vec::new() };
     match &app.discard {
         None => app.discard = Some(prompt),
         // Quitting overrides whatever is pending: it covers every document, so nothing is lost.
@@ -96,9 +97,20 @@ pub fn guard_window_close(app: &mut PhotocraftApp, ctx: &egui::Context) {
 
 /// Moves on to the next document, or runs the parked action once none are left.
 fn advance(app: &mut PhotocraftApp, ctx: &egui::Context) {
+    let answered = app
+        .discard
+        .as_ref()
+        .and_then(|p| p.docs.first())
+        .and_then(|id| app.session.documents().iter().find(|d| d.doc.id == *id).map(|d| (d.doc.id, d.revision)));
     let Some(p) = app.discard.as_mut() else { return };
+    if let Some(answered) = answered {
+        p.answered.push(answered);
+    }
     if !p.docs.is_empty() {
         p.docs.remove(0);
+    }
+    if p.id == EXIT && p.docs.is_empty() {
+        p.docs = app.session.documents().iter().filter(|d| d.is_dirty() && !p.answered.contains(&(d.doc.id, d.revision))).map(|d| d.doc.id).collect();
     }
     if !p.docs.is_empty() {
         return;
@@ -126,7 +138,12 @@ fn save(app: &mut PhotocraftApp, ctx: &egui::Context, doc: DocId) -> bool {
     let Some(i) = index_of(app, doc) else { return false };
     app.session.set_active(i);
     match crate::menus::invoke_unguarded(app, ctx, "file.save", json!({})) {
-        Ok(_) => true,
+        Ok(_) if app.save_choice.is_some() => {
+            let ctx = ctx.clone();
+            app.after_document_save(move |app, success| finish_save(app, &ctx, doc, success));
+            false
+        }
+        Ok(_) => app.session.documents().iter().find(|d| d.doc.id == doc).is_some_and(|d| !d.is_dirty()),
         // Backing out of the file dialog is the user's choice, not an error.
         Err(e) if e == "cancelled" => false,
         Err(e) => {
@@ -137,7 +154,23 @@ fn save(app: &mut PhotocraftApp, ctx: &egui::Context, doc: DocId) -> bool {
     }
 }
 
+fn finish_save(app: &mut PhotocraftApp, ctx: &egui::Context, doc: DocId, success: bool) {
+    let matches = app.discard.as_ref().is_some_and(|p| p.docs.first() == Some(&doc));
+    if !matches {
+        return;
+    }
+    let saved = app.session.documents().iter().find(|d| d.doc.id == doc).is_some_and(|d| !d.is_dirty());
+    if success && saved {
+        advance(app, ctx);
+    } else {
+        app.discard = None;
+    }
+}
+
 pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
+    if app.save_choice.is_some() {
+        return;
+    }
     let Some(p) = &app.discard else { return };
     let Some(&doc) = p.docs.first() else { return };
     let (exits, reverts) = (p.id == EXIT, p.id == "file.revert");
@@ -241,6 +274,113 @@ mod tests {
 
     fn doc_id(app: &PhotocraftApp, i: usize) -> DocId {
         app.session.documents()[i].doc.id
+    }
+
+    fn deferred_app() -> PhotocraftApp {
+        let mut app = app_with_docs(2);
+        app.services.choose_save_format = true;
+        app.services.save_destination = Some(Box::new(|_, _, _, _| {}));
+        app.services.export = Some(Box::new(|_, _, _| Ok((vec![1], vec![]))));
+        app.services.write = Some(Box::new(|_, _| Ok(())));
+        make_dirty(&mut app, 0);
+        assert!(intercept(&mut app, "file.close", &json!({"document":0})));
+        app
+    }
+
+    #[test]
+    fn deferred_save_closes_only_after_write_and_preserves_document_target() {
+        let mut app = deferred_app();
+        let ctx = egui::Context::default();
+        let target = doc_id(&app, 0);
+        let other = doc_id(&app, 1);
+        assert!(!save(&mut app, &ctx, target));
+        assert_eq!(app.session.documents().len(), 2);
+        app.session.set_active(1);
+        app.choose_save_format(Some("pcraft")).unwrap();
+        app.answer_document_save_for_test(Some("saved.pcraft".into()));
+        assert!(app.discard.is_none());
+        assert_eq!(app.session.documents().len(), 1);
+        assert_eq!(app.session.active().unwrap().doc.id, other);
+    }
+
+    #[test]
+    fn deferred_save_cancellations_and_write_failure_cancel_close() {
+        for outcome in 0..3 {
+            let mut app = deferred_app();
+            let ctx = egui::Context::default();
+            let target = doc_id(&app, 0);
+            assert!(!save(&mut app, &ctx, target));
+            if outcome == 0 {
+                app.choose_save_format(None).unwrap();
+            } else {
+                app.choose_save_format(Some("pcraft")).unwrap();
+                if outcome == 2 {
+                    app.services.write = Some(Box::new(|_, _| Err("disk full".into())));
+                }
+                app.answer_document_save_for_test((outcome == 2).then(|| "saved.pcraft".into()));
+            }
+            assert!(app.discard.is_none());
+            assert!(app.save_choice.is_none());
+            assert_eq!(app.session.documents().len(), 2);
+            assert!(app.session.documents().iter().find(|d| d.doc.id == target).unwrap().is_dirty());
+            assert!(!app.allow_close);
+        }
+    }
+
+    #[test]
+    fn deferred_quit_saves_first_then_second_cancellation_keeps_both_documents() {
+        let mut app = deferred_app();
+        make_dirty(&mut app, 1);
+        app.discard = None;
+        assert!(intercept(&mut app, EXIT, &Value::Null));
+        let ctx = egui::Context::default();
+        let first = doc_id(&app, 0);
+        let second = doc_id(&app, 1);
+        assert!(!save(&mut app, &ctx, first));
+        app.choose_save_format(Some("pcraft")).unwrap();
+        app.answer_document_save_for_test(Some("first.pcraft".into()));
+        assert_eq!(app.discard.as_ref().unwrap().docs, [second]);
+        assert!(!app.allow_close);
+        assert!(!save(&mut app, &ctx, second));
+        app.choose_save_format(None).unwrap();
+        assert!(app.discard.is_none());
+        assert!(!app.allow_close);
+        assert_eq!(app.session.documents().len(), 2);
+        assert!(!app.session.documents()[0].is_dirty());
+        assert!(app.session.documents()[1].is_dirty());
+    }
+
+    #[test]
+    fn deferred_quit_rechecks_documents_that_became_dirty_while_saving() {
+        let mut app = deferred_app();
+        app.discard = None;
+        assert!(intercept(&mut app, EXIT, &Value::Null));
+        let ctx = egui::Context::default();
+        let first = doc_id(&app, 0);
+        let second = doc_id(&app, 1);
+        assert!(!save(&mut app, &ctx, first));
+        make_dirty(&mut app, 1);
+        app.choose_save_format(Some("pcraft")).unwrap();
+        app.answer_document_save_for_test(Some("first.pcraft".into()));
+        assert_eq!(app.discard.as_ref().unwrap().docs, [second]);
+        assert!(!app.allow_close);
+        assert_eq!(app.session.documents().len(), 2);
+        advance(&mut app, &ctx);
+        assert!(app.allow_close, "explicit Don't Save for unchanged second revision permits quit");
+    }
+
+    #[test]
+    fn deferred_save_missing_original_document_does_not_close_another() {
+        let mut app = deferred_app();
+        let ctx = egui::Context::default();
+        let target = doc_id(&app, 0);
+        assert!(!save(&mut app, &ctx, target));
+        app.session.execute("file.close", json!({"document":0})).unwrap();
+        app.choose_save_format(Some("pcraft")).unwrap();
+        app.answer_document_save_for_test(Some("saved.pcraft".into()));
+        assert!(app.discard.is_none());
+        assert_eq!(app.session.documents().len(), 1);
+        assert!(app.ui.status_error);
     }
 
     #[test]
