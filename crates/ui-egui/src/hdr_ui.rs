@@ -92,7 +92,11 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
             let mut w = photocraft_engine::hdr_cmds::settings(&app.session, &doc);
             let original = w;
             let headroom = app.gpu.as_ref().map_or(1.0, |g| g.output_headroom().max(1.0));
-            ui.label(format!("Display: {:.2}× white · +{:.2} EV", headroom, headroom.log2()));
+            if cfg!(target_arch = "wasm32") && headroom > 1.0 {
+                ui.label(format!("Browser-managed HDR · preview ceiling {headroom:.0}× white"));
+            } else {
+                ui.label(format!("Display: {:.2}× white · +{:.2} EV", headroom, headroom.log2()));
+            }
             ui.weak(if app.gpu.is_some() { "Float document → ICC → display transform" } else { "CPU SDR preview · HDR presentation unavailable" });
             if doc.depth != photocraft_color::SampleType::F32 {
                 ui.weak("HDR canvas controls require a 32-bit document.");

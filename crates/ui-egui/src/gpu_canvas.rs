@@ -120,13 +120,9 @@ impl GpuCanvas {
         self.rs.output_color_space == wgpu::SurfaceColorSpace::ExtendedSrgb
     }
 
-    /// Live physical headroom; unknown/invalid display data conservatively uses SDR white.
+    /// Native display headroom, or a browser-managed HDR preview ceiling.
     pub fn output_headroom(&self) -> f32 {
-        if !self.hdr_surface() {
-            return 0.0;
-        }
-        let headroom = self.rs.display_hdr_info.read().tone_map_headroom().unwrap_or(1.0);
-        if headroom.is_finite() { headroom.clamp(1.0, 16.0) } else { 1.0 }
+        presentation_headroom(&self.rs.display_hdr_info.read(), self.hdr_surface(), cfg!(target_arch = "wasm32"))
     }
 
     /// Create pipelines and register resources with the egui renderer.
@@ -2031,5 +2027,36 @@ mod tests {
                 .validate(&module)
                 .unwrap_or_else(|e| panic!("{name}: {e:?}"));
         }
+    }
+}
+
+/// WebGPU exposes HDR capability, but no numeric display luminance. Keep a bounded
+/// extended signal for the browser to map; missing metadata does not mean SDR.
+fn presentation_headroom(info: &wgpu::DisplayHdrInfo, hdr_surface: bool, browser: bool) -> f32 {
+    if !hdr_surface {
+        return 0.0;
+    }
+    let fallback = if browser && info.coarse.and_then(|c| c.high_dynamic_range) == Some(true) { 16.0 } else { 1.0 };
+    let headroom = info.tone_map_headroom().unwrap_or(fallback);
+    if headroom.is_finite() { headroom.clamp(1.0, 16.0) } else { 1.0 }
+}
+
+#[cfg(test)]
+mod browser_headroom_tests {
+    use super::{presentation_headroom, wgpu};
+    #[test]
+    fn browser_hdr_capability_preserves_extended_signal() {
+        let info =
+            wgpu::DisplayHdrInfo { coarse: Some(wgpu::DisplayCoarseRange { high_dynamic_range: Some(true), ..Default::default() }), ..Default::default() };
+        assert_eq!(presentation_headroom(&info, true, true), 16.0);
+        assert_eq!(presentation_headroom(&info, true, false), 1.0);
+        assert_eq!(presentation_headroom(&info, false, true), 0.0);
+    }
+    #[test]
+    fn unknown_and_sdr_displays_remain_at_reference_white() {
+        assert_eq!(presentation_headroom(&wgpu::DisplayHdrInfo::default(), true, true), 1.0);
+        let sdr =
+            wgpu::DisplayHdrInfo { coarse: Some(wgpu::DisplayCoarseRange { high_dynamic_range: Some(false), ..Default::default() }), ..Default::default() };
+        assert_eq!(presentation_headroom(&sdr, true, true), 1.0);
     }
 }

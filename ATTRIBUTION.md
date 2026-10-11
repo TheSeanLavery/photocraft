@@ -27,6 +27,7 @@ next to them.
 | `assets/app-icon/` (all files) | PhotoCraft app icon (orange filmstrip Pc mark) | The project owner (supplied reference; vector recreation) | Original work, see [`assets/app-icon/README.md`](assets/app-icon/README.md) | MIT OR Apache-2.0, [`assets/app-icon/LICENSE.txt`](assets/app-icon/LICENSE.txt) |
 
 | `assets/themes/*.json` | PhotoCraft historical theme definitions | PhotoCraft contributors | Original clean-room work from public design references; see `docs/themes.md` | MIT OR Apache-2.0, [`assets/themes/LICENSE.txt`](assets/themes/LICENSE.txt) |
+| `vendor/eframe/` | eframe 0.36.2 (browser surface color-space patch) | egui contributors | https://github.com/emilk/egui | MIT OR Apache-2.0; licenses included |
 
 ### Optional build input: craft-fonts (not files in this repo)
 
