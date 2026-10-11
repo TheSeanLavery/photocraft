@@ -2610,3 +2610,17 @@ cameraRaw	Blending	Pembauran
 	Theme Manager	Pengelola Tema
 	Theme definition exceeds 64 KiB	Definisi tema melebihi 64 KiB
 	Theme id	ID tema
+
+	Return to Original	Kembali ke asli
+
+	Branch	Cabang
+
+	Retry storage	Coba penyimpanan lagi
+
+	Unlimited history	Riwayat tanpa batas
+
+	Use available disk space	Gunakan ruang disk tersedia
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Ruang pembatalan bertambah sesuai kebutuhan. Riwayat tanpa batas menyimpan keadaan hingga penyimpanan penuh. Jalur berlaku pada sesi cache berikutnya.
+
+	Change opacity	Ubah opasitas

@@ -4459,3 +4459,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = La definición del tema su
 ui-theme-id-2057ac72399d5a4d = ID del tema
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Tema Windows 98 SE
+
+ui-return-to-original-49ddd457800418b3 = Volver al original
+
+ui-branch-7a07940a2b62f185 = Rama
+
+ui-retry-storage-2e07dc65352aa868 = Reintentar almacenamiento
+
+ui-unlimited-history-d3654847d93db9b8 = Historial ilimitado
+
+ui-use-available-disk-space-44211d74d7260f1a = Usar espacio disponible en disco
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = El espacio de deshacer crece según sea necesario. El historial ilimitado conserva estados hasta llenar el almacenamiento. Las rutas se aplican a la próxima sesión de caché.
+
+ui-change-opacity-c419e848020b25f4 = Cambiar opacidad

@@ -2623,3 +2623,17 @@ cameraRaw	Blending	Fusion
 	Theme Manager	Gestionnaire de thèmes
 	Theme definition exceeds 64 KiB	La définition du thème dépasse 64 Kio
 	Theme id	Identifiant du thème
+
+	Return to Original	Revenir à l’original
+
+	Branch	Branche
+
+	Retry storage	Réessayer le stockage
+
+	Unlimited history	Historique illimité
+
+	Use available disk space	Utiliser l’espace disque disponible
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Le stockage d’annulation grandit selon les besoins. L’historique illimité conserve les états jusqu’à saturation. Les chemins s’appliquent à la prochaine session du cache.
+
+	Change opacity	Modifier l’opacité

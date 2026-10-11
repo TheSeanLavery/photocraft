@@ -2,16 +2,27 @@
 
 PhotoCraft keeps current documents and adjacent undo/redo states in shared,
 copy-on-write RAM. Older history spills to a session-private scratch directory
-only under memory pressure. Defaults are **4096 MiB RAM** and **8192 MiB disk**
-shared by the open documents in one Session. Neither limit reserves memory or
-preallocates disk files. History States remains 50 per document by default.
+under memory pressure. **Unlimited history** and **Use available disk space**
+are enabled by default: there is no fixed action-count or 8 GiB scratch ceiling.
+Files grow on demand; nothing is preallocated. Physical storage and format safety
+checks remain constraints. The managed RAM target remains **4096 MiB**, shared
+by the open documents in one Session.
 
-Preferences → Performance sets the memory budget. Preferences → Scratch Disks
-sets the disk budget and preferred paths; zero disk budget disables new spills.
-The first enabled path is used, or the system temporary directory. Path changes
-apply to the next cache session so existing history stays reachable. Budget
-changes apply live; reducing disk capacity may retire oldest history states.
+Preferences → Performance controls unlimited retention and the RAM target.
+Preferences → Scratch Disks controls available-space retention and scratch paths.
+Turning those options off exposes the legacy numeric limits. Explicit older
+`prefs.set` calls to `performance.historyStates` or `scratchDisks.budgetMb` select
+bounded mode for compatibility. Zero disk budget disables spilling in bounded
+space mode. The first enabled path is used, or the system temporary directory.
+Paths apply to the next cache session so existing history stays reachable.
 The web build remains RAM-only.
+
+In unlimited mode, a full or unavailable disk keeps existing history and reports
+an error. New edits pause until storage is repaired and **Retry storage** is
+selected. Slow writes can temporarily refuse another edit before its mutation
+runs, bounding the backlog without dropping the original or older states.
+Explicit purge/close still discards history. States discarded by an earlier
+version cannot be reconstructed.
 
 The memory budget measures unique managed document/history pixel payloads and
 preserved shared blobs, not process RSS. Current documents, immediately adjacent
@@ -34,12 +45,13 @@ spilling toward a 90% low-water mark to avoid oscillating at the threshold.
   failed write never publishes a history snapshot. Retired snapshot leases queue
   garbage collection; shared files survive until their final reference expires.
 - Current and immediate undo/redo states stay hot when resident. Loading an older
-  cold state is synchronous and explicitly fallible. Immutable published files
+  cold state is explicitly fallible. Native UI undo, redo and direct jumps load
+  only the destination on a cancellable worker. Immutable published files
   can be read without waiting on the writer lock. On a read/decode/hash error,
   the document and both history cursors remain unchanged and the command fails.
-- Disk quota, slow-write backpressure or unavailable storage can shorten oldest chronological history;
-  the current document and adjacent undo remain. Failures appear in the status
-  area and through `Session::take_history_cache_notice()`.
+- Unlimited retention never silently shortens history for quota or backpressure.
+  The optional bounded mode can retire oldest states. Failures appear in the
+  History panel/status area and through `Session::take_history_cache_notice()`.
 
 Scratch storage is ephemeral, separate from [durable autosave/recovery](recovery.md). Recovery captures cold history handles and writes complete undo/redo checkpoints on its background worker. Normal session
 shutdown cleans the private directory. A process crash can leave its temporary
@@ -47,10 +59,26 @@ directory behind; automatic crash-leftover cleanup is a follow-up, not permissio
 to delete another running application's files. Permissions/deletion failures
 remain accounted and are reported.
 
-Automation uses existing `prefs.set` / `prefs.get`:
+## Vertical scrubber and branches
+
+The narrow History sidebar draws a thumbnail and action label per state, a
+stable color and number per branch, and a current-state marker. Its original
+state remains reachable with **Return to Original**. Dragging highlights a
+destination; release commits one jump. Rows are virtualized. Previews are
+computed on a worker and cached separately (up to 256 GPU thumbnails), so
+painting the panel never hydrates cold documents.
+
+Editing after undo retains the alternative redo path. State IDs and parent/branch
+identities survive recovery. Undo/redo follows the selected path at a fork.
+`history.inspect` returns state IDs, parents, branches and action labels;
+`history.jump {"state":id}` loads one destination, without restoring intervening
+states. Failed loads and cancelled jobs leave the document and cursor unchanged.
+Shared collaboration documents retain their personal collaboration undo semantics.
+
+Automation uses `prefs.set` / `prefs.get`:
 
 ```json
-{"values":{"performance.memoryUsageMb":4096,"scratchDisks.budgetMb":8192}}
+{"values":{"performance.memoryUsageMb":4096,"performance.unlimitedHistory":true,"scratchDisks.useAvailableSpace":true}}
 ```
 
 `session.inspect` reports actual resident payload bytes, compressed disk bytes,
@@ -74,8 +102,8 @@ existing pure-Rust native format avoids a second document serializer and preserv
 all masks, selections, patterns, video frames and embedded content. It also avoids
 a layering violation: ops L2 depends only on an archive interface; engine L5
 connects it to format L3. This is an incremental, correctness-first architecture,
-not a claim of optimal latency. Files per object and synchronous cold restoration
-remain opportunities for packed segments and bounded adjacent-state prefetch.
+not a claim of optimal latency. Files per object remain an opportunity for packed segments and bounded
+adjacent-state prefetch.
 Benchmark codec and layout changes before selecting them.
 
 ## Validation and measurement
@@ -150,3 +178,12 @@ art is sparse and its repeated moves alternate direction; it is not a dense-phot
 move-performance claim. Regression tests additionally cover monotonic nudges,
 negative tile boundaries, interrupted edits, coalesced gestures, source lifetimes
 and saturation fallback at U8/U16/F32.
+
+### Direct-jump measurement (2026-10-10)
+
+The deterministic 24 MP, 12-edit workload retained 13 states, with 11 archived.
+In the release measurement, sequential traversal took 1090 ms versus 107 ms
+for `history.jump` to the original (one document revision). This is a synthetic,
+compressible snapshot workload; it excludes native canvas presentation and is
+not a promise of 107 ms on every image. [Raw measurement](history-jump-benchmark.json)
+records the build flags and bounds. The dev build measured 3683 ms versus 327 ms.

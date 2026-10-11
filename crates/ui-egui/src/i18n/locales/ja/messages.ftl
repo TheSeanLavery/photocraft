@@ -4276,3 +4276,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = テーマ定義が 64 KiB 
 ui-theme-id-2057ac72399d5a4d = テーマID
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE テーマ
+
+ui-return-to-original-49ddd457800418b3 = 元の状態に戻る
+
+ui-branch-7a07940a2b62f185 = 分岐
+
+ui-retry-storage-2e07dc65352aa868 = 保存を再試行
+
+ui-unlimited-history-d3654847d93db9b8 = 履歴を無制限に保持
+
+ui-use-available-disk-space-44211d74d7260f1a = 空きディスク容量を使用
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = 取り消し用ディスク容量は必要に応じて増加します。無制限の履歴は容量がいっぱいになるまで保持されます。パスは次のキャッシュセッションに適用されます。
+
+ui-change-opacity-c419e848020b25f4 = 不透明度を変更

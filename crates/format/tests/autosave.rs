@@ -340,3 +340,49 @@ fn missing_descriptor_does_not_consume_a_failed_recovery_source() {
     assert_eq!(load_path(&bundle).unwrap(), doc, "a failed load never implicitly retires its source");
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+#[test]
+fn unlimited_branch_history_recovers_original_and_alternative_edits_at_all_depths() {
+    use photocraft_ops::{History, LayerTarget};
+    for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
+        let dir = temp_dir("branch-history");
+        let mut current = Arc::new(rich_doc(ColorMode::Rgb, depth));
+        let original = current.clone();
+        let mut history = History::default();
+        for name in ["Brush paint", "Erase"] {
+            history.record(name, current.clone(), LayerTarget::default());
+            let mut next = (*current).clone();
+            next.name = name.into();
+            if name == "Erase" {
+                next.layers[1].surface_mut().unwrap().write_pixel(3, 2, &[1.0, 0.0, 0.0, 0.5]);
+                next.metadata.exif = Some(Arc::new(vec![42, 77, depth as u8]));
+            }
+            current = Arc::new(next);
+        }
+        let erased = history.current_id();
+        let erased_expected = current.clone();
+        current = history.try_undo(current).unwrap().unwrap();
+        history.record("Move layer", current.clone(), LayerTarget::default());
+        let mut moved = (*current).clone();
+        moved.name = "Moved".into();
+        current = Arc::new(moved);
+        let saver = Autosaver::new(&dir, "branches");
+        saver.request_checkpoint(current.clone(), history.checkpoint(), 9, None, SaveOptions::default()).unwrap();
+        saver.flush().unwrap().unwrap();
+        let entries = list_recovery(&dir);
+        let (recovered, checkpoint) = recover_checkpoint(&entries[0]).unwrap();
+        assert_eq!(recovered, *current);
+        assert_eq!(checkpoint.max_states, 0);
+        assert_eq!(checkpoint.branches.len(), 1);
+        let mut history = History::from_checkpoint(checkpoint).unwrap();
+        let original_loaded = history.state_by_id(current.clone(), 0).unwrap().load_document().unwrap();
+        assert_eq!(*original_loaded, *original);
+        history.jump_loaded(current, 0, original_loaded.clone()).unwrap();
+        let erased_loaded = history.state_by_id(original_loaded.clone(), erased).unwrap().load_document().unwrap();
+        assert_eq!(*erased_loaded, *erased_expected, "branch-only tile and blob objects must survive collection");
+        history.jump_loaded(original_loaded, erased, erased_loaded).unwrap();
+        assert_eq!(history.timeline().len(), 4);
+        drop(history);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+}

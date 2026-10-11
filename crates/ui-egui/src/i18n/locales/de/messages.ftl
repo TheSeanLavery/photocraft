@@ -4409,3 +4409,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Die Designdefinition über
 ui-theme-id-2057ac72399d5a4d = Design-ID
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE-Design
+
+ui-return-to-original-49ddd457800418b3 = Zum Original zurück
+
+ui-branch-7a07940a2b62f185 = Zweig
+
+ui-retry-storage-2e07dc65352aa868 = Speicher erneut versuchen
+
+ui-unlimited-history-d3654847d93db9b8 = Unbegrenzter Verlauf
+
+ui-use-available-disk-space-44211d74d7260f1a = Verfügbaren Speicherplatz nutzen
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Speicher für Rückgängig wächst nach Bedarf. Unbegrenzter Verlauf behält Zustände bis der Speicher voll ist. Pfade gelten für die nächste Cache-Sitzung.
+
+ui-change-opacity-c419e848020b25f4 = Deckkraft ändern
