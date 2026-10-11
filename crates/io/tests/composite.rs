@@ -184,3 +184,18 @@ fn merged_alpha_written_when_transparent() {
     let samples = file.decode_merged().unwrap();
     assert_eq!(u16::from_be_bytes([samples[6], samples[7]]), 65500);
 }
+
+#[test]
+fn float_merged_composite_preserves_hdr_negative_and_alpha() {
+    let mut doc = photocraft_doc::Document::new("HDR", photocraft_geom::Size::new(1, 1), ColorMode::Rgb, SampleType::F32);
+    let mut layer = photocraft_doc::Layer::raster("HDR pixel", doc.pixel_format());
+    layer.surface_mut().unwrap().fill_rect(doc.bounds(), &[2.0, 8.0, -0.25, 0.5]);
+    doc.layers.push(layer);
+    let out = export(&doc, "hdr.psd", &ExportOptions::default()).unwrap();
+    let file = PsdFile::from_bytes(&out.bytes).unwrap();
+    let merged = merged_composite(&file).unwrap();
+    let expected = photocraft_compose::flatten(&doc).px;
+    assert!(max_diff(&merged, &expected) < 1e-6, "merged {merged:?}, expected {expected:?}");
+    assert!(merged[0][0] > 1.0 && merged[0][2] < 0.0);
+    assert!((merged[0][3] - 0.5).abs() < 1e-6);
+}

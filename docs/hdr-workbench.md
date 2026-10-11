@@ -44,6 +44,37 @@ through ICC transforms into the current document's composite profile on recall.
 Up to 32 swatches can be stored. `tools.setColors` validates both colors before
 changing either, rejects malformed input, and accepts hex or float arrays.
 
+## HDR adjustment and filter previews
+
+32-bit RGB Levels evaluates its float curve directly, including values above white;
+neutral Levels preserves the original radiance. Curves extends its endpoint tangents
+outside 0–1, while Exposure, Brightness/Contrast, Channel Mixer, Photo Filter and
+Color Balance preserve highlight values instead of clipping to SDR white. Float
+Exposure also preserves negative offsets through a signed gamma curve. Integer
+8/16-bit adjustment behavior stays bounded.
+
+Hue/Saturation, Vibrance, Black & White, Selective Color and Color Lookup evaluate
+HDR colors after dividing by peak RGB (at least 1), then restore that scale. This
+is an explicit extension of their bounded color domain, not a claim of exact
+Photoshop HDR parity. Threshold, Posterize and Gradient Map intentionally remap
+tones to their bounded output domains.
+
+Camera Raw (including its full-resolution refinement), Liquify, Filter Gallery and
+its effect thumbnails use float preview images through the same HDR display controls.
+Their CPU fallback tone maps before quantization; unchanged previews keep cached textures.
+
+Both preview and Apply use the same adjustment evaluation. Generic filters use
+the same command on a reduced document, keeping float pixels and the document
+profile. The CPU canvas, including flipped views, tone maps the preview before
+8-bit display conversion. Preview GPU textures require float support for 32-bit
+documents; otherwise the CPU path presents the preview.
+
+The offscreen HDR snapshot example also accepts `--command` (a filter or
+adjustment command id), `--params` (JSON), and `--no-preview`, `--apply` or
+`--cancel` to check the actual dialog lifecycle. Specialized dialogs can be driven
+with `--ui` (their existing command UI JSON). Its EXR output preserves
+framebuffer values above white; its PNG is clipped to SDR.
+
 ## Matching SDR export
 
 **File → Export → Export SDR Preview…** (also available in the workbench) writes

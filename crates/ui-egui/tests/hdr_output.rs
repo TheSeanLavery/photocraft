@@ -6,6 +6,9 @@ use photocraft_geom::Rect;
 use photocraft_raster::Surface;
 use photocraft_ui_egui::gpu_canvas::{GpuCanvas, ViewParams};
 
+// NVIDIA Vulkan drivers can crash while separate tests create devices concurrently.
+static GPU_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 fn render_profile(
     headroom: f32,
     preview: Option<[f32; 2]>,
@@ -14,6 +17,7 @@ fn render_profile(
     chromatic: bool,
     profile: photocraft_cms::Builtin,
 ) -> Option<Vec<[f32; 4]>> {
+    let _gpu_guard = GPU_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut rs = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         egui_kittest::wgpu::create_render_state(photocraft_ui_egui::gpu_canvas::wgpu_setup(), Default::default())
     }))

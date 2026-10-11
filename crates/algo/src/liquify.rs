@@ -691,13 +691,27 @@ impl ProxyImage {
     /// Renders proxy pixels `r` (proxy coordinates) through the field into `out` (premultiplied
     /// RGBA8, `w × h`): bilinear field, bilinear source.
     pub fn render(&self, field: &LiquifyField, r: [usize; 4], out: &mut [[u8; 4]]) {
+        let _ = self.render_samples(field, r, out, |p| p.map(|v| (v.clamp(0.0, 1.0) * 255.0 + 0.5) as u8));
+    }
+
+    /// Straight RGBA float preview, preserving above-white radiance through the warp.
+    /// Returns false for malformed proxy dimensions or an undersized output buffer.
+    pub fn render_f32(&self, field: &LiquifyField, r: [usize; 4], out: &mut [[f32; 4]]) -> bool {
+        self.render_samples(field, r, out, |p| if p[3] > 0.0 { [p[0] / p[3], p[1] / p[3], p[2] / p[3], p[3]] } else { [0.0; 4] })
+    }
+
+    fn render_samples<T: Send>(&self, field: &LiquifyField, r: [usize; 4], out: &mut [T], encode: impl Fn([f32; 4]) -> T + Sync) -> bool {
+        let Some(len) = self.w.checked_mul(self.h) else { return false };
+        if self.w == 0 || self.h == 0 || self.px.len() < len || out.len() < len || !self.scale.is_finite() || self.scale <= 0.0 {
+            return false;
+        }
         let [x0, y0, x1, y1] = [r[0].min(self.w), r[1].min(self.h), r[2].min(self.w), r[3].min(self.h)];
         if x0 >= x1 || y0 >= y1 {
-            return;
+            return true;
         }
         let s = self.scale;
         let (bx, by) = (f64::from(self.bounds.x0), f64::from(self.bounds.y0));
-        let row = |y: usize, line: &mut [[u8; 4]]| {
+        let row = |y: usize, line: &mut [T]| {
             let py = by + (y as f64 + 0.5) * s;
             for (x, slot) in line.iter_mut().enumerate().take(x1).skip(x0) {
                 let px = bx + (x as f64 + 0.5) * s;
@@ -705,23 +719,23 @@ impl ProxyImage {
                 let (u, v) = ((px + d[0] - bx) / s - 0.5, (py + d[1] - by) / s - 0.5);
                 let (iu, iv) = (u.floor(), v.floor());
                 let (fu, fv) = ((u - iu) as f32, (v - iv) as f32);
-                let at = |x: f64, y: f64| self.px[(y.clamp(0.0, (self.h - 1) as f64) as usize) * self.w + x.clamp(0.0, (self.w - 1) as f64) as usize];
+                let at = |x: f64, y: f64| {
+                    self.px.get((y.clamp(0.0, (self.h - 1) as f64) as usize) * self.w + x.clamp(0.0, (self.w - 1) as f64) as usize).copied().unwrap_or([0.0; 4])
+                };
                 let (a, b, c, e) = (at(iu, iv), at(iu + 1.0, iv), at(iu, iv + 1.0), at(iu + 1.0, iv + 1.0));
-                *slot = std::array::from_fn(|k| {
-                    let v = (a[k] * (1.0 - fu) + b[k] * fu) * (1.0 - fv) + (c[k] * (1.0 - fu) + e[k] * fu) * fv;
-                    (v.clamp(0.0, 1.0) * 255.0 + 0.5) as u8
-                });
+                *slot = encode(std::array::from_fn(|k| (a[k] * (1.0 - fu) + b[k] * fu) * (1.0 - fv) + (c[k] * (1.0 - fu) + e[k] * fu) * fv));
             }
         };
-        let rows = &mut out[y0 * self.w..y1 * self.w];
+        let Some(rows) = out.get_mut(y0 * self.w..y1 * self.w) else { return false };
         // A dab's few thousand pixels are faster on this thread than waking the pool.
         #[cfg(not(target_arch = "wasm32"))]
         if (x1 - x0) * (y1 - y0) > 150_000 {
             use rayon::prelude::*;
             rows.par_chunks_mut(self.w).enumerate().for_each(|(i, line)| row(y0 + i, line));
-            return;
+            return true;
         }
         rows.chunks_mut(self.w).enumerate().for_each(|(i, line)| row(y0 + i, line));
+        true
     }
 
     /// The proxy pixel rectangle covering document rect `r`.
@@ -780,6 +794,21 @@ mod tests {
             j = i;
         }
         inside
+    }
+
+    #[test]
+    fn float_proxy_preserves_hdr_and_rejects_short_buffers() {
+        let bounds = Rect::new(0, 0, 8, 8);
+        let mut src = Surface::new(photocraft_color::PixelFormat::new(photocraft_color::ColorMode::Rgb, photocraft_color::SampleType::F32, true));
+        src.fill_rect(bounds, &[2.0, 4.0, 8.0, 0.5]);
+        let proxy = ProxyImage::new(&src, bounds, 8);
+        let field = LiquifyField::new(bounds, 4.0);
+        let mut out = vec![[0.0; 4]; 64];
+        assert!(proxy.render_f32(&field, [0, 0, 8, 8], &mut out));
+        assert!(out.iter().all(|p| *p == [2.0, 4.0, 8.0, 0.5]));
+        assert!(!proxy.render_f32(&field, [0, 0, 8, 8], &mut out[..1]));
+        // The former byte preview sliced beyond this buffer and panicked.
+        proxy.render(&field, [0, 0, 8, 8], &mut [[0u8; 4]; 1]);
     }
 
     #[test]
