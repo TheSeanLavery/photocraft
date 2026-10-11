@@ -33,6 +33,10 @@ photocraft-format = { path = "../format" }
 thiserror = { workspace = true }
 serde_json = { workspace = true }
 blake3 = { version = "1.8", default-features = false, features = ["pure"] }
+flate2 = {workspace=true}
+zip = {version="8.6",default-features=false,features=["deflate-flate2"]}
+roxmltree="0.20"
+base64="0.22"
 
 [dev-dependencies]
 photocraft-psd = { workspace = true, features = ["testgen"] }
