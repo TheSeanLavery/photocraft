@@ -126,6 +126,14 @@ impl Autosaver {
     pub fn request(&self, snapshot: Arc<Document>, revision: u64, original_path: Option<String>, opts: SaveOptions) -> std::result::Result<(), String> {
         self.request_checkpoint(snapshot, History::default().checkpoint(), revision, original_path, opts)
     }
+    /// Queue a snapshot and report enqueue failure; completion is delivered separately.
+    pub fn request_checked(&self, snapshot: Arc<Document>, revision: u64, original_path: Option<String>, opts: SaveOptions) -> std::result::Result<(), String> {
+        self.request(snapshot, revision, original_path, opts)
+    }
+    /// Compatibility with callers that only need the durable write outcome.
+    pub fn take_completed(&self) -> Vec<(u64, std::result::Result<(), String>)> {
+        self.take_completion().map(|c| (c.revision, c.result.map(|_| ()))).into_iter().collect()
+    }
     pub fn request_checkpoint(
         &self,
         snapshot: Arc<Document>,

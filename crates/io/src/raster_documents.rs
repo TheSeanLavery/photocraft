@@ -4,7 +4,7 @@ use crate::{ExportOptions, ExportResult, IoError};
 use base64::Engine;
 use photocraft_codecs::{ChannelLayout, Format, SampleType};
 use photocraft_doc::Document;
-use std::io::{Read, Write};
+use std::io::Write;
 fn error(s: impl std::fmt::Display) -> IoError {
     IoError::Unsupported(format!("raster document export: {s}"))
 }
@@ -116,20 +116,8 @@ fn pdf(image: &photocraft_codecs::Image, points: (f64, f64), embed_icc: bool) ->
 /// General SVG documents remain the responsibility of the full SVG importer.
 pub(crate) fn import_wrapper(name: &str, bytes: &[u8]) -> Result<Option<crate::ImportResult>, IoError> {
     const MAX: u64 = 128 << 20;
-    let inflated;
-    let bytes = if bytes.starts_with(&[0x1f, 0x8b]) {
-        inflated = {
-            let mut out = Vec::new();
-            flate2::read::MultiGzDecoder::new(bytes).take(MAX + 1).read_to_end(&mut out).map_err(error)?;
-            out
-        };
-        if inflated.len() as u64 > MAX {
-            return Err(error("SVGZ exceeds decompression budget"));
-        }
-        inflated.as_slice()
-    } else {
-        bytes
-    };
+    let inflated = crate::svg::inflate(bytes)?;
+    let bytes = inflated.as_ref();
     let marker = b"data-photocraft-raster";
     if !bytes.windows(marker.len()).any(|b| b == marker) {
         return Ok(None);

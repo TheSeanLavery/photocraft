@@ -13,6 +13,7 @@ contextual, command-ID and plural translations; missing entries fall back to Eng
 | 日本語 | `ja` | one form |
 | 한국어 | `ko` | one form |
 | Русский | `ru` | one / few / many |
+| Українська | `uk` | one / few / many (teens use many) |
 | Français | `fr` | singular for 0 and 1 / plural for 2+ |
 | 繁體中文 | `zh-hant` | one form |
 | Español | `es` | one / other |
@@ -21,6 +22,9 @@ contextual, command-ID and plural translations; missing entries fall back to Eng
 | Bahasa Indonesia | `id` | one form |
 | Português (Brasil) | `pt-br` | singular for 0 and 1 / plural for 2+ |
 | Italiano | `it` | one / other |
+| Polski | `pl` | one / few (2–4, not 12–14) / many |
+| Ελληνικά | `el` | one / other |
+| Nederlands | `nl` | one / other |
 
 Every non-English catalog covers the current menu labels, `tl!` literals, blend mode names,
 and generated preference labels. Tests enforce that coverage. This does not include every
@@ -80,6 +84,29 @@ identity continues to use command IDs, independent of translated labels.
 This is hot switching among the bundled catalogs. Catalog files are embedded with
 `include_str!`; editing a TSV file requires a rebuild. External catalog watching and
 file-resource hot reload are not implemented.
+
+## Right-to-left languages
+
+Arabic, Hebrew, Persian, Urdu and the other right-to-left languages listed in
+`i18n::dir_for_code` mirror the window's chrome when chosen: the menu bar starts at the right
+with File, the toolbox docks on the right and the panel dock and its rail on the left, and the
+title, options and status bars read from the right (`crates/ui-egui/src/direction.rs`). The
+direction follows the language code, so a catalog needs no extra setting.
+
+Not mirrored yet: panel interiors, dialogs, menu rows (shortcuts stay on the right), submenus
+(they open to the right), document tabs and the canvas. Before an Arabic catalog reads
+correctly, the UI also needs an Arabic fallback font (the bundled UI fonts have no Arabic
+glyphs) and bidirectional word order: egui 0.36 shapes each right-to-left word with HarfRust,
+so letters join, but lays a line's words out left to right, and its caret indexing is off in
+right-to-left text (emilk/egui#8576, #8577). Document text is laid out by the text engine.
+
+No right-to-left catalog ships yet. To check the mirrored layout with any language, launch with
+`PHOTOCRAFT_UI_DIRECTION=rtl` (or `ltr` to force left-to-right); it is read once per process
+and has no effect on the web build:
+
+```sh
+PHOTOCRAFT_UI_DIRECTION=rtl cargo run -p photocraft-ui-egui --example snapshot -- --out rtl.png
+```
 
 ## Fonts
 

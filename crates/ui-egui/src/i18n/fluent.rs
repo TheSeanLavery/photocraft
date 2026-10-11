@@ -31,7 +31,7 @@ impl Catalog {
     }
 }
 
-static CATALOGS: [OnceLock<Catalog>; 13] = [const { OnceLock::new() }; 13];
+static CATALOGS: [OnceLock<Catalog>; 17] = [const { OnceLock::new() }; 17];
 
 fn catalog(code: &str) -> Option<&'static Catalog> {
     let (index, locale, source) = match code {
@@ -48,6 +48,10 @@ fn catalog(code: &str) -> Option<&'static Catalog> {
         "de" => (10, "de", include_str!("locales/de/messages.ftl")),
         "pt-br" => (11, "pt-BR", include_str!("locales/pt-BR/messages.ftl")),
         "it" => (12, "it", include_str!("locales/it/messages.ftl")),
+        "uk" => (13, "uk", include_str!("locales/uk/messages.ftl")),
+        "pl" => (14, "pl", include_str!("locales/pl/messages.ftl")),
+        "el" => (15, "el", include_str!("locales/el/messages.ftl")),
+        "nl" => (16, "nl", include_str!("locales/nl/messages.ftl")),
         _ => return None,
     };
     Some(CATALOGS.get(index)?.get_or_init(|| Catalog::new(locale, source)))

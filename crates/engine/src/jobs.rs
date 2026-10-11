@@ -221,6 +221,8 @@ pub struct Jobs {
     /// Workers of cancelled jobs that may still be unwinding (native).
     #[cfg(not(target_arch = "wasm32"))]
     draining: Vec<std::thread::JoinHandle<()>>,
+    /// The context inline job work runs under (see [`Session::set_inline_job_ctx`]).
+    inline: Option<JobCtx>,
 }
 
 const RECENT: usize = 16;
@@ -283,7 +285,7 @@ pub fn run<T: Send + 'static>(
     apply: impl FnOnce(&mut Session, T) -> Result<Value> + Send + 'static,
 ) -> Result<Value> {
     if !s.jobs.spawn || cfg!(target_arch = "wasm32") {
-        let t = work(&JobCtx::new())?;
+        let t = work(&s.jobs.inline.clone().unwrap_or_default())?;
         return apply(s, t);
     }
     if s.jobs.pending.is_some() {
@@ -352,7 +354,7 @@ pub fn edit_job<R: Send + 'static>(
 ) -> Result<Value> {
     if !s.jobs.spawn || cfg!(target_arch = "wasm32") {
         // Inline: exactly `Session::edit`, as before jobs existed.
-        let ctx = JobCtx::new();
+        let ctx = s.jobs.inline.clone().unwrap_or_default();
         let r = s.edit(label, |doc, active| f(doc, active, &ctx))?;
         return Ok(finish(r));
     }
@@ -393,6 +395,14 @@ pub enum OpenSource {
 pub const OPEN_JOB: &str = "file.open";
 
 impl Session {
+    /// Run the heavy part of inline (not background) job commands under `ctx`, so another thread
+    /// can cancel them: a live preview whose parameters changed stops its stale computation
+    /// (`Err(Cancelled)`, the document unchanged) instead of finishing it. `None` restores the
+    /// default, a context nothing can cancel.
+    pub fn set_inline_job_ctx(&mut self, ctx: Option<JobCtx>) {
+        self.jobs.inline = ctx;
+    }
+
     /// Run a command, in the background when it supports it (see [`jobs`](crate::jobs)). Errors
     /// like [`Session::execute`] for unknown, disabled or failing commands.
     pub fn start(&mut self, id: &str, params: Value) -> Result<Started> {
@@ -407,6 +417,7 @@ impl Session {
         let label = format!("Opening {name}");
         let name_w = name.to_string();
         let name_a = name.to_string();
+        let max_svg_group_depth = self.prefs().file_handling.rasterize_svg_groups_deeper_than as usize;
         self.start_job(
             OPEN_JOB,
             json!({"name": name}),
@@ -420,13 +431,17 @@ impl Session {
                 };
                 ctx.check()?;
                 ctx.progress(0.02, "Decoding");
-                ctx.stage(0.02, 1.0, "Decoding", |ctl| photocraft_io::import_with(&name_w, &bytes, ctl)).map_err(|e| match e {
-                    photocraft_io::IoError::Cancelled => EngineError::Cancelled,
-                    e => EngineError::Other(e.to_string()),
-                })
+                ctx.stage(0.02, 1.0, "Decoding", |ctl| photocraft_io::import_with_svg_group_depth_and_interrupt(&name_w, &bytes, max_svg_group_depth, ctl))
+                    .map_err(|e| match e {
+                        photocraft_io::IoError::Cancelled => EngineError::Cancelled,
+                        e => EngineError::Other(e.to_string()),
+                    })
             },
             move |s, r: photocraft_io::ImportResult| {
                 let (index, color) = s.open_document(r.document, None);
+                if let Some(st) = s.active_mut() {
+                    st.source_read_only = r.source_read_only;
+                }
                 Ok(json!({"document": index, "name": name_a, "warnings": r.warnings, "color": color}))
             },
         )
@@ -547,7 +562,7 @@ impl Session {
 
     /// Running jobs followed by the last few that ended (newest last), for `jobs.list`.
     pub fn jobs_with_recent(&self) -> Vec<JobInfo> {
-        self.jobs.recent.iter().cloned().chain(self.jobs()).collect()
+        self.jobs().into_iter().chain(self.jobs.recent.iter().cloned()).collect()
     }
 
     /// The running job that locks document `doc`, if any.
@@ -600,7 +615,22 @@ impl Session {
         if let Some(gate) = self.authorize {
             gate(id, &params)?;
         }
+        if id == "file.new" {
+            crate::document_preset_cmds::validate_new_params(self, &params)?;
+        }
+        crate::filters::validate_params(id, &params)?;
         let room_document = self.collaboration.room.is_some() && self.active().is_some_and(|st| Some(st.doc.id) == self.collaboration.document_id);
+        // A cross-document copy mutates its destination, which can be the room even while
+        // the initiating artist has a private source tab active.
+        let copy_to_room = id == "layer.copyToDocument"
+            && self.collaboration.room.is_some()
+            && params
+                .get("document")
+                .and_then(Value::as_u64)
+                .and_then(|index| usize::try_from(index).ok())
+                .and_then(|index| self.docs.get(index))
+                .is_some_and(|state| Some(state.doc.id) == self.collaboration.document_id);
+        let shares_document = if id == "layer.copyToDocument" { copy_to_room } else { room_document };
         if room_document && self.active().is_some_and(|st| crate::float_cmds::floating(st).is_some()) {
             if matches!(id, "edit.undo" | "edit.stepBackward") {
                 if let Some(result) = crate::float_cmds::before_command(self, id)? {
@@ -643,7 +673,7 @@ impl Session {
         }
         let private_mask = crate::channel_cmds::inject_target(self, id, params.clone()).get("target").and_then(Value::as_str) == Some("quickMask");
         if !private_mask
-            && (room_document || (self.collaboration.room.is_some() && id == "layer.smartObjects.saveContents"))
+            && (shares_document || (self.collaboration.room.is_some() && id == "layer.smartObjects.saveContents"))
             && crate::collab_resources::command_mode(id, &params) != crate::collab_resources::CommandMode::Local
         {
             let resolved_params = crate::channel_cmds::inject_target(self, id, crate::commands::inject_kind(id, params));
@@ -661,6 +691,10 @@ impl Session {
         }
         if let Some(why) = self.job_conflict(id, spec.journal) {
             return Err(EngineError::Disabled(id.to_string(), why));
+        }
+        // Painting on or moving a hidden layer is refused, as in Photoshop (#571).
+        if let Some(why) = crate::hidden_target::refusal(self, id, &params) {
+            return Err(EngineError::Other(why.into()));
         }
         self.coalesce_request = params.get("coalesce").and_then(Value::as_str).map(str::to_string);
         self.color_restrict = crate::channel_cmds::color_restriction(self, id, &run_params);
@@ -754,13 +788,18 @@ impl Session {
         };
         self.coalesce_request = None;
         self.color_restrict = None;
+        // Finish successful command bookkeeping on the document the job edited.
+        // Restoring the viewed document first would attribute Fade and slice updates
+        // to that document instead, when the user switched tabs mid-job.
+        if r.is_ok() {
+            self.after_command(command, params.clone(), *journal);
+        }
         // Keep the user's active document unless the job opened a new one.
+        // This also restores the selection when the apply step returned an error.
         if target.is_some() && self.active == target {
             self.active = prev_active.filter(|i| *i < self.docs.len()).or(self.active);
         }
-        let v = r?;
-        self.after_command(command, params.clone(), *journal);
-        Ok(v)
+        r
     }
 
     fn end_job(&mut self, job: &Running, outcome: JobOutcome) {

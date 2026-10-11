@@ -412,6 +412,27 @@ impl History {
         entries
     }
 
+    /// Delete one branch state and all of its descendants, preserving independent branches.
+    /// The caller first moves the current document to the deleted state's predecessor.
+    pub fn prune_descendants(&mut self, id: u64) {
+        let timeline = self.timeline();
+        let mut removed = HashSet::from([id]);
+        loop {
+            let before = removed.len();
+            for entry in &timeline {
+                if entry.identity.parent.is_some_and(|parent| removed.contains(&parent)) {
+                    removed.insert(entry.identity.id);
+                }
+            }
+            if removed.len() == before {
+                break;
+            }
+        }
+        self.undo.retain(|state| !removed.contains(&state.identity.id));
+        self.redo.retain(|state| !removed.contains(&state.identity.id));
+        self.branches.retain(|state| !removed.contains(&state.identity.id));
+    }
+
     pub fn current_id(&self) -> u64 {
         self.current_identity.id
     }
@@ -806,7 +827,7 @@ pub fn document_bytes(doc: &Document, seen: &mut HashSet<usize>) -> usize {
             total = total.saturating_add(add(&mask.surface));
         }
         if let Some(video) = &layer.video {
-            for frame in &video.frames {
+            for frame in video.frames.iter().chain(video.original_frames.iter().flatten()) {
                 total = total.saturating_add(add(frame));
             }
         }
@@ -1180,6 +1201,16 @@ mod tests {
         doc.layers[0].video = Some(photocraft_doc::VideoData::new(vec![surface], 24.0));
         let mut seen = HashSet::new();
         assert_eq!(document_bytes(&doc, &mut seen), 2 * 256 * 256 * 4);
+        assert_eq!(document_bytes(&doc, &mut seen), 0);
+        // Original video frames are shared until an edit replaces one. The new allocation
+        // must enter the same resident history budget without counting aliases twice.
+        let mut original = doc.selection.clone().unwrap();
+        original.write_pixel(0, 0, &[0.1, 0.2, 0.3, 1.0]);
+        let video = doc.layers[0].video.as_mut().unwrap();
+        video.frames.push(video.frames[0].clone());
+        video.original_frames = Some(vec![video.frames[0].clone(), original]);
+        seen.clear();
+        assert_eq!(document_bytes(&doc, &mut seen), 3 * 256 * 256 * 4);
         assert_eq!(document_bytes(&doc, &mut seen), 0);
     }
 

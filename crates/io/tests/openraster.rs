@@ -77,7 +77,7 @@ fn corrupt_xml_zip_paths_sizes_and_depth_fail_without_panicking() {
         "<image w='1' h='1'><stack><layer src='data/l.png' opacity='NaN'/></stack></image>",
     ] {
         let bytes = archive(xml, None);
-        assert!(import("bad.ora", &bytes).is_err());
+        assert!(import("bad.ora", &bytes).is_err(), "{xml}");
     }
     let xml = format!("<image w='1' h='1'><stack>{}{}</stack></image>", "<stack>".repeat(102), "</stack>".repeat(102));
     assert!(import("deep.ora", &archive(&xml, None)).is_err());
@@ -90,6 +90,8 @@ fn corrupt_xml_zip_paths_sizes_and_depth_fail_without_panicking() {
 fn unsupported_backdrop_features_export_a_warned_visual_composite() {
     let mut original = doc(SampleType::U8);
     original.layers[0].blend = BlendMode::VividLight;
+    // Krita can now represent this blend mode, but clipping still needs the composite fallback.
+    original.layers[1].clipped = true;
     let result = export(&original, "ora", &Default::default()).unwrap();
     assert!(result.warnings.iter().any(|w| w.contains("flattened composite")));
     let opened = import("fallback.ora", &result.bytes).unwrap().document;

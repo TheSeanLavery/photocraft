@@ -7,6 +7,7 @@
 //! ```
 //!
 //! `--save-format` previews the macOS Save As format chooser without opening an OS panel.
+//! `--system-theme light|dark|none` supplies a deterministic OS appearance for theme captures.
 //!
 //! `--safe-gpu` draws the canvas on the CPU path, like the app's `--safe-gpu` launch.
 //! `--wayland-notice` previews the native file drag-and-drop guidance shown in Wayland sessions.
@@ -43,7 +44,9 @@ fn main() {
     let mut services = Services {
         choose_save_format: args.iter().any(|a| a == "--save-format"),
         save_destination: Some(Box::new(|_, _, _, _| {})),
-        import: Some(Box::new(|name: &str, bytes: &[u8]| photocraft_io::import(name, bytes).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string()))),
+        import: Some(Box::new(|name: &str, bytes: &[u8], depth: usize| {
+            photocraft_io::import_with_svg_group_depth(name, bytes, depth).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
+        })),
         export: Some(Box::new(|doc: &photocraft_doc::Document, path: &str, settings: &photocraft_ui_egui::ExportSettings| {
             let mut opts = photocraft_io::ExportOptions::default();
             if let Some(q) = settings.jpeg_quality {
@@ -53,6 +56,7 @@ fn main() {
             if let Some(q) = settings.webp_quality {
                 opts.encode.webp_quality = q;
             }
+            opts.tga_bits = settings.tga_bits;
             photocraft_io::export(doc, path, &opts).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string())
         })),
         write: Some(Box::new(|path: &str, bytes: &[u8]| photocraft_format::atomic_write(std::path::Path::new(path), bytes).map_err(|e| e.to_string()))),
@@ -94,6 +98,7 @@ fn main() {
             PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
             let mut services = services;
             services.is_wayland = wayland_notice;
+            services.xwayland_command = wayland_notice.then(|| "WAYLAND_DISPLAY= photocraft".into());
             let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), services);
             app.background_jobs = background_jobs;
             app.custom_titlebar = custom_titlebar;
@@ -119,6 +124,17 @@ fn main() {
         v.monitor_size = Some(egui::vec2(mw, mh));
         v.inner_rect = Some(egui::Rect::from_min_size(egui::pos2(0.0, top), egui::vec2(w, h)));
         v.maximized = Some(false);
+    }
+    if let Some(appearance) = arg(&args, "--system-theme") {
+        harness.input_mut().system_theme = match appearance.as_str() {
+            "light" => Some(egui::Theme::Light),
+            "dark" => Some(egui::Theme::Dark),
+            "none" => None,
+            _ => {
+                eprintln!("--system-theme must be light, dark or none");
+                std::process::exit(2);
+            }
+        };
     }
     harness.run_steps(4);
     let ctx = harness.ctx.clone();

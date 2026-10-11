@@ -4320,3 +4320,881 @@ ui-use-available-disk-space-44211d74d7260f1a = Použít dostupné místo na disk
 ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Místo pro vracení změn roste podle potřeby. Neomezená historie uchovává stavy do zaplnění úložiště. Cesty platí pro příští relaci mezipaměti.
 
 ui-change-opacity-c419e848020b25f4 = Změnit krytí
+
+ui-0-turns-this-threshold-off-svg-groups-ne-8107dd87e635679d = 0 vypne tento práh; skupiny SVG vnořené hlouběji než 100 úrovní se rastrují vždy.
+
+ui-101-by-101-average-f0636a75b4938275 = Průměr 101 × 101
+
+ui-11-by-11-average-538d383a16a69bb7 = Průměr 11 × 11
+
+ui-12-columns-b949e2085ce68503 = 12 sloupců
+
+ui-24-bits-pixel-1efd69221601fa68 = 24 bitů/pixel
+
+ui-3-by-3-average-400d4f87bb7a72ef = Průměr 3 × 3
+
+ui-31-by-31-average-f49ec39b911d80e3 = Průměr 31 × 31
+
+ui-32-bits-pixel-33b63adb24722469 = 32 bitů/pixel
+
+ui-5-by-5-average-393c80f9d8845bab = Průměr 5 × 5
+
+ui-5-columns-3-rows-8ebf23bc0edaefdb = 5 sloupců, 3 řádky
+
+ui-50-gray-da82e26ee3dda904 = 50% šedá
+
+ui-51-by-51-average-f8031ef2f1c3a59f = Průměr 51 × 51
+
+ui-8-columns-7960156dbbf9d0ba = 8 sloupců
+
+ui-80-9314897fc598cede = 80 %
+
+ui-85-9303957fc58a700f = 85 %
+
+ui-90-89fe507fc0546e79 = 90 %
+
+ui-95-8a0f4c7fc062dae0 = 95 %
+
+ui-a-save-to-name-is-still-running-try-agai-05cc493545eb159a = Ukládání do { $name } stále probíhá; zkuste to znovu, až skončí
+
+ui-activate-panel-2d26ff9c85f372cc = Aktivovat panel
+
+ui-active-9a4fc0866deff4e1 = Aktivní
+
+ui-add-anchor-point-tool-47f6a2d216ab0095 = Nástroj přidat kotevní bod
+
+ui-add-beauty-precomp-from-the-aovs-4d9efefbd4ef0542 = Přidat předběžnou kompozici krásy z AOV
+
+ui-add-new-artboard-a9daaf925d16a4c3 = Přidat novou kreslicí plochu
+
+ui-add-pair-0c629fff04fb2b1e = Přidat pár
+
+ui-add-to-favorites-0541c1994e6ae85e = Přidat do oblíbených
+
+ui-add-to-swatches-3781607eddbada31 = Přidat do vzorníku
+
+ui-adds-the-current-gradient-to-the-gradien-a1f9968192c4ba50 = Přidá aktuální přechod do panelu Přechody
+
+ui-adwaita-cd477fc88437525a = Adwaita
+
+ui-adwaita-dark-50de267958d3f412 = Adwaita tmavý
+
+ui-adwaita-dark-theme-05d4bf4c97aa218f = Motiv Adwaita (tmavý)
+
+ui-adwaita-light-theme-03c426048b1e340f = Motiv Adwaita (světlý)
+
+ui-alignment-40ae160a9e770aa8 = Zarovnání
+
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = Všechny vrstvy bez korekcí
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Všechny zkratky byly obnoveny na výchozí hodnoty PhotoCraftu.
+
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Alt+klik převzalo pracovní prostředí, které pomocí Alt+tažení přesouvá okna. Nastavte jeho klávesu pro přesun oken na Super, nebo zamkněte Alt v nabídce Okno › Modifikační klávesy.
+
+ui-always-show-overlay-b6be473be8ad3beb = Vždy zobrazit překryv
+
+ui-and-n-more-6e37845d39302347 = …a dalších { $n }
+
+ui-anti-aliased-c391708a54da1e67 = Vyhlazení
+
+ui-appearance-mode-c6e76c01b1038388 = Režim vzhledu
+
+ui-appearance-settings-b5f1d7603a447b52 = Nastavení vzhledu…
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = Použít efekt na hranicích plátna
+
+ui-artboard-tool-80bd830389a6711e = Nástroj kreslicí plocha
+
+ui-auto-adjust-opacity-28ceac7a28ddd13a = Automaticky upravit krytí
+
+ui-auto-center-preview-225b4704be74d581 = Automaticky vystředit náhled
+
+ui-auto-erase-8a68e4bc3af7d82e = Automatické mazání
+
+ui-auto-hide-notifications-5e48a1ec5b48ddc0 = Automaticky skrývat oznámení
+
+ui-auto-show-overlay-59ff23a3b368166d = Automaticky zobrazit překryv
+
+ui-automatic-04cc1a2793006d9a = Automaticky
+
+ui-background-from-layer-95241da9efd58afc = Pozadí z vrstvy
+
+ui-background-from-layer-e7dca704d0b2e2dc = Pozadí z vrstvy
+
+ui-bevel-b65a0ed0fa933479 = Zkosený
+
+ui-bicubic-sharper-reduction-8526007a04be289f = Bikubická ostřejší (zmenšení)
+
+ui-bicubic-smoother-enlargement-f1b8e48b0f7a4a58 = Bikubická hladší (zvětšení)
+
+ui-black-87de58185ee7e143 = Černá
+
+ui-black-matte-7c051e0b8e0c064b = Černý podklad
+
+ui-blend-if-47ff5afa1385a85d = Prolnout, pokud:
+
+ui-block-c4d0291e851daf50 = Blok
+
+ui-bold-98d37886cf62c4a3 = Tučná
+
+ui-bottom-d0f114b5fd71868e = Dole:
+
+ui-bottom-left-a4a6bc5593eb6541 = Vlevo dole
+
+ui-bottom-right-2acd3cb673e6fda2 = Vpravo dole
+
+ui-breeze-dark-e66fe26550bb0528 = Breeze tmavý
+
+ui-breeze-dark-theme-a680c93f1fa1524d = Tmavý motiv Breeze
+
+ui-breeze-light-0148f2375063bb68 = Breeze světlý
+
+ui-breeze-light-theme-ed04a9643b4b988d = Světlý motiv Breeze
+
+ui-browser-storage-is-unavailable-brushes-a-7917bc257e6f900e = Úložiště prohlížeče není k dispozici; štětce platí jen pro tuto relaci. Nechte tuto kartu otevřenou, abyste si je zachovali.
+
+ui-brush-name-ed530497d97024a4 = Název štětce
+
+ui-brush-preset-changes-are-not-saved-error-5f27ebc7fd81a7c9 = Změny předvoleb štětců nejsou uloženy: { $error }
+
+ui-brush-preset-options-ae5d75337b0c67ae = Možnosti přednastavení štětců
+
+ui-brush-stroke-e15a877d2a400187 = Tah štětce
+
+ui-brush-tip-47495e0f40c5a930 = Hrot štětce
+
+ui-butt-flat-c72fa8c80b7c206a = Plochý
+
+ui-camera-data-90b2af05c38e73b8 = Údaje fotoaparátu
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw ({ $name })
+
+ui-caps-4e22f5ac70d59b9a = Konce
+
+ui-center-columns-eca652a77591890d = Vystředit sloupce
+
+ui-change-panel-group-c875bb8728a6f2da = Změnit skupinu panelů
+
+ui-change-panel-layout-e2e9f02cb1355649 = Změnit rozložení panelů
+
+ui-channels-67ef32de1bae7097 = Kanály:
+
+ui-clear-brush-strokes-12a3c251da9d3d0d = Vymazat tahy štětce
+
+ui-clear-existing-guides-67c8180ae4647d7a = Odstranit stávající vodítka
+
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = Klepněte na červenou zornici
+
+ui-click-a-segment-to-add-an-anchor-point-a-0c07d54f4028e4af = Klepnutím na segment přidáte kotevní bod · { $alt }+klik na kotevní bod jej odstraní
+
+ui-click-an-anchor-point-to-delete-it-alt-c-06d19be357a2d4d7 = Klepnutím na kotevní bod jej odstraníte · { $alt }+klik na segment přidá nový bod
+
+ui-click-corner-drag-smooth-alt-drag-break-h-8598a28b712a87d6 = Kliknutí: roh · tažení: hladký bod · { $alt }+tažení: rozdělit úchyt · kliknutí nebo tažení na první bod: uzavřít · { $key } dokončit · Esc zrušit
+
+ui-click-smooth-point-double-click-corner-d-7ea166abf0ee7560 = Kliknutí: hladký bod · dvojklik: roh · tažení bodu: přesunout · kliknutí na první bod: uzavřít · { $key } dokončit
+
+ui-click-the-first-point-or-press-key-to-cl-901ea1b540ae3fc7 = Klikněte na první bod nebo stiskněte { $key } pro uzavření · { $del } odebere bod · Esc zruší
+
+ui-click-then-move-along-an-edge-click-to-f-4f0fd576defa2100 = Klikněte a veďte podél okraje · kliknutím připevníte bod · { $alt }-kliknutí pro rovný úsek · dvojklik uzavře
+
+ui-click-to-add-a-point-right-click-to-remo-19feda9c95fbcf54 = Kliknutím přidáte bod, pravým tlačítkem bod odeberete
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Kliknutím změňte počet sloupců; přetažením záhlaví panel přesuňte
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Kliknutím změňte počet sloupců; přetažením odpojte Nástroje
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = Kliknutí vybere · Esc zruší
+
+ui-click-to-place-alt-click-or-drag-off-can-0ced5c63027a6ce6 = Kliknutím umístíte · Alt-kliknutím nebo přetažením mimo plátno odeberete
+
+ui-close-panel-194028906d61d387 = Zavřít panel
+
+ui-color-a13d112d0512855e = Barva…
+
+ui-color-adaptation-f7d5eb50532ba5ff = Přizpůsobení barev
+
+ui-color-burn-paint-net-6bce7a866ee8fd93 = Ztmavit barvy (Paint.NET)
+
+ui-color-dodge-paint-net-6a1a7e45c5da25a9 = Zesvětlit barvy (Paint.NET)
+
+ui-color-picker-crop-shield-color-f0f21c4248e058e3 = Výběr barvy (Barva stínění oříznutí)
+
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Výběr barvy (Barva výplně)
+
+ui-color-picker-layer-style-color-fbf90c85b504683a = Výběr barvy (barva stylu vrstvy)
+
+ui-color-picker-name-6336833802dc6c44 = Výběr barvy ({ $name })
+
+ui-color-picker-solid-color-11504899368a43d3 = Výběr barvy (plná barva)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Výběr barvy (Barva tahu)
+
+ui-color-picker-text-color-6873936c7cbaceb3 = Výběr barvy (Barva textu)
+
+ui-color-replacement-1fd9c85a92dd0166 = Nahrazení barvy
+
+ui-color-replacement-tool-e0f757ad548a409c = Nástroj Nahrazení barvy
+
+ui-color-to-alpha-5a172092ca34c10d = Barva na alfu…
+
+ui-columns-3da979c5c05c263a = Sloupce
+
+ui-cone-83c7f5ac8fb13c68 = Kužel
+
+ui-cone-inverted-07c75939642bd114 = Kužel (obrácený)
+
+ui-cone-inverted-4f8ec26e3423aa10 = Kužel - obrácený
+
+ui-contents-b5e5b9d3f6d35ec1 = Obsah:
+
+ui-continue-f031dd957d5c1b56 = Pokračovat
+
+ui-contour-39d36135f075d52b = Kontura
+
+ui-contour-editor-999a1019725e56a4 = Editor kontury
+
+ui-convert-point-tool-ebb1dfd0f79acf3a = Nástroj převést bod
+
+ui-corner-c1f5008d5d2ff536 = Roh
+
+ui-corners-c3453535587dc43f = Rohy
+
+ui-could-not-complete-the-free-transform-co-bfdbe92f0a214b00 = Příkaz Volná transformace nelze dokončit, protože vrstva je zamčená.
+
+ui-could-not-open-05042bf852b9a743 = Nelze otevřít
+
+ui-could-not-use-the-move-tool-because-the-l-34336f06c7d717d6 = Nástroj Přesun nelze použít, protože vrstva je zamčená.
+
+ui-cove-deep-f3413d717747416f = Zátoka - hluboká
+
+ui-cove-shallow-a816ea81e32dc623 = Zátoka - mělká
+
+ui-create-a-new-elliptical-frame-d31989faf7fc5d30 = Vytvořit nový eliptický rámeček
+
+ui-create-a-new-rectangular-frame-29813cef7128625f = Vytvořit nový obdélníkový rámeček
+
+ui-create-ellipse-f707994617445531 = Vytvořit elipsu
+
+ui-create-new-swatch-df52baa4652be53b = Vytvořit nový vzorek
+
+ui-create-polygon-0312408e42727249 = Vytvořit mnohoúhelník
+
+ui-create-rectangle-446a2149ba949cae = Vytvořit obdélník
+
+ui-create-triangle-70461e67c3bc8665 = Vytvořit trojúhelník
+
+ui-crop-shield-color-fcab973d194f6a5d = Barva stínění oříznutí
+
+ui-current-a6280b8d8bb7d590 = Aktuální
+
+ui-current-below-no-adjustments-ad3ef5ddcba453be = Aktuální a pod ní bez korekcí
+
+ui-curvature-pen-tool-f2c504abaa665e43 = Nástroj pero křivosti
+
+ui-curve-fit-4b92a705570d7f79 = Přizpůsobení křivky:
+
+ui-custom-pattern-b1725fbbdb358844 = Vlastní vzorek:
+
+ui-cycle-orientation-d47100e364dd1ce9 = Přepnout orientaci
+
+ui-cycle-overlay-cd2523de1e12bc5b = Přepnout překryv
+
+ui-dark-theme-6d2ab4707cffde72 = Tmavý motiv
+
+ui-darken-amount-4ff87ddb9162ea14 = Míra ztmavení
+
+ui-dash-1f756ca06449aeb3 = Čárka
+
+ui-dash-gap-lengths-stroke-width-d58b32d0afc2986d = Délky čárky / mezery × šířka tahu
+
+ui-dash-offset-e2b5660c676021d6 = Posun čárek
+
+ui-dashed-6a8ccf30c380ff72 = Čárkovaný
+
+ui-dashed-line-9de7b4d520d5eb5c = Čárkovaná čára
+
+ui-date-taken-d246ca6065cd50fd = Datum pořízení
+
+ui-default-photocraft-size-42e29dd35050952b = Výchozí velikost PhotoCraft
+
+ui-delete-anchor-point-tool-32015b0a036fc947 = Nástroj odstranit kotevní bod
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = Odstranit a vyplnit výběr
+
+ui-delete-count-layers-names-6bbff039943d0326 = Smazat vrstvy ({ $count })? { $names }
+
+ui-delete-crop-preset-e34aa95ed101e033 = Odstranit předvolbu oříznutí…
+
+ui-delete-layer-58301f0b5ef0e41a = Smazat vrstvu?
+
+ui-delete-layer-name-9407eadca584de9c = Smazat vrstvu „{ $name }“?
+
+ui-developing-name-3ca6c158e9e9f235 = Vyvolávání { $name }
+
+ui-diagonal-6308486872486528 = Diagonální
+
+ui-diagonal-descending-b3d2c399a327a7d9 = Diagonála (sestupná)
+
+ui-dock-panel-0cd117664b0f3f4e = Ukotvit panel
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Ukotvit Nástroje vlevo
+
+ui-domed-6b80f3fc40f5c94c = Kopule
+
+ui-domed-inverted-3a1408397cf5ea60 = Kopule (obrácená)
+
+ui-don-t-import-8a153d1cf3e9bcec = Neimportovat
+
+ui-dotted-c6817b61ff95adbb = Tečkovaný
+
+ui-drag-a-box-or-click-four-corners-drag-th-df3a1ca51159d17a = Táhněte rámeček nebo klikněte na čtyři rohy · přetáhněte rohy na okraje zkoseného tvaru · { $commit } potvrdí · Esc zruší
+
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = Tažením nakreslete ořez · tažením uvnitř posunete · okraje mění velikost ({ $ratio } poměr, { $centre } střed) · Mezerník posouvá při kreslení · šipky posunují · X prohodí orientaci · { $commit } potvrdí · Esc zruší
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = Tažením kolem středu otočíte zobrazení  ·  Shift omezí na 15°
+
+ui-drag-draw-freehand-release-on-the-start-p-ea613d199529d708 = Tažení: kreslit od ruky · uvolnění na počátečním bodě: uzavřít
+
+ui-dual-axis-1c45b5825da6a58e = Dvojitá osa
+
+ui-duplicate-f94b553491159a80 = Duplikovat
+
+ui-edit-keyboard-shortcuts-reset-all-to-def-1c2e80c5385a9432 = Úpravy › Klávesové zkratky › Obnovit vše na výchozí import vrátí zpět.
+
+ui-edit-paste-3f6b4ca340b0bccc = Úpravy › Vložit
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = Úpravy, které mění celý dokument, například režim prolnutí, krytí nebo viditelnost vrstvy, jej překreslí celý.
+
+ui-enable-crop-shield-f3578921d3d300ef = Povolit stínění oříznutí
+
+ui-enter-a-name-for-the-crop-preset-a58a2551cfe13f3e = Zadejte název předvolby oříznutí
+
+ui-expand-detection-area-dceaf291bd07056d = Rozšířit oblast detekce
+
+ui-export-swatches-429d4e913cd22171 = Exportovat vzorky…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = Exportovat vzorky pro výměnu…
+
+ui-exposure-d40fa037a6d0e233 = Expoziční čas
+
+ui-extrabold-fd6396c3deb95c21 = Extratučná
+
+ui-extralight-0704360f6be0647a = Extrajemná
+
+ui-eyedroppers-9220889b81a1f1b5 = Kapátka:
+
+ui-f-cycles-the-views-hold-x-to-see-the-ima-f78f72e02c811b5f = F přepíná zobrazení; podržením X uvidíte obraz
+
+ui-f-stop-950ea3f6954631c3 = Clona
+
+ui-fill-color-61734769aae23385 = Barva výplně
+
+ui-fill-screen-610513f68e54eeee = Vyplnit obrazovku
+
+ui-float-panel-b52119e145970061 = Plovoucí panel
+
+ui-focal-length-35-mm-48b7586512d355f4 = Ohnisková vzdálenost (35 mm)
+
+ui-focal-length-aa1997545c858259 = Ohnisková vzdálenost
+
+ui-follows-only-edges-this-close-to-the-poi-10b48929e48da16b = Sleduje jen okraje takto blízko ukazatele ([ a ] hodnotu mění)
+
+ui-foreground-color-c4236e6fb45a0975 = Barva popředí
+
+ui-frame-tool-3869ecc880418af6 = Nástroj rámeček
+
+ui-freeform-pen-tool-6f6679338fdf5312 = Nástroj pero od ruky
+
+ui-from-center-0d8a0ee0ef65cec8 = Ze středu
+
+ui-front-image-80d86d74a4acfac7 = Přední obraz
+
+ui-fuchsia-8d83defd7f0120fc = Fuchsiová
+
+ui-gap-e5bb2f7e411d4221 = Mezera
+
+ui-gaussian-bba39d25ae40ed28 = Gaussovský
+
+ui-gloss-contour-5491d206d1cdb411 = Kontura lesku
+
+ui-glow-4eaf4c888be6ecaa = Záře
+
+ui-golden-ratio-ff69929862f02a2d = Zlatý řez
+
+ui-golden-spiral-5757498b8af1d487 = Zlatá spirála
+
+ui-gradient-editor-bb6e0a95fb5ef2ac = Editor přechodů
+
+ui-gradient-picker-54dd1fd154401b2b = Výběr přechodu
+
+ui-gradient-stops-f06ae21e1135f30e = Zarážky přechodu
+
+ui-group-with-94fcb352464d9a1e = Seskupit s
+
+ui-h-08324007b4eaf595 = V
+
+ui-half-round-62b12796617538fe = Půlkruh
+
+ui-higher-values-follow-only-edges-that-con-339978148cf9c078 = Vyšší hodnoty sledují jen okraje s výrazným kontrastem k okolí
+
+ui-horizontal-type-mask-tool-0114c5e36a28d713 = Nástroj maska vodorovného textu
+
+ui-how-often-fastening-points-are-placed-by-498d32d10d244c21 = Jak často se kotevní body umisťují samy
+
+ui-import-93f9356ee0cef73e = Importovat…
+
+ui-import-brushes-abr-bc61ea3383f9a612 = Importovat štětce (.abr)
+
+ui-import-keyboard-shortcuts-9a7acd5b01140835 = Importovat klávesové zkratky?
+
+ui-import-shortcuts-ca60eb051696939b = Importovat zkratky…
+
+ui-import-swatches-d6432c51430e3eba = Importovat vzorky…
+
+ui-imported-n-shortcuts-from-file-click-ok-t-5da9bf038f58bce4 = Importováno zkratek: { $n } ze souboru { $file }. Klepnutím na OK je ponecháte.
+
+ui-impressionist-838b2d95b3fe039e = Impresionista
+
+ui-include-in-playback-68b371aa09a42a7d = Zahrnout do přehrávání
+
+ui-indigo-5c3d440918ff0f31 = Indigová
+
+ui-invalid-delete-command-535e24127ed414d4 = Neplatný příkaz ke smazání
+
+ui-invalid-guide-layout-a7becc4715dd0ef0 = Neplatné rozvržení vodítek
+
+ui-iso-speed-57950bb275b569a4 = Citlivost ISO
+
+ui-italic-affc1f243d43a170 = Kurzíva
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = Vrstvy se nevejdou do rozpočtu paměti GPU. Zvýšením hodnoty Využití paměti v Předvolbách › Výkon se rozpočet zvětší, nejvýše na čtvrtinu paměti tohoto počítače.
+
+ui-keep-this-tab-open-to-retain-your-brushe-a5f6fe26fae0d562 = Nechte tuto kartu otevřenou, abyste si štětce zachovali.
+
+ui-keyboard-shortcuts-imported-fee2c7c74ed2a6bf = Klávesové zkratky importovány
+
+ui-knockout-114fcb275f7f7673 = Vyřazení
+
+ui-label-is-writing-the-file-and-can-no-lon-33df6081c771e2b9 = { $label } zapisuje soubor a už ho nelze zrušit
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = Velký dokument: překreslování na CPU
+
+ui-layer-deleted-but-confirmation-preferenc-f2ce35477ff1e4fa = Vrstva byla smazána, ale nastavení potvrzení se nepodařilo uložit: { $error }
+
+ui-leave-empty-for-automatic-size-2f6af7cbd1f8cd38 = Pro automatickou velikost ponechte prázdné
+
+ui-left-cdcd976a8ae9a624 = Vlevo:
+
+ui-lens-f9af7c851d6f6256 = Objektiv
+
+ui-light-b8b902e993554a24 = Světlá
+
+ui-light-theme-58b947c570ab5ee4 = Světlý motiv
+
+ui-link-radii-cf0a1c73be90d1a2 = Propojit poloměry
+
+ui-linux-display-server-e35271f31f95faac = Zobrazovací server Linuxu
+
+ui-load-a-keyboard-shortcut-set-saved-as-ky-08aaf9f9e85e9925 = Načíst sadu klávesových zkratek uloženou jako .kys
+
+ui-location-297949d1a95f2298 = Umístění
+
+ui-location-d83b1142cca7d946 = Umístění:
+
+ui-low-resolution-previews-250ad01d7da7418c = Náhledy v nízkém rozlišení
+
+ui-make-10ce4e8ae215e940 = Výrobce
+
+ui-make-landscape-29de2da2acf3e4ec = Na šířku
+
+ui-make-portrait-48262a543a70ad70 = Na výšku
+
+ui-marching-ants-81b580a962b06f44 = Pochodující mravenci
+
+ui-margin-27f17d733e6bbd89 = Okraj
+
+ui-match-canvas-e96f08cd86b7fed4 = Podle plátna
+
+ui-medium-9ccd01b2e5f752af = Střední
+
+ui-missing-delete-command-a4f922e5ac863be5 = Chybí příkaz ke smazání
+
+ui-miter-f77adc9d7250d2f8 = Ostrý
+
+ui-miter-limit-26f9b3d9afbcfa5b = Limit ostrého rohu
+
+ui-mode-color-bits-bit-91d967615006031b = Barva { $mode } · { $bits } bitů
+
+ui-model-4383b12efc2485a7 = Model
+
+ui-more-documents-702166de66a88b90 = Další dokumenty
+
+ui-move-panel-3a47e11ada54b960 = Přesunout panel
+
+ui-n-commands-are-not-in-photocraft-8d9da53e6d113da9 = Příkazů, které v PhotoCraftu nejsou: { $n }.
+
+ui-n-of-max-sample-points-23c59085c2f1cfcb = { $n } z { $max } bodů měření
+
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Nativní přetahování souborů ve Waylandu zatím není podporováno. Použijte Soubor › Otevřít, nebo obrázek zkopírujte ve správci souborů a vložte ho pomocí { $paste }.
+
+ui-negation-4fc106b159214b14 = Negace
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm vybírá podtyp podle bitové hloubky a kanálů obrázku.
+
+ui-never-show-overlay-62e4d50ec1f95088 = Nikdy nezobrazit překryv
+
+ui-new-brush-preset-9a813a7c947ca0f2 = Nová předvolba štětce…
+
+ui-new-crop-preset-a06657144aecc436 = Nová předvolba oříznutí…
+
+ui-new-document-with-mask-829ecf76a05eef44 = Nový dokument s maskou
+
+ui-new-layer-with-mask-a27e3dedb04b398a = Nová vrstva s maskou
+
+ui-new-swatch-35500735beac1287 = Nový vzorek…
+
+ui-new-swatch-group-d508820c8747faca = Nová skupina vzorků…
+
+ui-next-appearance-mode-1ad9397736c7ee33 = Další režim vzhledu
+
+ui-next-document-6e3c850115c17527 = Další dokument
+
+ui-no-document-open-3e622d7f3eb6fe8b = Není otevřen žádný dokument
+
+ui-no-matching-settings-ee7ac3cb953063dc = Žádná odpovídající nastavení
+
+ui-no-saved-presets-yet-70f97356610163a1 = Zatím nejsou uloženy žádné předvolby.
+
+ui-no-subject-found-try-a-rectangle-around-t-305b2a5462b07838 = Nebyl nalezen žádný objekt — zkuste obdélník kolem objektu
+
+ui-no-subject-found-try-object-selection-or-631a2c6cfea1b5bc = Nebyl nalezen žádný objekt — zkuste Výběr objektu nebo Laso
+
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = Není webová barva: klepnutím zvolíte nejbližší webovou barvu
+
+ui-notification-duration-seconds-d8febd6df942f984 = Trvání oznámení (sekundy)
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = Nyní přetáhněte výběr na jiné místo
+
+ui-number-64f8e212c5ac06de = Počet
+
+ui-object-selection-found-nothing-there-try-ca465edbd222510f = Výběr objektu zde nic nenašel — zkuste těsnější obdélník
+
+ui-on-black-e728be796304fcb9 = Na černé
+
+ui-on-layers-c8e8d79373a527f0 = Na vrstvách
+
+ui-on-white-6215953b11747b1b = Na bílé
+
+ui-onion-skin-b8980fb3c2df588d = Cibulová slupka
+
+ui-opacity-threshold-3dbc5455a6a96857 = Práh krytí
+
+ui-open-exr-parts-fd9bfecaa27e1e30 = Otevřít části EXR…
+
+ui-open-in-camera-raw-c438bf24dab93647 = Otevírat v Camera Raw
+
+ui-open-paths-use-centered-strokes-3add57d4a0335f7d = Otevřené cesty používají vystředěné tahy
+
+ui-open-source-65fefae8d3d63fa4 = otevřený zdrojový kód
+
+ui-opened-name-21b0dd7c898f99fb = Otevřeno: { $name }
+
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = Nebo nastavte Předvolby › Výkon › Zobrazovací server Linuxu na X11: PhotoCraft se pak vždy spustí v XWayland.
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = Mimo gamut tisku: klepnutím zvolíte nejbližší tisknutelnou barvu
+
+ui-paint-over-hair-or-fur-on-the-image-alt-p-44f8b66674c7cf71 = Malujte přes vlasy nebo srst v obraze; Alt maluje v opačném režimu
+
+ui-panel-menu-06b4f84ed48efc1a = Nabídka panelu
+
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }: cesta není platný Unicode; přejmenujte soubor a otevřete jej znovu.
+
+ui-pattern-stamp-3def986c64c12dcc = Razítko vzorku
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = Nástroj razítko vzorku
+
+ui-pencil-8084544d4ac2ea36 = Tužka
+
+ui-perspective-crop-tool-9d2500bb26bc190b = Nástroj perspektivní oříznutí
+
+ui-photocraft-found-your-keyboard-shortcut-s-865cccf0e5aa0eef = PhotoCraft na tomto počítači našel vaši sadu klávesových zkratek { $set } z jiného editoru obrázků: { $n } jejích zkratek se liší od zkratek PhotoCraftu. Importovat ji?
+
+ui-photocraft-screen-color-picker-7b92fa1bcc690048 = PhotoCraft — Výběr barvy obrazovky
+
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = Vyberte pixel obrazovky nebo stiskněte Esc pro zrušení
+
+ui-pick-screen-color-b1eefd560cdcf751 = Vybrat barvu obrazovky
+
+ui-point-sample-10f1da74f87660f7 = Bodový vzorek
+
+ui-preserve-transparency-ec3f87e2963c04bb = Zachovat průhlednost
+
+ui-preset-name-a0b4d9aa9b88ec7b = Název předvolby
+
+ui-pressure-curve-19292bf407107dbf = Křivka přítlaku
+
+ui-previous-document-eaa84057a6b49afb = Předchozí dokument
+
+ui-pro-light-5f027dfe73385691 = Pro (světlý)
+
+ui-pro-light-d99268b6a486cfe6 = Pro světlý
+
+ui-pro-light-gray-b0b886c21e82d0dc = Pro (světle šedý)
+
+ui-pro-light-gray-bc41ae44cf80a191 = Pro světle šedý
+
+ui-pro-light-gray-theme-7ba042d458fbdefc = Motiv Pro (světle šedý)
+
+ui-pro-light-theme-e381bc8b2c880e03 = Motiv Pro (světlý)
+
+ui-pro-medium-3990a13d10e49531 = Pro Medium
+
+ui-pupil-size-a21b8b198e346afe = Velikost zornice
+
+ui-quick-selection-found-nothing-there-79e12ccf085cca73 = Rychlý výběr zde nic nenašel
+
+ui-rasterize-layer-style-c11eb0192450d280 = Rastrovat styl vrstvy
+
+ui-rasterize-layers-ef809f91579ccb22 = Rastrovat vrstvy
+
+ui-rasterize-svg-groups-deeper-than-2ea169bca636efde = Rasterizovat skupiny SVG hlubší než tato úroveň
+
+ui-red-eye-96b14bb055bf9143 = Červené oči
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = Nástroj červené oči
+
+ui-refine-9e0be4b61fc803be = Upřesnit
+
+ui-refine-edge-brush-r-c2b236a925ebf002 = Štětec pro upřesnění okraje (R)
+
+ui-reflect-d0229494c0f576bc = Odraz
+
+ui-regular-182bf85491dfe61c = Normální
+
+ui-remove-from-favorites-486786afd446c748 = Odebrat z oblíbených
+
+ui-remove-from-recent-9d1617d42109ab60 = Odebrat z nedávných
+
+ui-remove-name-from-recent-10f46ef1688734d3 = Odebrat { $name } z nedávných
+
+ui-remove-pair-36d4c6635ffda785 = Odebrat pár
+
+ui-remove-tool-f4e2e17b376f490b = Nástroj odstranění
+
+ui-replace-swatches-22ed7dc765dad82d = Nahradit vzorky…
+
+ui-reset-28450354f52cb7ae = Obnovit
+
+ui-reset-all-tools-376ceb5881d91e9a = Obnovit všechny nástroje
+
+ui-reset-all-tools-to-their-default-setting-051b717b3b6a210c = Obnovit výchozí nastavení všech nástrojů?
+
+ui-reset-swatches-99689ab8ada5eb9a = Obnovit vzorky
+
+ui-reset-tool-09e396a78e8ad944 = Obnovit nástroj
+
+ui-reset-view-c0bdf39ad3792a63 = Obnovit zobrazení
+
+ui-resize-panel-window-2882cbd9cf0bb38f = Změnit velikost okna panelu
+
+ui-resize-panels-63366d26e7bff572 = Změnit velikost panelů
+
+ui-restore-original-edge-1f47567587324e0f = Obnovit původní okraj
+
+ui-retry-saving-presets-46dc9ac2d6616d53 = Zkusit znovu uložit předvolby
+
+ui-right-cbe095148fc36d83 = Vpravo:
+
+ui-ring-23d3ed2f82517781 = Prstenec
+
+ui-ring-double-46bac415b3bcb0d3 = Prstenec - dvojitý
+
+ui-rolling-slope-descending-905375a37c64ed52 = Zvlněný svah - sestupný
+
+ui-rotate-view-db81b0d3c1a858dd = Otočit zobrazení
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = Nástroj otočení zobrazení
+
+ui-round-dbce8f85403bd2bd = Kulatý
+
+ui-rounded-steps-7f4362f1e501c0f7 = Zaoblené stupně
+
+ui-rows-edb0eb2f630a8e3a = Řádky
+
+ui-rule-of-thirds-a9efcd425580c820 = Pravidlo třetin
+
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = Vzorkovat pixel kdekoli na obrazovce
+
+ui-sample-size-84705069550bbf3c = Velikost vzorku:
+
+ui-save-as-preset-fcb3834698c2503d = Uložit jako preset
+
+ui-save-preset-2328ef2728084c33 = Uložit předvolbu…
+
+ui-saved-5eaa631947aa180a = Uložené
+
+ui-saved-name-ec890ad7eb9202d3 = Uloženo: { $name }
+
+ui-saving-brush-presets-keep-this-tab-open-u-0387001733cba4f2 = Ukládání předvoleb štětců… Nechte tuto kartu otevřenou, dokud ukládání neskončí.
+
+ui-saving-name-2363a755794e1f66 = Ukládání { $name }
+
+ui-sawtooth-1-8eeceb1522eaf619 = Pila 1
+
+ui-scale-3aee47f8880725bf = Měřítko:
+
+ui-scope-8765632a779d5bdd = Rozsah
+
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = Rolováním přibližujte
+
+ui-scrubby-zoom-be94ebd193e23a8a = Plynulá lupa
+
+ui-seafoam-ebe537921cc90f2b = Mořská pěna
+
+ui-search-settings-a7fc4883f6918f9c = Hledat nastavení…
+
+ui-select-the-crop-presets-to-delete-719febcbd9ce2506 = Vyberte předvolby oříznutí k odstranění
+
+ui-select-the-crop-presets-to-delete-e0e2e763194944f4 = Vyberte předvolby oříznutí k odstranění:
+
+ui-selected-3ee82e06f8c5ee8e = Vybrané
+
+ui-selected-artboards-b150baa5bc687b52 = Vybraná kreslicí plátna
+
+ui-selection-preview-a4f0a0102c940143 = Náhled výběru:
+
+ui-semibold-f43621cc0429d1c1 = Polotučná
+
+ui-set-additional-crop-options-437370a0bbc94342 = Nastavit další volby oříznutí
+
+ui-set-black-point-3a2fd412fb7bf324 = Nastavit černý bod
+
+ui-set-neutral-gray-point-80347a56d69ad333 = Nastavit neutrální šedý bod
+
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = Nastavit volby překryvu pro nástroj Oříznutí
+
+ui-set-white-point-526c42ac4bcf95ae = Nastavit bílý bod
+
+ui-show-canvas-dots-6d94c3d743b8de22 = Zobrazit tečky plátna
+
+ui-show-cropped-area-53b623311de34a66 = Zobrazit oříznutou oblast
+
+ui-show-edge-0e6f6ff17e21f8ef = Zobrazit okraj
+
+ui-show-grid-fae930dfc8ee4b2e = Zobrazit mřížku
+
+ui-show-hide-all-panels-240e4d824315700b = Zobrazit/skrýt všechny panely
+
+ui-show-hide-panels-f43db26049aad092 = Zobrazit/skrýt panely
+
+ui-show-highlight-on-rollover-69405ef2139701f4 = Zobrazit zvýraznění při přejetí
+
+ui-show-in-explorer-2f94447b91dbe64c = Zobrazit v Průzkumníkovi
+
+ui-show-in-folder-e0edb8f0cae13d5f = Zobrazit ve složce
+
+ui-show-original-9f96d5b03071c5ed = Zobrazit originál
+
+ui-show-rulers-15364a8b811babcf = Zobrazit pravítka
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = Zobrazit vzorkovací kroužek
+
+ui-single-column-marquee-tool-1dac583cc51f40e3 = Nástroj výběr jednoho sloupce
+
+ui-single-row-marquee-tool-220700fd1e13590f = Nástroj výběr jednoho řádku
+
+ui-size-was-old-41f38564856f8aff = { $size } (dříve { $old })
+
+ui-slant-8684e6366a796841 = Sklon
+
+ui-snap-to-origin-2f5c18a1a31eaab6 = Přichytit k počátku
+
+ui-solarized-dark-b3d33c9539e10efa = Solarized tmavý
+
+ui-solarized-dark-theme-592f33cc33819357 = Tmavý motiv Solarized
+
+ui-solid-9b8a594e6937f34a = Plný
+
+ui-some-brush-presets-could-not-be-loaded-85dba33dc441678d = Některé předvolby štětců se nepodařilo načíst
+
+ui-star-ratio-24437e279a76229e = Poměr hvězdy:
+
+ui-straighten-the-image-by-drawing-a-line-o-e0da8c009ed35534 = Narovnat obraz nakreslením čáry
+
+ui-stroke-color-705a1554bb23c6c0 = Barva tahu
+
+ui-stroke-options-157cb1b9e34287dd = Volby tahu
+
+ui-studio-light-c59588e3a608ca09 = Studio Light
+
+ui-symmetry-off-f51a8e00f2b6ab64 = Symetrie vypnuta
+
+ui-sync-with-system-a2794e085c62fd61 = Synchronizovat se systémem
+
+ui-system-title-bar-b81774202f7af861 = Systémové záhlaví okna
+
+ui-targa-options-6616b16a7d3445cc = Možnosti Targa
+
+ui-target-3ebe946eefdad3c8 = Cíl:
+
+ui-the-document-is-closed-8ec5c55a26b25b8f = Dokument je zavřený
+
+ui-the-document-or-selected-layers-changed-p-9972332ed404c2e8 = Dokument nebo vybrané vrstvy se změnily. Požádejte o smazání znovu.
+
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = Kompozitor GPU nebyl použit: { $reason }
+
+ui-the-gradient-the-gradient-tool-paints-wi-93518332f123931c = Přechod, který kreslí nástroj Přechod
+
+ui-the-keyboard-shortcut-set-was-not-import-03551b2b8d5b9f3d = Sada klávesových zkratek nebyla importována: { $error }
+
+ui-there-is-no-crop-size-or-ratio-to-save-10795b0c2723f449 = Není žádná velikost ani poměr oříznutí k uložení
+
+ui-thin-24348b0f6db9a923 = Jemná
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = Tento formát uloží sloučený obrázek. Chcete-li zachovat upravitelný dokument, použijte Uložit kopii.
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = Toto překreslení na CPU trvalo { $seconds } s.
+
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = Chcete-li soubory přetahovat, spusťte PhotoCraft v XWayland: `{ $command }`
+
+ui-top-ec7ca21db87f9dcc = Nahoře:
+
+ui-top-left-35db253aba562917 = Vlevo nahoře
+
+ui-top-right-9a12cffd0398f888 = Vpravo nahoře
+
+ui-transform-symmetry-308ef5a329d1f431 = Transformovat symetrii
+
+ui-transparency-threshold-d681456c819197c6 = Práh průhlednosti
+
+ui-triangle-2af10d61da454203 = Trojúhelník
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = V tomto barevném režimu není k dispozici
+
+ui-update-the-current-brush-with-these-sett-a7e6365f7455aaec = Aktualizovat aktuální štětec těmito nastaveními
+
+ui-use-classic-mode-ef70cbf7d572eaf9 = Použít klasický režim
+
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = Použijte Soubor › Otevřít, nebo vložte zkopírovaný obrázek pomocí { $paste }.
+
+ui-use-finite-lengths-and-a-positive-patter-45d1303fb60dbb99 = Použijte konečné délky a kladný součet vzoru
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Používat tlak trackpadu
+
+ui-vertical-type-mask-tool-35f5821cb3112aa1 = Nástroj maska svislého textu
+
+ui-violet-2882bc397b2e28dc = Fialová
+
+ui-w-08323107b4eadc18 = Š
+
+ui-w-unit-x-h-unit-ppi-ppi-1cc3519842d6fe39 = { $w } { $unit } × { $h } { $unit } ({ $ppi } ppi)
+
+ui-w-x-h-x-resolution-3b06634d489d6fe2 = Š x V x Rozlišení
+
+ui-white-matte-93f44761248dcc3d = Bílý podklad
+
+ui-x11-52a9397deddd2397 = X11
+
+ui-xor-521a5a7ded63a364 = XOR
+
+ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Vaše sada klávesových zkratek { $set } se zde používá: { $n } zkratek se liší od výchozích. Zobrazí je Úpravy › Klávesové zkratky; Obnovit vše na výchozí to vrátí zpět.

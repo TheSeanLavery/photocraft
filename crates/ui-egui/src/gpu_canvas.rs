@@ -13,10 +13,11 @@
 //!
 //! Per frame the shader draws, in *device pixels*:
 //! - a soft analytic drop shadow around the document on the pasteboard (erf-blurred box),
-//! - a screen-space transparency checkerboard (8 pt squares, grays 255/204) under the document,
+//! - a transparency checkerboard (8 pt squares, grays 255/204, the same size at every zoom)
+//!   under the document, anchored to the document's top-left corner so it moves with the image,
 //! - the document itself, sampled trilinearly when zoomed out, bilinearly between 1× and 2×, and
 //!   with an anti-aliased "sharp nearest" filter at integer scales and ≥ 2×,
-//! - a one-device-pixel pixel grid at zoom ≥ 8.
+//! - a one-device-pixel pixel grid above 500% zoom, over pixels with content only.
 //!
 //! GPU resources live in the renderer's `callback_resources` type map; the per-frame callback only
 //! carries plain view parameters, so it is `Send + Sync` on every target (including wasm).
@@ -42,9 +43,15 @@ const FORMAT_HIGH: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
 /// documents (a 14000² one would need 2.1 GB) use `Rgba8Unorm`, so they stay on the GPU like
 /// 8-bit ones. `PHOTOCRAFT_CANVAS_F16=0` turns the float canvas off, `=1` ignores this budget.
 pub const F16_BUDGET_PX: u64 = 100_000_000;
-const VIEW_UNIFORM_SIZE: u64 = 176;
-const VIEW_FLOATS: usize = 44;
+const VIEW_UNIFORM_SIZE: u64 = 192;
+const VIEW_FLOATS: usize = 48;
 const TILE_UNIFORM_SIZE: u64 = 16;
+
+/// Whether this view can use the GPU canvas. Flip and non-square pixel aspect correction are
+/// still CPU blits (the shader's filtering assumes square pixels); rotation is a shader uniform.
+pub fn gpu_view_ok(flip: bool, _rotation: f32, aspect: f32) -> bool {
+    !flip && (aspect - 1.0).abs() < 1e-6
+}
 
 /// Parameters for drawing one document view. Positions are in egui points.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -57,6 +64,9 @@ pub struct ViewParams {
     pub zoom: f32,
     /// Document point shown at the centre of the canvas rect.
     pub center: [f32; 2],
+    /// Camera rotation in radians, clockwise in Y-down screen space. Rotate around [`Self::center`]
+    /// before sampling. Flip stays on the CPU path.
+    pub rotation: f32,
     /// Draw the drop shadow on the pasteboard.
     pub shadow: bool,
     /// Draw the pixel grid at high zoom.
@@ -75,6 +85,10 @@ pub struct ViewParams {
     /// Live EDR headroom; zero means the original SDR path.
     pub output_headroom: f32,
     pub workbench: Option<photocraft_color::hdr::HdrWorkbench>,
+    /// Where this draw puts the document, in document pixels from its own place: `[0, 0]` for the
+    /// document, a whole number of widths and heights for a View › Pattern Preview copy (#1067).
+    /// A copy samples the same texture, so nothing is composited again.
+    pub offset: [f32; 2],
 }
 
 /// When high-bit documents get an `Rgba16Float` canvas texture.
@@ -145,6 +159,7 @@ impl GpuCanvas {
         let health = photocraft_gpu::DeviceHealth::watch(&rs.device);
         let mut res = Resources::new(&rs.device, &rs.queue, rs.target_format, high != HighPolicy::Off);
         res.health = health.clone();
+        res.separate_mip_targets = rs.adapter.get_info().backend == wgpu::Backend::Dx12;
         rs.renderer.write().callback_resources.insert(res);
         log::info!("gpu canvas: target {:?}, max texture {max}, tile {tile}, 16F canvas {high:?}", rs.target_format);
         Self { rs: rs.clone(), tile, high, health }
@@ -210,7 +225,7 @@ impl GpuCanvas {
         Some((d.format, bytes))
     }
 
-    /// Set the GPU memory the wgpu compositor may hold for layer pages and effect maps (see
+    /// Set the GPU memory the wgpu compositor may hold for layer pages and caches (see
     /// [`memory_budget`]); pages beyond it are evicted least recently used first.
     pub fn set_memory_budget(&self, bytes: u64) {
         let mut r = self.rs.renderer.write();
@@ -225,6 +240,34 @@ impl GpuCanvas {
         r.callback_resources.get::<Resources>()?.compositor_budget
     }
 
+    /// Set the GPU bytes one document's display texture set may take (see [`canvas_budget`]).
+    pub fn set_canvas_budget(&self, bytes: u64) {
+        let mut r = self.rs.renderer.write();
+        if let Some(res) = r.callback_resources.get_mut::<Resources>() {
+            res.canvas_budget = bytes;
+        }
+    }
+
+    /// Whether `doc`'s display textures fit [`canvas_budget`]; when they don't, nothing is
+    /// created for it and it is drawn on the CPU canvas.
+    pub fn fits_canvas(&self, doc: &photocraft_doc::Document) -> bool {
+        let size = [doc.size.width, doc.size.height];
+        let bytes = canvas_texture_bytes(size, self.tile, texel_bytes(self.format_for(doc.depth, size)));
+        let r = self.rs.renderer.read();
+        r.callback_resources.get::<Resources>().is_some_and(|res| bytes <= res.canvas_budget)
+    }
+
+    /// Cap lower-stack composite reuse; zero disables it for profiling the uncached path.
+    pub fn set_composite_cache_budget(&self, bytes: u64) {
+        let mut r = self.rs.renderer.write();
+        if let Some(res) = r.callback_resources.get_mut::<Resources>() {
+            res.compositor_cache_budget = Some(bytes);
+            if let Some(comp) = &mut res.compositor {
+                comp.set_composite_cache_budget(bytes);
+            }
+        }
+    }
+
     /// The document area the view shows: full refreshes composite it last, so its layer pages
     /// are the ones still resident for the edits that follow.
     pub fn set_focus(&self, focus: Option<photocraft_geom::Rect>) {
@@ -234,11 +277,12 @@ impl GpuCanvas {
         }
     }
 
-    /// GPU bytes the wgpu compositor holds: resident layer pages and cached effect maps.
+    /// GPU bytes the wgpu compositor holds: resident layer pages and caches (effect maps and
+    /// lower-stack chunks). Keep the scorecard's memory measurements inclusive of reuse.
     pub fn compositor_bytes(&self) -> Option<(u64, usize)> {
         let r = self.rs.renderer.read();
         let c = r.callback_resources.get::<Resources>()?.compositor.as_ref()?;
-        Some((c.resident_bytes(), c.fx_cache_bytes()))
+        Some((c.resident_bytes(), c.fx_cache_bytes().saturating_add(usize::try_from(c.composite_cache_bytes()).unwrap_or(usize::MAX))))
     }
 
     /// Set the checkerboard and gamut warning colours.
@@ -288,7 +332,10 @@ impl GpuCanvas {
         let mut renderer = self.rs.renderer.write();
         let Some(res) = renderer.callback_resources.get_mut::<Resources>() else { return };
         if res.docs.get(&doc).is_none_or(|d| d.size != size || d.format != format) {
-            let tex = DocTextures::new(device, res, size, self.tile, format);
+            let Some(tex) = DocTextures::new(device, res, size, self.tile, format) else {
+                res.docs.remove(&doc);
+                return;
+            };
             res.docs.insert(doc, tex);
         }
         let Some(d) = res.docs.get(&doc) else { return };
@@ -388,6 +435,9 @@ impl GpuCanvas {
         if let Some(b) = res.compositor_budget {
             comp.set_memory_budget(b);
         }
+        if let Some(b) = res.compositor_cache_budget {
+            comp.set_composite_cache_budget(b);
+        }
         comp.set_focus(res.compositor_focus);
         let key = doc.id.0;
         let format = self.format_for(doc.depth, size);
@@ -403,10 +453,14 @@ impl GpuCanvas {
         // compositor does it, and edits in the view (damage rects) stay on the GPU.
         if region == doc.bounds() && !comp.fits_budget(doc, region) {
             res.compositor = Some(comp);
-            return Err(photocraft_gpu::Unsupported("layers exceed the GPU memory budget; full refresh on the CPU".into()));
+            return Err(photocraft_gpu::Unsupported(OVER_BUDGET.into()));
         }
         if fresh {
-            let tex = DocTextures::new(device, res, size, self.tile, format);
+            let Some(tex) = DocTextures::new(device, res, size, self.tile, format) else {
+                res.docs.remove(&key);
+                res.compositor = Some(comp);
+                return Err(photocraft_gpu::Unsupported(OVER_CANVAS_BUDGET.into()));
+            };
             res.docs.insert(key, tex);
         }
         let (Some(pipe), Some(d)) = (res.encode_pipeline(format), res.docs.get(&key)) else {
@@ -496,6 +550,14 @@ impl GpuCanvas {
             // Nothing reaches the GPU any more; the app switches to the CPU canvas.
             return Refresh { kind: "lost", fallback: Some(f.to_string()), ..Default::default() };
         }
+        if !self.fits_canvas(doc) {
+            // Neither compositor can fill textures that are never created: the CPU canvas draws
+            // it. A set left from before the canvas grew is stale, so it goes too.
+            if let Some(res) = self.rs.renderer.write().callback_resources.get_mut::<Resources>() {
+                res.docs.remove(&key);
+            }
+            return Refresh { kind: REFRESH_OVER_BUDGET, fallback: Some(OVER_CANVAS_BUDGET.into()), ..Default::default() };
+        }
         let bounds = doc.bounds();
         let size = [doc.size.width, doc.size.height];
         let format = self.format_for(doc.depth, size);
@@ -556,7 +618,10 @@ impl GpuCanvas {
             let mut renderer = self.rs.renderer.write();
             let Some(res) = renderer.callback_resources.get_mut::<Resources>() else { return };
             if res.docs.get(&key).is_none_or(|d| d.size != size || d.format != format) {
-                let tex = DocTextures::new(device, res, size, self.tile, format);
+                let Some(tex) = DocTextures::new(device, res, size, self.tile, format) else {
+                    res.docs.remove(&key);
+                    return;
+                };
                 res.docs.insert(key, tex);
             }
         }
@@ -720,7 +785,8 @@ fn texture_buffer<'a>(
 /// What a [`GpuCanvas::refresh`] did.
 #[derive(Clone, Debug, Default)]
 pub struct Refresh {
-    /// "gpu-rect", "gpu-full" (wgpu compositor), "rect" or "full" (CPU compositor).
+    /// "gpu-rect", "gpu-full" (wgpu compositor), "rect" or "full" (CPU compositor); "lost" or
+    /// [`REFRESH_OVER_BUDGET`] when nothing was drawn and the caller should use the CPU canvas.
     pub kind: &'static str,
     /// Pixels refreshed.
     pub px: u64,
@@ -1063,6 +1129,9 @@ fn texel_to_f32(format: wgpu::TextureFormat, b: &[u8]) -> [f32; 4] {
 /// Floor of the compositor's memory budget: enough for a viewport's pages of a dozen layers.
 pub const MIN_GPU_BUDGET: u64 = 512 << 20;
 
+/// Why a full refresh whose layer pages don't fit [`memory_budget`] goes to the CPU compositor.
+pub const OVER_BUDGET: &str = "layers exceed the GPU memory budget; full refresh on the CPU";
+
 /// GPU memory the wgpu compositor may hold for layer pages and effect maps: what Memory Usage
 /// (`allowance`, Preferences › Performance) leaves after the document's pixels and History
 /// (`pixels`), at most a quarter of physical memory (`ram`; 16 GB assumed when unknown), and at
@@ -1072,6 +1141,41 @@ pub const MIN_GPU_BUDGET: u64 = 512 << 20;
 pub fn memory_budget(allowance: u64, pixels: u64, ram: Option<u64>) -> u64 {
     let ram = ram.unwrap_or(16 << 30);
     allowance.saturating_sub(pixels).min(ram / 4).max(MIN_GPU_BUDGET)
+}
+
+/// Why a document whose display textures don't fit [`canvas_budget`] is drawn on the CPU canvas.
+pub const OVER_CANVAS_BUDGET: &str = "the canvas exceeds the GPU texture budget; drawing it on the CPU canvas";
+
+/// [`Refresh::kind`] when the document's display textures don't fit [`canvas_budget`]: nothing
+/// was created, and the caller draws the CPU canvas instead.
+pub const REFRESH_OVER_BUDGET: &str = "over-budget";
+
+/// GPU bytes one document's display texture set (every tile and mip level) may take: a quarter
+/// of physical memory (`ram`; 16 GB assumed when unknown), at least [`MIN_GPU_BUDGET`]. The set
+/// covers the whole canvas at full resolution, so its size follows the declared canvas, not the
+/// layer pixels; a larger canvas is drawn on the (reduced) CPU canvas instead (#2934).
+pub fn canvas_budget(ram: Option<u64>) -> u64 {
+    (ram.unwrap_or(16 << 30) / 4).max(MIN_GPU_BUDGET)
+}
+
+/// GPU bytes of a display texture set for a `size` canvas in `tile`-sided tiles of `bpp` bytes
+/// per texel, with every mip level (what [`GpuCanvas::texture_info`] reports once it exists).
+/// Closed form over the (at most four) distinct tile shapes, so any size is cheap to price.
+pub fn canvas_texture_bytes(size: [u32; 2], tile: u32, bpp: u64) -> u64 {
+    let tile = tile.max(1);
+    // (how many tiles, their side) along one axis: whole tiles, then the remainder.
+    let spans = |n: u32| [(n / tile, tile), (u32::from(!n.is_multiple_of(tile)), n % tile)];
+    let mut total = 0u64;
+    for (nx, w) in spans(size[0]) {
+        for (ny, h) in spans(size[1]) {
+            if nx == 0 || ny == 0 {
+                continue;
+            }
+            let one = (0..mip_count(w, h)).map(|l| u64::from((w >> l).max(1)) * u64::from((h >> l).max(1)) * bpp).fold(0, u64::saturating_add);
+            total = total.saturating_add(one.saturating_mul(u64::from(nx) * u64::from(ny)));
+        }
+    }
+    total
 }
 
 /// Physical memory of this machine in bytes, if known. `PHOTOCRAFT_RAM_MB` overrides it (to
@@ -1125,6 +1229,9 @@ struct Resources {
     docs: HashMap<u64, DocTextures>,
     views: HashMap<u64, ViewGpu>,
     out_linear: bool,
+    /// Build each mip level in a scratch texture and copy it back instead of rendering into
+    /// the level directly (DX12 only: works around reduced-preview corruption on Intel drivers).
+    separate_mip_targets: bool,
     /// The wgpu layer compositor (created on first use).
     compositor: Option<photocraft_gpu::Compositor>,
     /// Why the wgpu compositor couldn't be created (then the CPU compositor is used).
@@ -1134,7 +1241,10 @@ struct Resources {
     /// GPU memory the compositor may hold (`None`: its default), and the document area the
     /// view shows; applied before every composite.
     compositor_budget: Option<u64>,
+    compositor_cache_budget: Option<u64>,
     compositor_focus: Option<photocraft_geom::Rect>,
+    /// GPU bytes one document's display texture set may take (see [`canvas_budget`]).
+    canvas_budget: u64,
     encode_bgl: wgpu::BindGroupLayout,
     encode_pipeline: wgpu::RenderPipeline,
     lut_bgl: wgpu::BindGroupLayout,
@@ -1393,11 +1503,14 @@ impl Resources {
             docs: HashMap::new(),
             views: HashMap::new(),
             out_linear: target.is_srgb(),
+            separate_mip_targets: false,
             compositor: None,
             compositor_failed: None,
             health: photocraft_gpu::DeviceHealth::new(),
             compositor_budget: None,
+            compositor_cache_budget: None,
             compositor_focus: None,
+            canvas_budget: canvas_budget(physical_memory()),
             encode_bgl,
             encode_pipeline,
         }
@@ -1433,7 +1546,12 @@ fn init_buffer(device: &wgpu::Device, label: &str, contents: &[u8], usage: wgpu:
 }
 
 impl DocTextures {
-    fn new(device: &wgpu::Device, res: &Resources, size: [u32; 2], tile: u32, format: wgpu::TextureFormat) -> Self {
+    /// The texture set for a `size` canvas, or `None` (nothing created) when it doesn't fit
+    /// the canvas budget.
+    fn new(device: &wgpu::Device, res: &Resources, size: [u32; 2], tile: u32, format: wgpu::TextureFormat) -> Option<Self> {
+        if canvas_texture_bytes(size, tile, texel_bytes(format)) > res.canvas_budget {
+            return None;
+        }
         let mut tiles = Vec::new();
         for ty in (0..size[1]).step_by(tile as usize) {
             for tx in (0..size[0]).step_by(tile as usize) {
@@ -1468,7 +1586,7 @@ impl DocTextures {
                 tiles.push(Tile { rect: [tx, ty, w, h], texture, levels, bind_group, _uniform: uniform });
             }
         }
-        Self { size, format, tiles }
+        Some(Self { size, format, tiles })
     }
 
     /// Write `size` pixels at document `origin` from `texels` (in the texture format, row stride
@@ -1521,13 +1639,36 @@ impl DocTextures {
                         wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&res.mip_sampler) },
                     ],
                 });
+                // Keep the sampled source and render attachment in separate resources on DX12
+                // (`Resources::separate_mip_targets`): some Intel DX12 drivers corrupt reduced
+                // previews when both are mip levels of the same texture, even though the
+                // subresources do not overlap. Elsewhere render straight into the level, which
+                // spares a scratch texture and a copy per level on every edit.
+                let scratch = res.separate_mip_targets.then(|| {
+                    let scratch = device.create_texture(&wgpu::TextureDescriptor {
+                        label: Some("pc_mip_scratch"),
+                        size: wgpu::Extent3d { width: lw, height: lh, depth_or_array_layers: 1 },
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format: self.format,
+                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+                        view_formats: &[],
+                    });
+                    let view = scratch.create_view(&Default::default());
+                    (scratch, view)
+                });
+                let (target, load) = match &scratch {
+                    Some((_, view)) => (view, wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)),
+                    None => (&t.levels[level], wgpu::LoadOp::Load),
+                };
                 let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("pc_mip"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &t.levels[level],
+                        view: target,
                         resolve_target: None,
                         depth_slice: None,
-                        ops: wgpu::Operations { load: wgpu::LoadOp::Load, store: wgpu::StoreOp::Store },
+                        ops: wgpu::Operations { load, store: wgpu::StoreOp::Store },
                     })],
                     depth_stencil_attachment: None,
                     timestamp_writes: None,
@@ -1538,6 +1679,15 @@ impl DocTextures {
                 pass.set_bind_group(0, &bg, &[]);
                 pass.set_scissor_rect(x0, y0, x1 - x0, y1 - y0);
                 pass.draw(0..3, 0..1);
+                drop(pass);
+                if let Some((scratch, _)) = &scratch {
+                    let origin = wgpu::Origin3d { x: x0, y: y0, z: 0 };
+                    encoder.copy_texture_to_texture(
+                        wgpu::TexelCopyTextureInfo { texture: scratch, mip_level: 0, origin, aspect: wgpu::TextureAspect::All },
+                        wgpu::TexelCopyTextureInfo { texture: &t.texture, mip_level: level as u32, origin, aspect: wgpu::TextureAspect::All },
+                        wgpu::Extent3d { width: x1 - x0, height: y1 - y0, depth_or_array_layers: 1 },
+                    );
+                }
             }
         }
         queue.submit([encoder.finish()]);
@@ -1563,6 +1713,40 @@ fn filter_mode(scale: f32) -> (f32, f32) {
     }
 }
 
+fn map_doc_px(origin: [f32; 2], scale: f32, center: [f32; 2], cos: f32, sin: f32, x: f32, y: f32) -> [f32; 2] {
+    let dx = x - center[0];
+    let dy = y - center[1];
+    let rx = dx * cos - dy * sin;
+    let ry = dx * sin + dy * cos;
+    [origin[0] + center[0] * scale + rx * scale, origin[1] + center[1] * scale + ry * scale]
+}
+
+fn tile_screen_aabb(origin: [f32; 2], scale: f32, center: [f32; 2], cos: f32, sin: f32, tile: [f32; 4]) -> (f32, f32, f32, f32) {
+    let [tx, ty, tw, th] = tile;
+    if sin.abs() < 1e-8 && (cos - 1.0).abs() < 1e-8 {
+        let x0 = origin[0] + tx * scale;
+        let y0 = origin[1] + ty * scale;
+        return (x0, y0, x0 + tw * scale, y0 + th * scale);
+    }
+    let pts = [
+        map_doc_px(origin, scale, center, cos, sin, tx, ty),
+        map_doc_px(origin, scale, center, cos, sin, tx + tw, ty),
+        map_doc_px(origin, scale, center, cos, sin, tx + tw, ty + th),
+        map_doc_px(origin, scale, center, cos, sin, tx, ty + th),
+    ];
+    let mut x0 = pts[0][0];
+    let mut y0 = pts[0][1];
+    let mut x1 = x0;
+    let mut y1 = y0;
+    for p in pts {
+        x0 = x0.min(p[0]);
+        y0 = y0.min(p[1]);
+        x1 = x1.max(p[0]);
+        y1 = y1.max(p[1]);
+    }
+    (x0, y0, x1, y1)
+}
+
 impl CanvasCallback {
     /// Screen-pixel origin of document (0, 0) (snapped to whole pixels) and device px per doc px.
     fn placement(&self, ppp: f32) -> ([f32; 2], f32) {
@@ -1578,7 +1762,10 @@ impl CanvasCallback {
         let p = &self.params;
         let (origin, scale) = self.placement(ppp);
         let (mode, lod) = filter_mode(scale);
-        let grid = if p.pixel_grid && p.zoom >= 8.0 { 0.16 } else { 0.0 };
+        // The pixel grid shows above 500% (the constants are shared with the CPU path,
+        // pixel_grid.rs). `p.zoom` is screen points per document pixel; the shared threshold is
+        // in device pixels, so scale by the display's pixels per point.
+        let grid = if p.pixel_grid && crate::pixel_grid::shows_at(p.zoom * ppp) { crate::pixel_grid::STRENGTH } else { 0.0 };
         let square = if style.checker_square > 0.0 { (style.checker_square * ppp).round().max(1.0) } else { 0.0 };
         let (l, d, g) = (style.checker_light, style.checker_dark, style.gamut_color);
         // 32-bit preview: linear-light gain 2^exposure (0 = off) and 1 / gamma.
@@ -1605,8 +1792,8 @@ impl CanvasCallback {
             lod,
             grid,
             square,
-            (self.rect.min.x * ppp).round(),
-            (self.rect.min.y * ppp).round(),
+            if p.offset[0].is_finite() { p.offset[0] } else { 0.0 },
+            if p.offset[1].is_finite() { p.offset[1] } else { 0.0 },
             p.display as f32,
             if out_linear { 1.0 } else { 0.0 },
             l[0],
@@ -1637,6 +1824,16 @@ impl CanvasCallback {
             0.0,
             0.0,
             0.0,
+            {
+                let r = if p.rotation.is_finite() { p.rotation } else { 0.0 };
+                if r.abs() < 1e-8 { 1.0 } else { r.cos() }
+            },
+            {
+                let r = if p.rotation.is_finite() { p.rotation } else { 0.0 };
+                if r.abs() < 1e-8 { 0.0 } else { r.sin() }
+            },
+            p.center[0],
+            p.center[1],
         ]
     }
 }
@@ -1706,12 +1903,15 @@ impl CallbackTrait for CanvasCallback {
         let (origin, scale) = self.placement(info.pixels_per_point);
         let (cx0, cy0) = (clip.left_px as f32, clip.top_px as f32);
         let (cx1, cy1) = (cx0 + clip.width_px as f32, cy0 + clip.height_px as f32);
+        let rot = if self.params.rotation.is_finite() { self.params.rotation } else { 0.0 };
+        let (cos, sin) = if rot.abs() < 1e-8 { (1.0, 0.0) } else { (rot.cos(), rot.sin()) };
+        let cen = self.params.center;
+        let [ox, oy] = self.params.offset.map(|v| if v.is_finite() { v } else { 0.0 });
         pass.set_pipeline(&res.tile_pipeline);
         pass.set_bind_group(2, res.luts.get(&(self.params.doc, self.params.output)).unwrap_or(&res.identity_lut), &[]);
         for t in &doc.tiles {
             let [tx, ty, tw, th] = t.rect.map(|v| v as f32);
-            let (x0, y0) = (origin[0] + tx * scale, origin[1] + ty * scale);
-            let (x1, y1) = (x0 + tw * scale, y0 + th * scale);
+            let (x0, y0, x1, y1) = tile_screen_aabb(origin, scale, cen, cos, sin, [tx + ox, ty + oy, tw, th]);
             if x1 < cx0 || y1 < cy0 || x0 > cx1 || y0 > cy1 {
                 continue;
             }
@@ -1726,7 +1926,7 @@ struct View {
     a: vec4<f32>, // screen_w, screen_h, scale (device px per doc px), pixels_per_point
     b: vec4<f32>, // doc origin x, y (device px), doc w, h (doc px)
     c: vec4<f32>, // filter mode, lod, grid alpha, checker square (device px)
-    d: vec4<f32>, // checker anchor x, y (device px), display (0 none, 1 LUT, 2 LUT + gamut), output linear
+    d: vec4<f32>, // pattern preview offset x, y (doc px), display (0 none, 1 LUT, 2 LUT + gamut), output linear
     e: vec4<f32>, // checker light rgb, gamut warning opacity
     f: vec4<f32>, // checker dark rgb, 32-bit preview gain (2^exposure; 0 = off)
     g: vec4<f32>, // gamut warning rgb, 32-bit preview 1 / gamma
@@ -1734,6 +1934,7 @@ struct View {
     i: vec4<f32>, // workbench enabled, method, exposure EV, shoulder
     j: vec4<f32>, // contrast, saturation, split, clipping overlay
     k: vec4<f32>, // split boundary in framebuffer pixels
+    l: vec4<f32>, // cos, sin, center_doc_x, center_doc_y
 };
 struct Tile { r: vec4<f32> }; // x, y, w, h in doc px
 
@@ -1753,6 +1954,23 @@ fn corner(i: u32) -> vec2<f32> {
 fn px_to_clip(p: vec2<f32>) -> vec4<f32> {
     let n = p / view.a.xy * 2.0 - 1.0;
     return vec4(n.x, -n.y, 0.0, 1.0);
+}
+
+fn screen_center() -> vec2<f32> {
+    return view.b.xy + view.l.zw * view.a.z;
+}
+
+fn doc_to_px(d: vec2<f32>) -> vec2<f32> {
+    let cs = view.l.xy;
+    let q = d - view.l.zw;
+    let r = vec2(q.x * cs.x - q.y * cs.y, q.x * cs.y + q.y * cs.x);
+    return screen_center() + r * view.a.z;
+}
+
+fn px_to_doc(p: vec2<f32>) -> vec2<f32> {
+    let cs = view.l.xy;
+    let q = (p - screen_center()) / view.a.z;
+    return vec2(q.x * cs.x + q.y * cs.y, -q.x * cs.y + q.y * cs.x) + view.l.zw;
 }
 
 fn doc_min() -> vec2<f32> { return view.b.xy; }
@@ -1789,21 +2007,29 @@ fn box_blur(p: vec2<f32>, lo: vec2<f32>, hi: vec2<f32>, sigma: f32) -> f32 {
 @vertex
 fn vs_shadow(@builtin(vertex_index) vi: u32) -> VOut {
     let pad = 64.0 * view.a.w;
-    let p = mix(doc_min() - vec2(pad), doc_max() + vec2(pad), corner(vi));
+    let c0 = doc_to_px(vec2(0.0, 0.0));
+    let c1 = doc_to_px(vec2(view.b.z, 0.0));
+    let c2 = doc_to_px(vec2(view.b.z, view.b.w));
+    let c3 = doc_to_px(vec2(0.0, view.b.w));
+    let lo = min(min(c0, c1), min(c2, c3)) - vec2(pad);
+    let hi = max(max(c0, c1), max(c2, c3)) + vec2(pad);
+    let p = mix(lo, hi, corner(vi));
     return VOut(px_to_clip(p));
 }
 
 @fragment
 fn fs_shadow(in: VOut) -> @location(0) vec4<f32> {
     let p = in.pos.xy;
-    let lo = doc_min();
-    let hi = doc_max();
-    if (all(p >= lo) && all(p < hi)) {
+    let d = px_to_doc(p);
+    if (all(d >= vec2(0.0)) && all(d < view.b.zw)) {
         discard;
     }
+    let p_align = view.b.xy + d * view.a.z;
+    let lo = doc_min();
+    let hi = doc_max();
     let u = view.a.w;
-    let ambient = box_blur(p - vec2(0.0, 7.0 * u), lo, hi, 16.0 * u) * 0.40;
-    let contact = box_blur(p - vec2(0.0, 0.75 * u), lo, hi, 1.25 * u) * 0.30;
+    let ambient = box_blur(p_align - vec2(0.0, 7.0 * u), lo, hi, 16.0 * u) * 0.40;
+    let contact = box_blur(p_align - vec2(0.0, 0.75 * u), lo, hi, 1.25 * u) * 0.30;
     let a = 1.0 - (1.0 - ambient) * (1.0 - contact);
     return vec4(0.0, 0.0, 0.0, a);
 }
@@ -1812,15 +2038,19 @@ fn fs_shadow(in: VOut) -> @location(0) vec4<f32> {
 
 @vertex
 fn vs_tile(@builtin(vertex_index) vi: u32) -> VOut {
-    let p = view.b.xy + (tile.r.xy + tile.r.zw * corner(vi)) * view.a.z;
+    // A View › Pattern Preview copy sits a whole number of document sizes away (view.d.xy).
+    let p = doc_to_px(view.d.xy + tile.r.xy + tile.r.zw * corner(vi));
     return VOut(px_to_clip(p));
 }
 
-fn checker(p: vec2<f32>) -> vec3<f32> {
+// Cells are screen-sized (view.c.w device px) but anchored to the document's top-left corner, so
+// the pattern moves with the image as it is panned or zoomed. `d` is in document pixels (each
+// Pattern Preview copy has the same cells).
+fn checker(d: vec2<f32>) -> vec3<f32> {
     if (view.c.w <= 0.0) {
         return vec3(1.0);
     }
-    let c = floor((p - view.d.xy) / view.c.w);
+    let c = floor(d * view.a.z / view.c.w);
     let odd = fract((c.x + c.y) * 0.5) > 0.25;
     return select(view.e.xyz, view.f.xyz, odd);
 }
@@ -1829,7 +2059,7 @@ fn checker(p: vec2<f32>) -> vec3<f32> {
 fn fs_tile(in: VOut) -> @location(0) vec4<f32> {
     let p = in.pos.xy;
     let scale = view.a.z;
-    let d = (p - view.b.xy) / scale;       // document pixel coordinates
+    let d = px_to_doc(p) - view.d.xy;      // document pixel coordinates (within this copy)
     let size = tile.r.zw;
     let t = d - tile.r.xy;                 // texel coordinates within this tile
     let mode = view.c.x;
@@ -1897,13 +2127,19 @@ fn fs_tile(in: VOut) -> @location(0) vec4<f32> {
     } else if (view.h.x > 0.0) {
         col = vec4(clamp(col.rgb, vec3(0.0), vec3(view.h.y * col.a)), col.a);
     }
-    var rgb = col.rgb + checker(p) * (1.0 - col.a);
-    let grid = view.c.z;
+    var rgb = col.rgb + checker(d) * (1.0 - col.a);
+    // The pixel grid is drawn over pixels with content, not over empty checker.
+    let grid = view.c.z * col.a;
     if (grid > 0.0) {
         let e = fract(d) * scale;
         if (e.x < 1.0 || e.y < 1.0) {
-            let l = dot(rgb, vec3(0.299, 0.587, 0.114));
-            rgb = mix(rgb, select(vec3(1.0), vec3(0.0), l > 0.55), grid);
+            // White over dark pixels, a weaker black over light ones, cross-faded by luma so a
+            // mid-tone image never flips line colour from one cell to the next (pixel_grid.rs
+            // `light_share`: same band, same numbers).
+            let t = smoothstep(0.35, 0.75, dot(rgb, vec3(0.299, 0.587, 0.114)));
+            let white = grid * (1.0 - t);
+            let black = grid * 0.64 * t;
+            rgb = rgb * (1.0 - white - black) + vec3(white);
         }
     }
     if (view.d.w > 0.5) {
@@ -1963,6 +2199,10 @@ fn fs(in: V) -> @location(0) vec4<f32> {
 "#;
 
 #[cfg(test)]
+#[path = "gpu_canvas_mip_tests.rs"]
+mod mip_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -1977,6 +2217,55 @@ mod tests {
         assert_eq!(memory_budget(8 * G, 10 * G, Some(48 * G)), MIN_GPU_BUDGET);
         assert_eq!(memory_budget(64 * G, 0, None), 4 * G);
         assert!(physical_memory().is_none_or(|b| b >= 256 << 20));
+    }
+
+    #[test]
+    fn canvas_texture_bytes_price_every_tile_and_mip_level() {
+        // The same sum DocTextures builds tile by tile (and texture_info reports).
+        let brute = |size: [u32; 2], tile: u32, bpp: u64| -> u64 {
+            let mut total = 0;
+            for ty in (0..size[1]).step_by(tile as usize) {
+                for tx in (0..size[0]).step_by(tile as usize) {
+                    let (w, h) = (tile.min(size[0] - tx), tile.min(size[1] - ty));
+                    total += (0..mip_count(w, h)).map(|l| u64::from((w >> l).max(1)) * u64::from((h >> l).max(1)) * bpp).sum::<u64>();
+                }
+            }
+            total
+        };
+        for (size, tile) in [([1, 1], 64), ([300, 200], 64), ([128, 64], 64), ([1000, 7], 256), ([8192, 8193], 8192), ([20_000, 9_000], 8192)] {
+            for bpp in [4, 8] {
+                assert_eq!(canvas_texture_bytes(size, tile, bpp), brute(size, tile, bpp), "{size:?} tile {tile}");
+            }
+        }
+        assert_eq!(canvas_texture_bytes([0, 500], 64, 4), 0);
+        // A canvas declared in a few bytes of a file is priced without building (or looping over) it.
+        let huge = canvas_texture_bytes([300_000, 300_000], 8192, 4);
+        assert!(huge > 300_000u64 * 300_000 * 4 && huge > canvas_budget(Some(1 << 40)));
+        assert_eq!(canvas_texture_bytes([u32::MAX, u32::MAX], 64, 8), u64::MAX, "saturates");
+        // A quarter of RAM (16 GB assumed), never below the compositor's floor.
+        assert_eq!(canvas_budget(None), 4 << 30);
+        assert_eq!(canvas_budget(Some(1 << 30)), MIN_GPU_BUDGET);
+        assert!(canvas_texture_bytes([12_000, 8_000], DEFAULT_TILE, 8) < canvas_budget(None), "a 96 MP 16-bit canvas stays on the GPU");
+    }
+
+    #[test]
+    fn view_uniform_packs_rotation() {
+        assert_eq!(VIEW_FLOATS, 48);
+        assert_eq!(VIEW_UNIFORM_SIZE, 192);
+        assert_eq!(VIEW_FLOATS * 4, VIEW_UNIFORM_SIZE as usize);
+        assert!(gpu_view_ok(false, 0.0, 1.0));
+        assert!(gpu_view_ok(false, 45.0_f32.to_radians(), 1.0));
+        assert!(!gpu_view_ok(true, 45.0_f32.to_radians(), 1.0));
+        assert!(!gpu_view_ok(false, 0.0, 2.0), "pixel aspect correction draws on the CPU");
+        // Identity packing: rotation 0 matches the unrotated origin + scale map.
+        let origin = [10.0, 20.0];
+        let (scale, center) = (2.0, [40.0, 8.0]);
+        let a = map_doc_px(origin, scale, center, 1.0, 0.0, 5.0, 9.0);
+        assert!((a[0] - (origin[0] + 5.0 * scale)).abs() < 1e-4);
+        assert!((a[1] - (origin[1] + 9.0 * scale)).abs() < 1e-4);
+        let (x0, y0, x1, y1) = tile_screen_aabb(origin, scale, center, 1.0, 0.0, [0.0, 0.0, 10.0, 4.0]);
+        assert!((x0 - origin[0]).abs() < 1e-4 && (y0 - origin[1]).abs() < 1e-4);
+        assert!((x1 - (origin[0] + 20.0)).abs() < 1e-4 && (y1 - (origin[1] + 8.0)).abs() < 1e-4);
     }
 
     #[test]

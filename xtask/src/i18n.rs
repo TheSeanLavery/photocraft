@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use syn::spanned::Spanned;
 use syn::visit::{self, Visit};
 
-const LANGS: &[&str] = &["en", "ja", "zh-hans", "zh-hant", "es", "ru", "cs", "fr", "id", "ko", "de", "pt-br", "it"];
+const LANGS: &[&str] = &["en", "ja", "zh-hans", "zh-hant", "es", "ru", "cs", "fr", "id", "ko", "de", "pt-br", "it", "uk", "pl", "el", "nl"];
 
 fn catalog_path(dir: &Path, lang: &str) -> PathBuf {
     let locale = match lang {
@@ -30,7 +30,8 @@ type Entry = (String, String, String);
 pub fn run(root: &Path, args: &[&str]) -> Result<(), String> {
     let dir = root.join("crates/ui-egui/src/i18n");
     match args.first().copied().unwrap_or("audit") {
-        "generate" => generate(&root.join("crates/ui-egui/src"), &dir, args.contains(&"--force")),
+        "generate" => generate(&root.join("crates/ui-egui/src"), &dir, args.contains(&"--force"), false),
+        "update" => generate(&root.join("crates/ui-egui/src"), &dir, true, true),
         "check" => {
             check_catalogs(&dir)?;
             check_calls(&root.join("crates/ui-egui/src"), &dir)
@@ -179,7 +180,7 @@ fn fluent_text(input: &str) -> String {
 fn plural_categories(lang: &str) -> &'static [&'static str] {
     match lang {
         "ja" | "zh-hans" | "zh-hant" | "id" | "ko" => &["other"],
-        "ru" => &["one", "few", "many"],
+        "ru" | "uk" | "pl" => &["one", "few", "many"],
         "cs" => &["one", "few", "other"],
         _ => &["one", "other"],
     }
@@ -248,7 +249,7 @@ fn render_ftl(lang: &str, entries: &[Entry], ids: &BTreeMap<(String, String), St
     Ok(format!("{}\n", out.trim_end()))
 }
 
-fn generate(src: &Path, dir: &Path, force: bool) -> Result<(), String> {
+fn generate(src: &Path, dir: &Path, force: bool, additive: bool) -> Result<(), String> {
     let mut catalogs = BTreeMap::new();
     for &lang in LANGS.iter().filter(|&&lang| lang != "en") {
         catalogs.insert(lang, parse_tsv(&dir.join(format!("{lang}.tsv")))?);
@@ -267,6 +268,21 @@ fn generate(src: &Path, dir: &Path, force: bool) -> Result<(), String> {
             keys.push(Key { context: String::new(), source: source.clone(), id: id("", source) });
         }
     }
+    // An additive refresh retains every established source/ID pair, including authored
+    // messages which are intentionally absent from the legacy TSV migration inputs.
+    if additive && dir.join("keys.tsv").exists() {
+        let ledger = fs::read_to_string(dir.join("keys.tsv")).map_err(|e| e.to_string())?;
+        let mut merged: BTreeMap<_, _> = keys.into_iter().map(|key| ((key.context.clone(), key.source.clone()), key)).collect();
+        for line in ledger.lines().filter(|line| !line.is_empty() && !line.starts_with('#')) {
+            let fields: Vec<_> = line.split('\t').collect();
+            if fields.len() != 3 {
+                return Err("malformed keys.tsv row".into());
+            }
+            let key = Key { context: unescape(fields[0]), source: unescape(fields[1]), id: fields[2].into() };
+            merged.insert((key.context.clone(), key.source.clone()), key);
+        }
+        keys = merged.into_values().collect();
+    }
     keys.sort();
     let ids: BTreeMap<_, _> = keys.iter().map(|key| ((key.context.clone(), key.source.clone()), key.id.clone())).collect();
     let mut outputs = Vec::new();
@@ -279,6 +295,18 @@ fn generate(src: &Path, dir: &Path, force: bool) -> Result<(), String> {
     if !force && outputs.iter().any(|(path, _)| path.exists()) {
         return Err("Fluent catalogs already exist; use `i18n generate --force` only to repeat the one-time TSV migration".into());
     }
+    for (path, content) in &mut outputs {
+        if additive && path.extension().is_some_and(|extension| extension == "ftl") && path.exists() {
+            let previous = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+            *content = append_missing_messages(&previous, content);
+        }
+    }
+    // Validate every candidate before modifying any catalog.
+    for (path, content) in &outputs {
+        if path.extension().is_some_and(|extension| extension == "ftl") {
+            fluent_syntax::parser::parse(content.as_str()).map_err(|(_, errors)| format!("{}: {errors:?}", path.display()))?;
+        }
+    }
     for (path, content) in &outputs {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;
@@ -287,6 +315,21 @@ fn generate(src: &Path, dir: &Path, force: bool) -> Result<(), String> {
     }
     println!("i18n: {} stable IDs, {} FTL catalogs generated", keys.len(), LANGS.len());
     Ok(())
+}
+
+/// Preserve authored patterns verbatim; migration output supplies only new message IDs.
+fn append_missing_messages(previous: &str, generated: &str) -> String {
+    let ids: BTreeSet<_> = previous.lines().filter_map(|line| line.split_once(" = ").map(|(id, _)| id)).collect();
+    let mut out = previous.trim_end().to_string();
+    for block in generated.split("\n\n") {
+        let Some((id, _)) = block.split_once(" = ") else { continue };
+        if !ids.contains(id) {
+            out.push_str("\n\n");
+            out.push_str(block);
+        }
+    }
+    out.push('\n');
+    out
 }
 
 #[derive(Default)]
@@ -375,6 +418,18 @@ mod tests {
         let start = byte_position(source, span.start().line, span.start().column).unwrap();
         let end = byte_position(source, span.end().line, span.end().column).unwrap();
         assert_eq!(source.get(start..end), Some("tl!(\"Hello\")"));
+    }
+
+    #[test]
+    fn additive_catalog_update_preserves_authored_selectors_and_adds_only_new_ids() {
+        let previous = "# Hand authored\n\nui-count = { $n ->\n    [one] One\n   *[other] Many\n  }\n";
+        let generated = "# Generated\n\nui-count = Lossy fallback\n\nui-new = New label\n";
+        let result = append_missing_messages(previous, generated);
+        assert!(result.starts_with(previous.trim_end()));
+        assert!(result.contains("ui-new = New label"));
+        assert!(!result.contains("Lossy fallback"));
+        assert_eq!(result.matches("ui-count =").count(), 1);
+        assert!(fluent_syntax::parser::parse(result.as_str()).is_ok());
     }
 
     #[test]

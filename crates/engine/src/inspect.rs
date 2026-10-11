@@ -1,6 +1,6 @@
 //! JSON views of engine state for automation, tests and debugging.
 
-use photocraft_doc::{Layer, LayerContent};
+use photocraft_doc::{Layer, LayerContent, SmartSource};
 use serde_json::{Value, json};
 
 use crate::{DocState, Session};
@@ -55,6 +55,7 @@ pub fn document(d: &DocState) -> Value {
         "revision": d.revision,
         "channels": crate::channel_cmds::channels_json(d),
         "quickMask": doc.quick_mask.is_some(),
+        "symmetry": d.symmetry.as_ref().map(|s| s.inspect()),
         "layerMaskView": crate::mask_view_cmds::view_json(d),
         "layerComps": doc.layer_comps.iter().map(|c| json!({"id": c.id, "name": c.name})).collect::<Vec<_>>(),
         "lastAppliedComp": doc.last_applied_comp,
@@ -85,11 +86,14 @@ fn layer_sel(l: &Layer, selected: &[photocraft_doc::LayerId]) -> Value {
         "name": l.name,
         "kind": l.content.kind_name(),
         "visible": l.visible,
+        "labelColor": l.label.id(),
         "opacity": l.opacity,
         "fill": l.fill_opacity,
         "blend": l.blend.label(),
         "clipped": l.clipped,
         "hasMask": l.mask.is_some(),
+        "hasVectorMask": l.vector_mask.is_some(),
+        "vectorMaskEnabled": l.vector_mask.as_ref().map(|mask| mask.enabled),
         "bounds": bounds,
         "selected": selected.contains(&l.id),
         "linkGroup": l.link_group,
@@ -113,6 +117,13 @@ fn layer_sel(l: &Layer, selected: &[photocraft_doc::LayerId]) -> Value {
                     .collect(),
             );
             v["smartFiltersEnabled"] = json!(sm.filters_enabled);
+            // Where the contents come from. A PSD placed layer (embedded or linked in Photoshop) is
+            // `linked` to the `Idnt` uuid of its file, which its duplicates share; New Smart Object
+            // via Copy embeds its own copy of the file instead.
+            v["smartSource"] = match &sm.source {
+                SmartSource::Embedded { file_name, .. } => json!({"kind": "embedded", "fileName": file_name}),
+                SmartSource::Linked { path } => json!({"kind": "linked", "path": path}),
+            };
         }
         LayerContent::Text(t) => {
             v["text"] = json!({"text": t.text, "font": t.font_family, "sizePt": t.size_pt});
@@ -122,6 +133,10 @@ fn layer_sel(l: &Layer, selected: &[photocraft_doc::LayerId]) -> Value {
     // Advanced Blending › Channels (only when some channel is left out).
     if l.excluded_channels != 0 {
         v["channels"] = json!((0..4).map(|i| l.excluded_channels & (1 << i) == 0).collect::<Vec<_>>());
+    }
+    // Blending Options › Advanced Blending switches (only when one differs from Photoshop's default).
+    if !l.advanced.is_default() {
+        v["advancedBlending"] = serde_json::to_value(l.advanced).unwrap_or(Value::Null);
     }
     // Blending Options › Blend If (only when set): range index (0 = Gray, then the mode's
     // channels) with This Layer / Underlying Layer as [blackLo, blackHi, whiteLo, whiteHi].
@@ -151,4 +166,57 @@ fn layer_sel(l: &Layer, selected: &[photocraft_doc::LayerId]) -> Value {
         v["video"] = json!({"frames": vid.frames.len(), "fps": vid.fps, "showAltered": vid.show_altered, "source": source});
     }
     v
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use photocraft_color::PixelFormat;
+    use photocraft_doc::{LayerMask, Path, VectorMask};
+
+    #[test]
+    fn document_inspect_reports_raster_and_vector_masks_when_nested() {
+        let cases = [(false, None), (true, None), (false, Some(true)), (false, Some(false)), (true, Some(true))];
+        let mut session = Session::new();
+        session.execute("file.new", json!({"width": 1, "height": 1})).unwrap();
+        let layers = cases
+            .iter()
+            .map(|&(raster, enabled)| {
+                let mut layer = Layer::raster("Mask case", PixelFormat::RGBA8);
+                layer.mask = raster.then(LayerMask::reveal_all);
+                layer.vector_mask = enabled.map(|enabled| VectorMask { enabled, ..VectorMask::new(Path::default()) });
+                layer
+            })
+            .collect::<Vec<_>>();
+        let mut group = Layer::group("Inner", layers.clone());
+        group.vector_mask = Some(VectorMask { enabled: false, ..VectorMask::new(Path::default()) });
+        let mut roots = layers;
+        roots.push(Layer::group("Outer", vec![group]));
+        session
+            .edit("Mask fixtures", |doc, _| {
+                doc.layers = roots;
+                Ok(())
+            })
+            .unwrap();
+
+        let inspected = session.execute("document.inspect", json!({})).unwrap();
+
+        let roots = inspected["layers"].as_array().unwrap();
+        let outer = &roots[0];
+        let inner = &outer["children"][0];
+        assert_eq!(outer.get("hasMask"), Some(&json!(false)));
+        assert_eq!(outer.get("hasVectorMask"), Some(&json!(false)));
+        assert_eq!(outer.get("vectorMaskEnabled"), Some(&Value::Null));
+        assert_eq!(inner.get("hasMask"), Some(&json!(false)));
+        assert_eq!(inner.get("hasVectorMask"), Some(&json!(true)));
+        assert_eq!(inner.get("vectorMaskEnabled"), Some(&json!(false)));
+        for nodes in [&roots[1..], inner["children"].as_array().unwrap().as_slice()] {
+            assert_eq!(nodes.len(), cases.len());
+            for (node, &(raster, enabled)) in nodes.iter().zip(cases.iter().rev()) {
+                assert_eq!(node.get("hasMask"), Some(&json!(raster)));
+                assert_eq!(node.get("hasVectorMask"), Some(&json!(enabled.is_some())));
+                assert_eq!(node.get("vectorMaskEnabled"), Some(&json!(enabled)));
+            }
+        }
+    }
 }

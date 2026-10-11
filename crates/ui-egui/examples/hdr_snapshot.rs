@@ -31,7 +31,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut harness = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).with_pixels_per_point(1.0).renderer(renderer).build_eframe(|cc| {
         PhotocraftApp::setup_context(&cc.egui_ctx, Default::default());
         let services = Services {
-            import: Some(Box::new(|name, bytes| photocraft_io::import(name, bytes).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string()))),
+            import: Some(Box::new(|name, bytes, depth| {
+                photocraft_io::import_with_svg_group_depth(name, bytes, depth).map(|r| (r.document, r.warnings)).map_err(|e| e.to_string())
+            })),
             ..Default::default()
         };
         let mut app = PhotocraftApp::new(Default::default(), services);

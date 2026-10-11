@@ -13,3 +13,4 @@ target/
 /result-*
 /.direnv
 *.log
+__pycache__/

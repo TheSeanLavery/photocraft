@@ -11,6 +11,7 @@ workspace = true
 fluent-bundle = "0.16"
 unic-langid = "0.9"
 photocraft-tablet = { workspace = true }
+craft-ui = { workspace = true }
 photocraft-geom = { workspace = true }
 photocraft-color = { workspace = true }
 photocraft-cms = { workspace = true }
@@ -20,6 +21,7 @@ photocraft-ops = { workspace = true }
 photocraft-compose = { workspace = true }
 photocraft-gpu = { workspace = true }
 photocraft-engine = { workspace = true }
+photocraft-io = { workspace = true }
 photocraft-plugins = { workspace = true }
 photocraft-algo = { workspace = true }
 photocraft-text = { workspace = true }
@@ -37,6 +39,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
 base64 = "0.22"
+# Inflating the translation catalogs, stored deflated (build.rs); already linked through photocraft-io.
+flate2 = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rayon = { workspace = true }
@@ -44,10 +48,10 @@ rayon = { workspace = true }
 sys-locale = "=0.3.2"
 
 [dev-dependencies]
-photocraft-cms = { workspace = true }
 sha2 = "0.10"
 skrifa = "0.44"
-photocraft-io = { workspace = true }
+# Synthetic raw files for the open-time Camera Raw dialog tests.
+photocraft-raw = { workspace = true, features = ["testgen"] }
 egui_kittest = { workspace = true, features = ["wgpu", "snapshot", "eframe"] }
 # Benchmark helpers for the `--json` benches `cargo xtask perf` runs (in-process RSS, percentiles).
 photocraft-testkit = { workspace = true }
@@ -55,6 +59,8 @@ photocraft-testkit = { workspace = true }
 photocraft-psd = { workspace = true }
 
 [build-dependencies]
+# Deflates the translation catalogs (build.rs); already linked at run time to inflate them.
+flate2 = { workspace = true }
 serde_json = { workspace = true }
 toml = "1"
 sha2 = "0.10"

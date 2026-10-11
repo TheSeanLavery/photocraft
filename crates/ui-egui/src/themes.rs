@@ -185,6 +185,7 @@ pub(crate) fn apply_pack(app: &mut PhotocraftApp, ctx: &Context, pack: &ThemePac
     resolved.apply(ctx);
     app.ui.theme = resolved.tokens.kind;
     app.ui.theme_id = pack.id.clone();
+    crate::panel_docking::sync_visibility(app);
     app.checker = None;
     #[cfg(not(target_arch = "wasm32"))]
     app.live_tokens.invalidate();
@@ -255,6 +256,9 @@ pub fn select(app: &mut PhotocraftApp, ctx: &Context, id: &str) -> Result<(), St
     let pack = app.theme_rt.catalog.get(id).ok_or_else(|| format!("unknown theme `{id}`"))?;
     let resolved = pack.resolve()?;
     let before = app.session.prefs().interface.clone();
+    if let Some(kind) = builtin(id) {
+        app.session.execute("prefs.set", json!({"path":"interface.theme", "value": kind.id()})).map_err(|e| e.to_string())?;
+    }
     app.session.prefs.edit(|p| {
         p.interface.theme_id = id.into();
         p.interface.theme = crate::prefs_ui::theme_pref(resolved.tokens.kind);

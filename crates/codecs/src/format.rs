@@ -34,6 +34,8 @@ pub enum Format {
     Avif,
     /// HEIF/HEIC (HEVC-coded): read-only; see [`ASYMMETRIC_EXCEPTIONS`].
     Heif,
+    /// FITS (Flexible Image Transport System), the astronomy format: gray or RGB image data.
+    Fits,
 }
 
 /// What a format can hold **and** what this crate reads/writes for it.
@@ -87,7 +89,7 @@ const ALL_LAYOUTS: &[ChannelLayout] = &[L::Gray, L::GrayA, L::Rgb, L::Rgba, L::C
 
 impl Format {
     /// Every format known to the crate (enabled or not).
-    pub const ALL: [Format; 25] = [
+    pub const ALL: [Format; 26] = [
         Format::Pcx,
         Format::Sgi,
         Format::SunRaster,
@@ -113,6 +115,7 @@ impl Format {
         Format::Hdr,
         Format::Avif,
         Format::Heif,
+        Format::Fits,
     ];
 
     pub fn caps(self) -> FormatCaps {
@@ -152,6 +155,7 @@ impl Format {
             Format::Hdr => "Radiance HDR",
             Format::Avif => "AVIF",
             Format::Heif => "HEIF",
+            Format::Fits => "FITS",
         }
     }
 
@@ -184,6 +188,7 @@ impl Format {
             Format::Hdr => &["hdr"],
             Format::Avif => &["avif"],
             Format::Heif => &["heic", "heif", "hif"],
+            Format::Fits => &["fits", "fit", "fts"],
         }
     }
 
@@ -214,6 +219,7 @@ impl Format {
             Format::Hdr => "image/vnd.radiance",
             Format::Avif => "image/avif",
             Format::Heif => "image/heif",
+            Format::Fits => "image/fits",
         }
     }
 
@@ -274,6 +280,7 @@ pub fn caps(format: Format) -> FormatCaps {
         Format::Heif => {
             FormatCaps { read: cfg!(feature = "heif"), write: false, depths: &[S::U8, S::U16], icc: true, exif: true, xmp: true, lossy: true, ..base }
         }
+        Format::Fits => FormatCaps { depths: &[S::U8, S::U16, S::F32], layouts: &[L::Gray, L::Rgb], alpha: false, text: true, ..base },
     }
 }
 
@@ -324,6 +331,9 @@ pub fn detect(bytes: &[u8]) -> Option<Format> {
     }
     if let Some(f) = crate::codecs::legacy::detect(b) {
         return Some(f);
+    }
+    if b.starts_with(b"SIMPLE  =") {
+        return Some(Format::Fits);
     }
     if looks_like_tga(b) {
         return Some(Format::Tga);

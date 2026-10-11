@@ -153,6 +153,15 @@ pub(crate) fn tick(app: &mut PhotocraftApp, ctx: &Context) {
 }
 
 fn import_file(app: &mut PhotocraftApp, ctx: &Context) -> Result<(), String> {
+    if app.services.file_dialog.is_some() {
+        let ctx = ctx.clone();
+        app.pick_file_bytes_filtered(&["json"], move |app, _, bytes| {
+            let text = String::from_utf8(bytes).map_err(|_| "theme file is not valid UTF-8".to_string())?;
+            import_text(app, &ctx, text)?;
+            Ok(Value::Null)
+        })?;
+        return Ok(());
+    }
     let pick = app.services.pick_theme.as_mut().ok_or("theme file picker is unavailable")?;
     if let Some(text) = pick()? {
         import_text(app, ctx, text)?;
@@ -164,6 +173,16 @@ fn export_file(app: &mut PhotocraftApp) -> Result<(), String> {
     let pack = draft(app)?;
     let text = definition(&pack)?;
     let suggested = format!("{}.theme.json", pack.id);
+    if app.services.file_dialog.is_some() {
+        app.ask_file(crate::FileDialogRequest::SaveFiltered { suggested, extensions: vec!["json".into()] }, move |app, answer| {
+            let crate::FileDialogAnswer::SaveTo(path) = answer else {
+                return Err("the theme save dialog gave an unexpected answer".into());
+            };
+            app.services.write.as_mut().ok_or("file writer is unavailable")?(&path, text.as_bytes())?;
+            Ok(Value::Null)
+        })?;
+        return Ok(());
+    }
     let pick = app.services.pick_save.as_mut().ok_or("save dialog is unavailable")?;
     let Some(path) = pick(&suggested) else { return Ok(()) };
     app.services.write.as_mut().ok_or("file writer is unavailable")?(&path, text.as_bytes())
@@ -461,6 +480,47 @@ mod tests {
         tick(&mut app, &ctx);
         assert!(app.ui.theme_manager.as_ref().unwrap().error.is_none());
     }
+    #[test]
+    fn asynchronous_theme_import_and_export_use_json_filters_and_preserve_the_export_snapshot() {
+        let ctx = Context::default();
+        let mut app = PhotocraftApp::new(Session::new(), Services::default());
+        themes::sync(&mut app, &ctx);
+        command(&mut app, &ctx, "manager", &Value::Null).unwrap();
+        command(&mut app, &ctx, "duplicate", &Value::Null).unwrap();
+        let pack = draft(&app).unwrap();
+        let text = definition(&pack).unwrap();
+        let replies = Rc::new(RefCell::new(Vec::new()));
+        let queued = replies.clone();
+        app.services.file_dialog = Some(Box::new(move |request, _, reply| {
+            queued.borrow_mut().push((request, reply));
+        }));
+        let written = Rc::new(RefCell::new(Vec::new()));
+        let bytes = written.clone();
+        app.services.write = Some(Box::new(move |path, data| {
+            assert_eq!(path, "custom.theme.json");
+            *bytes.borrow_mut() = data.to_vec();
+            Ok(())
+        }));
+        export_file(&mut app).unwrap();
+        assert!(written.borrow().is_empty());
+        app.poll_file_dialog(&ctx, None);
+        let (request, reply) = replies.borrow_mut().pop().unwrap();
+        assert_eq!(request, crate::FileDialogRequest::SaveFiltered { suggested: format!("{}.theme.json", pack.id), extensions: vec!["json".into()] });
+        // Later manager edits cannot change the exported pack the user selected.
+        app.ui.theme_manager.as_mut().unwrap().json = "invalid later draft".into();
+        reply.send(Some(crate::FileDialogAnswer::SaveTo("custom.theme.json".into())));
+        app.poll_file_dialog(&ctx, None);
+        assert_eq!(ThemePack::parse(std::str::from_utf8(&written.borrow()).unwrap()).unwrap(), pack);
+        import_file(&mut app, &ctx).unwrap();
+        app.poll_file_dialog(&ctx, None);
+        let (request, reply) = replies.borrow_mut().pop().unwrap();
+        assert!(matches!(request, crate::FileDialogRequest::Open { multiple: false, extensions: Some(ref exts), .. } if exts == &["json"]));
+        reply.send(Some(crate::FileDialogAnswer::Contents("custom.theme.json".into(), text.as_bytes().to_vec())));
+        app.poll_file_dialog(&ctx, None);
+        assert_eq!(app.ui.theme_manager.as_ref().unwrap().json, text);
+        assert!(app.theme_rt.catalog.get(&pack.id).is_none(), "import remains an unapplied draft");
+    }
+
     #[test]
     fn manager_buttons_preview_and_cancel_on_a_small_display() {
         use egui_kittest::{Harness, kittest::Queryable};

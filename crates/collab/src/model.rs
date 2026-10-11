@@ -316,7 +316,9 @@ impl ChunkBudget {
         Ok(())
     }
 }
-fn valid_brush(b: &BrushSettings) -> bool {
+/// Whether a brush fits the bounded live-stroke protocol. Larger local resources use
+/// completed command transactions, so their pixels can still be shared.
+pub fn can_stream_brush(b: &BrushSettings) -> bool {
     fn finite_json(v: &serde_json::Value) -> bool {
         match v {
             serde_json::Value::Null => false,
@@ -329,10 +331,12 @@ fn valid_brush(b: &BrushSettings) -> bool {
     let tile = |g: &photocraft_paint::GrayTile| g.width <= 1024 && g.height <= 1024 && g.is_valid();
     let tip = |t: &photocraft_paint::TipShape| match t {
         photocraft_paint::TipShape::Sampled(g) => tile(g),
+        photocraft_paint::TipShape::Stored(stored) => stored.full.as_deref().is_some_and(tile),
         _ => true,
     };
     let pattern = match &b.texture.pattern {
         photocraft_paint::Pattern::Tile(g) => tile(g),
+        photocraft_paint::Pattern::Stored(stored) => stored.full.as_deref().is_some_and(tile),
         photocraft_paint::Pattern::Procedural { size, .. } => *size <= 1024,
     };
     tip(&b.tip)
@@ -353,7 +357,7 @@ pub fn validate(op: &Operation) -> Result<()> {
             text(&s.id, 128)
                 && s.zoom.is_finite()
                 && (0.01..=64.0).contains(&s.zoom)
-                && valid_brush(&s.brush)
+                && can_stream_brush(&s.brush)
                 && s.brush.size.is_finite()
                 && (0.1..=4096.0).contains(&s.brush.size)
                 && s.brush.spacing.is_finite()
@@ -456,4 +460,28 @@ pub struct JournalCheckpoint {
 pub enum ArchivedEdit {
     Stroke { start: Box<StrokeStart>, owner: String, chunks: Vec<Vec<StrokePoint>>, ended: bool, visible: bool },
     Command { edit: Box<CommandEdit>, owner: String, visible: bool },
+}
+
+#[cfg(test)]
+mod stored_resource_tests {
+    use super::*;
+    #[test]
+    fn stored_brush_resources_require_loaded_bounded_pixels_and_serialize_portably() {
+        let tile = std::sync::Arc::new(photocraft_paint::GrayTile::from_fn(8, 8, |x, y| if (x + y) % 2 == 0 { 0.5 } else { 1.0 }));
+        let mut stored = photocraft_paint::StoredTile { key: "private-resource".into(), width: 8, height: 8, preview: tile.clone(), full: None };
+        let mut brush = BrushSettings { tip: photocraft_paint::TipShape::Stored(stored.clone()), ..Default::default() };
+        brush.texture.pattern = photocraft_paint::Pattern::Stored(stored.clone());
+        assert!(!can_stream_brush(&brush), "unresolved private keys cannot be streamed");
+        stored.full = Some(tile);
+        brush.tip = photocraft_paint::TipShape::Stored(stored.clone());
+        brush.texture.pattern = photocraft_paint::Pattern::Stored(stored);
+        assert!(can_stream_brush(&brush));
+        let json = serde_json::to_value(&brush).unwrap();
+        assert!(json["tip"].get("sampled").is_some());
+        assert!(json["texture"]["pattern"].get("tile").is_some());
+        let received: BrushSettings = serde_json::from_value(json).unwrap();
+        assert!(can_stream_brush(&received));
+        assert_eq!(received.tip.bitmap().unwrap(), brush.tip.bitmap().unwrap());
+        assert_eq!(received.texture.pattern.bitmap(), brush.texture.pattern.bitmap());
+    }
 }

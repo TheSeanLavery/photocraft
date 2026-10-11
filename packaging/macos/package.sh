@@ -149,10 +149,14 @@ STAGE="$WORK/dmg"
 mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/PhotoCraft.app"
 ln -s /Applications "$STAGE/Applications"
+# Finder window layout: background, icon size and positions (packaging/macos/dmg/README.md).
+mkdir -p "$STAGE/.background"
+cp "$HERE/dmg/background.tiff" "$STAGE/.background/background.tiff"
+cp "$HERE/dmg/dmg-layout.DS_Store" "$STAGE/.DS_Store"
 rm -f "$DMG"
 # makehybrid adds FinderInfo metadata to files inside the image, which invalidates the app's
 # strict code signature after mounting. create -srcfolder preserves the signed bundle cleanly.
-hdiutil create -volname "PhotoCraft $VERSION" -srcfolder "$STAGE" -fs HFS+ \
+hdiutil create -volname "PhotoCraft" -srcfolder "$STAGE" -fs HFS+ \
   -format UDZO -imagekey zlib-level=9 -o "$DMG"
 sign "$DMG"
 codesign --verify --strict --verbose=2 "$DMG"

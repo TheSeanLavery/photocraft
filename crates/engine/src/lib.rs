@@ -11,28 +11,34 @@ pub mod actions_cmds;
 pub mod adjust_cmds;
 pub mod adjust_params;
 pub mod align_cmds;
+mod allocation;
 pub mod analysis_cmds;
 pub mod artboard_cmds;
 pub mod automate_cmds;
+pub mod background_cmds;
 pub mod brush_cmds;
 pub mod brush_key_cmds;
 pub mod brush_preset_cmds;
 pub mod build_info;
 mod canvas_geom;
+mod channel_clip;
 pub mod channel_cmds;
 pub mod collab;
 pub mod collab_cmds;
 pub mod collab_resources;
 pub mod color_cmds;
+pub mod color_to_alpha_cmds;
 pub mod commands;
 mod compact_move;
 pub mod comps_cmds;
 pub mod cutout_cmds;
 pub mod display_color;
 pub mod distort_cmds;
+pub mod document_preset_cmds;
 pub mod edit_cmds;
 pub mod edit_menu_cmds;
 pub mod eraser_cmds;
+pub mod exr_cmds;
 pub mod extra_cmds;
 pub mod file_cmds;
 pub mod fill_cmds;
@@ -42,21 +48,28 @@ pub mod filters_ext;
 pub mod float_cmds;
 mod frame_cmds;
 pub mod fx_view_cmds;
+pub mod fx_visibility_cmds;
 pub mod gallery_cmds;
 pub mod gradient_fill_cmds;
 pub mod group_view_cmds;
+pub mod guide_layout;
 pub mod hdr_cmds;
+pub mod hidden_target;
 mod history_cache;
-mod history_cmds;
+pub mod history_cmds;
 pub mod image_cmds;
 pub mod inspect;
 pub mod jobs;
+pub mod kys;
 pub mod layer_copy_cmds;
+pub mod layer_label_cmds;
+pub mod layer_mask_props_cmds;
 pub mod layer_menu_cmds;
 pub mod layer_multi_cmds;
 pub mod layer_nav_cmds;
 pub mod layer_style;
 pub mod lens_cmds;
+pub mod link_watch;
 pub mod magnetic_cmds;
 pub mod mask_view_cmds;
 mod migrate_cmds;
@@ -66,6 +79,8 @@ pub mod notes_cmds;
 pub mod paint_cmds;
 mod path_edit_cmds;
 pub mod pattern_cmds;
+pub mod pattern_fill_cmds;
+pub mod perspective_crop_cmds;
 pub mod photo_cmds;
 pub mod pick_cmds;
 mod pixels;
@@ -76,15 +91,21 @@ pub mod preset_store;
 pub mod presets;
 pub mod print_cmds;
 pub mod proof_sim;
+pub mod rasterize_style_cmds;
+pub mod redeye_cmds;
 pub mod render_cmds;
 pub mod retouch_cmds;
+pub mod sample_cmds;
+pub mod sampler_cmds;
 pub mod select_extra_cmds;
 pub mod selection_cmds;
 pub mod slice_cmds;
 pub mod smart_cmds;
 pub mod smartselect_cmds;
 pub mod snap;
+pub mod solid_fill_cmds;
 pub mod stamp_cmds;
+pub mod swatch_cmds;
 pub mod symmetry_cmds;
 mod timeline_cmds;
 pub mod transform_cmds;
@@ -92,11 +113,13 @@ mod trap_cmds;
 pub mod type_caret_cmds;
 pub mod type_cmds;
 pub mod type_extra_cmds;
+pub mod type_mask_cmds;
 pub mod type_spell_cmds;
 pub mod type_styles_cmds;
 mod variables_cmds;
 pub mod vector_cmds;
 mod video_cmds;
+pub use video_cmds::render_video_with;
 pub mod vp_cmds;
 pub mod warp_cmds;
 pub mod web_cmds;
@@ -134,6 +157,12 @@ pub enum EngineError {
 
 pub type Result<T> = std::result::Result<T, EngineError>;
 
+impl From<photocraft_raster::AllocationError> for EngineError {
+    fn from(error: photocraft_raster::AllocationError) -> Self {
+        Self::Other(format!("not enough memory for this operation ({error}); the document was not changed"))
+    }
+}
+
 /// The pixels of a raster layer (typically one a command just created), as an error instead
 /// of a panic if the layer has none.
 pub(crate) fn pixels_mut(l: &mut photocraft_doc::Layer) -> Result<&mut photocraft_raster::Surface> {
@@ -157,11 +186,13 @@ pub struct DocState {
     pub active_layer: Option<LayerId>,
     /// Every selected layer in the Layers panel (⌘/⇧-click), in selection order. Like
     /// `active_layer`, selecting is not a history step, but undo and redo restore the layers each
-    /// state targeted when it was created; see [`DocState::selected_layers`].
+    /// state targeted when the next step was taken; see [`DocState::selected_layers`].
     pub selected_layers: Vec<LayerId>,
     /// Anchor of ⇧-click range selection (the last plainly or ⌘-clicked layer).
     pub layer_anchor: Option<LayerId>,
     pub path: Option<String>,
+    /// An Affinity document (or its preview) must not acquire the native source as its Save path.
+    pub source_read_only: bool,
     /// Increments on every change; UIs re-render when it moves.
     pub revision: u64,
     pub saved_revision: u64,
@@ -173,8 +204,8 @@ pub struct DocState {
     pub channel_view: channel_cmds::ChannelView,
     /// Select › Isolate Layers: the Layers panel lists only these layers (empty = off; view state).
     pub isolated_layers: Vec<LayerId>,
-    /// Painting symmetry axis made from the selected path (tool state, not document pixels).
-    pub symmetry_path: Option<symmetry_cmds::SymmetryAxis>,
+    /// Painting symmetry preset or sampled path (tool state, not document pixels).
+    pub symmetry: Option<symmetry_cmds::PaintingSymmetry>,
     /// Layers panel: layers whose effects list is collapsed under their row (the fx triangle;
     /// view state, not history). Effects lists start open.
     pub fx_collapsed: Vec<LayerId>,
@@ -184,6 +215,10 @@ pub struct DocState {
     /// A floating selection (`select.float`): the cut piece and where it floats, until dropped
     /// (view state: the document is unchanged until `select.drop`).
     pub floating: Option<float_cmds::Floating>,
+    /// Color Sampler points (`view.colorSamplers.*`, #1046): numbered sample positions in document
+    /// pixel coordinates. Per-document view state: discarded when the document closes, never saved
+    /// to `.pcraft` or PSD, and not a history step.
+    pub color_samplers: Vec<[f64; 2]>,
 }
 
 impl DocState {
@@ -198,16 +233,18 @@ impl DocState {
             selected_layers: active_layer.into_iter().collect(),
             layer_anchor: active_layer,
             path,
+            source_read_only: false,
             revision: 1,
             saved_revision: 1,
             last_damage: None,
             coalesce: None,
             channel_view: Default::default(),
             isolated_layers: Vec::new(),
-            symmetry_path: None,
+            symmetry: None,
             fx_collapsed: Vec::new(),
             show_only: None,
             floating: None,
+            color_samplers: Vec::new(),
         }
     }
     /// The selected layers in bottom-to-top document order, always including the active layer.
@@ -246,6 +283,37 @@ pub struct ToolState {
     /// The coalescing key of the running `tools.setBrush` gesture and the brush before it, so the
     /// gesture journals as one call ([`brush_cmds::coalesce_journal`]).
     pub brush_gesture: Option<(String, photocraft_paint::BrushSettings)>,
+    /// Name of the preset the current brush was last picked from. Kept across later edits (the
+    /// preset stays "the current brush" so `brush.presets.update` can overwrite it); cleared when
+    /// the brush is reset or the preset is gone.
+    pub current_preset: Option<String>,
+    /// A layer mask is the edit target ([`ToolState::target_mask`]).
+    pub mask_targeted: bool,
+    /// The foreground/background pair of the edit target that isn't current: the layer pixels'
+    /// colours while a mask is targeted, the mask's while the pixels are (#2166).
+    pub other_colors: [[f32; 4]; 2],
+}
+
+impl ToolState {
+    /// Photoshop's colour pair for a layer mask that has none yet: white foreground, black
+    /// background (reveal-paint first).
+    pub const MASK_COLORS: [[f32; 4]; 2] = [[1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0]];
+
+    /// Switch the edit target between layer pixels and a layer mask. Like Photoshop, the mask and
+    /// the pixels keep separate app-wide foreground/background pairs: changing the target puts
+    /// the current pair aside and brings back the other one, so colours picked while a mask is
+    /// targeted are remembered for masks (#2166). The mask pair starts at [`Self::MASK_COLORS`].
+    /// Returns whether the target changed.
+    pub fn target_mask(&mut self, mask: bool) -> bool {
+        if self.mask_targeted == mask {
+            return false;
+        }
+        self.mask_targeted = mask;
+        let [fg, bg] = std::mem::replace(&mut self.other_colors, [self.foreground, self.background]);
+        self.foreground = fg;
+        self.background = bg;
+        true
+    }
 }
 
 impl Default for ToolState {
@@ -262,6 +330,9 @@ impl Default for ToolState {
             presets_rev: 0,
             mixer: Default::default(),
             brush_gesture: None,
+            current_preset: None,
+            mask_targeted: false,
+            other_colors: Self::MASK_COLORS,
         }
     }
 }
@@ -278,8 +349,9 @@ pub struct Session {
     coalesce_request: Option<String>,
     /// Pixels copied with Edit › Copy / Cut (shared by all documents, like Photoshop).
     pub clipboard: Option<edit_cmds::Clip>,
-    /// Layer › Layer Style › Copy Layer Style: effects, blend mode and fill opacity.
-    pub style_clipboard: Option<(photocraft_doc::Effects, photocraft_color::BlendMode, f32)>,
+    /// Layer › Layer Style › Copy Layer Style: effects, blend mode, fill opacity and the Advanced
+    /// Blending switches.
+    pub style_clipboard: Option<(photocraft_doc::Effects, photocraft_color::BlendMode, f32, photocraft_doc::AdvancedBlending)>,
     /// Shape path context menu: copied vector fill and stroke styles.
     pub path_fill_clipboard: Option<photocraft_doc::Fill>,
     pub path_stroke_clipboard: Option<photocraft_doc::ShapeStroke>,
@@ -320,6 +392,22 @@ pub struct Session {
     jobs: jobs::Jobs,
     history_cache: history_cache::Cache,
     compact_move: Option<compact_move::Run>,
+    /// Color Sampler points dropped by the last canvas-size change (crop, Canvas Size, Image Size,
+    /// rotation), for the status message. Read with [`Session::take_samplers_removed`].
+    samplers_removed: usize,
+    /// The canvas-geometry map the next [`Session::edit`] applies to the Color Sampler points (crop,
+    /// Canvas Size, Image Size, rotation set it just before their edit). Consumed by the edit.
+    sampler_map: Option<photocraft_geom::Affine>,
+    /// Each open document's linked smart objects' files: size and modification time when last
+    /// seen ([`link_watch`]).
+    pub link_stamps: std::collections::HashMap<(u64, String), link_watch::Stamp>,
+    /// The stamps being taken on a worker thread ([`Session::start_link_scan`]).
+    pub link_scan: Option<link_watch::LinkScan>,
+    /// Select Subject's last result, reused while the pixels are unchanged (#2865).
+    subject_cache: smartselect_cmds::SubjectCache,
+    /// A finished live stroke offered to the `paint.stroke` / `paint.pencil` that commits it
+    /// ([`Session::offer_live_stroke`]).
+    pub(crate) live_commit: Option<brush_cmds::LiveCommit>,
 }
 
 /// Move item `i` of `v` to position `to`, clamped to the end. Returns where it went; `None` when
@@ -354,10 +442,29 @@ impl Session {
     pub fn set_active(&mut self, index: usize) -> bool {
         if index < self.docs.len() {
             self.active = Some(index);
+            self.sync_tools_mask_target();
             true
         } else {
             false
         }
+    }
+
+    /// Color Sampler points dropped by the last canvas-size change (crop, Canvas Size, Image Size,
+    /// rotation) since this was last called, for the status message. See [`edit`](Self::edit).
+    pub fn take_samplers_removed(&mut self) -> usize {
+        std::mem::take(&mut self.samplers_removed)
+    }
+
+    /// Move the Color Sampler points through `a` in the next [`Session::edit`] (crop, Canvas Size,
+    /// Image Size, rotation), dropping the ones that land outside the new canvas. View state: the
+    /// points stay pinned to their pixels, no history step. Cleared by the edit it is set for.
+    pub(crate) fn set_sampler_map(&mut self, a: photocraft_geom::Affine) {
+        self.sampler_map = Some(a);
+    }
+
+    pub fn sync_tools_mask_target(&mut self) {
+        let mask = self.active().is_some_and(|st| st.channel_view.target == crate::channel_cmds::ChannelTarget::LayerMask);
+        self.tools.target_mask(mask);
     }
 
     /// Move the document at `from` to tab position `to` (clamped to the last), keeping the active
@@ -419,9 +526,18 @@ impl Session {
         if let Some(id) = self.docs.get(index).map(|d| d.doc.id) {
             self.cancel_jobs_on(id);
             self.color.workbench.remove(&id);
+            self.subject_cache.forget_doc(id);
         }
         let d = self.docs.remove(index);
-        self.active = if self.docs.is_empty() { None } else { Some(index.min(self.docs.len() - 1)) };
+        self.active = if self.docs.is_empty() {
+            None
+        } else {
+            Some(match self.active {
+                Some(active) if active > index => active - 1,
+                Some(active) if active < index => active,
+                _ => index.min(self.docs.len() - 1),
+            })
+        };
         self.history_cache.dirty = true;
         self.poll_history_cache();
         Some(d)
@@ -441,6 +557,20 @@ impl Session {
             // Not reached: inline dispatch never starts a job. Waiting is still correct.
             jobs::Started::Job(j) => self.wait_job(j),
         }
+    }
+
+    /// Offer a finished live stroke to the next command: a `paint.stroke` / `paint.pencil` whose
+    /// params match it exactly takes its pixels instead of rendering the stroke again (its result
+    /// then says `"fromLive": true`); any other command drops the offer. The command still runs
+    /// through the normal dispatch, so authorization, the journal and history are unchanged.
+    pub fn offer_live_stroke(&mut self, live: brush_cmds::LiveStroke) -> Result<()> {
+        self.live_commit = Some(live.into_commit()?);
+        Ok(())
+    }
+
+    /// Withdraw an offer the command didn't take.
+    pub fn clear_live_stroke(&mut self) {
+        self.live_commit = None;
     }
 
     /// Is the command currently runnable? (drives menu enablement)
@@ -468,7 +598,17 @@ impl Session {
 
     /// The command's own precondition for a call with `params` (their target filled in).
     fn precondition(&self, spec: &commands::CommandSpec, params: &Value) -> std::result::Result<(), String> {
+        if self.names_existing_layer(spec.id, params) {
+            return Ok(());
+        }
         channel_cmds::mask_target_enabled(self, spec.id, params).unwrap_or_else(|| (spec.enabled)(self))
+    }
+
+    /// Whether `id` is a layer command whose `"layer"` param names an existing layer, so it needs no
+    /// active layer (#2457). Matches how `layer_param` resolves the layer when the command runs.
+    fn names_existing_layer(&self, id: &str, params: &Value) -> bool {
+        matches!(id, "layer.hideLayers" | "layer.showLayers" | "layer.renameLayer")
+            && params.get("layer").and_then(Value::as_u64).is_some_and(|l| self.active().is_some_and(|st| st.doc.layer(LayerId(l)).is_some()))
     }
 
     /// Apply an undoable edit to the active document.
@@ -479,8 +619,12 @@ impl Session {
     pub(crate) fn edit_with_cache<R>(&mut self, label: &str, poll: bool, f: impl FnOnce(&mut Document, &mut Option<LayerId>) -> Result<R>) -> Result<R> {
         self.admit_history_edit()?;
         let restrict = self.color_restrict;
+        let sampler_map = self.sampler_map.take();
         let st = self.active_mut().ok_or(EngineError::NoDocument)?;
         let before = st.doc.clone();
+        // Selecting layers is not a step, so the state this edit leaves behind targets what was
+        // selected just before it (#1356): undoing a stroke keeps the painted layer active.
+        let prior = st.layer_target();
         let mut doc = (*before).clone();
         let mut active = st.active_layer;
         let r = f(&mut doc, &mut active)?;
@@ -491,18 +635,49 @@ impl Session {
         st.active_layer = active;
         fix_selection(st);
         channel_cmds::fix_view(st);
+        // A canvas-size change (crop, Canvas Size, Image Size, rotation) moves the Color Sampler
+        // points with their pixels and drops the ones that land outside the new canvas. View
+        // state: not a history step. A mapped edit (the four above) gives the exact map; any other
+        // size change falls back to dropping whatever is now outside.
+        let mut samplers_removed = 0;
+        if let Some(a) = sampler_map {
+            let bounds = st.doc.bounds();
+            let n = st.color_samplers.len();
+            st.color_samplers.retain_mut(|p| {
+                let q = a.apply(photocraft_geom::Point::new(p[0], p[1]));
+                *p = [q.x, q.y];
+                bounds.contains(q.x.floor() as i32, q.y.floor() as i32)
+            });
+            samplers_removed = n - st.color_samplers.len();
+        } else if st.doc.size != before.size {
+            let bounds = st.doc.bounds();
+            let n = st.color_samplers.len();
+            st.color_samplers.retain(|p| bounds.contains(p[0].floor() as i32, p[1].floor() as i32));
+            samplers_removed = n - st.color_samplers.len();
+        }
+        // An edit that changes no pixels (a selection, guides, a layer's name) leaves the canvas
+        // as it is; anything else recomposites the whole document unless the command reports
+        // its own damage after this. A new lasso selection on a large document used to cost a
+        // full recomposite (seconds on the CPU path, #1773).
+        let unchanged = layer_multi_cmds::same_pixels(&before, &st.doc);
         let key = self.coalesce_request.clone();
         let st = self.active_mut().ok_or(EngineError::NoDocument)?;
         let layers = st.layer_target();
         st.history.clear_current_archive();
         if key.is_none() || st.coalesce != key || !st.history.can_undo() {
+            st.history.set_current_layers(prior);
             st.history.record(label, before, layers);
         } else {
             st.history.set_current_layers(layers);
         }
         st.coalesce = key;
         st.revision += 1;
-        st.last_damage = None;
+        st.last_damage = unchanged.then_some(photocraft_geom::Rect::EMPTY);
+        self.samplers_removed += samplers_removed;
+        if !unchanged {
+            // Free the mask early; a stale entry would only miss (it is keyed by pixels).
+            self.subject_cache = Default::default();
+        }
         self.history_cache.dirty = true;
         if poll {
             self.poll_history_cache();
@@ -519,6 +694,7 @@ impl Session {
         st.active_layer = Some(id);
         st.selected_layers = vec![id];
         st.layer_anchor = Some(id);
+        channel_cmds::fix_view(st);
         // Selecting a layer is not an edit: keep a clean document clean.
         let clean = st.saved_revision == st.revision;
         st.revision += 1;
@@ -527,6 +703,48 @@ impl Session {
         }
         st.last_damage = Some(photocraft_geom::Rect::EMPTY);
         Ok(())
+    }
+
+    /// Re-renders the pixels of type layers whose font arrived after they were drawn (the web
+    /// build fetches served fonts on demand, `photocraft_text::served`). The layers' model is
+    /// unchanged, so this is no history step and leaves a clean document clean. Unknown documents
+    /// and layers are skipped. A document a background job is computing from must not move under
+    /// it: its layers are returned, to try again later.
+    pub fn refresh_type_layers(&mut self, layers: &[(photocraft_doc::DocId, LayerId)]) -> Vec<(photocraft_doc::DocId, LayerId)> {
+        let mut busy = Vec::new();
+        let mut docs: Vec<photocraft_doc::DocId> = Vec::new();
+        for (d, _) in layers {
+            if !docs.contains(d) {
+                docs.push(*d);
+            }
+        }
+        for doc_id in docs {
+            let mine = layers.iter().filter(|(d, _)| *d == doc_id);
+            if self.job_on(doc_id).is_some() {
+                busy.extend(mine);
+                continue;
+            }
+            let Some(st) = self.docs.iter_mut().find(|st| st.doc.id == doc_id) else { continue };
+            let snapshot = st.doc.clone();
+            let mut doc = (*snapshot).clone();
+            let mut changed = false;
+            for (_, id) in mine {
+                if let Some(photocraft_doc::Layer { content: photocraft_doc::LayerContent::Text(t), .. }) = doc.layer_mut(*id) {
+                    type_cmds::refresh(&snapshot, t);
+                    changed = true;
+                }
+            }
+            if changed {
+                let clean = st.saved_revision == st.revision;
+                st.doc = Arc::new(doc);
+                st.revision += 1;
+                if clean {
+                    st.saved_revision = st.revision;
+                }
+                st.last_damage = None;
+            }
+        }
+        busy
     }
 
     pub fn try_undo(&mut self) -> Result<bool> {
@@ -568,26 +786,34 @@ impl Session {
         }
         let Some(st) = self.active_mut() else { return Ok(false) };
         let restored = if redo { st.history.try_redo(st.doc.clone()) } else { st.history.try_undo(st.doc.clone()) }.map_err(EngineError::Other)?;
-        let Some(doc) = restored else { return Ok(false) };
+        let Some(mut doc) = restored else { return Ok(false) };
+        if st.path.is_some() && doc.name != st.doc.name {
+            Arc::make_mut(&mut doc).name.clone_from(&st.doc.name);
+        }
+        let damage = layer_multi_cmds::step_damage(&st.doc, &doc);
         st.coalesce = None;
         st.doc = doc;
         let layers = st.history.current_layers().clone();
         restore_target(st, layers);
         st.revision += 1;
-        st.last_damage = None;
+        st.last_damage = damage;
         self.history_cache.dirty = true;
         self.poll_history_cache();
         Ok(true)
     }
 
-    pub(crate) fn apply_history_destination(&mut self, id: u64, doc: Arc<Document>, branch: Option<u64>) -> Result<()> {
+    pub(crate) fn apply_history_destination(&mut self, id: u64, mut doc: Arc<Document>, branch: Option<u64>) -> Result<()> {
         let st = self.active_mut().ok_or(EngineError::NoDocument)?;
+        if st.path.is_some() && doc.name != st.doc.name {
+            Arc::make_mut(&mut doc).name.clone_from(&st.doc.name);
+        }
+        let damage = layer_multi_cmds::step_damage(&st.doc, &doc);
         st.history.jump_loaded_on_path(st.doc.clone(), id, doc.clone(), branch).map_err(EngineError::Other)?;
         st.doc = doc;
         st.coalesce = None;
         restore_target(st, st.history.current_layers().clone());
         st.revision = st.revision.saturating_add(1);
-        st.last_damage = None;
+        st.last_damage = damage;
         self.history_cache.dirty = true;
         self.poll_history_cache();
         Ok(())
@@ -596,6 +822,15 @@ impl Session {
 
 /// Undo / redo: target the layers the restored state targeted, as far as they still exist.
 fn restore_target(st: &mut DocState, layers: LayerTarget) {
+    // Deselect Layers is a valid history target, not a missing layer to replace with the top
+    // layer. An edit after deselection must undo back to no active or selected layers (#3042).
+    if layers.active.is_none() && layers.selected.is_empty() {
+        st.active_layer = None;
+        st.selected_layers.clear();
+        st.layer_anchor = None;
+        channel_cmds::fix_view(st);
+        return;
+    }
     if layers.active.is_some_and(|id| st.doc.layer(id).is_some()) {
         st.active_layer = layers.active;
         st.selected_layers = layers.selected;
@@ -632,4 +867,11 @@ pub(crate) fn fix_selection(st: &mut DocState) {
 }
 
 #[cfg(test)]
+mod fill_layer_mode_tests;
+#[cfg(test)]
+mod pattern_mode_tests;
+#[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod fx_mode_tests;

@@ -97,8 +97,9 @@ impl Headless {
             }
             "doc.new" => self.command_run("file.new", p),
             "doc.save" => {
+                let tga_bits = photocraft_engine::file_cmds::tga_bits_param(&p, "doc.save").map_err(|e| bad(e.to_string()))?;
                 let mut opts =
-                    photocraft_io::ExportOptions { tiff_layers: p.get("tiffLayers").and_then(Value::as_bool).unwrap_or(false), ..Default::default() };
+                    photocraft_io::ExportOptions { tiff_layers: p.get("tiffLayers").and_then(Value::as_bool).unwrap_or(false), tga_bits, ..Default::default() };
                 if let Some(q) = p.get("quality").and_then(Value::as_u64) {
                     opts.encode.jpeg_quality = q.clamp(1, 100) as u8;
                     opts.encode.webp_quality = q.clamp(1, 100) as u8;
@@ -304,6 +305,25 @@ mod tests {
 
     fn session() -> Mutex<Headless> {
         Mutex::new(Headless::trusted_local())
+    }
+
+    #[test]
+    fn execute_reports_invalid_filter_parameters_without_changing_history() {
+        let h = session();
+        assert_eq!(respond(&h, r#"{"method":"doc.new","params":{"width":8,"height":8}}"#)["ok"], true);
+        let before = h.lock().unwrap().inspect(None).unwrap();
+        for (params, key) in
+            [(json!({"radius":"big"}), "radius"), (json!({"radus":3}), "radus"), (json!({"radius":5000}), "radius"), (json!({"radius":-4}), "radius")]
+        {
+            for wait in [true, false] {
+                let request = json!({"method":"engine.execute","params":{"command":"filter.blur.gaussianBlur","params":params,"wait":wait}});
+                let reply = respond(&h, &request.to_string());
+                assert_eq!(reply["ok"], false);
+                let error = reply["error"].as_str().unwrap();
+                assert!(error.contains("filter.blur.gaussianBlur") && error.contains(key), "{error}");
+                assert_eq!(h.lock().unwrap().inspect(None).unwrap(), before);
+            }
+        }
     }
 
     #[test]

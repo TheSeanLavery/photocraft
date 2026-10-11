@@ -384,15 +384,15 @@ mod tests {
     fn historical_windows_alias_prefers_recreation_then_compatible_face_then_inter() {
         let mut fonts = FontDefinitions::default();
         assert_eq!(historical_windows_face(&fonts), "Inter");
-        fonts.font_data.insert("Microsoft Sans Serif".into(), Arc::new(FontData::from_static(photocraft_text::fonts::INTER_REGULAR)));
+        fonts.font_data.insert("Microsoft Sans Serif".into(), Arc::new(FontData::from_static(&photocraft_text::fonts::INTER_REGULAR)));
         assert_eq!(historical_windows_face(&fonts), "Microsoft Sans Serif");
-        fonts.font_data.insert("W95FA".into(), Arc::new(FontData::from_static(photocraft_text::fonts::INTER_REGULAR)));
+        fonts.font_data.insert("W95FA".into(), Arc::new(FontData::from_static(&photocraft_text::fonts::INTER_REGULAR)));
         assert_eq!(historical_windows_face(&fonts), "W95FA");
         // Verify the installed registry too: legacy Microsoft requests keep
         // their original preference even when a W95 recreation is present.
         let ctx = Context::default();
         let mut definitions = FontDefinitions::default();
-        definitions.font_data.insert("Inter".into(), Arc::new(FontData::from_static(photocraft_text::fonts::INTER_REGULAR)));
+        definitions.font_data.insert("Inter".into(), Arc::new(FontData::from_static(&photocraft_text::fonts::INTER_REGULAR)));
         install(&ctx, &mut definitions);
         let actual = historical_windows_face(&definitions);
         let registry = ctx.data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families"))).unwrap();

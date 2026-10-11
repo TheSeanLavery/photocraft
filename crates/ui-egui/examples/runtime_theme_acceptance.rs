@@ -73,7 +73,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let app = h.state();
             let view = app.ui.views.first().ok_or("missing document view")?;
             let doc = app.session.active().ok_or("missing document")?;
-            let xf = photocraft_ui_egui::canvas::ViewXform { rect: app.last_canvas_rect, zoom: view.zoom, center: view.center, flip: false };
+            let xf = photocraft_ui_egui::canvas::ViewXform {
+                rect: app.last_canvas_rect,
+                zoom: view.zoom,
+                center: view.center,
+                flip: false,
+                aspect: 1.0,
+                rotation: 0.0,
+            };
             let document = xf.doc_rect(doc.doc.bounds());
             // A modern blurred shadow darkens this white pasteboard strip.
             for offset in [5.0, 10.0, 18.0] {
