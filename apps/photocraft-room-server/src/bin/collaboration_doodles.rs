@@ -12,6 +12,8 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
+#[path = "collaboration_doodles/overlap.rs"]
+mod overlap;
 const ARTISTS: usize = 32;
 const STEPS: usize = 12;
 const POINTS: usize = 96;
@@ -117,6 +119,12 @@ async fn receive(inbox: &mut mpsc::Receiver<Incoming>) -> TransportResult<Vec<u8
 #[tokio::main]
 async fn main() -> TransportResult<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().is_some_and(|a| a == "--overlap") {
+        return overlap::standalone(&args).await;
+    }
+    if args.first().is_some_and(|a| a == "--overlap-join") {
+        return overlap::native(&args).await;
+    }
     if args.first().is_some_and(|a| a == "--join") {
         return join_native(&args).await;
     }

@@ -30,6 +30,12 @@ readiness; treat it as an upper bound.
 
 ## Honest parity assessment (2026-10-05)
 
+2026-10-10 collaboration overlap validation: four native artists completed 256
+full-canvas paint/erase gestures with individual undo/redo and identical decoded
+pixels. Host control roundtrip p99 was 57.22 ms; the same headless WebRTC workload
+ran 3.23 times faster against the exact PR base. This is local-machine automation evidence, not a physical
+input-latency or WAN guarantee. See [collaboration-performance.md](collaboration-performance.md).
+
 2026-10-10 themes integration: the regenerated preference audit measures 56 unused
 settings out of 143; runtime theme selection is connected to Preferences and the
 Theme Manager. Historical visual fidelity remains an ongoing acceptance task.
