@@ -3352,6 +3352,8 @@ mod tests {
         app.run("file.new", json!({"width":64,"height":64,"background":"transparent"})).unwrap();
         app.run("tools.setBrush", json!({"brush":{"size":8,"hardness":1,"spacing":0.2}})).unwrap();
         app.run("collab.room.join", json!({"code":"TEST01","peer":"guest"})).unwrap();
+        // This fixture starts after checkpoint admission; joining itself keeps local documents private.
+        app.session.collaboration.document_id = app.session.active().map(|state| state.doc.id);
         app.ui.tool = Tool::Brush;
         let modifiers = egui::Modifiers::NONE;
         tool_event(&mut app, ToolEvent::Down { x: 12.0, y: 20.0, pressure: 0.3 }, modifiers);
