@@ -7,7 +7,8 @@ use photocraft_doc::{Adjustment, Document, Fill, GradientStyle, Layer, LayerCont
 use photocraft_geom::{Rect, Size};
 use photocraft_gpu::{Compositor, render_to_vec};
 
-const TOL: f32 = 1.0 / 255.0;
+// One 8-bit level, plus roundoff from float shader arithmetic and premultiplication.
+const TOL: f32 = 1.0 / 255.0 + 4.0 * f32::EPSILON;
 
 /// Concurrent wgpu instances in one process segfault on some drivers (RADV), so the GPU tests
 /// take this lock and hold it until their device is dropped.
@@ -1512,4 +1513,14 @@ fn hdr_adjustments_preserve_radiance_and_match_cpu() {
         shown.layers.push(layer);
         check(&mut g, &shown, &format!("HDR {adj:?}"));
     }
+}
+
+#[test]
+fn quantized_parity_budget_accepts_roundoff_and_rejects_two_levels() {
+    // Actual NVIDIA Vulkan output at a Hue/Saturation quantization boundary.
+    let cpu = [[0.46666667, 0.9019608, 0.89411765, 1.0]];
+    let gpu = [[0.46666664, 0.89803916, 0.8941176, 0.99999994]];
+    assert!(worst_diff(&cpu, &gpu).0 <= TOL);
+    let two_levels = [[0.46666664, 0.8941176, 0.8941176, 0.99999994]];
+    assert!(worst_diff(&cpu, &two_levels).0 > TOL);
 }
