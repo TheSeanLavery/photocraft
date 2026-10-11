@@ -414,7 +414,15 @@ mod tests {
         assert_eq!(restored, pack);
         restored.resolve().unwrap().apply(&ctx);
         let body = control(&ctx, 11.0, false);
-        assert_eq!(body.family, FontFamily::Name("MS Sans Serif".into()));
+        let (requested, actual) = status(&ctx).unwrap();
+        assert_eq!(requested, "MS Sans Serif");
+        // Linux and font-free builds may resolve the requested historical face to
+        // Inter. Check its genuine medium fallback rather than claiming an installed face.
+        if actual == "Inter" {
+            assert_eq!(body, crate::theme::medium(11.0));
+        } else {
+            assert_eq!(body.family, FontFamily::Name("MS Sans Serif".into()));
+        }
         assert_eq!(caption(&ctx, 11.0), crate::theme::semibold(11.0));
         assert!(!caption_embolden(&ctx));
         assert_eq!(caption_status(&ctx), Some(("Inter".into(), "Inter".into(), true, false)));
@@ -422,6 +430,15 @@ mod tests {
         pack.resolve().unwrap().apply(&ctx);
         assert_eq!(caption(&ctx, 11.0), crate::theme::medium(11.0));
         assert_eq!(control(&ctx, 11.0, false), body);
+        // Exercise the unavailable-face case on machines that do have historical fonts.
+        let families = ctx.data(|d| d.get_temp::<Families>(egui::Id::new("theme-font-families"))).unwrap();
+        let fallback =
+            families.resolved.iter().map(|(name, actual)| (name.clone(), if name == "MS Sans Serif" { "Inter".into() } else { actual.clone() })).collect();
+        ctx.data_mut(|d| d.insert_temp(egui::Id::new("theme-font-families"), Families { resolved: Arc::new(fallback) }));
+        assert_eq!(status(&ctx), Some(("MS Sans Serif".into(), "Inter".into())));
+        assert_eq!(control(&ctx, 11.0, false), crate::theme::medium(11.0));
+        assert_eq!(caption(&ctx, 11.0), crate::theme::medium(11.0));
+        assert_eq!(caption_status(&ctx), Some(("Inter".into(), "Inter".into(), false, false)));
         pack.typography.caption_family = Some("../../arbitrary-font.ttf".into());
         assert!(pack.resolve().is_err());
         crate::theme::apply(&ctx, crate::theme::ThemeKind::Classic);
