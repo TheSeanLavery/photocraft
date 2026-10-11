@@ -101,13 +101,20 @@ pub struct Prepared {
     transfer: js_sys::Array,
     pub charge: usize,
 }
+struct Pending {
+    charge: usize,
+    posted: f64,
+    received: bool,
+}
 #[allow(dead_code)]
 pub struct Codec {
     worker: web_sys::Worker,
     pub ready: Rc<Cell<bool>>,
-    pending: RefCell<BTreeMap<u64, (usize, f64)>>,
+    pending: Rc<RefCell<BTreeMap<u64, Pending>>>,
     bytes: Cell<usize>,
     next: Cell<u64>,
+    last_progress: Rc<Cell<f64>>,
+    highest_reply: Rc<Cell<u64>>,
     pub started: f64,
     _message: Closure<dyn FnMut(web_sys::MessageEvent)>,
     _error: Closure<dyn FnMut(web_sys::Event)>,
@@ -118,15 +125,28 @@ impl Codec {
         let worker = web_sys::Worker::new("photocraft-wire-worker_loader.js").map_err(js_error)?;
         let ready = Rc::new(Cell::new(false));
         let ready_callback = ready.clone();
+        let pending = Rc::new(RefCell::new(BTreeMap::<u64, Pending>::new()));
+        let callback_pending = pending.clone();
+        let last_progress = Rc::new(Cell::new(js_sys::Date::now()));
+        let callback_progress = last_progress.clone();
+        let highest_reply = Rc::new(Cell::new(0u64));
+        let callback_highest = highest_reply.clone();
         let callback = Rc::new(callback);
         let error_callback = callback.clone();
         let message = Closure::<dyn FnMut(web_sys::MessageEvent)>::new(move |event: web_sys::MessageEvent| {
+            callback_progress.set(js_sys::Date::now());
             let reply = serde_wasm_bindgen::from_value::<Reply>(event.data()).unwrap_or_else(|error| Reply {
                 generation: 0,
                 id: 0,
                 elapsed_ms: 0.0,
                 result: ResultData::Failed(error.to_string()),
             });
+            if reply.id != 0 {
+                callback_highest.set(callback_highest.get().max(reply.id));
+                if let Some(task) = callback_pending.borrow_mut().get_mut(&reply.id) {
+                    task.received = true;
+                }
+            }
             match reply.result {
                 ResultData::Ready { protocol } if protocol == CODEC_VERSION => ready_callback.set(true),
                 ResultData::Ready { .. } => {
@@ -145,7 +165,9 @@ impl Codec {
         Ok(Rc::new(Self {
             worker,
             ready,
-            pending: RefCell::new(BTreeMap::new()),
+            pending,
+            last_progress,
+            highest_reply,
             bytes: Cell::new(0),
             next: Cell::new(0),
             started: js_sys::Date::now(),
@@ -197,18 +219,29 @@ impl Codec {
         let Prepared { id, value, transfer, charge } = prepared;
         // No callback can interleave synchronous prepare/reserve/post on Window.
         self.worker.post_message_with_transfer(&value, &transfer).map_err(js_error)?;
-        self.pending.borrow_mut().insert(id, (charge, js_sys::Date::now()));
+        self.pending.borrow_mut().insert(id, Pending { charge, posted: js_sys::Date::now(), received: false });
         self.bytes.set(self.bytes.get().saturating_add(charge));
         self.next.set(id);
         Ok((id, charge))
     }
     pub fn acknowledge(&self, id: u64) {
-        if let Some((charge, _)) = self.pending.borrow_mut().remove(&id) {
-            self.bytes.set(self.bytes.get().saturating_sub(charge));
+        if let Some(task) = self.pending.borrow_mut().remove(&id) {
+            self.bytes.set(self.bytes.get().saturating_sub(task.charge));
         }
     }
     pub fn stalled(&self) -> bool {
-        self.pending.borrow().values().any(|(_, began)| js_sys::Date::now() - began >= 15_000.0)
+        let now = js_sys::Date::now();
+        self.pending
+            .borrow()
+            .iter()
+            .any(|(id, task)| policy::worker_stalled(now, task.posted, task.received, self.last_progress.get(), *id, self.highest_reply.get()))
+    }
+    pub fn completion_metrics(&self) -> serde_json::Value {
+        let now = js_sys::Date::now();
+        let pending = self.pending.borrow();
+        let received = pending.values().filter(|task| task.received).count();
+        let oldest = |received| pending.values().filter(|task| task.received == received).map(|task| (now - task.posted).max(0.0)).fold(0.0, f64::max);
+        serde_json::json!({"awaitingResults":pending.len().saturating_sub(received),"receivedResultsQueued":received,"oldestUnansweredMs":oldest(false),"oldestReceivedMs":oldest(true),"workerSilenceMs":(now-self.last_progress.get()).max(0.0)})
     }
     pub fn queued(&self) -> usize {
         self.pending.borrow().len()

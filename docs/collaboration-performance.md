@@ -272,3 +272,11 @@ unknown damage retain conservative full rebase; a large dirty region can still
 require substantial work. The four-tile timings do not bound arbitrary brush sizes
 or dense overlapping suffixes. Sustained live dense-room responsiveness and
 physical input-to-display latency require a separate updated-client run.
+
+### Four-client dense live validation (2026-10-10)
+
+Four isolated native clients joined a real WebRTC room and painted/erased across the same1920×1080 layer over a dense imported test PSD. The first phase submitted32 gestures per artist (128 total,96 pressure/tilt/rotation points per gesture in8-point chunks); the second retained that room and added another128 gestures. Each phase performed three own-author undo/redo pairs per artist.
+
+Both phases drained canonical queues and produced four identical decodedRGBA exports, with32 then64 own-author history entries per client and no reported errors. Drawing lasted31.62s and35.48s; the clients' p95 `ui.pointer` control roundtrips ranged53.38–58.82ms. These measurements include local scheduling and command processing; they are not pointer-to-photon latency or a60FPS guarantee. Lifetime worst collaboration ticks after the second phase were230/422/417/534ms, including checkpoint admission and undo/rebase. A complete8.23s four-window ScreenCaptureKit/VideoToolbox hardware clip was inspected at its beginning, middle, and end (229 accepted frames,2 writer backpressure drops). Sanitized numerical evidence is in [`collaboration-four-native-dense-2026-10-10.json`](evidence/collaboration-four-native-dense-2026-10-10.json).
+
+A separate browser-hosted retest exposed an additional codec watchdog defect: it timed healthy replies while they waited for the Window to apply them. That run failed host confirmation and the pixel/history gates; its input timing and video do not establish convergence. The corrected policy marks receipt in the Worker message callback, retains memory credits until consumption, and distinguishes a proven missing FIFO reply from30s of worker silence. Arrived replies and healthy queues making progress cannot time out merely because they are old. Final browser live validation is still required before claiming that path ready.

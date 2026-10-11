@@ -14,9 +14,29 @@ pub fn snapshot_due(busy: bool, available: bool, waiting_ms: f64) -> bool {
 pub fn bulk_due(busy: bool, sent_bulk: bool, age_ms: f64) -> bool {
     !busy || (!sent_bulk && age_ms.is_finite() && age_ms >= 250.0)
 }
+/// Queue age is not worker liveness: received replies can wait behind a costly engine edit.
+/// A higher reply proves a missing FIFO result; otherwise require a full silence window.
+#[allow(dead_code)]
+pub fn worker_stalled(now: f64, posted: f64, received: bool, last_progress: f64, id: u64, highest_reply: u64) -> bool {
+    if received {
+        return false;
+    }
+    let age = now - posted;
+    (highest_reply > id && age >= 15_000.0) || (age >= 30_000.0 && now - last_progress >= 30_000.0)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn received_worker_results_wait_for_slow_engine_without_false_timeout() {
+        assert!(!worker_stalled(60_000.0, 0.0, true, 0.0, 1, 1));
+        assert!(!worker_stalled(30_000.0, 0.0, false, 29_900.0, 50, 49));
+        assert!(!worker_stalled(14_999.0, 0.0, false, 14_900.0, 1, 2));
+        assert!(worker_stalled(15_000.0, 0.0, false, 14_900.0, 1, 2));
+        assert!(!worker_stalled(29_999.0, 0.0, false, 0.0, 1, 0));
+        assert!(worker_stalled(30_000.0, 0.0, false, 0.0, 1, 0));
+        assert!(!worker_stalled(100_000.0, 99_999.0, false, 0.0, 1, 0));
+    }
     #[test]
     fn bounded_ipc_backpressure_preserves_fifo_retry_and_releases_credit() {
         let mut queue = std::collections::VecDeque::new();

@@ -1677,6 +1677,96 @@ mod tests {
     }
 
     #[test]
+    fn four_guests_twelve_delayed_gestures_keep_canonical_pixels_and_ended_history() {
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            std::sync::Arc::make_mut(&mut host.active_mut().unwrap().doc).size = photocraft_geom::Size { width: 512, height: 512 };
+            let layer = host.active().unwrap().active_layer.unwrap();
+            for index in 0..128 {
+                let id = format!("baseline-{index}");
+                begin(&mut host, "peer", &id, [0.2, 0.5, 0.8, 1.0]);
+                chunk(&mut host, "peer", &id, 0, vec![StrokePoint::new(200.0, 200.0, 0.4), StrokePoint::new(210.0, 210.0, 0.9)]);
+                end(&mut host, "peer", &id, 1);
+            }
+            let mut guests: Vec<_> = (0..4)
+                .map(|artist| {
+                    let mut guest = Session::new();
+                    guest.add_document((*host.active().unwrap().doc).clone(), None);
+                    guest.execute("collab.room.join", json!({"peer":format!("guest-{artist}"),"code":"TEST01"})).unwrap();
+                    guest.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+                    guest
+                })
+                .collect();
+            for (artist, guest) in guests.iter_mut().enumerate() {
+                for gesture in 0..12 {
+                    let id = format!("guest-{artist}-gesture-{gesture}");
+                    guest
+                        .collaboration_submit(Operation::StrokeBegin {
+                            stroke: Box::new(StrokeStart {
+                                id: id.clone(),
+                                layer,
+                                zoom: 1.2,
+                                brush: BrushSettings {
+                                    size: 64.0,
+                                    pressure_opacity: true,
+                                    opacity: 0.4,
+                                    color: [artist as f32 / 4.0, 0.3, 0.8, 1.0],
+                                    erase: gesture % 3 == 2,
+                                    seed: 121,
+                                    ..Default::default()
+                                },
+                                selection: Vec::new(),
+                                lock_transparency: false,
+                            }),
+                        })
+                        .unwrap();
+                    for sequence in 0..3 {
+                        let points = (0..4)
+                            .map(|sample| {
+                                let mut point =
+                                    StrokePoint::new(180.0 + f64::from(sequence * 4 + sample) * 8.0, 200.0 + f64::from(gesture), 0.3 + sample as f32 * 0.15);
+                                point.tilt_x = 0.2;
+                                point.tilt_y = -0.1;
+                                point.rotation = 0.4;
+                                point
+                            })
+                            .collect();
+                        guest.collaboration_submit(Operation::StrokeChunk { id: id.clone(), sequence, points }).unwrap();
+                    }
+                    guest.collaboration_submit(Operation::StrokeEnd { id, sequence: 3 }).unwrap();
+                }
+                assert!(guest.collaboration.own_history().is_empty(), "completed input is not an acknowledged canonical stroke");
+                assert!(guest.collaboration.predicted_stroke.as_ref().is_some_and(|prediction| prediction.end_nonce.is_some()));
+                assert_ne!(
+                    guest.active().unwrap().doc.layer(layer).unwrap().surface(),
+                    guest.collaboration.canonical_document.as_ref().unwrap().layer(layer).unwrap().surface(),
+                    "unacknowledged display must not be mistaken for canonical convergence"
+                );
+            }
+            let queued: Vec<_> = guests.iter().map(|guest| guest.collaboration.outbox.clone()).collect();
+            for position in 0..queued[0].len() {
+                for artist in 0..4 {
+                    host.collaboration_accept(&format!("guest-{artist}"), queued[artist][position].clone()).unwrap();
+                    let event = host.collaboration.canonical_outbox.last().unwrap().clone();
+                    for guest in &mut guests {
+                        guest.collaboration_receive(&event).unwrap();
+                        assert_eq!(
+                            guest.collaboration.canonical_document.as_ref().unwrap().layer(layer).unwrap().surface(),
+                            host.active().unwrap().doc.layer(layer).unwrap().surface(),
+                            "prediction must never contaminate canonical pixels"
+                        );
+                    }
+                }
+            }
+            for guest in &guests {
+                assert_eq!(guest.collaboration.own_history().len(), 12);
+                assert!(guest.collaboration.predicted_stroke.is_none());
+                assert_eq!(guest.active().unwrap().doc.layer(layer).unwrap().surface(), host.active().unwrap().doc.layer(layer).unwrap().surface());
+            }
+        }
+    }
+
+    #[test]
     #[ignore = "bounded native engine comparison; does not measure browser presentation FPS"]
     fn guest_disjoint_prediction_latency_benchmark() {
         for depth in [8, 32] {

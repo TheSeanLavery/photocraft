@@ -1,0 +1,209 @@
+{
+  "scenario": "Four native WebRTC clients paint and erase across the same1920x1080 shared layer over a previously dense test PSD; second phase retains first128-stroke journal",
+  "build": "optimized native development build with affected-tile guest prediction repair",
+  "scope": "Control request roundtrips are not pointer-to-photon latency or a60FPS guarantee. Lifetime worst tick includes admission/undo/rebase; browser watchdog validation recorded separately.",
+  "phases": [
+    {
+      "phase": "pass-1",
+      "strokesPerArtist": 32,
+      "artists": 4,
+      "pointsPerStroke": 96,
+      "chunkPoints": 8,
+      "drawingWallSeconds": 31.619165458,
+      "converged": true,
+      "revisions": [
+        1944,
+        1944,
+        1944,
+        1944
+      ],
+      "rgbaHashes": [
+        "b0c77e82183aae1bd3d068cd6969014f11ebe0c8baa17c077e3037cec5f86969",
+        "b0c77e82183aae1bd3d068cd6969014f11ebe0c8baa17c077e3037cec5f86969",
+        "b0c77e82183aae1bd3d068cd6969014f11ebe0c8baa17c077e3037cec5f86969",
+        "b0c77e82183aae1bd3d068cd6969014f11ebe0c8baa17c077e3037cec5f86969"
+      ],
+      "errors": [],
+      "artistMetrics": [
+        {
+          "artist": 0,
+          "baselineOwnHistoryCount": 0,
+          "completedStrokes": 32,
+          "pointerControlRoundtripMs": {
+            "p50": 26.168750000000074,
+            "p95": 55.127999999999844,
+            "p99": 97.5671250000012,
+            "max": 371.8089590000001
+          },
+          "historyControlRoundtripMs": {
+            "p50": 107.80420800000101,
+            "p95": 144.55704199999886,
+            "p99": 144.55704199999886,
+            "max": 144.55704199999886
+          },
+          "lifetimeWorstTickMs": 229.695292
+        },
+        {
+          "artist": 1,
+          "baselineOwnHistoryCount": 0,
+          "completedStrokes": 32,
+          "pointerControlRoundtripMs": {
+            "p50": 18.661542000000253,
+            "p95": 53.379500000000135,
+            "p99": 136.8396660000002,
+            "max": 149.49954100000085
+          },
+          "historyControlRoundtripMs": {
+            "p50": 13.41012500000005,
+            "p95": 42.10108399999868,
+            "p99": 42.10108399999868,
+            "max": 42.10108399999868
+          },
+          "lifetimeWorstTickMs": 421.765583
+        },
+        {
+          "artist": 2,
+          "baselineOwnHistoryCount": 0,
+          "completedStrokes": 32,
+          "pointerControlRoundtripMs": {
+            "p50": 18.560416999999774,
+            "p95": 56.25179199999985,
+            "p99": 141.55708300000038,
+            "max": 158.67483300000094
+          },
+          "historyControlRoundtripMs": {
+            "p50": 24.726499999999874,
+            "p95": 45.43775000000139,
+            "p99": 45.43775000000139,
+            "max": 45.43775000000139
+          },
+          "lifetimeWorstTickMs": 417.052333
+        },
+        {
+          "artist": 3,
+          "baselineOwnHistoryCount": 0,
+          "completedStrokes": 32,
+          "pointerControlRoundtripMs": {
+            "p50": 18.43604100000107,
+            "p95": 58.71595800000051,
+            "p99": 147.66004199999827,
+            "max": 164.92249999999942
+          },
+          "historyControlRoundtripMs": {
+            "p50": 27.10862500000033,
+            "p95": 40.7587920000001,
+            "p99": 40.7587920000001,
+            "max": 40.7587920000001
+          },
+          "lifetimeWorstTickMs": 425.43975
+        }
+      ]
+    },
+    {
+      "phase": "pass-2",
+      "strokesPerArtist": 32,
+      "artists": 4,
+      "pointsPerStroke": 96,
+      "chunkPoints": 8,
+      "drawingWallSeconds": 35.481593917,
+      "converged": true,
+      "revisions": [
+        3888,
+        3888,
+        3888,
+        3888
+      ],
+      "rgbaHashes": [
+        "48a1e7219b6298ec773169dc4fa6a2461f6732a8e867fc495ab410d389c0d5d9",
+        "48a1e7219b6298ec773169dc4fa6a2461f6732a8e867fc495ab410d389c0d5d9",
+        "48a1e7219b6298ec773169dc4fa6a2461f6732a8e867fc495ab410d389c0d5d9",
+        "48a1e7219b6298ec773169dc4fa6a2461f6732a8e867fc495ab410d389c0d5d9"
+      ],
+      "errors": [],
+      "artistMetrics": [
+        {
+          "artist": 0,
+          "baselineOwnHistoryCount": 32,
+          "completedStrokes": 32,
+          "pointerControlRoundtripMs": {
+            "p50": 24.198334000001154,
+            "p95": 53.40516699999975,
+            "p99": 127.61954200000147,
+            "max": 450.80425
+          },
+          "historyControlRoundtripMs": {
+            "p50": 113.73579199999995,
+            "p95": 175.28929199999865,
+            "p99": 175.28929199999865,
+            "max": 175.28929199999865
+          },
+          "lifetimeWorstTickMs": 229.695292
+        },
+        {
+          "artist": 1,
+          "baselineOwnHistoryCount": 32,
+          "completedStrokes": 32,
+          "pointerControlRoundtripMs": {
+            "p50": 21.220999999997048,
+            "p95": 53.823832999999155,
+            "p99": 157.19058299999844,
+            "max": 248.88979099999986
+          },
+          "historyControlRoundtripMs": {
+            "p50": 13.49454200000011,
+            "p95": 161.43020799999874,
+            "p99": 161.43020799999874,
+            "max": 161.43020799999874
+          },
+          "lifetimeWorstTickMs": 421.765583
+        },
+        {
+          "artist": 2,
+          "baselineOwnHistoryCount": 32,
+          "completedStrokes": 32,
+          "pointerControlRoundtripMs": {
+            "p50": 20.555625000000077,
+            "p95": 58.81725000000016,
+            "p99": 161.53720899999868,
+            "max": 294.39045899999974
+          },
+          "historyControlRoundtripMs": {
+            "p50": 20.35879199999968,
+            "p95": 175.73337500000008,
+            "p99": 175.73337500000008,
+            "max": 175.73337500000008
+          },
+          "lifetimeWorstTickMs": 417.052333
+        },
+        {
+          "artist": 3,
+          "baselineOwnHistoryCount": 32,
+          "completedStrokes": 32,
+          "pointerControlRoundtripMs": {
+            "p50": 21.197917000002064,
+            "p95": 56.32570800000014,
+            "p99": 154.75454199999916,
+            "max": 490.46516699999995
+          },
+          "historyControlRoundtripMs": {
+            "p50": 21.923540999999602,
+            "p95": 37.879708999998485,
+            "p99": 37.879708999998485,
+            "max": 37.879708999998485
+          },
+          "lifetimeWorstTickMs": 533.7920419999999
+        }
+      ]
+    }
+  ],
+  "video": {
+    "captureComplete": true,
+    "seconds": 8.2316666667,
+    "resolution": [
+      1440,
+      880
+    ],
+    "encoder": "ScreenCaptureKit + hardware VideoToolbox H264",
+    "backpressureDrops": 2
+  }
+}

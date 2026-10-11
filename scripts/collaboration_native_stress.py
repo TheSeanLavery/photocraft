@@ -49,7 +49,10 @@ def prepare(args):
         if code:
             for i,c in enumerate(clients):c.command('collab.room.join',{'code':code,'name':names[i],'signalingUrl':args.signaling})
         else:
-            clients[0].command('file.new',{'name':'Four-artist overlap stress','width':args.width,'height':args.height,'background':'white'})
+            if args.document:
+                clients[0].call('app.open',{'path':args.document})
+            else:
+                clients[0].command('file.new',{'name':'Four-artist overlap stress','width':args.width,'height':args.height,'background':'white'})
             clients[0].command('layer.new.layer',{'name':'Shared paint and erase'})
             clients[0].command('collab.room.create',{'name':names[0],'signalingUrl':args.signaling})
             deadline=time.monotonic()+30
@@ -65,8 +68,26 @@ def prepare(args):
             if all(c.call('ui.inspect')['collaboration']['ui']['transport_status'].startswith('Connected') for c in (clients if args.join_code else clients[1:])):break
             time.sleep(.1)
         else:raise RuntimeError('guest bootstrap timeout')
+        # Admission can precede receipt/application of a large host checkpoint.
+        # Do not start generators while bootstrap/canonical work is still queued.
+        deadline=time.monotonic()+120;stable=0;last=None
+        while time.monotonic()<deadline:
+            states=[c.call('ui.inspect') for c in clients]
+            revisions=[s['collaboration']['revision'] for s in states]
+            ready=all(s['collaboration'].get('room') and s.get('document') for s in states)
+            metrics=[s['collaboration']['ui'].get('transport_metrics') or {} for s in states]
+            queued=any(any(m.get(k,0) for k in ['incomingEventsQueued','canonicalOpsQueued','clientOpsQueued','outgoingJobs','bufferedRequests']) for m in metrics)
+            stable=stable+1 if ready and not queued and len(set(revisions))==1 and revisions==last else 0;last=revisions
+            if stable>=3:break
+            errors=[s['collaboration']['ui'].get('error') for s in states]
+            if any(errors):raise RuntimeError('bootstrap failed: '+str(errors))
+            time.sleep(.15)
+        else:raise RuntimeError('guest canonical bootstrap did not settle')
         for c in clients:c.call('ui.set',{'fit':True})
-        data={'clients':entries,'code':code,'width':args.width,'height':args.height,'app':args.app,'preparedUTC':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
+        sizes={(s['document']['width'],s['document']['height']) for s in states}
+        if len(sizes)!=1:raise RuntimeError('clients disagree on imported canvas dimensions')
+        width,height=next(iter(sizes))
+        data={'clients':entries,'code':code,'width':width,'height':height,'app':args.app,'preparedUTC':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
         (out/'native-session.json').write_text(json.dumps(data,indent=2));print(json.dumps({'room':code,'pids':[e['pid'] for e in entries],'session':str(out/'native-session.json')}))
     except Exception:
         for e in entries:
@@ -92,6 +113,20 @@ def decoded_png(path):
     if not header:raise ValueError('missing PNG header')
     w,h,depth,color,compression,filtering,interlace=header
     if depth!=8 or color not in (2,6) or interlace!=0 or w*h>24_000_000:raise ValueError('test oracle requires bounded noninterlaced RGB/RGBA8')
+    # Prefer the native PNG decoder when installed: hashing four large exports
+    # should not keep controls idle for minutes. The standard-library oracle
+    # remains available for a dependency-free developer environment.
+    try:
+        from PIL import Image
+    except ImportError:
+        Image=None
+    if Image is not None:
+        with Image.open(path) as source:
+            if source.size!=(w,h) or source.mode not in ('RGB','RGBA'):
+                raise ValueError('PNG decoder does not match bounded RGB/RGBA8 header')
+            decoded=source.convert('RGBA')
+            ink=any(low!=255 for low,high in source.convert('RGB').getextrema())
+            return hashlib.sha256(decoded.tobytes()).hexdigest(),ink
     channels=3 if color==2 else 4;stride=w*channels;raw=zlib.decompress(b''.join(packed));previous=bytearray(stride);rgba=bytearray()
     if len(raw)!=h*(stride+1):raise ValueError('invalid PNG row length')
     def paeth(a,b,c):
@@ -210,7 +245,7 @@ def run(args):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='mode',required=True)
-    q=sub.add_parser('prepare');q.add_argument('--app',required=True);q.add_argument('--output',required=True);q.add_argument('--ports',required=True);q.add_argument('--signaling',default='http://127.0.0.1:5548');q.add_argument('--width',type=int,default=1024);q.add_argument('--height',type=int,default=640);q.add_argument('--join-code',help='Join an existing browser-host room with all four artists instead of creating a native host')
+    q=sub.add_parser('prepare');q.add_argument('--app',required=True);q.add_argument('--output',required=True);q.add_argument('--ports',required=True);q.add_argument('--signaling',default='http://127.0.0.1:5548');q.add_argument('--width',type=int,default=1024);q.add_argument('--height',type=int,default=640);q.add_argument('--document',help='Test document relative to the prepared automation read root');q.add_argument('--join-code',help='Join an existing browser-host room with all four artists instead of creating a native host')
     q=sub.add_parser('run');q.add_argument('--output',required=True);q.add_argument('--strokes',type=int,default=64);q.add_argument('--points',type=int,default=96);q.add_argument('--chunk',type=int,default=8);q.add_argument('--step-ms',type=float,default=15);q.add_argument('--export-after-seconds',type=float,default=0);q.add_argument('--no-window-screenshots',action='store_true');q.add_argument('--layer-churn',action='store_true',help='Create an independent layer during each artist first overlapping stroke, then reselect the shared paint layer')
     args=p.parse_args()
     if args.mode=='run' and not (1<=args.strokes<=256 and 2<=args.points<=4096 and 1<=args.chunk<=256 and 0<=args.step_ms<=1000 and 0<=args.export_after_seconds<=600):p.error('bounded positive stroke/point/chunk counts required')
