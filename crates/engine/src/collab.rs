@@ -1743,10 +1743,11 @@ mod tests {
                     "unacknowledged display must not be mistaken for canonical convergence"
                 );
             }
-            let queued: Vec<_> = guests.iter().map(|guest| guest.collaboration.outbox.clone()).collect();
-            for position in 0..queued[0].len() {
-                for artist in 0..4 {
-                    host.collaboration_accept(&format!("guest-{artist}"), queued[artist][position].clone()).unwrap();
+            let mut queued: Vec<_> = guests.iter().map(|guest| guest.collaboration.outbox.clone().into_iter()).collect();
+            while queued.iter().any(|messages| messages.len() > 0) {
+                for (artist, messages) in queued.iter_mut().enumerate() {
+                    let Some(message) = messages.next() else { continue };
+                    host.collaboration_accept(&format!("guest-{artist}"), message).unwrap();
                     let event = host.collaboration.canonical_outbox.last().unwrap().clone();
                     for guest in &mut guests {
                         guest.collaboration_receive(&event).unwrap();
