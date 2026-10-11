@@ -6395,3 +6395,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Theme definition exceeds 6
 ui-theme-id-2057ac72399d5a4d = Theme id
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE Theme
+
+ui-return-to-original-49ddd457800418b3 = Return to Original
+
+ui-branch-7a07940a2b62f185 = Branch
+
+ui-retry-storage-2e07dc65352aa868 = Retry storage
+
+ui-unlimited-history-d3654847d93db9b8 = Unlimited history
+
+ui-use-available-disk-space-44211d74d7260f1a = Use available disk space
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.
+
+ui-change-opacity-c419e848020b25f4 = Change opacity

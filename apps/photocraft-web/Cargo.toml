@@ -18,11 +18,16 @@ workspace = true
 name = "photocraft-web"
 path = "src/main.rs"
 
+[[bin]]
+name = "photocraft-wire-worker"
+path = "src/wire_worker.rs"
+
 [dependencies]
 photocraft-collab.workspace = true
 photocraft-format.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+serde_bytes = "0.11"
 photocraft-engine = { workspace = true }
 photocraft-io = { workspace = true }
 photocraft-codecs = { workspace = true }
@@ -35,7 +40,8 @@ log = { workspace = true }
 # `wgpu` pulls egui-wgpu's defaults: WebGPU plus the WebGL2 fallback.
 eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit"] }
 rfd = { workspace = true, features = ["file-handle-inner"] }
+serde-wasm-bindgen = "0.6"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
-web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "Location", "History", "CssStyleDeclaration", "Storage", "Event", "EventTarget", "MouseEvent", "PointerEvent", "Request", "RequestInit", "Headers", "Response", "RtcPeerConnection", "RtcConfiguration", "RtcDataChannel", "RtcDataChannelInit", "RtcDataChannelEvent", "RtcDataChannelState", "RtcDataChannelType", "RtcSessionDescriptionInit", "RtcSessionDescription", "RtcSdpType", "RtcIceGatheringState", "MessageEvent", "AbortController", "AbortSignal", "Performance", "ReadableStream", "ReadableStreamDefaultReader"] }
+web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "Location", "History", "CssStyleDeclaration", "Storage", "Event", "EventTarget", "MouseEvent", "PointerEvent", "Request", "RequestInit", "Headers", "Response", "RtcPeerConnection", "RtcConfiguration", "RtcDataChannel", "RtcDataChannelInit", "RtcDataChannelEvent", "RtcDataChannelState", "RtcDataChannelType", "RtcSessionDescriptionInit", "RtcSessionDescription", "RtcSdpType", "RtcIceGatheringState", "MessageEvent", "AbortController", "AbortSignal", "Performance", "ReadableStream", "ReadableStreamDefaultReader", "MessageChannel", "MessagePort", "Worker", "DedicatedWorkerGlobalScope", "WorkerGlobalScope"] }

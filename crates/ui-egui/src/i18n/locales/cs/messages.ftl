@@ -4306,3 +4306,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Definice motivu přesahuje
 ui-theme-id-2057ac72399d5a4d = ID motivu
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Motiv Windows 98 SE
+
+ui-return-to-original-49ddd457800418b3 = Vrátit se k originálu
+
+ui-branch-7a07940a2b62f185 = Větev
+
+ui-retry-storage-2e07dc65352aa868 = Opakovat ukládání
+
+ui-unlimited-history-d3654847d93db9b8 = Neomezená historie
+
+ui-use-available-disk-space-44211d74d7260f1a = Použít dostupné místo na disku
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Místo pro vracení změn roste podle potřeby. Neomezená historie uchovává stavy do zaplnění úložiště. Cesty platí pro příští relaci mezipaměti.
+
+ui-change-opacity-c419e848020b25f4 = Změnit krytí

@@ -4280,3 +4280,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = 佈景主題定義超過 6
 ui-theme-id-2057ac72399d5a4d = 主題 ID
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE 佈景主題
+
+ui-return-to-original-49ddd457800418b3 = 返回原始狀態
+
+ui-branch-7a07940a2b62f185 = 分支
+
+ui-retry-storage-2e07dc65352aa868 = 重試儲存
+
+ui-unlimited-history-d3654847d93db9b8 = 無限歷史記錄
+
+ui-use-available-disk-space-44211d74d7260f1a = 使用可用磁碟空間
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = 復原儲存空間按需增長。無限歷史記錄保留狀態，直到儲存空間已滿。暫存路徑適用於下次快取工作階段。
+
+ui-change-opacity-c419e848020b25f4 = 變更不透明度

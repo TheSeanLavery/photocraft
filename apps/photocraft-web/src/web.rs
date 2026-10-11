@@ -1,6 +1,10 @@
 //! The browser shell: web `Services`, drag-and-drop, and the eframe web runner.
 
-use std::sync::{Arc, Mutex};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
 
 use photocraft_codecs::{ChannelLayout, EncodeOptions, Image};
 use photocraft_doc::Document;
@@ -13,6 +17,8 @@ use wasm_bindgen::JsCast as _;
 mod collaboration;
 #[path = "collaboration_protocol.rs"]
 mod collaboration_protocol;
+#[path = "worker_codec.rs"]
+mod worker_codec;
 
 type Inbox = Arc<Mutex<Vec<(String, Vec<u8>)>>>;
 
@@ -52,7 +58,7 @@ pub fn start() {
                 Box::new(move |cc| {
                     PhotocraftApp::setup_context(&cc.egui_ctx, ThemeKind::Pro);
                     let inbox: Inbox = Arc::default();
-                    let mut app = collaboration::attach(PhotocraftApp::new(Session::new(), services(inbox.clone(), cc.egui_ctx.clone())), cc.egui_ctx.clone());
+                    let mut app = PhotocraftApp::new(Session::new(), services(inbox.clone(), cc.egui_ctx.clone()));
                     match invited_room() {
                         Ok(Some(code)) => {
                             app.ui.collaboration.reveal_for_invite();
@@ -78,6 +84,7 @@ pub fn start() {
                         log::info!("photocraft-web: wgpu backend {:?}", rs.adapter.get_info().backend);
                         app.set_wgpu(rs);
                     }
+                    let app = collaboration::attach(app, cc.egui_ctx.clone());
                     Ok(Box::new(WebShell { app, inbox }))
                 }),
             )
@@ -128,7 +135,7 @@ fn query() -> String {
 /// Wraps the app to read dropped files asynchronously (browsers can't read them synchronously,
 /// so the app's own drop path can't handle them) and feed them through the inbox.
 struct WebShell {
-    app: PhotocraftApp,
+    app: Rc<RefCell<PhotocraftApp>>,
     inbox: Inbox,
 }
 
@@ -149,11 +156,19 @@ impl eframe::App for WebShell {
                 }
             });
         }
-        self.app.logic(ctx, frame);
+        if let Ok(mut app) = self.app.try_borrow_mut() {
+            app.logic(ctx, frame);
+        } else {
+            ctx.request_repaint();
+        }
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        self.app.ui(ui, frame);
+        if let Ok(mut app) = self.app.try_borrow_mut() {
+            app.ui(ui, frame);
+        } else {
+            ui.ctx().request_repaint();
+        }
     }
 }
 

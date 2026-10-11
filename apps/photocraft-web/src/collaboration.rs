@@ -8,16 +8,17 @@ use photocraft_ui_egui::PhotocraftApp;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::{BTreeMap, HashSet, VecDeque},
-    rc::Rc,
+    rc::{Rc, Weak},
     sync::Arc,
 };
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 use wasm_bindgen_futures::{JsFuture, spawn_local};
 use web_sys::{RtcConfiguration, RtcDataChannel, RtcDataChannelInit, RtcDataChannelState, RtcPeerConnection, RtcSdpType, RtcSessionDescriptionInit};
 const MAX_EVENTS: usize = 1024;
-const MAX_QUEUE_BYTES: usize = wire::MAX_TRANSFER;
+// Encoded queues retain the protocol cap plus conservative structured-clone metadata credit.
+const MAX_QUEUE_BYTES: usize = super::worker_codec::policy::MAX_SINGLE;
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum ChannelKind {
     Edits,
@@ -56,14 +57,22 @@ impl Drop for Link {
             channel.set_onopen(None);
             channel.set_onclose(None);
             channel.set_onmessage(None);
+            channel.set_onbufferedamountlow(None);
             channel.close();
         }
         self.connection.close();
     }
 }
+type EncodedSlot = Rc<RefCell<Option<Arc<Vec<u8>>>>>;
+enum WorkerPending {
+    Encode(EncodedSlot, usize),
+    Decode(String, ChannelKind),
+    Remove,
+}
 enum Event {
+    Worker(Box<super::worker_codec::Reply>),
     Joined(Admission),
-    Packet(String, ChannelKind, Vec<u8>),
+    Packet(String, ChannelKind, js_sys::ArrayBuffer),
     Connected(String),
     Disconnected(String),
     Error(String),
@@ -73,24 +82,182 @@ struct Transport {
     generation: u64,
     links: BTreeMap<String, Link>,
     events: VecDeque<Event>,
+    worker_events: VecDeque<Event>,
+    pump: Option<Rc<BackgroundPump>>,
+    codec: Option<Weak<super::worker_codec::Codec>>,
 }
 type Shared = Rc<RefCell<Transport>>;
 struct Job {
     peer: String,
     id: u64,
-    bytes: Arc<Vec<u8>>,
+    bytes: EncodedSlot,
+    charge: usize,
     index: usize,
+    bulk: bool,
+    queued_at: f64,
 }
 struct Bridge {
     shared: Shared,
     admission: Option<Admission>,
     connected: HashSet<String>,
     decoder: Decoder,
-    outgoing: VecDeque<Job>,
+    codec: Option<Rc<super::worker_codec::Codec>>,
+    worker_pending: BTreeMap<u64, WorkerPending>,
+    worker_completed: u64,
+    worker_ms: f64,
+    bootstrap_wait: Option<f64>,
+    bootstrap_attempt: Option<f64>,
+    outgoing: BTreeMap<String, VecDeque<Job>>,
+    outgoing_next: Option<String>,
+    outgoing_jobs: usize,
+    input_priority: super::collaboration_protocol::InputPriority,
+    cached_checkpoint: Option<(u64, Arc<Vec<u8>>)>,
+    worst_tick_ms: f64,
+    max_apply_ms: f64,
+    last_snapshot_ms: f64,
+    diagnostics: Option<Diagnostics>,
+    frame_apply_ms: f64,
+    progress: u64,
+    background_ticks: u64,
     transfer_id: u64,
     queued_bytes: usize,
     pending_bootstraps: Vec<String>,
     bootstrapped: bool,
+}
+type SharedApp = Rc<RefCell<PhotocraftApp>>;
+fn hidden() -> bool {
+    web_sys::window().and_then(|window| window.document()).is_some_and(|doc| doc.hidden())
+}
+struct BackgroundPump {
+    channel: web_sys::MessageChannel,
+    pending: Cell<bool>,
+    app: Weak<RefCell<PhotocraftApp>>,
+    bridge: Weak<RefCell<Bridge>>,
+    ctx: egui::Context,
+    _callback: Closure<dyn FnMut(web_sys::MessageEvent)>,
+    document: web_sys::Document,
+    visibility_callback: Closure<dyn FnMut(web_sys::Event)>,
+}
+impl BackgroundPump {
+    fn new(app: &SharedApp, bridge: &Rc<RefCell<Bridge>>, ctx: egui::Context) -> Result<Rc<Self>, String> {
+        let channel = web_sys::MessageChannel::new().map_err(js_error)?;
+        let document = web_sys::window().and_then(|w| w.document()).ok_or("No browser document")?;
+        let app = Rc::downgrade(app);
+        let bridge = Rc::downgrade(bridge);
+        let pump = Rc::new_cyclic(|weak: &Weak<Self>| {
+            let visibility_weak = weak.clone();
+            let visibility_callback = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
+                if let Some(pump) = visibility_weak.upgrade() {
+                    pump.wake();
+                }
+            });
+            let weak = weak.clone();
+            let callback = Closure::<dyn FnMut(web_sys::MessageEvent)>::new(move |_| {
+                if let Some(pump) = weak.upgrade() {
+                    pump.run();
+                }
+            });
+            channel.port1().set_onmessage(Some(callback.as_ref().unchecked_ref()));
+            channel.port1().start();
+            Self { channel, pending: Cell::new(false), app, bridge, ctx, _callback: callback, document: document.clone(), visibility_callback }
+        });
+        document.add_event_listener_with_callback("visibilitychange", pump.visibility_callback.as_ref().unchecked_ref()).map_err(js_error)?;
+        Ok(pump)
+    }
+    fn wake(&self) {
+        if !hidden() || self.pending.replace(true) {
+            return;
+        }
+        if let Err(error) = self.channel.port2().post_message(&JsValue::NULL) {
+            self.pending.set(false);
+            log::warn!("Background collaboration wake: {error:?}");
+            self.ctx.request_repaint();
+        }
+    }
+    fn run(&self) {
+        self.pending.set(false);
+        if !hidden() {
+            return;
+        }
+        let (Some(app), Some(bridge)) = (self.app.upgrade(), self.bridge.upgrade()) else {
+            return;
+        };
+        let (Ok(mut app), Ok(mut bridge)) = (app.try_borrow_mut(), bridge.try_borrow_mut()) else {
+            self.ctx.request_repaint();
+            return;
+        };
+        let before = bridge.progress;
+        bridge.background_ticks = bridge.background_ticks.saturating_add(1);
+        let result = bridge.tick(&mut app, &self.ctx, true);
+        let progressed = bridge.progress != before;
+        let queued = !bridge.shared.borrow().events.is_empty()
+            || !bridge.shared.borrow().worker_events.is_empty()
+            || !app.session.collaboration.outbox.is_empty()
+            || !app.session.collaboration.canonical_outbox.is_empty()
+            || bridge.outgoing_jobs > 0
+            || !bridge.pending_bootstraps.is_empty();
+        let healthy = result.is_ok();
+        if let Err(error) = result {
+            app.ui.collaboration.error = error;
+        }
+        drop(bridge);
+        drop(app);
+        self.ctx.request_repaint();
+        if super::collaboration_protocol::continue_background(hidden(), queued, progressed, healthy) {
+            self.wake();
+        }
+    }
+}
+impl Drop for BackgroundPump {
+    fn drop(&mut self) {
+        let _ = self.document.remove_event_listener_with_callback("visibilitychange", self.visibility_callback.as_ref().unchecked_ref());
+        self.channel.port1().set_onmessage(None);
+        self.channel.port1().close();
+        self.channel.port2().close();
+    }
+}
+struct Diagnostics {
+    element: web_sys::HtmlElement,
+    ticks: super::collaboration_protocol::Samples,
+    applies: super::collaboration_protocol::Samples,
+    frames: super::collaboration_protocol::Samples,
+    previous_frame: Option<f64>,
+    last_publish: f64,
+}
+impl Diagnostics {
+    fn open() -> Option<Self> {
+        let window = web_sys::window()?;
+        if !window.location().search().ok()?.trim_start_matches('?').split('&').any(|pair| pair == "collab_perf" || pair == "collab_perf=1") {
+            return None;
+        }
+        let document = window.document()?;
+        let element = document.create_element("pre").ok()?.dyn_into::<web_sys::HtmlElement>().ok()?;
+        element.set_id("photocraft_collab_perf");
+        element.set_attribute("aria-label", "PhotoCraft collaboration performance diagnostics").ok()?;
+        element.set_attribute("style","position:fixed;right:8px;bottom:8px;z-index:9999;max-height:48vh;max-width:420px;overflow:auto;pointer-events:none;background:#171717e8;color:#eeeeee;padding:10px;font:11px monospace;white-space:pre-wrap;border-radius:5px").ok()?;
+        document.body()?.append_child(&element).ok()?;
+        Some(Self { element, ticks: Default::default(), applies: Default::default(), frames: Default::default(), previous_frame: None, last_publish: 0.0 })
+    }
+    fn publish(&mut self, now: f64, tick_ms: f64, apply_ms: f64, metrics: &Value, frame_tick: bool) {
+        self.ticks.observe(tick_ms);
+        self.applies.observe(apply_ms);
+        if frame_tick && let Some(previous) = self.previous_frame.replace(now) {
+            self.frames.observe(now - previous);
+        }
+        if now - self.last_publish < 250.0 {
+            return;
+        }
+        self.last_publish = now;
+        let summary = json!({"diagnostic":"PhotoCraft collaboration","scope":"last 240 collaboration ticks; logic-frame cadence sampled separately; not pointer-to-photon latency","tickMs":self.ticks.summary(),"applyMs":self.applies.summary(),"logicFrameIntervalMs":self.frames.summary(),"queues":metrics});
+        if let Ok(text) = serde_json::to_string_pretty(&summary) {
+            self.element.set_text_content(Some(&text));
+        }
+    }
+}
+impl Drop for Diagnostics {
+    fn drop(&mut self) {
+        self.element.remove();
+    }
 }
 fn clock_ms() -> f64 {
     web_sys::window().and_then(|w| w.performance()).map_or_else(js_sys::Date::now, |p| p.now())
@@ -167,13 +334,29 @@ fn event(shared: &Shared, generation: u64, e: Event, ctx: &egui::Context) {
     if state.generation != generation {
         return;
     }
-    if state.events.len() >= MAX_EVENTS {
+    if state.events.len().saturating_add(state.worker_events.len()) >= MAX_EVENTS {
         state.events.clear();
+        let codec = state.codec.as_ref().and_then(Weak::upgrade);
+        if let (Some(codec), Event::Worker(reply)) = (&codec, &e) {
+            codec.acknowledge(reply.id);
+        }
+        for reply in state.worker_events.drain(..) {
+            if let (Some(codec), Event::Worker(reply)) = (&codec, reply) {
+                codec.acknowledge(reply.id);
+            }
+        }
         state.events.push_back(Event::Error("Connection receive queue exceeded; rejoin to resynchronize".into()));
+    } else if matches!(e, Event::Worker(_)) {
+        state.worker_events.push_back(e);
     } else {
         state.events.push_back(e);
     }
+    let pump = state.pump.clone();
+    drop(state);
     ctx.request_repaint();
+    if let Some(pump) = pump {
+        pump.wake();
+    }
 }
 fn attach_channel(
     channel: RtcDataChannel,
@@ -231,8 +414,10 @@ fn attach_channel(
             event(&sh, generation, Event::PeerError(pe.clone(), "Collaboration packet too large".into()), &cx);
             return;
         }
-        let bytes = array.to_vec();
-        event(&sh, generation, Event::Packet(pe.clone(), kind, bytes), &cx);
+        let Ok(buffer) = data.dyn_into::<js_sys::ArrayBuffer>() else {
+            return;
+        };
+        event(&sh, generation, Event::Packet(pe.clone(), kind, buffer), &cx);
     });
     channel.set_onmessage(Some(cb.as_ref().unchecked_ref()));
     handlers.borrow_mut().push(cb);
@@ -245,6 +430,19 @@ fn attach_channel(
         }
     });
     channel.set_onclose(Some(cb.as_ref().unchecked_ref()));
+    handlers.borrow_mut().push(cb);
+    channel.set_buffered_amount_low_threshold(32 * 1024);
+    let weak = Rc::downgrade(&shared);
+    let cb = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
+        if let Some(shared) = weak.upgrade()
+            && let Ok(state) = shared.try_borrow()
+            && state.generation == generation
+            && let Some(pump) = state.pump.as_ref()
+        {
+            pump.wake();
+        }
+    });
+    channel.set_onbufferedamountlow(Some(cb.as_ref().unchecked_ref()));
     handlers.borrow_mut().push(cb);
 }
 fn new_link(peer: &str, ice: &Value, shared: &Shared, generation: u64, ctx: &egui::Context) -> Result<RtcPeerConnection, String> {
@@ -391,25 +589,90 @@ async fn open_room(shared: Shared, generation: u64, ctx: egui::Context, server: 
     let _ = post(&server, "/leave", &admission.auth()).await;
     result
 }
-pub fn attach(mut app: PhotocraftApp, ctx: egui::Context) -> PhotocraftApp {
-    let shared = Rc::new(RefCell::new(Transport { generation: 0, links: BTreeMap::new(), events: VecDeque::new() }));
-    let mut bridge = Bridge {
-        shared,
+pub fn attach(mut app: PhotocraftApp, ctx: egui::Context) -> SharedApp {
+    let shared = Rc::new(RefCell::new(Transport {
+        generation: 0,
+        links: BTreeMap::new(),
+        events: VecDeque::new(),
+        worker_events: VecDeque::new(),
+        pump: None,
+        codec: None,
+    }));
+    let bridge = Rc::new(RefCell::new(Bridge {
+        shared: shared.clone(),
         admission: None,
         connected: HashSet::new(),
         decoder: Decoder::default(),
-        outgoing: VecDeque::new(),
+        codec: None,
+        worker_pending: BTreeMap::new(),
+        worker_completed: 0,
+        worker_ms: 0.0,
+        bootstrap_wait: None,
+        bootstrap_attempt: None,
+        outgoing: BTreeMap::new(),
+        outgoing_next: None,
+        outgoing_jobs: 0,
+        input_priority: Default::default(),
+        cached_checkpoint: None,
+        worst_tick_ms: 0.0,
+        max_apply_ms: 0.0,
+        last_snapshot_ms: 0.0,
+        diagnostics: Diagnostics::open(),
+        frame_apply_ms: 0.0,
+        progress: 0,
+        background_ticks: 0,
         transfer_id: 0,
         queued_bytes: 0,
         pending_bootstraps: Vec::new(),
         bootstrapped: false,
-    };
-    app.ui.collaboration.voice_enabled = false;
-    app.with_collaboration_frame_hook(Box::new(move |app| {
-        if let Err(error) = bridge.tick(app, &ctx) {
-            app.ui.collaboration.error = error;
+    }));
+    let disabled =
+        web_sys::window().and_then(|w| w.location().search().ok()).is_some_and(|q| q.trim_start_matches('?').split('&').any(|p| p == "collab_worker=0"));
+    if !disabled {
+        let weak = Rc::downgrade(&shared);
+        let callback_ctx = ctx.clone();
+        match super::worker_codec::Codec::new(move |reply| {
+            if let Some(shared) = weak.upgrade() {
+                let current = shared.borrow().generation;
+                if reply.id != 0 && reply.generation != current {
+                    if let Some(codec) = shared.borrow().codec.as_ref().and_then(Weak::upgrade) {
+                        codec.acknowledge(reply.id);
+                    }
+                    return;
+                }
+                let generation = if reply.id == 0 { current } else { reply.generation };
+                event(&shared, generation, Event::Worker(Box::new(reply)), &callback_ctx);
+            }
+        }) {
+            Ok(codec) => {
+                shared.borrow_mut().codec = Some(Rc::downgrade(&codec));
+                bridge.borrow_mut().codec = Some(codec);
+            }
+            Err(error) => log::warn!("PhotoCraft codec worker unavailable; using Window codec: {error}"),
         }
-    }))
+    }
+    app.ui.collaboration.voice_enabled = false;
+    let hook_bridge = bridge.clone();
+    let hook_ctx = ctx.clone();
+    app = app.with_collaboration_frame_hook(Box::new(move |app| {
+        if let Ok(mut bridge) = hook_bridge.try_borrow_mut() {
+            if let Err(error) = bridge.tick(app, &hook_ctx, false) {
+                app.ui.collaboration.error = error;
+            }
+            let pump = bridge.shared.borrow().pump.clone();
+            if let Some(pump) = pump {
+                pump.wake();
+            }
+        }
+    }));
+    let app = Rc::new(RefCell::new(app));
+    match BackgroundPump::new(&app, &bridge, ctx) {
+        Ok(pump) => shared.borrow_mut().pump = Some(pump),
+        Err(error) => {
+            log::warn!("Background collaboration pump unavailable: {error}");
+        }
+    }
+    app
 }
 
 fn sync_room_address(code: Option<&str>) {
@@ -433,6 +696,16 @@ fn sync_room_address(code: Option<&str>) {
     }
 }
 impl Bridge {
+    fn clear_worker_replies(&mut self) {
+        let replies = std::mem::take(&mut self.shared.borrow_mut().worker_events);
+        if let Some(codec) = &self.codec {
+            for reply in replies {
+                if let Event::Worker(reply) = reply {
+                    codec.acknowledge(reply.id);
+                }
+            }
+        }
+    }
     fn host(&self) -> bool {
         self.admission.as_ref().is_some_and(|a| a.peer == a.host)
     }
@@ -454,19 +727,70 @@ impl Bridge {
             }
             return Ok(());
         }
-        if self.outgoing.len().saturating_add(peers.len()) > 4096 {
+        if self.outgoing_jobs.saturating_add(peers.len()) > 4096 {
             return Err("Collaboration send queue full".into());
         }
-        let bytes = Arc::new(wire::encode_message(message).map_err(|e| e.to_string())?);
-        if self.queued_bytes.saturating_add(bytes.len().saturating_mul(peers.len())) > MAX_QUEUE_BYTES {
+        let bulk = matches!(message, Wire::Checkpoint { .. } | Wire::Bootstrap { .. });
+        if let Some(codec) = &self.codec {
+            // Reserve each FIFO before the asynchronous encode. Later canonical edits cannot
+            // overtake a checkpoint, including when its captured revision is already stale.
+            let generation = self.shared.borrow().generation;
+            let prepared = codec.prepare_encode(generation, message).map_err(|error| {
+                if error.starts_with("Collaboration send queue full") {
+                    error
+                } else {
+                    format!("Codec worker encode failed — drawing preserved; retry without worker: {error}")
+                }
+            })?;
+            let charge = prepared.charge;
+            if !super::collaboration_protocol::fits_queue(self.outgoing_jobs, self.queued_bytes, peers.len(), charge, MAX_QUEUE_BYTES) {
+                return Err("Collaboration send queue full".into());
+            }
+            let slot = Rc::new(RefCell::new(None));
+            let (id, _) = codec.post(prepared).map_err(|error| format!("Codec worker post failed — rejoin: {error}"))?;
+            if let Err(error) = self.queue_slot(peers, slot.clone(), charge, bulk) {
+                return Err(format!("Worker queue reservation failed — rejoin: {error}"));
+            }
+            self.worker_pending.insert(id, WorkerPending::Encode(slot, charge));
+            Ok(())
+        } else {
+            let bytes = Arc::new(wire::encode_message(message).map_err(|e| e.to_string())?);
+            self.queue_encoded(peers, bytes, bulk)
+        }
+    }
+    fn queue_encoded(&mut self, peers: Vec<String>, bytes: Arc<Vec<u8>>, bulk: bool) -> Result<(), String> {
+        let charge = bytes.len();
+        self.queue_slot(peers, Rc::new(RefCell::new(Some(bytes))), charge, bulk)
+    }
+    fn queue_slot(&mut self, peers: Vec<String>, bytes: EncodedSlot, charge: usize, bulk: bool) -> Result<(), String> {
+        if !super::collaboration_protocol::fits_queue(self.outgoing_jobs, self.queued_bytes, peers.len(), charge, MAX_QUEUE_BYTES) {
             return Err("Collaboration send queue full".into());
         }
         self.transfer_id = self.transfer_id.checked_add(1).ok_or("Transfer id exhausted")?;
+        let queued_at = clock_ms();
         for peer in peers {
-            self.queued_bytes = self.queued_bytes.saturating_add(bytes.len());
-            self.outgoing.push_back(Job { peer, id: self.transfer_id, bytes: bytes.clone(), index: 0 });
+            self.queued_bytes = self.queued_bytes.saturating_add(charge);
+            self.outgoing_jobs += 1;
+            self.progress = self.progress.saturating_add(1);
+            self.outgoing.entry(peer.clone()).or_default().push_back(Job {
+                peer,
+                id: self.transfer_id,
+                bytes: bytes.clone(),
+                charge,
+                index: 0,
+                bulk,
+                queued_at,
+            });
         }
         Ok(())
+    }
+    fn remove_lane(&mut self, peer: &str) {
+        if let Some(lane) = self.outgoing.remove(peer) {
+            self.outgoing_jobs = self.outgoing_jobs.saturating_sub(lane.len());
+            for job in lane {
+                self.queued_bytes = self.queued_bytes.saturating_sub(job.charge);
+            }
+        }
     }
     fn broadcast(&mut self, except: Option<&str>, channel: ChannelKind, message: &Wire) -> Result<(), String> {
         let peers: Vec<_> = self.connected.iter().filter(|p| except != Some(p.as_str())).cloned().collect();
@@ -482,60 +806,127 @@ impl Bridge {
             ChannelKind::Voice => "voice",
         };
         let Some(channel) = channels.get(label) else { return Ok(false) };
-        if channel.ready_state() != RtcDataChannelState::Open || channel.buffered_amount() > 512 * 1024 {
+        if channel.ready_state() != RtcDataChannelState::Open || (channel.buffered_amount() as usize).saturating_add(bytes.len()) > 128 * 1024 {
             return Ok(false);
         }
         channel.send_with_u8_array(bytes).map_err(js_error)?;
         Ok(true)
     }
-    fn flush(&mut self) -> Result<(), String> {
-        let start = clock_ms();
-        for _ in 0..256 {
-            if clock_ms() - start > 4.0 {
-                break;
+    fn flush(&mut self, budget: &mut super::collaboration_protocol::FrameBudget) -> Result<(), String> {
+        let mut blocked = HashSet::new();
+        let mut sent_live = false;
+        let mut sent_bulk = false;
+        while budget.packet(clock_ms()) {
+            let key = super::collaboration_protocol::next_peer(
+                self.outgoing
+                    .iter()
+                    .filter(|(peer, _)| !blocked.contains(peer.as_str()))
+                    .filter_map(|(peer, lane)| lane.front().map(|job| (peer.as_str(), job.bulk))),
+                self.outgoing_next.as_deref(),
+                !budget.busy
+                    || self.outgoing.values().any(|lane| {
+                        lane.front().is_some_and(|job| job.bulk && super::worker_codec::policy::bulk_due(budget.busy, sent_bulk, clock_ms() - job.queued_at))
+                    }),
+                sent_live && !sent_bulk,
+            );
+            let Some(key) = key else { break };
+            let Some(job) = self.outgoing.get(&key).and_then(VecDeque::front) else { break };
+            let Some(bytes) = job.bytes.borrow().clone() else {
+                blocked.insert(key);
+                continue;
+            };
+            let packet = wire::fragment_message(job.id, &bytes, job.index).map_err(|e| e.to_string())?;
+            if !self.packet(&job.peer, ChannelKind::Edits, &packet)? {
+                blocked.insert(key);
+                continue;
             }
-            let candidates = super::collaboration_protocol::first_per_peer(self.outgoing.iter().map(|job| job.peer.as_str()));
-            if candidates.is_empty() {
-                break;
+            if job.bulk {
+                sent_bulk = true;
+            } else {
+                sent_live = true;
             }
-            let mut progressed = false;
-            // Descending indices permit removing completed jobs without invalidating earlier indices.
-            for index in candidates.into_iter().rev() {
-                let Some(job) = self.outgoing.get(index) else {
-                    continue;
-                };
-                let packet = wire::fragment_message(job.id, &job.bytes, job.index).map_err(|e| e.to_string())?;
-                if !self.packet(&job.peer, ChannelKind::Edits, &packet)? {
-                    continue;
-                }
-                progressed = true;
-                if let Some(job) = self.outgoing.get_mut(index) {
+            self.progress = self.progress.saturating_add(1);
+            self.outgoing_next = Some(key.clone());
+            if let Some(lane) = self.outgoing.get_mut(&key) {
+                if let Some(job) = lane.front_mut() {
                     job.index += 1;
-                    if job.index >= job.bytes.len().div_ceil(wire::FRAGMENT_BYTES) {
-                        self.queued_bytes = self.queued_bytes.saturating_sub(job.bytes.len());
-                        self.outgoing.remove(index);
+                    if job.index >= bytes.len().div_ceil(wire::FRAGMENT_BYTES) {
+                        self.queued_bytes = self.queued_bytes.saturating_sub(job.charge);
+                        self.outgoing_jobs = self.outgoing_jobs.saturating_sub(1);
+                        lane.pop_front();
                     }
                 }
-                if clock_ms() - start > 4.0 {
-                    break;
+                if lane.is_empty() {
+                    self.outgoing.remove(&key);
                 }
-            }
-            if !progressed {
-                break;
             }
         }
         Ok(())
     }
-    fn tick(&mut self, app: &mut PhotocraftApp, ctx: &egui::Context) -> Result<(), String> {
+    fn tick(&mut self, app: &mut PhotocraftApp, ctx: &egui::Context, from_pump: bool) -> Result<(), String> {
+        let started = clock_ms();
+        self.frame_apply_ms = 0.0;
+        let busy = !hidden() && self.input_priority.busy(started, ctx.input(|i| i.pointer.any_down()));
+        let mut budget = super::collaboration_protocol::FrameBudget::new(started, busy);
+        let result = self.tick_inner(app, ctx, &mut budget);
+        if let Err(error) = &result
+            && (error.starts_with("Codec worker") || error.starts_with("Worker queue reservation"))
+        {
+            self.clear_worker_replies();
+            self.shared.borrow_mut().events.clear();
+            self.codec = None;
+            let generation = self.shared.borrow().generation;
+            event(&self.shared, generation, Event::Error(error.clone()), ctx);
+        }
+        let elapsed = clock_ms() - started;
+        self.worst_tick_ms = self.worst_tick_ms.max(elapsed);
+        let oldest = self.outgoing.values().filter_map(|lane| lane.front().map(|job| job.queued_at)).reduce(f64::min);
+        let sctp = self
+            .shared
+            .borrow()
+            .links
+            .values()
+            .map(|link| link.channels.borrow().values().map(|channel| u64::from(channel.buffered_amount())).sum::<u64>())
+            .sum::<u64>();
+        app.ui.collaboration.transport_metrics = json!({"browser":true,"documentHidden":hidden(),"backgroundPumpTicks":self.background_ticks,"tickMs":elapsed,"worstTickMs":self.worst_tick_ms,"maxApplyMs":self.max_apply_ms,"snapshotMs":self.last_snapshot_ms,"drawingPriority":busy,"incomingEventsQueued":self.shared.borrow().events.len(),"codecRepliesQueued":self.shared.borrow().worker_events.len(),"canonicalOpsQueued":app.session.collaboration.canonical_outbox.len(),"clientOpsQueued":app.session.collaboration.outbox.len(),"outgoingJobs":self.outgoing_jobs,"bufferedBytes":self.queued_bytes,"sctpBufferedBytes":sctp,"oldestQueuedMs":oldest.map(|time|(clock_ms()-time).max(0.0)),"pendingBootstraps":self.pending_bootstraps.len(),"codecWorkerActive":self.codec.as_ref().is_some_and(|c|c.ready.get()),"codecWorkerCompleted":self.worker_completed,"codecWorkerMs":self.worker_ms,"codecWorkerQueued":self.codec.as_ref().map_or(0,|c|c.queued()),"codecWorkerBytes":self.codec.as_ref().map_or(0,|c|c.bytes())});
+        if let Some(diagnostics) = self.diagnostics.as_mut() {
+            diagnostics.publish(started, elapsed, self.frame_apply_ms, &app.ui.collaboration.transport_metrics, !from_pump);
+        }
+        result
+    }
+    fn tick_inner(&mut self, app: &mut PhotocraftApp, ctx: &egui::Context, budget: &mut super::collaboration_protocol::FrameBudget) -> Result<(), String> {
+        if let Some(codec) = &self.codec
+            && !codec.ready.get()
+        {
+            if js_sys::Date::now() - codec.started < 2000.0 {
+                ctx.request_repaint_after(std::time::Duration::from_millis(25));
+                return Ok(());
+            }
+            log::warn!("PhotoCraft codec worker ready timeout; using Window codec");
+            self.codec = None;
+        }
+        if self.codec.as_ref().is_some_and(|codec| codec.queued() > 0) {
+            ctx.request_repaint_after(std::time::Duration::from_secs(1));
+        }
+        if self.codec.as_ref().is_some_and(|codec| codec.stalled()) {
+            return Err("Codec worker completion timed out — drawing preserved; rejoin".into());
+        }
         for intent in std::mem::take(&mut app.session.collaboration.network_intents) {
             let generation = self.shared.borrow().generation.saturating_add(1);
             self.shared.borrow_mut().generation = generation;
             self.shared.borrow_mut().links.clear();
             self.shared.borrow_mut().events.clear();
+            self.clear_worker_replies();
             self.connected.clear();
             self.outgoing.clear();
+            self.outgoing_next = None;
+            self.outgoing_jobs = 0;
+            self.cached_checkpoint = None;
             self.queued_bytes = 0;
             self.decoder = Decoder::default();
+            self.worker_pending.clear();
+            self.bootstrap_wait = None;
+            self.bootstrap_attempt = None;
             self.pending_bootstraps.clear();
             self.bootstrapped = false;
             self.admission = None;
@@ -562,14 +953,14 @@ impl Bridge {
                 }
             });
         }
-        let start = clock_ms();
-        for count in 0..256 {
-            if count > 0 && clock_ms() - start > 4.0 {
-                break;
-            }
-            let event = self.shared.borrow_mut().events.pop_front();
-            let Some(event) = event else { break };
-            match event {
+        while budget.event(clock_ms()) {
+            let incoming = {
+                let mut shared = self.shared.borrow_mut();
+                shared.worker_events.pop_front().or_else(|| shared.events.pop_front())
+            };
+            let Some(incoming) = incoming else { break };
+            self.progress = self.progress.saturating_add(1);
+            match incoming {
                 Event::Joined(a) => {
                     sync_room_address(Some(&a.code));
                     app.session.collaboration = Default::default();
@@ -588,6 +979,7 @@ impl Bridge {
                 Event::Connected(peer) => {
                     if self.host() {
                         if !self.connected.contains(&peer) && !self.pending_bootstraps.contains(&peer) {
+                            self.bootstrap_wait.get_or_insert(clock_ms());
                             self.pending_bootstraps.push(peer);
                         }
                     } else {
@@ -595,6 +987,27 @@ impl Bridge {
                     }
                 }
                 Event::Packet(peer, channel, bytes) => {
+                    if !self.shared.borrow().links.contains_key(&peer) {
+                        continue;
+                    }
+                    if let Some(codec) = &self.codec {
+                        if (self.bootstrap_wait.is_some_and(|since| clock_ms() - since >= 1500.0) && codec.queued() > 0)
+                            || codec.queued() >= 256
+                            || codec.bytes().saturating_add(bytes.byte_length() as usize).saturating_add(2048) > super::worker_codec::policy::LIMIT
+                        {
+                            self.shared.borrow_mut().events.push_front(Event::Packet(peer, channel, bytes));
+                            self.progress = self.progress.saturating_sub(1);
+                            break;
+                        }
+                        match codec.submit_packet(self.shared.borrow().generation, peer.clone(), channel == ChannelKind::Edits, &bytes) {
+                            Ok((id, _)) => {
+                                self.worker_pending.insert(id, WorkerPending::Decode(peer, channel));
+                            }
+                            Err(error) => return Err(format!("Codec worker overloaded — rejoin: {error}")),
+                        }
+                        continue;
+                    }
+                    let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
                     let result = (|| {
                         let message = if channel == ChannelKind::Edits {
                             self.decoder.push(&peer, &bytes).map_err(|e| e.to_string())?
@@ -602,7 +1015,12 @@ impl Bridge {
                             Some(wire::decode_unreliable(&bytes).map_err(|e| e.to_string())?)
                         };
                         if let Some(message) = message {
-                            self.receive(app, &peer, channel, message)?;
+                            let apply_started = clock_ms();
+                            let result = self.receive(app, &peer, channel, message);
+                            let apply_ms = clock_ms() - apply_started;
+                            self.max_apply_ms = self.max_apply_ms.max(apply_ms);
+                            self.frame_apply_ms = self.frame_apply_ms.max(apply_ms);
+                            result?;
                         }
                         Ok::<(), String>(())
                     })();
@@ -610,13 +1028,68 @@ impl Bridge {
                         self.peer_error(app, peer, error)?;
                     }
                 }
+                Event::Worker(reply) => {
+                    if let Some(codec) = &self.codec {
+                        codec.acknowledge(reply.id);
+                    }
+                    use super::worker_codec::ResultData;
+                    if matches!(reply.result, ResultData::Ready { .. }) {
+                        continue;
+                    }
+                    if reply.id == 0 {
+                        if self.admission.is_none() {
+                            self.codec = None;
+                            continue;
+                        }
+                        let generation = self.shared.borrow().generation;
+                        event(&self.shared, generation, Event::Error("Codec worker stopped — drawing preserved; rejoin".into()), ctx);
+                        continue;
+                    }
+                    let Some(pending) = self.worker_pending.remove(&reply.id) else {
+                        continue;
+                    };
+                    self.worker_completed = self.worker_completed.saturating_add(1);
+                    self.worker_ms = self.worker_ms.max(reply.elapsed_ms);
+                    match (pending, reply.result) {
+                        (WorkerPending::Encode(slot, charge), ResultData::Encoded(bytes)) if bytes.len() <= charge => {
+                            *slot.borrow_mut() = Some(Arc::new(bytes));
+                        }
+                        (WorkerPending::Decode(peer, channel), ResultData::Decoded(Some(message))) => {
+                            if !self.shared.borrow().links.contains_key(&peer) {
+                                continue;
+                            }
+                            let started = clock_ms();
+                            let result = self.receive(app, &peer, channel, *message);
+                            let elapsed = clock_ms() - started;
+                            self.max_apply_ms = self.max_apply_ms.max(elapsed);
+                            self.frame_apply_ms = self.frame_apply_ms.max(elapsed);
+                            if let Err(error) = result {
+                                self.peer_error(app, peer, error)?;
+                            }
+                        }
+                        (WorkerPending::Decode(_, _), ResultData::Decoded(None)) | (WorkerPending::Remove, ResultData::Removed) => {}
+                        (WorkerPending::Decode(peer, _), ResultData::Failed(error)) => self.peer_error(app, peer, error)?,
+                        (_, result) => {
+                            let error = match result {
+                                ResultData::Failed(error) => error,
+                                _ => "Invalid codec result".into(),
+                            };
+                            let generation = self.shared.borrow().generation;
+                            event(&self.shared, generation, Event::Error(format!("Codec worker failed — rejoin: {error}")), ctx);
+                        }
+                    }
+                }
                 Event::PeerError(peer, error) => self.peer_error(app, peer, error)?,
                 Event::Disconnected(peer) => {
                     self.pending_bootstraps.retain(|p| p != &peer);
                     self.connected.remove(&peer);
-                    self.outgoing.retain(|j| j.peer != peer);
-                    self.queued_bytes = self.outgoing.iter().map(|j| j.bytes.len()).sum();
+                    self.remove_lane(&peer);
                     self.decoder.remove(&peer);
+                    if let Some(codec) = &self.codec
+                        && let Ok((id, _)) = codec.submit(self.shared.borrow().generation, super::worker_codec::Task::Remove(peer.clone()))
+                    {
+                        self.worker_pending.insert(id, WorkerPending::Remove);
+                    }
                     if let Some(room) = app.session.collaboration.room.as_mut() {
                         room.members.remove(&peer);
                     }
@@ -630,13 +1103,21 @@ impl Bridge {
                     }
                 }
                 Event::Error(error) => {
+                    self.worker_pending.clear();
+                    if error.starts_with("Codec worker") || error.starts_with("Worker queue reservation") {
+                        self.codec = None;
+                    }
                     let generation = self.shared.borrow().generation.saturating_add(1);
                     self.shared.borrow_mut().generation = generation;
                     self.shared.borrow_mut().links.clear();
                     self.shared.borrow_mut().events.clear();
+                    self.clear_worker_replies();
                     self.admission = None;
                     self.connected.clear();
                     self.outgoing.clear();
+                    self.outgoing_next = None;
+                    self.outgoing_jobs = 0;
+                    self.cached_checkpoint = None;
                     self.pending_bootstraps.clear();
                     self.bootstrapped = false;
                     self.queued_bytes = 0;
@@ -648,26 +1129,78 @@ impl Bridge {
                 }
             }
         }
-        if self.host() && !self.pending_bootstraps.is_empty() {
-            let checkpoint = app.session.collaboration_checkpoint().map_err(|e| e.to_string())?;
-            let room = app.session.collaboration.room.clone().ok_or("Missing room")?;
-            let mut pending = std::mem::take(&mut self.pending_bootstraps);
-            let mut connected = std::mem::take(&mut self.connected);
-            let result = super::collaboration_protocol::admit_bootstraps(&mut pending, &mut connected, |peers| {
-                self.send_to(peers, ChannelKind::Edits, &Wire::Checkpoint { document: vec![], room, checkpoint })
-            });
-            self.pending_bootstraps = pending;
-            self.connected = connected;
-            match result {
-                Err(error) if error.starts_with("Collaboration send queue full") => {}
-                result => result?,
+        if self.host()
+            && !self.pending_bootstraps.is_empty()
+            && super::worker_codec::policy::snapshot_due(budget.busy, budget.snapshot(clock_ms()), self.bootstrap_wait.map_or(0.0, |since| clock_ms() - since))
+            && self.bootstrap_attempt.is_none_or(|last| clock_ms() - last >= 500.0)
+            && self.codec.as_ref().is_none_or(|codec| codec.queued() < 256 && codec.bytes() < super::worker_codec::policy::LIMIT.saturating_sub(128 * 1024))
+        {
+            self.bootstrap_attempt = Some(clock_ms());
+            if self.codec.is_some() {
+                let began = clock_ms();
+                let checkpoint = app.session.collaboration_checkpoint().map_err(|e| e.to_string())?;
+                let room = app.session.collaboration.room.clone().ok_or("Missing room")?;
+                let peers = self.pending_bootstraps.clone();
+                let result = self.send_to(peers.clone(), ChannelKind::Edits, &Wire::Checkpoint { document: vec![], room, checkpoint });
+                self.last_snapshot_ms = clock_ms() - began;
+                match result {
+                    Ok(()) => {
+                        self.connected.extend(peers);
+                        self.pending_bootstraps.clear();
+                        self.bootstrap_wait = None;
+                    }
+                    Err(error) if error.starts_with("Collaboration send queue full") => {}
+                    Err(error) => return Err(error),
+                }
+            } else {
+                let revision = app.session.collaboration.applied_revision;
+                // Retain a stale encoded checkpoint while backpressured. Its known size avoids
+                // repeatedly encoding a newer one that still cannot fit the same fanout.
+                let payload = self.cached_checkpoint.as_ref().map_or(1, |(_, bytes)| bytes.len());
+                if super::collaboration_protocol::fits_queue(self.outgoing_jobs, self.queued_bytes, self.pending_bootstraps.len(), payload, MAX_QUEUE_BYTES) {
+                    if self.cached_checkpoint.as_ref().is_some_and(|(cached, _)| !super::collaboration_protocol::snapshot_current(*cached, revision)) {
+                        self.cached_checkpoint = None;
+                    }
+                    if self.cached_checkpoint.is_none() {
+                        let began = clock_ms();
+                        let checkpoint = app.session.collaboration_checkpoint().map_err(|e| e.to_string())?;
+                        let room = app.session.collaboration.room.clone().ok_or("Missing room")?;
+                        let bytes = Arc::new(wire::encode_message(&Wire::Checkpoint { document: vec![], room, checkpoint }).map_err(|e| e.to_string())?);
+                        self.last_snapshot_ms = clock_ms() - began;
+                        self.cached_checkpoint = Some((revision, bytes));
+                    }
+                    if let Some((cached, bytes)) = self.cached_checkpoint.clone()
+                        && super::collaboration_protocol::snapshot_current(cached, app.session.collaboration.applied_revision)
+                    {
+                        let mut pending = std::mem::take(&mut self.pending_bootstraps);
+                        let mut connected = std::mem::take(&mut self.connected);
+                        let result =
+                            super::collaboration_protocol::admit_bootstraps(&mut pending, &mut connected, |peers| self.queue_encoded(peers, bytes, true));
+                        self.pending_bootstraps = pending;
+                        self.connected = connected;
+                        match result {
+                            Ok(()) => self.cached_checkpoint = None,
+                            Err(error) if error.starts_with("Collaboration send queue full") => {}
+                            Err(error) => return Err(error),
+                        }
+                    }
+                }
             }
         }
-        self.flush()?;
+        if self.pending_bootstraps.is_empty() {
+            self.bootstrap_wait = None;
+        }
         let host = self.host();
         let mut accepted = 0;
         let mut send_error = None;
-        for index in 0..256 {
+        let mut index = 0;
+        while budget.operation(clock_ms()) {
+            if !self.pending_bootstraps.is_empty()
+                && self.bootstrap_wait.is_some_and(|since| clock_ms() - since >= 1500.0)
+                && self.codec.as_ref().is_some_and(|codec| codec.queued() > 0)
+            {
+                break;
+            }
             let message = if host {
                 app.session.collaboration.canonical_outbox.get(index).cloned().map(Wire::Host)
             } else if self.bootstrapped && !app.ui.collaboration.transport_pending && !self.connected.is_empty() {
@@ -677,15 +1210,15 @@ impl Bridge {
             };
             let Some(message) = message else { break };
             match self.send(None, ChannelKind::Edits, &message) {
-                Ok(()) => accepted += 1,
+                Ok(()) => {
+                    accepted += 1;
+                    index += 1;
+                }
                 Err(error) if error.starts_with("Collaboration send queue full") => break,
                 Err(error) => {
                     send_error = Some(error);
                     break;
                 }
-            }
-            if clock_ms() - start > 8.0 {
-                break;
             }
         }
         if host {
@@ -696,7 +1229,9 @@ impl Bridge {
         if let Some(error) = send_error {
             return Err(error);
         }
-        if let Some(presence) = app.session.collaboration.queued_presence.take()
+        self.flush(budget)?;
+        if budget.available(clock_ms())
+            && let Some(presence) = app.session.collaboration.queued_presence.take()
             && let Some(a) = &self.admission
         {
             self.broadcast(None, ChannelKind::Presence, &Wire::Presence { peer: a.peer.clone(), presence })?;
@@ -704,17 +1239,19 @@ impl Bridge {
         app.ui.collaboration.voice_enabled = false;
         app.ui.collaboration.push_to_talk = false;
         app.ui.collaboration.voice_status = "Voice off".into();
-        app.ui.collaboration.transport_metrics = json!({"browser":true,"incomingEventsQueued":self.shared.borrow().events.len(),"outgoingJobs":self.outgoing.len(),"bufferedBytes":self.queued_bytes});
-        self.flush()?;
         Ok(())
     }
     fn peer_error(&mut self, app: &mut PhotocraftApp, peer: String, error: String) -> Result<(), String> {
         self.shared.borrow_mut().links.remove(&peer);
         self.connected.remove(&peer);
         self.pending_bootstraps.retain(|p| p != &peer);
-        self.outgoing.retain(|job| job.peer != peer);
-        self.queued_bytes = self.outgoing.iter().map(|job| job.bytes.len()).sum();
+        self.remove_lane(&peer);
         self.decoder.remove(&peer);
+        if let Some(codec) = &self.codec
+            && let Ok((id, _)) = codec.submit(self.shared.borrow().generation, super::worker_codec::Task::Remove(peer.clone()))
+        {
+            self.worker_pending.insert(id, WorkerPending::Remove);
+        }
         app.ui.collaboration.error = format!("Disconnected a peer after invalid input: {error}");
         if let Some(room) = app.session.collaboration.room.as_mut() {
             room.members.remove(&peer);

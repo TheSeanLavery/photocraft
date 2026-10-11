@@ -1,0 +1,16 @@
+{
+  "archived": 11,
+  "direct_ms": 107.277,
+  "disk_bytes": 7720515,
+  "image": "6000x4000",
+  "note": "Sequential baseline omits per-command UI/hooks/cache costs. Synthetic snapshot restore, not native canvas presentation latency.",
+  "resident_bytes": 250085376,
+  "retained": 13,
+  "revision_delta": 1,
+  "serial_ms": 1090.393625,
+  "steps": 12,
+  "date": "2026-10-10",
+  "build": "release opt-level 3; LTO disabled; 16 codegen units",
+  "workload": "Deterministic structured 24 MP RGBA8 image; 12 full-image edits, 128 MiB managed RAM target; 11 cold states. Compressible synthetic data; not representative of every photo.",
+  "command": "cargo run --release -p photocraft-engine --features corpus --example history_jump_bench"
+}

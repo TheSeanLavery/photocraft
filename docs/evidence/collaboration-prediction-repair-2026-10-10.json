@@ -1,0 +1,226 @@
+{
+  "source": "4994d6fb plus collab.rs partial prediction repair + sparse UndoRedo repair",
+  "scope": "Native engine recomposition only; excludes canonical application, networking, GPU upload, presentation",
+  "profile": "dev opt1/debug0/incremental0; concurrent quick-perf run",
+  "samples": 16,
+  "percentiles": "p95/p99 = maximum of 16 samples",
+  "canvas": [
+    2048,
+    1536
+  ],
+  "validation": "Exact whole Surface equality for every sample; real remote damage; completed but unacknowledged large dab",
+  "rows": [
+    {
+      "brushSize": 512.0,
+      "coverageTiles": 60,
+      "depth": 8,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 9.790417,
+        "p95": 11.296125,
+        "p99": 11.296125
+      },
+      "iterations": 16,
+      "overlap": false,
+      "replayedCoverageTiles": 0,
+      "reuseMs": {
+        "p50": 0.179083,
+        "p95": 0.36416600000000005,
+        "p99": 0.36416600000000005
+      }
+    },
+    {
+      "brushSize": 1024.0,
+      "coverageTiles": 224,
+      "depth": 8,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 35.931708,
+        "p95": 39.582667,
+        "p99": 39.582667
+      },
+      "iterations": 16,
+      "overlap": false,
+      "replayedCoverageTiles": 0,
+      "reuseMs": {
+        "p50": 0.180459,
+        "p95": 0.40975,
+        "p99": 0.40975
+      }
+    },
+    {
+      "brushSize": 512.0,
+      "coverageTiles": 60,
+      "depth": 8,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 10.281375,
+        "p95": 14.421625,
+        "p99": 14.421625
+      },
+      "iterations": 16,
+      "overlap": true,
+      "replayedCoverageTiles": 4,
+      "reuseMs": {
+        "p50": 1.020709,
+        "p95": 1.768125,
+        "p99": 1.768125
+      }
+    },
+    {
+      "brushSize": 1024.0,
+      "coverageTiles": 224,
+      "depth": 8,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 44.084790999999996,
+        "p95": 58.634083,
+        "p99": 58.634083
+      },
+      "iterations": 16,
+      "overlap": true,
+      "replayedCoverageTiles": 4,
+      "reuseMs": {
+        "p50": 1.155,
+        "p95": 3.0153749999999997,
+        "p99": 3.0153749999999997
+      }
+    },
+    {
+      "brushSize": 512.0,
+      "coverageTiles": 60,
+      "depth": 32,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 17.653624999999998,
+        "p95": 18.881209,
+        "p99": 18.881209
+      },
+      "iterations": 16,
+      "overlap": false,
+      "replayedCoverageTiles": 0,
+      "reuseMs": {
+        "p50": 0.338958,
+        "p95": 0.578542,
+        "p99": 0.578542
+      }
+    },
+    {
+      "brushSize": 1024.0,
+      "coverageTiles": 224,
+      "depth": 32,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 69.37475,
+        "p95": 78.48537499999999,
+        "p99": 78.48537499999999
+      },
+      "iterations": 16,
+      "overlap": false,
+      "replayedCoverageTiles": 0,
+      "reuseMs": {
+        "p50": 0.358792,
+        "p95": 1.082083,
+        "p99": 1.082083
+      }
+    },
+    {
+      "brushSize": 512.0,
+      "coverageTiles": 60,
+      "depth": 32,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 16.785,
+        "p95": 17.339666,
+        "p99": 17.339666
+      },
+      "iterations": 16,
+      "overlap": true,
+      "replayedCoverageTiles": 4,
+      "reuseMs": {
+        "p50": 2.008292,
+        "p95": 2.442667,
+        "p99": 2.442667
+      }
+    },
+    {
+      "brushSize": 1024.0,
+      "coverageTiles": 224,
+      "depth": 32,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 63.881750000000004,
+        "p95": 68.38875,
+        "p99": 68.38875
+      },
+      "iterations": 16,
+      "overlap": true,
+      "replayedCoverageTiles": 4,
+      "reuseMs": {
+        "p50": 2.123542,
+        "p95": 3.6561660000000002,
+        "p99": 3.6561660000000002
+      }
+    }
+  ],
+  "schema": 1,
+  "date": "2026-10-10",
+  "machine": "Apple M1 Max, macOS; concurrent validation/performance work",
+  "coverageTileSize": 64,
+  "sourceStage": "4994d6fb with the tested, not yet committed affected-tile prediction repair",
+  "correctnessRegression": {
+    "historicalStrokes": 128,
+    "laterPeerStrokes": 8,
+    "depths": [
+      8,
+      16,
+      32
+    ],
+    "cases": [
+      "partial-alpha paint",
+      "eraser",
+      "fractional selection with zero-coverage holes",
+      "earlier and later peer undo/redo while local stroke awaits End acknowledgement",
+      "own chunk acknowledgements and End acknowledgement",
+      "per-author undo/redo after convergence"
+    ],
+    "oracle": "Independent full-coverage composition using cloned renderer state, compared against entire native-format Surface; does not reset production caches"
+  },
+  "validationGates": {
+    "engineLib": {
+      "passed": 869,
+      "failed": 0,
+      "ignored": 14,
+      "seconds": 36.87
+    },
+    "uiLib": {
+      "passed": 1007,
+      "failed": 0,
+      "ignored": 8,
+      "seconds": 15.0
+    },
+    "collabLib": {
+      "passed": 17,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 0.39
+    },
+    "strictClippy": "Five-package graph, all targets, -D warnings: passed, 34.66 seconds",
+    "panicHunt": {
+      "passed": 1,
+      "failed": 0,
+      "seconds": 10.28
+    },
+    "benchmark": {
+      "passed": 1,
+      "failed": 0,
+      "seconds": 5.11
+    }
+  },
+  "limits": [
+    "Component timings exclude canonical edit application, network, GPU upload and presentation.",
+    "16 samples per case: reported p95 and p99 are the sample maximum.",
+    "The dense-history fixture is a correctness regression; the measured large-dab benchmark uses one later remote stroke with real overlapping damage.",
+    "Live dense-room retesting is separate and was still pending when this report was written."
+  ]
+}

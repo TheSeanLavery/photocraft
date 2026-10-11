@@ -18,7 +18,10 @@ def main():
         parser.error("prefix must contain ASCII letters, numbers or hyphens")
     files = sorted(p for p in args.dist.iterdir() if p.is_file())
     index = args.dist / "index.html"
-    if len([p for p in files if p.suffix == ".wasm"]) != 1 or not index.is_file():
+    worker_names = {"photocraft-wire-worker_loader.js", "photocraft-wire-worker.js", "photocraft-wire-worker_bg.wasm"}
+    present = {p.name for p in files}
+    main_wasm = [p for p in files if p.suffix == ".wasm" and p.name not in worker_names]
+    if len(main_wasm) != 1 or not index.is_file() or (present & worker_names and not worker_names <= present):
         parser.error("Build first: NO_COLOR=true trunk build --release --config apps/photocraft-web/Trunk.toml")
     print(json.dumps({p.name: {"bytes": p.stat().st_size, "sha256": hashlib.sha256(p.read_bytes()).hexdigest()} for p in files}, indent=2), flush=True)
     for path in [p for p in files if p.name != "index.html"] + [index]:

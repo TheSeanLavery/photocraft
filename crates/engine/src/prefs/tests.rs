@@ -57,7 +57,7 @@ fn get_set_reset_by_path() {
     assert_eq!(s.active().unwrap().history.max_states, 3);
     s.execute("prefs.reset", json!({"path": "performance"})).unwrap();
     assert_eq!(s.prefs().performance.history_states, 50);
-    assert_eq!(s.active().unwrap().history.max_states, 50);
+    assert_eq!(s.active().unwrap().history.max_states, 0);
 }
 
 #[test]

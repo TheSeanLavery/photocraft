@@ -29,8 +29,10 @@ fn main() {
     eprintln!("photocraft-web only runs in the browser: build it with `trunk build --release` in apps/photocraft-web");
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod collaboration_protocol;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod worker_policy;
 
 #[cfg(test)]
 mod tests {

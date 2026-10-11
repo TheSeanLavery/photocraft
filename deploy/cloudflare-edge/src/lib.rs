@@ -33,6 +33,20 @@ fn asset_key(path: &str) -> Option<String> {
     matches!(ext, "html" | "wasm" | "js" | "css" | "png" | "svg" | "ico" | "json").then(|| format!("{prefix}{key}"))
 }
 #[cfg(any(test, target_arch = "wasm32"))]
+fn asset_cache_control(key: &str) -> &'static str {
+    // Trunk hashes the editor, but worker loaders and binaries have stable names.
+    // Revalidate all three together rather than pinning an incompatible worker.
+    let name = key.rsplit('/').next().unwrap_or("");
+    if name == "index.html"
+        || name.ends_with(".json")
+        || matches!(name, "photocraft-wire-worker_loader.js" | "photocraft-wire-worker.js" | "photocraft-wire-worker_bg.wasm")
+    {
+        "no-cache"
+    } else {
+        "public, max-age=31536000, immutable"
+    }
+}
+#[cfg(any(test, target_arch = "wasm32"))]
 fn join_destination(path: &str) -> Option<String> {
     let code = path.strip_prefix("/join/")?;
     if !(4..=12).contains(&code.len()) || !code.bytes().all(|b| b.is_ascii_alphanumeric()) {
@@ -77,6 +91,16 @@ async fn main(req: worker::Request, env: worker::Env, _ctx: worker::Context) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn stable_worker_assets_revalidate_while_hashed_editor_assets_remain_cached() {
+        for name in ["index.html", "manifest.json", "photocraft-wire-worker_loader.js", "photocraft-wire-worker.js", "photocraft-wire-worker_bg.wasm"] {
+            assert_eq!(asset_cache_control(&format!("room-panel/{name}")), "no-cache");
+            assert!(asset_key(&format!("/app/{name}")).is_some());
+        }
+        for name in ["photocraft-web-abc123.js", "photocraft-web-abc123_bg.wasm", "icon.png"] {
+            assert!(asset_cache_control(&format!("room-panel/{name}")).ends_with("immutable"));
+        }
+    }
     #[test]
     fn assets_cannot_expose_private_or_traversed_paths() {
         assert_eq!(asset_key("/"), Some("index.html".into()));

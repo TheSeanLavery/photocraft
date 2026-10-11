@@ -67,6 +67,7 @@ pub mod gpu_status;
 pub mod gradient_ui;
 pub mod hdr_ui;
 mod historical;
+pub mod history_panel;
 pub mod hold_keys;
 pub mod i18n;
 mod icon_data;
@@ -423,6 +424,7 @@ pub struct PhotocraftApp {
     pub fps: f32,
     last_frame_time: f64,
     thumbs: HashMap<(photocraft_doc::LayerId, u8), (u64, egui::TextureHandle)>,
+    history_previews: history_panel::HistoryPreviews,
     /// Snapshots whose live layer/mask keys were last used to prune thumbnail handles.
     thumb_documents: Vec<(DocId, std::sync::Weak<Document>)>,
     /// Content bounds cached per (key, revision): scanning a 36 MP layer every frame cost ~77 ms.
@@ -558,6 +560,7 @@ impl PhotocraftApp {
             fps: 0.0,
             last_frame_time: 0.0,
             thumbs: HashMap::new(),
+            history_previews: Default::default(),
             thumb_documents: Vec::new(),
             bounds_cache: HashMap::new(),
             proxy: None,

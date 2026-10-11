@@ -14,7 +14,10 @@ pub fn session(s: &Session) -> Value {
             "diskBytes": s.history_disk_bytes(),
             "busy": s.history_cache_busy(),
             "memoryBudgetMiB": s.prefs().performance.memory_usage_mb,
-            "diskBudgetMiB": s.prefs().scratch_disks.budget_mb,
+            "diskBudgetMiB": if s.prefs().scratch_disks.use_available_space { None } else { Some(s.prefs().scratch_disks.budget_mb) },
+            "unlimitedHistory": s.prefs().performance.unlimited_history,
+            "useAvailableDiskSpace": s.prefs().scratch_disks.use_available_space,
+            "storageError": s.history_storage_error(),
         },
         "documents": s.documents().iter().enumerate().map(|(i, d)| json!({
             "index": i,

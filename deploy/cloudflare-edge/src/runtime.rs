@@ -148,7 +148,7 @@ async fn asset(req: Request, env: Env) -> Result<Response> {
         },
     )?;
     headers.set("ETag", &object.http_etag())?;
-    headers.set("Cache-Control", if key.ends_with("index.html") || key.ends_with(".json") { "no-cache" } else { "public, max-age=31536000, immutable" })?;
+    headers.set("Cache-Control", crate::asset_cache_control(&key))?;
     headers.set("X-Content-Type-Options", "nosniff")?;
     headers.set("Cross-Origin-Resource-Policy", "same-origin")?;
     headers.set("Referrer-Policy", "strict-origin-when-cross-origin")?;

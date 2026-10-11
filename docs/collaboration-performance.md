@@ -107,3 +107,168 @@ The real-RTC slow-reader test pauses application receiving for six seconds, then
 Coverage includes native-format tile/oracle tests, pressure/tilt batching and gesture boundaries, growing live prefixes, hidden strokes, checkpoint redo, legacy host deltas, local author history, bounded damage gaps and pending command predictions. Full engine and UI suites, panic hunting, strict Clippy, layer checks, WASM checks and release performance checks are recorded in the PR. No new file-format code or menu command is introduced.
 
 Remaining limits: a costly individual operation may exceed a frame budget; generic command dependencies still require full replay; a permanently non-reading participant can backpressure reliable delivery; guest preview transitions may require one conservative full refresh. This run is four local native clients at 1,024×640, not proof for arbitrary document sizes, device input latency, WAN packet loss, voice acoustics or every tool's interactive performance.
+
+## Browser-host overlap follow-up (2026-10-10)
+
+A second test uses a real browser host and four native automated artists at
+1,920×1,080. Each artist paints and erases 16 crossing pressure gestures with
+96 samples per gesture and eight-sample input batches, creates an independent
+layer during its first gesture, then continues on the same original paint layer.
+The harness waits for the creation acknowledgement and reselects the shared
+layer before every gesture so delayed layer creation cannot accidentally turn
+this into a test of four separate layers.
+
+The deployed `117007ee` browser build and `780744a2` native build reproduced the
+reported lag. All four artists completed input, but the original three-second
+control-response limit expired while checking convergence. A subsequent check
+found one client with 512 queued incoming events, a 744.9 ms collaboration tick,
+and a 17,047.3 ms worst tick; three other clients had drained their queues. This
+is a reproduced UI stall, not a successful convergence run. Control timings and
+collaboration ticks do not measure physical pointer-to-photon latency. Local
+proof is retained in `plan/evidence/browser-overlap/baseline-shared/`.
+
+The native transport already owns a dedicated OS thread and a two-thread Tokio
+runtime. That does not move canonical document replay or rendering off the GUI
+thread. In the browser, eframe continues logic in hidden tabs using a timeout,
+but browser timer throttling reduces update frequency. Draining networking only
+from those updates creates an additional queue bottleneck.
+
+The follow-up separates transport work from repaint cadence, avoids replaying an
+entire journal for proven independent layer creation, and keeps guest strokes
+visible while awaiting canonical acknowledgements. Unknown semantic dependencies
+retain the conservative replay path. New-room generations reject callbacks and
+packets left over from an earlier native room.
+
+```mermaid
+flowchart LR
+    INPUT[Local pressure input] --> PRED[Bounded guest prediction]
+    INPUT --> SEND[Sequenced input batches]
+    SEND --> CODEC[Rust codec Worker]
+    NET[WebRTC callbacks] --> CODEC
+    CODEC --> TASK[Event-driven bounded transport tasks]
+    TASK --> HOST[Host canonical ordering]
+    HOST --> APPLY[Dirty tiles or required semantic replay]
+    APPLY --> PAINT[UI canvas presentation]
+    PRED --> PAINT
+    APPLY --> REBASE[Rebase pending local prediction]
+    REBASE --> PAINT
+    HOST --> CODEC
+```
+
+Browser connection negotiation remains on Window; the dedicated Rust Worker owns
+reliable message encoding, decoding and fragment reassembly. Trunk generates its
+loader. Typed structured-clone messages retain large integer IDs as BigInt and
+transfer byte buffers. Version/ready checks allow a startup fallback; completion
+watchdogs report stalled jobs. FIFO placeholders put checkpoint bytes before
+canonical edits that arrive while encoding. IPC credits, fanout reservations and
+per-peer lanes prevent normal congestion from turning into dropped edits or
+unbounded work. Stable worker assets revalidate on launch.
+
+A targeted native-engine comparison uses a 2,048×1,536 canvas and 16 samples per
+case. With a 1,024 px local brush covering 224 tiles, a disjoint remote update's
+prediction recomposition median drops from 34.750 ms to 0.176 ms at 8-bit and
+from 59.785 ms to 0.329 ms at 32F. Exact surfaces match at every sample. This
+measures the prediction step in an optimized dev build on a shared machine;
+it excludes canonical application, networking, GPU upload and presentation.
+The surrounding engine was compiled before the current-main integration;
+the collaboration source is the committed `4e6edf1a` implementation.
+[Detailed samples](evidence/collaboration-prediction-disjoint-2026-10-10.json).
+
+Remaining costs include typed-object conversion, checkpoint capture and a single
+nonpreemptible engine edit. Prediction keeps the first unacknowledged gesture;
+later queued gestures use canonical delivery until that slot is free. A dependent
+filter or transform suspends prediction and uses semantic replay. Brush smoothing
+can retain samples until movement or release emits a dab. These limits need to
+remain distinct from improvements to packet scheduling and disjoint tile reuse.
+
+
+## Affected-tile prediction repair after dense-room profiling (2026-10-10)
+
+Repeated drawing in the same browser-hosted room exposed a remaining native
+stall after the first four-client run had converged. Native samples located the
+GUI-thread work in `Collaboration::predict_document`: overlapping canonical
+chunks repainted the entire retained local gesture, restored its prefix pixels,
+and recomposed later peer strokes. A dedicated networking thread or codec Worker
+does not remove that raster work from the GUI thread. The first successful room
+run therefore did not establish sustained dense-room responsiveness.
+
+The repair retains the previous predicted layer surface through copy-on-write.
+After applying a canonical chunk or stroke end, it copies only the canonical
+damage rectangle into that surface. It then restores and recomposes the local
+prediction only in its 64px coverage tiles intersecting that rectangle, using the
+refreshed canonical prefix. Visible later strokes composite in canonical start
+order over those same tiles. Unaffected predicted pixels, including neighbors in
+the same 256px raster tile, remain intact. Later peer renderers are reused rather
+than cloning their full accumulated coverage for each rebase.
+
+Sparse stroke undo/redo takes the same repair path only when canonical application
+reports known damage and has refreshed the relevant prefix caches. Generic
+history changes with unknown damage retain full replay. A local End acknowledgement
+clears prediction and exposes the authoritative surface; it does not blend the
+acknowledged stroke a second time. The damage ledger includes repaired coverage
+so canvas updates can clear and redraw the changed pixels.
+
+```mermaid
+flowchart TD
+    EVENT[Canonical chunk, end or sparse stroke undo/redo] --> APPLY[Apply once to canonical document]
+    APPLY --> KNOWN{Known damage and retained prediction?}
+    KNOWN -->|no| FULL[Conservative full rebase or semantic replay]
+    KNOWN -->|yes| COW[Retain previous predicted COW surface]
+    COW --> PATCH[Copy canonical damage rectangle]
+    PATCH --> TILES[Intersect damage with local 64px coverage tiles]
+    TILES --> PRE[Restore affected pixels from refreshed own prefix]
+    PRE --> OWN[Composite deterministic local prediction]
+    OWN --> PEERS[Composite later visible peers in canonical order]
+    PEERS --> DAMAGE[Record canonical and repaired damage]
+    FULL --> DAMAGE
+    DAMAGE --> DISPLAY[Update canvas]
+```
+
+The native component benchmark compares full prediction rebase and affected-tile
+repair against identical state on a 2,048×1,536 canvas. Its local brush is completed
+but unacknowledged; the overlapping remote stroke produces real canonical pixel
+damage. Exact whole native-format surfaces match for every sample.
+
+| Depth | Brush size / full coverage | Full rebase p50 / p95 / p99 | Four-tile repair p50 / p95 / p99 |
+|---|---|---|---|
+| RGB 8-bit | 512px / 60 tiles | 10.281 / 14.422 / 14.422 ms | 1.021 / 1.768 / 1.768 ms |
+| RGB 8-bit | 1,024px / 224 tiles | 44.085 / 58.634 / 58.634 ms | 1.155 / 3.015 / 3.015 ms |
+| RGB 32F | 512px / 60 tiles | 16.785 / 17.340 / 17.340 ms | 2.008 / 2.443 / 2.443 ms |
+| RGB 32F | 1,024px / 224 tiles | 63.882 / 68.389 / 68.389 ms | 2.124 / 3.656 / 3.656 ms |
+
+There are 16 samples per case, so p95 and p99 are both the sample maximum.
+These are optimized development-build CPU recomposition timings on an Apple M1
+Max with concurrent validation work. They exclude canonical application,
+networking, GPU upload and presentation, and establish no physical frame-rate or
+pointer-latency guarantee. The timed fixture uses one later remote stroke; the
+separate dense-history regression below is a correctness test, not a measured
+128-history throughput claim. The source stage is merged main `4994d6fb` plus the
+tested affected-tile repair. Full precision, disjoint cases and test metadata are
+in the [sanitized measurement report](evidence/collaboration-prediction-repair-2026-10-10.json).
+
+The dense correctness fixture starts with 128 historical strokes and keeps a
+large local prediction visible while eight later peer strokes arrive. It checks
+8-bit, 16-bit and 32F native surfaces, partial alpha, erasing, fractional selection
+with zero-coverage holes, and peer undo/redo before and after the local stroke's
+canonical start. Own chunk and End acknowledgements and subsequent author undo/
+redo converge exactly. Its independent full-coverage oracle clones renderer state
+and never resets the production prefix caches between events. Existing regressions
+also cover pressure, tilt, rotation, deterministic seeds and transparency locking.
+
+The final five-package library test graph passed: engine 869 tests (14 ignored),
+UI 1,007 (8 ignored), and collaboration 17. Strict all-target Clippy passed for
+engine, UI, collaboration, web and desktop; the adversarial panic test passed.
+The quick release performance task also exited successfully with all four benches,
+but that run compiled the earlier `4994d6fb` source before affected-tile repair.
+Quick mode does not enforce full-size budgets, and baseline regression comparison
+was skipped because its M4 Pro machine class differs from this M1 Max. It therefore
+is not validation of this new repair or evidence that every UI operation meets its
+budget.
+
+Remaining limits: one unacknowledged gesture occupies the prediction slot; later
+queued gestures await canonical delivery. A dependent generic edit can suspend
+prediction and require semantic replay. Stroke begin, structural changes and
+unknown damage retain conservative full rebase; a large dirty region can still
+require substantial work. The four-tile timings do not bound arbitrary brush sizes
+or dense overlapping suffixes. Sustained live dense-room responsiveness and
+physical input-to-display latency require a separate updated-client run.

@@ -5484,3 +5484,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = 테마 정의가 64 KiB를
 ui-theme-id-2057ac72399d5a4d = 테마 ID
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE 테마
+
+ui-return-to-original-49ddd457800418b3 = 원본으로 돌아가기
+
+ui-branch-7a07940a2b62f185 = 분기
+
+ui-retry-storage-2e07dc65352aa868 = 저장 다시 시도
+
+ui-unlimited-history-d3654847d93db9b8 = 무제한 기록
+
+ui-use-available-disk-space-44211d74d7260f1a = 사용 가능한 디스크 공간 사용
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = 실행 취소 공간은 필요에 따라 늘어납니다. 무제한 기록은 저장 공간이 가득 찰 때까지 유지됩니다. 경로는 다음 캐시 세션에 적용됩니다.
+
+ui-change-opacity-c419e848020b25f4 = 불투명도 변경

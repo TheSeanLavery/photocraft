@@ -192,7 +192,10 @@ fn selected_history_labels_use_the_theme_foreground_at_all_scales() {
             assert_eq!(result.get("ok"), Some(&json!(true)));
             h.run_steps(6);
             let tokens = photocraft_ui_egui::theme::Tokens::get(&ctx);
-            assert_eq!(foreground(&h.output().shapes, "Open"), Some(tokens.row_selected_text), "{id} {scale}");
+            // The scrubber paints the root as Original; its accessibility name remains
+            // the engine's Open history label. Verify the actual rendered text colour.
+            let original = photocraft_ui_egui::i18n::t("Original");
+            assert_eq!(foreground(&h.output().shapes, original), Some(tokens.row_selected_text), "{id} {scale}");
             assert!(h.get_by_label("Open").rect().height() > 0.0);
             if id == "builtin.system-6" {
                 assert_eq!(tokens.row_selected_text, egui::Color32::WHITE);

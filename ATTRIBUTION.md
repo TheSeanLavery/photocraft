@@ -99,3 +99,5 @@ Files copied into `corpus/` by hand (tiff, exr, raw) must be MIT, BSD or CC0.
 |---|---|---|---|---|
 | `craft-fonts/fonts/chicago-kare/ChicagoKare-Regular.ttf` (optional external build input; no font files committed here) | Chicago Kare Regular, historical Chicago recreation | Duane King | [Chicago-Kare@dca7a9e](https://github.com/KingDuane/Chicago-Kare/tree/dca7a9e4f2b971e39cf3a5e8a3f9309d4293d56d) | MIT; license beside the font in `craft-fonts/fonts/chicago-kare/LICENSE` |
 | `craft-fonts/fonts/w95fa/W95FA-Regular.otf` (optional external build input; no font files committed here) | W95FA Regular, historical MS Sans Serif recreation | Alina Sava / FontsArena.com | [publisher release](https://fontsarena.com/wp-content/uploads/2020/01/W95FA.zip), SHA-256 `9e1ad53708307b2b68e06d43799b2267f6aec620dda972bc62753ad16ba50f2b` | OFL-1.1; external craft-fonts license and provenance accompany the font |
+
+| `docs/images/history-scrubber/*.png` | PhotoCraft vertical history scrubber capture | PhotoCraft contributors | Original synthetic landscape and native offscreen UI | MIT OR Apache-2.0, adjacent license files |

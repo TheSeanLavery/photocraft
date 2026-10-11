@@ -5154,3 +5154,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Definisi tema melebihi 64 
 ui-theme-id-2057ac72399d5a4d = ID tema
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Tema Windows 98 SE
+
+ui-return-to-original-49ddd457800418b3 = Kembali ke asli
+
+ui-branch-7a07940a2b62f185 = Cabang
+
+ui-retry-storage-2e07dc65352aa868 = Coba penyimpanan lagi
+
+ui-unlimited-history-d3654847d93db9b8 = Riwayat tanpa batas
+
+ui-use-available-disk-space-44211d74d7260f1a = Gunakan ruang disk tersedia
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Ruang pembatalan bertambah sesuai kebutuhan. Riwayat tanpa batas menyimpan keadaan hingga penyimpanan penuh. Jalur berlaku pada sesi cache berikutnya.
+
+ui-change-opacity-c419e848020b25f4 = Ubah opasitas

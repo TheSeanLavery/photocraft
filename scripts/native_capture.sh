@@ -23,7 +23,7 @@ stop_recording() {
   exit "$1"
 }
 case "${1:-}" in
-  --*) ;;
+  --preflight|--list|--list-browser|--displays|--inspect) ;;
   *)
     if ! mkdir "$lock" 2>/dev/null; then
       owner=$(cat "$lock/owner.pid" 2>/dev/null || true)
@@ -46,7 +46,7 @@ if [ ! -x "$binary" ] || [ "$root/scripts/native_capture.swift" -nt "$binary" ];
   mv "$build" "$binary"
 fi
 case "${1:-}" in
-  --*) exec "$binary" "$@" ;;
+  --preflight|--list|--list-browser|--displays|--inspect) exec "$binary" "$@" ;;
   *)
     caffeinate -u -t 10 >/dev/null 2>&1 &
     export PHOTOCRAFT_CAPTURE_KEEP_AWAKE=1
