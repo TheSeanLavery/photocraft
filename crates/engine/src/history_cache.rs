@@ -42,6 +42,7 @@ pub(crate) struct Cache {
     #[cfg(not(target_arch = "wasm32"))]
     quota_blocked: bool,
     pub(super) notice: Option<String>,
+    error: Option<String>,
     next_document: usize,
     #[cfg(not(target_arch = "wasm32"))]
     archive: Option<HistoryArchive>,
@@ -54,6 +55,11 @@ impl Session {
     pub(crate) fn configure_history_cache(&mut self) {
         self.history_cache.dirty = true;
         self.history_cache.failed = false;
+        self.history_cache.error = None;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.history_cache.quota_blocked = false;
+        }
         self.poll_history_cache();
     }
 
@@ -109,6 +115,37 @@ impl Session {
         self.history_cache.notice.take()
     }
 
+    pub fn history_storage_error(&self) -> Option<&str> {
+        self.history_cache.error.as_deref()
+    }
+
+    /// Retention mode never solves storage pressure by silently erasing history.
+    /// Bound slow-writer backlog by refusing another edit before its closure runs.
+    pub(crate) fn admit_history_edit(&mut self) -> crate::Result<()> {
+        self.poll_history_cache();
+        if !self.prefs().performance.unlimited_history {
+            return Ok(());
+        }
+        if let Some(error) = &self.history_cache.error {
+            return Err(crate::EngineError::Other(format!(
+                "Undo history is retained, but storage needs attention: {error}. Free disk space or change Scratch Disks, then retry storage."
+            )));
+        }
+        let budget = self.prefs().performance.history_budget_bytes();
+        if budget > 0 {
+            let mut seen = HashSet::new();
+            let current = self.docs.iter().fold(0usize, |bytes, state| bytes.saturating_add(document_bytes(&state.doc, &mut seen)));
+            let pinned =
+                self.docs.iter().flat_map(|state| state.history.hot_states()).fold(current, |bytes, doc| bytes.saturating_add(document_bytes(&doc, &mut seen)));
+            if self.history_resident_bytes() > budget.max(pinned).saturating_add(current) {
+                return Err(crate::EngineError::Other(
+                    "Undo storage is catching up. Your document and history are unchanged; retry this edit after storage finishes.".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
+
     /// Poll once per frame or command. No disk I/O or full-document traversal on idle frames.
     pub fn poll_history_cache(&mut self) {
         #[cfg(not(target_arch = "wasm32"))]
@@ -154,6 +191,11 @@ impl Session {
                         self.history_cache.failed = !self.history_cache.quota_blocked;
                         self.history_cache.notice =
                             Some(format!("{error}. Older undo history may be shortened to limit memory; your current document is kept."));
+                        if self.prefs().performance.unlimited_history {
+                            self.history_cache.error = Some(error.clone());
+                            self.history_cache.notice =
+                                Some(format!("{error}. Existing undo history is retained; new edits pause until storage is available."));
+                        }
                     }
                 }
                 self.history_cache.dirty = true;
@@ -177,13 +219,17 @@ impl Session {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let disk_budget = u64::from(self.prefs().scratch_disks.budget_mb).saturating_mul(1 << 20);
+            let disk_budget =
+                if self.prefs().scratch_disks.use_available_space { u64::MAX } else { u64::from(self.prefs().scratch_disks.budget_mb).saturating_mul(1 << 20) };
             // Deferred lease destruction keeps file deletion and compression off the UI.
             if self.history_cache.archive.as_ref().is_some_and(HistoryArchive::has_pending_releases) {
                 self.start_history_gc();
                 return;
             }
             if self.history_cache.quota_blocked {
+                if self.prefs().performance.unlimited_history {
+                    return;
+                }
                 if self.docs.iter().any(|st| st.history.archived_states() > 0) && self.docs.iter_mut().any(|st| st.history.drop_oldest()) {
                     self.history_cache.dirty = true;
                     self.start_history_gc();
@@ -194,6 +240,12 @@ impl Session {
             }
             // Explicit reductions retire one oldest state then collect off-thread before
             // considering another. Actual disk bytes can lag queued lease releases.
+            if self.history_disk_bytes() > disk_budget && self.prefs().performance.unlimited_history {
+                let error = "Retained undo history exceeds the selected scratch disk budget".to_string();
+                self.history_cache.error = Some(error.clone());
+                self.history_cache.notice = Some(error);
+                return;
+            }
             if self.history_disk_bytes() > disk_budget && self.docs.iter_mut().any(|st| st.history.discard_oldest()) {
                 self.history_cache.notice = Some("Older undo history was shortened to apply the new scratch disk budget.".into());
                 self.history_cache.dirty = true;
@@ -258,6 +310,9 @@ impl Session {
         }
     }
     fn trim_history_memory(&mut self, target: usize) -> bool {
+        if self.prefs().performance.unlimited_history {
+            return false;
+        }
         let mut shortened = false;
         while self.history_resident_bytes() > target {
             let Some(index) = (0..self.docs.len()).find(|index| self.history_memory_candidate(*index).is_some()) else { break };

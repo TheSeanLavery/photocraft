@@ -29,20 +29,50 @@ pub struct HistoryState {
     pub label: String,
     /// The layers targeted when this state was created.
     pub layers: LayerTarget,
+    pub identity: StateIdentity,
     document: StoredDocument,
     has_selection: bool,
+}
+
+/// Stable navigation identity; branch colors follow `branch`, not row positions.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StateIdentity {
+    pub id: u64,
+    pub parent: Option<u64>,
+    pub branch: u64,
+    #[serde(default)]
+    pub revision: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct HistoryEntry {
+    pub identity: StateIdentity,
+    pub label: String,
+    pub current: bool,
 }
 
 impl HistoryState {
     /// Build a resident recovery state without copying pixel data.
     pub fn from_document(label: impl Into<String>, document: Arc<Document>) -> Self {
-        Self { label: label.into(), layers: LayerTarget::default(), has_selection: document.selection.is_some(), document: StoredDocument::Resident(document) }
+        Self {
+            label: label.into(),
+            layers: LayerTarget::default(),
+            identity: StateIdentity::default(),
+            has_selection: document.selection.is_some(),
+            document: StoredDocument::Resident(document),
+        }
     }
 
     /// Build a lazily restored recovery state. `has_selection` is metadata for
     /// selection menus, which must not read storage merely to draw themselves.
     pub fn from_archive(label: impl Into<String>, has_selection: bool, archive: Arc<dyn ArchivedDocument>) -> Self {
-        Self { label: label.into(), layers: LayerTarget::default(), has_selection, document: StoredDocument::Archived(archive) }
+        Self {
+            label: label.into(),
+            layers: LayerTarget::default(),
+            identity: StateIdentity::default(),
+            has_selection,
+            document: StoredDocument::Archived(archive),
+        }
     }
 
     /// May read storage for a cold state; recovery writers call this on a worker.
@@ -67,6 +97,8 @@ impl HistoryState {
 pub struct HistoryCheckpoint {
     pub undo: Vec<HistoryState>,
     pub redo: Vec<HistoryState>,
+    pub branches: Vec<HistoryState>,
+    pub current_identity: StateIdentity,
     pub current_label: String,
     pub current_layers: LayerTarget,
     pub max_states: usize,
@@ -130,6 +162,9 @@ pub struct History {
     /// Past states; the last one is the state *before* the current document.
     undo: VecDeque<HistoryState>,
     redo: Vec<HistoryState>,
+    branches: Vec<HistoryState>,
+    current_identity: StateIdentity,
+    next_id: u64,
     pub max_states: usize,
     /// Pixel memory budget in bytes for the current document plus the tiles only history holds
     /// (0 = unlimited). [`History::trim`] drops the oldest states beyond it.
@@ -144,7 +179,7 @@ pub struct History {
 
 impl Default for History {
     fn default() -> Self {
-        Self::new(50)
+        Self::new(0)
     }
 }
 
@@ -153,6 +188,8 @@ impl History {
         HistoryCheckpoint {
             undo: self.undo.iter().cloned().collect(),
             redo: self.redo.clone(),
+            branches: self.branches.clone(),
+            current_identity: self.current_identity,
             current_label: self.current_label.clone(),
             current_layers: self.current_layers.clone(),
             max_states: self.max_states,
@@ -163,23 +200,55 @@ impl History {
     /// Restore the exact navigation cursor without reading document storage.
     /// Recovery metadata has independent admission limits; preference limits
     /// may subsequently be applied explicitly through `enforce_state_limit`.
-    pub fn from_checkpoint(checkpoint: HistoryCheckpoint) -> Result<Self, String> {
-        const MAX_RECOVERY_STATES: usize = 10_000;
+    pub fn from_checkpoint(mut checkpoint: HistoryCheckpoint) -> Result<Self, String> {
         const MAX_LABEL_BYTES: usize = 4096;
-        if checkpoint.undo.len().saturating_add(checkpoint.redo.len()) > MAX_RECOVERY_STATES {
-            return Err("Recovery history exceeds 10000 states".into());
-        }
         if checkpoint.current_label.len() > MAX_LABEL_BYTES
-            || checkpoint.undo.iter().chain(checkpoint.redo.iter()).any(|state| state.label.len() > MAX_LABEL_BYTES)
+            || checkpoint.undo.iter().chain(checkpoint.redo.iter()).chain(checkpoint.branches.iter()).any(|state| state.label.len() > MAX_LABEL_BYTES)
         {
             return Err("Recovery history label exceeds 4096 bytes".into());
         }
-        if checkpoint.max_states == 0 || checkpoint.max_states > MAX_RECOVERY_STATES {
-            return Err("Recovery history state limit must be between 1 and 10000".into());
+        // Legacy checkpoints have no identities. Assign their linear path once.
+        if checkpoint.current_identity == StateIdentity::default()
+            && checkpoint.undo.iter().chain(checkpoint.redo.iter()).all(|state| state.identity == StateIdentity::default())
+            && checkpoint.branches.is_empty()
+        {
+            let mut id = 0u64;
+            for state in &mut checkpoint.undo {
+                state.identity = StateIdentity { id, parent: id.checked_sub(1), branch: 0, revision: 0 };
+                id = id.saturating_add(1);
+            }
+            checkpoint.current_identity = StateIdentity { id, parent: id.checked_sub(1), branch: 0, revision: 0 };
+            for state in checkpoint.redo.iter_mut().rev() {
+                id = id.saturating_add(1);
+                state.identity = StateIdentity { id, parent: id.checked_sub(1), branch: 0, revision: 0 };
+            }
+        }
+        if checkpoint.current_identity.id > u64::MAX / 2
+            || checkpoint.current_identity.revision > u64::MAX / 2
+            || checkpoint.current_identity.branch > checkpoint.current_identity.id
+            || checkpoint.current_identity.parent.is_some_and(|parent| parent >= checkpoint.current_identity.id)
+        {
+            return Err("Invalid current history identity".into());
+        }
+        let mut ids = HashSet::from([checkpoint.current_identity.id]);
+        let mut next_id = checkpoint.current_identity.id.checked_add(1).ok_or("History identity exhausted")?;
+        for state in checkpoint.undo.iter().chain(checkpoint.redo.iter()).chain(checkpoint.branches.iter()) {
+            if !ids.insert(state.identity.id)
+                || state.identity.id > u64::MAX / 2
+                || state.identity.revision > u64::MAX / 2
+                || state.identity.branch > state.identity.id
+                || state.identity.parent.is_some_and(|parent| parent >= state.identity.id)
+            {
+                return Err("Invalid recovery history identity".into());
+            }
+            next_id = next_id.max(state.identity.id.checked_add(1).ok_or("History identity exhausted")?);
         }
         Ok(Self {
             undo: checkpoint.undo.into(),
             redo: checkpoint.redo,
+            branches: checkpoint.branches,
+            current_identity: checkpoint.current_identity,
+            next_id,
             current_label: checkpoint.current_label,
             current_layers: checkpoint.current_layers,
             current_archive: None,
@@ -193,7 +262,10 @@ impl History {
         Self {
             undo: VecDeque::new(),
             redo: Vec::new(),
-            max_states: max_states.max(1),
+            branches: Vec::new(),
+            current_identity: StateIdentity::default(),
+            next_id: 1,
+            max_states,
             max_bytes: 0,
             current_label: "Open".into(),
             current_layers: LayerTarget::default(),
@@ -213,7 +285,7 @@ impl History {
         if let Some(source) = self.current_archive.take() {
             self.current_archive = Some(Arc::new(RemappedDocument { source, id }));
         }
-        for state in self.undo.iter_mut().chain(self.redo.iter_mut()) {
+        for state in self.undo.iter_mut().chain(self.redo.iter_mut()).chain(self.branches.iter_mut()) {
             match &mut state.document {
                 StoredDocument::Resident(doc) => {
                     if doc.id != id {
@@ -236,13 +308,15 @@ impl History {
         self.undo.push_back(HistoryState {
             label: prev_label,
             layers: prev_layers,
+            identity: self.current_identity,
             has_selection: before.selection.is_some(),
             document: StoredDocument::Resident(before),
         });
-        self.redo.clear();
-        while self.undo.len() > self.max_states {
-            self.undo.pop_front();
-        }
+        let branch = if self.redo.is_empty() { self.current_identity.branch } else { self.next_id };
+        self.current_identity = StateIdentity { id: self.next_id, parent: Some(self.current_identity.id), branch, revision: 0 };
+        self.next_id = self.next_id.saturating_add(1);
+        self.branches.append(&mut self.redo);
+        self.enforce_state_limit();
     }
 
     pub fn can_undo(&self) -> bool {
@@ -266,6 +340,7 @@ impl History {
     /// opened, or when its step coalesces or changes the selection after recording.
     pub fn set_current_layers(&mut self, layers: LayerTarget) {
         self.current_layers = layers;
+        self.current_identity.revision = self.current_identity.revision.saturating_add(1);
     }
 
     pub fn current_layers(&self) -> &LayerTarget {
@@ -281,7 +356,8 @@ impl History {
         let layers = std::mem::replace(&mut self.current_layers, prev.layers.clone());
         let has_selection = current.selection.is_some();
         let document = self.take_current_document(current);
-        self.redo.push(HistoryState { label, has_selection, document, layers });
+        self.redo.push(HistoryState { label, has_selection, document, layers, identity: self.current_identity });
+        self.current_identity = prev.identity;
         self.current_archive = match prev.document {
             StoredDocument::Archived(archive) => Some(archive),
             _ => None,
@@ -298,7 +374,8 @@ impl History {
         let layers = std::mem::replace(&mut self.current_layers, next.layers.clone());
         let has_selection = current.selection.is_some();
         let document = self.take_current_document(current);
-        self.undo.push_back(HistoryState { label, has_selection, document, layers });
+        self.undo.push_back(HistoryState { label, has_selection, document, layers, identity: self.current_identity });
+        self.current_identity = next.identity;
         self.current_archive = match next.document {
             StoredDocument::Archived(archive) => Some(archive),
             _ => None,
@@ -319,6 +396,121 @@ impl History {
     /// Entries for a History panel: past labels oldest→newest, then the current label.
     pub fn entries(&self) -> Vec<String> {
         self.undo.iter().map(|s| s.label.clone()).chain(std::iter::once(self.current_label.clone())).collect()
+    }
+
+    /// Metadata only: drawing history must never decode a document from disk.
+    pub fn timeline(&self) -> Vec<HistoryEntry> {
+        let mut entries: Vec<_> = self
+            .undo
+            .iter()
+            .chain(self.redo.iter())
+            .chain(self.branches.iter())
+            .map(|state| HistoryEntry { identity: state.identity, label: state.label.clone(), current: false })
+            .collect();
+        entries.push(HistoryEntry { identity: self.current_identity, label: self.current_label.clone(), current: true });
+        entries.sort_by_key(|entry| entry.identity.id);
+        entries
+    }
+
+    pub fn current_id(&self) -> u64 {
+        self.current_identity.id
+    }
+
+    pub fn timeline_stamp(&self) -> (u64, u64, u64, usize, usize, usize) {
+        (self.current_identity.id, self.current_identity.revision, self.next_id, self.undo.len(), self.redo.len(), self.branches.len())
+    }
+
+    pub fn adjacent_id(&self, redo: bool) -> Option<u64> {
+        (if redo { self.redo.last() } else { self.undo.back() }).map(|state| state.identity.id)
+    }
+
+    /// Immutable destination handle, safe to restore on a worker.
+    pub fn state_by_id(&self, current: Arc<Document>, id: u64) -> Option<HistoryState> {
+        if id == self.current_identity.id {
+            let mut state = HistoryState::from_document(self.current_label.clone(), current).with_layers(self.current_layers.clone());
+            state.identity = self.current_identity;
+            return Some(state);
+        }
+        self.undo.iter().chain(self.redo.iter()).chain(self.branches.iter()).find(|state| state.identity.id == id).cloned()
+    }
+
+    /// Commit one already-loaded destination. Intervening snapshots stay cold.
+    /// Build/validate the path before mutating navigation, so any error is atomic.
+    pub fn jump_loaded(&mut self, current: Arc<Document>, id: u64, restored: Arc<Document>) -> Result<(), String> {
+        self.jump_loaded_on_path(current, id, restored, None)
+    }
+
+    pub fn navigation_branch(&self) -> u64 {
+        self.redo.first().map_or(self.current_identity.branch, |state| state.identity.branch)
+    }
+
+    pub fn jump_loaded_on_path(&mut self, current: Arc<Document>, id: u64, restored: Arc<Document>, preferred_branch: Option<u64>) -> Result<(), String> {
+        if id == self.current_identity.id {
+            return Ok(());
+        }
+        let mut nodes: std::collections::BTreeMap<_, _> =
+            self.undo.iter().chain(self.redo.iter()).chain(self.branches.iter()).map(|state| (state.identity.id, state.clone())).collect();
+        let target = nodes.remove(&id).ok_or("History state is no longer available")?;
+        let mut current_state = HistoryState::from_document(self.current_label.clone(), current.clone()).with_layers(self.current_layers.clone());
+        current_state.identity = self.current_identity;
+        nodes.insert(self.current_identity.id, current_state);
+        let mut ancestors = Vec::new();
+        let mut parent = target.identity.parent;
+        let mut seen = HashSet::from([id]);
+        while let Some(key) = parent {
+            if !seen.insert(key) {
+                return Err("Cyclic history path".into());
+            }
+            let Some(state) = nodes.remove(&key) else { break };
+            parent = state.identity.parent;
+            ancestors.push(state);
+        }
+        ancestors.reverse();
+        let branch = preferred_branch.unwrap_or_else(|| if target.identity.parent.is_none() { self.navigation_branch() } else { target.identity.branch });
+        let mut descendants = Vec::new();
+        let mut children: std::collections::BTreeMap<u64, Vec<u64>> = std::collections::BTreeMap::new();
+        for state in nodes.values() {
+            if let Some(parent) = state.identity.parent {
+                children.entry(parent).or_default().push(state.identity.id);
+            }
+        }
+        let mut cursor = id;
+        loop {
+            let next = children
+                .get(&cursor)
+                .into_iter()
+                .flatten()
+                .filter_map(|key| nodes.get(key))
+                .max_by_key(|state| (state.identity.branch == branch, state.identity.id))
+                .map(|state| state.identity.id);
+            let Some(next) = next else { break };
+            if !seen.insert(next) {
+                return Err("Cyclic history path".into());
+            }
+            let Some(state) = nodes.remove(&next) else { break };
+            cursor = next;
+            descendants.push(state);
+        }
+        // Preserve an archived handle for the previous current document when available.
+        let stored_current = self.take_current_document(current);
+        for state in ancestors.iter_mut().chain(descendants.iter_mut()).chain(nodes.values_mut()) {
+            if state.identity.id == self.current_identity.id {
+                state.document = stored_current.clone();
+            }
+        }
+        descendants.reverse();
+        self.undo = ancestors.into();
+        self.redo = descendants;
+        self.branches = nodes.into_values().collect();
+        self.current_identity = target.identity;
+        self.current_label = target.label;
+        self.current_layers = target.layers;
+        self.current_archive = match target.document {
+            StoredDocument::Archived(archive) => Some(archive),
+            _ => None,
+        };
+        self.current_archive_document = self.current_archive.as_ref().map(|_| Arc::downgrade(&restored));
+        Ok(())
     }
 
     /// Document of past entry `i`, indexed like [`History::entries`] (0 = oldest). The last entry is
@@ -354,6 +546,7 @@ impl History {
         self.undo
             .iter()
             .chain(self.redo.iter())
+            .chain(self.branches.iter())
             .filter_map(|state| state.document.resident().cloned())
             .chain(self.current_archive.iter().filter_map(|archive| archive.resident().cloned()))
             .filter(|doc| seen.insert(Arc::as_ptr(doc) as usize))
@@ -365,6 +558,7 @@ impl History {
         self.undo
             .iter()
             .chain(self.redo.iter())
+            .chain(self.branches.iter())
             .filter_map(|state| match &state.document {
                 StoredDocument::Resident(doc) => Some(doc.clone()),
                 _ => None,
@@ -375,7 +569,7 @@ impl History {
     /// State descriptors and compact replay records, separate from pixel payload accounting.
     pub fn metadata_bytes(&self) -> usize {
         let mut total = self.current_label.capacity().saturating_add(self.current_layers.selected.capacity().saturating_mul(std::mem::size_of::<LayerId>()));
-        for state in self.undo.iter().chain(self.redo.iter()) {
+        for state in self.undo.iter().chain(self.redo.iter()).chain(self.branches.iter()) {
             total = total
                 .saturating_add(std::mem::size_of::<HistoryState>())
                 .saturating_add(state.label.capacity())
@@ -394,6 +588,7 @@ impl History {
         self.undo
             .iter()
             .chain(self.redo.iter())
+            .chain(self.branches.iter())
             .filter(|state| matches!(&state.document, StoredDocument::Archived(archive) if archive.resident().is_none()))
             .count()
     }
@@ -433,7 +628,7 @@ impl History {
     /// Replace only the allocation actually archived; stale worker results are harmless.
     pub fn replace_resident(&mut self, doc: &Arc<Document>, archive: Arc<dyn ArchivedDocument>) -> bool {
         let mut replaced = false;
-        for state in self.undo.iter_mut().chain(self.redo.iter_mut()) {
+        for state in self.undo.iter_mut().chain(self.redo.iter_mut()).chain(self.branches.iter_mut()) {
             if matches!(&state.document, StoredDocument::Resident(resident) if Arc::ptr_eq(resident, doc)) {
                 state.document = StoredDocument::Archived(archive.clone());
                 replaced = true;
@@ -444,6 +639,10 @@ impl History {
 
     /// Budget fallback, preserving the immediate undo and redo steps.
     pub fn drop_oldest(&mut self) -> bool {
+        if !self.branches.is_empty() {
+            self.branches.remove(0);
+            return true;
+        }
         if self.undo.len() > 1 {
             self.undo.pop_front();
             true
@@ -458,6 +657,10 @@ impl History {
     /// Explicit preference reduction may retire even the final undo/redo state.
     /// The current document is never owned by these stacks.
     pub fn discard_oldest(&mut self) -> bool {
+        if !self.branches.is_empty() {
+            self.branches.remove(0);
+            return true;
+        }
         if self.undo.pop_front().is_some() {
             true
         } else if !self.redo.is_empty() {
@@ -470,9 +673,12 @@ impl History {
 
     /// Enforce a lowered history-count preference without reading scratch storage.
     pub fn enforce_state_limit(&mut self) -> usize {
+        if self.max_states == 0 {
+            return 0;
+        }
         let limit = self.max_states.max(1);
         let mut removed = 0;
-        while self.undo.len().saturating_add(self.redo.len()) > limit {
+        while self.undo.len().saturating_add(self.redo.len()).saturating_add(self.branches.len()) > limit {
             if !self.discard_oldest() {
                 break;
             }
@@ -526,6 +732,8 @@ impl History {
         self.clear_current_archive();
         self.undo.clear();
         self.redo.clear();
+        self.branches.clear();
+        self.current_identity.parent = None;
     }
 
     /// Approximate unique tile and shared binary-payload bytes held by history.
@@ -912,12 +1120,15 @@ mod tests {
         assert!(History::from_checkpoint(checkpoint).is_err());
         let mut checkpoint = History::new(50).checkpoint();
         let state = HistoryState::from_document("State", Arc::new(base()));
-        checkpoint.undo = vec![state.clone(); 10_000];
-        checkpoint.redo.push(state);
+        checkpoint.undo = vec![state];
+        checkpoint.current_identity = StateIdentity { id: 1, parent: Some(1), branch: 0, revision: 0 };
         assert!(History::from_checkpoint(checkpoint).is_err());
         let mut checkpoint = History::new(50).checkpoint();
         checkpoint.max_states = 0;
-        assert!(History::from_checkpoint(checkpoint).is_err());
+        assert!(History::from_checkpoint(checkpoint).is_ok());
+        let mut checkpoint = History::default().checkpoint();
+        checkpoint.current_identity.id = u64::MAX - 1;
+        assert!(History::from_checkpoint(checkpoint).is_err(), "hostile identities must leave room for future edits");
     }
 
     #[test]
@@ -1075,5 +1286,92 @@ mod tests {
         let mut clone = doc.clone();
         clone.metadata.exif = Some(Arc::new(vec![4; 1024]));
         assert_eq!(document_bytes(&clone, &mut seen), 1024);
+    }
+}
+
+#[cfg(test)]
+mod direct_history_tests {
+    use super::*;
+    use photocraft_doc::{ColorMode, SampleType, Size};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    fn doc() -> Arc<Document> {
+        Arc::new(Document::new("Original", Size::new(2, 2), ColorMode::Rgb, SampleType::U8))
+    }
+    fn edit(history: &mut History, current: &mut Arc<Document>, label: &str) {
+        history.record(label, current.clone(), LayerTarget::default());
+        let mut next = (**current).clone();
+        next.name = label.into();
+        *current = Arc::new(next);
+    }
+    #[test]
+    fn unlimited_retains_original_and_more_than_ten_thousand_states() {
+        let mut history = History::default();
+        let mut current = doc();
+        for i in 0..10_050 {
+            edit(&mut history, &mut current, &format!("Brush {i}"));
+        }
+        assert_eq!(history.past_len(), 10_050);
+        let state = history.state_by_id(current.clone(), 0).unwrap();
+        let original = state.load_document().unwrap();
+        history.jump_loaded(current, 0, original.clone()).unwrap();
+        assert_eq!(original.name, "Original");
+        assert_eq!(history.timeline().len(), 10_051);
+        assert!(History::from_checkpoint(history.checkpoint()).is_ok());
+    }
+    #[test]
+    fn alternative_branches_and_cursor_survive_checkpoint_and_direct_jumps() {
+        let mut history = History::default();
+        let mut current = doc();
+        edit(&mut history, &mut current, "Paint");
+        edit(&mut history, &mut current, "Erase");
+        let erased_id = history.current_id();
+        current = history.try_undo(current).unwrap().unwrap();
+        edit(&mut history, &mut current, "Move layer");
+        let moved_id = history.current_id();
+        assert!(!history.can_redo());
+        assert_eq!(history.timeline().len(), 4);
+        assert_ne!(history.timeline()[2].identity.branch, history.timeline()[3].identity.branch);
+        let mut restored = History::from_checkpoint(history.checkpoint()).unwrap();
+        let erased = restored.state_by_id(current.clone(), erased_id).unwrap().load_document().unwrap();
+        restored.jump_loaded(current, erased_id, erased.clone()).unwrap();
+        assert_eq!(erased.name, "Erase");
+        let moved = restored.state_by_id(erased.clone(), moved_id).unwrap().load_document().unwrap();
+        restored.jump_loaded(erased, moved_id, moved.clone()).unwrap();
+        assert_eq!(moved.name, "Move layer");
+        assert_eq!(restored.try_undo(moved).unwrap().unwrap().name, "Paint");
+    }
+    #[derive(Debug)]
+    struct Counted {
+        document: Arc<Document>,
+        reads: Arc<AtomicUsize>,
+        fail: bool,
+    }
+    impl ArchivedDocument for Counted {
+        fn load(&self) -> Result<Arc<Document>, String> {
+            self.reads.fetch_add(1, Ordering::Relaxed);
+            if self.fail { Err("corrupt archive".into()) } else { Ok(self.document.clone()) }
+        }
+    }
+    #[test]
+    fn jumping_over_cold_states_reads_only_the_destination_and_failures_are_atomic() {
+        let mut history = History::default();
+        let mut current = doc();
+        for i in 0..80 {
+            edit(&mut history, &mut current, &format!("Edit {i}"));
+        }
+        let reads = Arc::new(AtomicUsize::new(0));
+        for state in &mut history.undo {
+            state.document = StoredDocument::Archived(Arc::new(Counted { document: state.load_document().unwrap(), reads: reads.clone(), fail: false }));
+        }
+        let target = history.state_by_id(current.clone(), 0).unwrap().load_document().unwrap();
+        history.jump_loaded(current.clone(), 0, target).unwrap();
+        assert_eq!(reads.load(Ordering::Relaxed), 1);
+        assert_eq!(history.timeline().len(), 81);
+        let before = history.timeline_stamp();
+        let bad = HistoryState::from_archive("Bad", false, Arc::new(Counted { document: current.clone(), reads: reads.clone(), fail: true }));
+        assert!(bad.load_document().is_err());
+        assert!(history.jump_loaded(current.clone(), u64::MAX, current).is_err());
+        assert_eq!(history.timeline_stamp(), before);
     }
 }

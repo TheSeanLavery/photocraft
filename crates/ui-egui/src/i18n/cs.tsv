@@ -2202,3 +2202,19 @@ cameraRaw	Color	Barvy
 	Scroll up	Posunout nahoru
 	Scroll down	Posunout dolů
 	Caption font	Písmo titulku
+
+	Return to Original	Vrátit se k originálu
+
+	Current	Aktuální
+
+	Branch	Větev
+
+	Retry storage	Opakovat ukládání
+
+	Unlimited history	Neomezená historie
+
+	Use available disk space	Použít dostupné místo na disku
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Místo pro vracení změn roste podle potřeby. Neomezená historie uchovává stavy do zaplnění úložiště. Cesty platí pro příští relaci mezipaměti.
+
+	Change opacity	Změnit krytí

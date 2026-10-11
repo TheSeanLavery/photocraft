@@ -33,6 +33,8 @@ fn run(steps: usize, disk_mb: u32) -> Result<(), Box<dyn std::error::Error>> {
     s.edit_prefs(|p| {
         p.performance.memory_usage_mb = 128;
         p.performance.history_states = 50;
+        p.performance.unlimited_history = false;
+        p.scratch_disks.use_available_space = false;
         p.scratch_disks.budget_mb = disk_mb;
     });
     let mut surface = Surface::new(PixelFormat::RGBA8);

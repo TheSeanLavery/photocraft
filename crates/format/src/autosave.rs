@@ -17,8 +17,6 @@ use crate::store::{self, Source, write_atomic};
 use crate::{FormatError, LoadOptions, PcraftWriter, Result, SaveOptions, SaveStats};
 
 const MAX_DESCRIPTOR: u64 = 256 << 20;
-/// Hard admission cap; full recovery storage fails visibly rather than growing indefinitely.
-const MAX_RECOVERY_BYTES: u64 = 8 << 30;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RecoveryInfo {
@@ -40,6 +38,8 @@ struct StoredState {
     manifest: String,
     #[serde(default)]
     layers: photocraft_ops::LayerTarget,
+    #[serde(default)]
+    identity: photocraft_ops::StateIdentity,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Checkpoint {
@@ -47,6 +47,10 @@ struct Checkpoint {
     current: String,
     undo: Vec<StoredState>,
     redo: Vec<StoredState>,
+    #[serde(default)]
+    branches: Vec<StoredState>,
+    #[serde(default)]
+    current_identity: photocraft_ops::StateIdentity,
     current_label: String,
     #[serde(default)]
     current_layers: photocraft_ops::LayerTarget,
@@ -295,10 +299,10 @@ fn prepare_state(
                 let expected = object.compressed();
                 let matches = fingerprint.len == expected.len() as u64 && read_bounded(&path, expected.len() as u64)? == expected;
                 if !matches {
-                    let next = bytes.saturating_sub(fingerprint.len).saturating_add(expected.len() as u64);
-                    if next > MAX_RECOVERY_BYTES {
-                        return Err(FormatError::LimitExceeded("recovery storage is full".into()));
-                    }
+                    let next = bytes
+                        .saturating_sub(fingerprint.len)
+                        .checked_add(expected.len() as u64)
+                        .ok_or_else(|| FormatError::LimitExceeded("recovery byte count overflow".into()))?;
                     write_atomic(&path, &expected)?;
                     *bytes = next;
                 }
@@ -310,10 +314,7 @@ fn prepare_state(
             continue;
         }
         let compressed = object.compressed();
-        let next = bytes.saturating_add(compressed.len() as u64);
-        if next > MAX_RECOVERY_BYTES {
-            return Err(FormatError::LimitExceeded("recovery storage is full (8 GiB); save your document and free recovery storage".into()));
-        }
+        let next = bytes.checked_add(compressed.len() as u64).ok_or_else(|| FormatError::LimitExceeded("recovery byte count overflow".into()))?;
         write_atomic(&path, &compressed)?;
         verified.insert(path.clone(), file_fingerprint(&path)?);
         *bytes = next;
@@ -344,24 +345,33 @@ fn save_checkpoint(writer: &mut PcraftWriter, verified: &mut HashMap<PathBuf, Fi
         for state in states {
             let doc = state.load_document().map_err(FormatError::corrupt)?;
             let manifest = prepare_state(writer, verified, &doc, &SaveOptions::default(), bundle, &mut bytes, &mut stats)?;
-            stored.push(StoredState { label: state.label.clone(), has_selection: state.has_selection(), manifest, layers: state.layers.clone() });
+            stored.push(StoredState {
+                label: state.label.clone(),
+                has_selection: state.has_selection(),
+                manifest,
+                layers: state.layers.clone(),
+                identity: state.identity,
+            });
         }
         Ok(stored)
     };
     let undo = save_states(&job.history.undo)?;
     let redo = save_states(&job.history.redo)?;
+    let branches = save_states(&job.history.branches)?;
     let checkpoint = Checkpoint {
-        version: 1,
+        version: 2,
         current,
         undo,
         redo,
+        branches,
+        current_identity: job.history.current_identity,
         current_label: job.history.current_label.clone(),
         current_layers: job.history.current_layers.clone(),
         max_states: job.history.max_states,
         max_bytes: job.history.max_bytes,
     };
     let descriptor = serde_json::to_vec(&Descriptor { info: job.info.clone(), checkpoint: Some(checkpoint), context: job.context.clone() })?;
-    if descriptor.len() as u64 > MAX_DESCRIPTOR || bytes.saturating_add(descriptor.len() as u64) > MAX_RECOVERY_BYTES {
+    if descriptor.len() as u64 > MAX_DESCRIPTOR {
         return Err(FormatError::LimitExceeded("recovery checkpoint is too large".into()));
     }
     stats.manifest_bytes = descriptor.len();
@@ -379,7 +389,9 @@ fn save_checkpoint(writer: &mut PcraftWriter, verified: &mut HashMap<PathBuf, Fi
             Err(_) => return Ok(stats),
         };
         if let Some(checkpoint) = published.checkpoint {
-            for manifest in std::iter::once(&checkpoint.current).chain(checkpoint.undo.iter().chain(checkpoint.redo.iter()).map(|s| &s.manifest)) {
+            for manifest in std::iter::once(&checkpoint.current)
+                .chain(checkpoint.undo.iter().chain(checkpoint.redo.iter()).chain(checkpoint.branches.iter()).map(|s| &s.manifest))
+            {
                 let value: serde_json::Value = match serde_json::from_str(manifest) {
                     Ok(value) => value,
                     Err(_) => return Ok(stats),
@@ -580,11 +592,8 @@ pub fn recover_checkpoint_with_context(entry: &RecoveryEntry) -> Result<(Documen
         let doc = store::load(&RecoverySource { lease: lease.clone(), manifest }, &LoadOptions::default())?;
         return Ok((doc, History::default().checkpoint(), descriptor.context));
     };
-    if checkpoint.version != 1 {
+    if !matches!(checkpoint.version, 1 | 2) {
         return Err(FormatError::Unsupported("newer recovery checkpoint version".into()));
-    }
-    if checkpoint.undo.len().saturating_add(checkpoint.redo.len()) > 10_000 {
-        return Err(FormatError::LimitExceeded("too many recovery history states".into()));
     }
     let current = RecoverySource { lease: lease.clone(), manifest: checkpoint.current }.load_native()?;
     let restore = |states: Vec<StoredState>| -> Result<Vec<HistoryState>> {
@@ -594,13 +603,17 @@ pub fn recover_checkpoint_with_context(entry: &RecoveryEntry) -> Result<(Documen
                 let source = RecoverySource { lease: lease.clone(), manifest: state.manifest };
                 // Validate manifest syntax now; object reads remain lazy and fallible.
                 store::read_manifest(&source, &LoadOptions::default())?;
-                Ok(HistoryState::from_archive(state.label, state.has_selection, Arc::new(source)).with_layers(state.layers))
+                let mut restored = HistoryState::from_archive(state.label, state.has_selection, Arc::new(source)).with_layers(state.layers);
+                restored.identity = state.identity;
+                Ok(restored)
             })
             .collect()
     };
     let history = HistoryCheckpoint {
         undo: restore(checkpoint.undo)?,
         redo: restore(checkpoint.redo)?,
+        branches: restore(checkpoint.branches)?,
+        current_identity: checkpoint.current_identity,
         current_label: checkpoint.current_label,
         current_layers: checkpoint.current_layers,
         max_states: checkpoint.max_states,

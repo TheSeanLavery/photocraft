@@ -2778,3 +2778,19 @@ cameraRaw	Color	색상
 	Theme id	테마 ID
 
 	Import…	가져오기…
+
+	Return to Original	원본으로 돌아가기
+
+	Current	현재
+
+	Branch	분기
+
+	Retry storage	저장 다시 시도
+
+	Unlimited history	무제한 기록
+
+	Use available disk space	사용 가능한 디스크 공간 사용
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	실행 취소 공간은 필요에 따라 늘어납니다. 무제한 기록은 저장 공간이 가득 찰 때까지 유지됩니다. 경로는 다음 캐시 세션에 적용됩니다.
+
+	Change opacity	불투명도 변경

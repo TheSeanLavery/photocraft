@@ -444,3 +444,12 @@ controls; `view.hdrDiagnostics` returns a sampled stop histogram. `app.exportSdr
 `{"path":"preview.png"}` writes the matched sRGB PNG through the authorized write
 root. `ui.menu.invoke` id `window.hdrWorkbench` toggles the panel. See
 [HDR Workbench](hdr-workbench.md) for float colors, swatches and export restrictions.
+
+### Direct history navigation
+
+`engine.execute` with `history.inspect` returns a metadata-only timeline (`id`,
+`parent`, `branch`, `action`, `current`). Use `history.jump` with `{"state":id}`
+to restore that destination. Native UI runs cold restoration as a cancellable
+job; automation waits for completion through the existing job control protocol.
+`history.retryStorage` retries a failed scratch store after storage is repaired.
+No command restores every intermediate state just to move the cursor.
