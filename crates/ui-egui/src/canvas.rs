@@ -707,6 +707,12 @@ pub fn ensure_texture(app: &mut PhotocraftApp, ctx: &egui::Context, idx: usize, 
     {
         (doc, preview_key) = (st.doc.clone(), 0);
     }
+    // The CPU fallback previews the same command document, then tone maps before RGBA8.
+    // This also covers flipped views and adapters without float canvas textures.
+    if let Some((shown, _, key)) = filter_preview_document(app, idx) {
+        doc = shown;
+        preview_key = key ^ app.filter_preview.as_ref().map_or(0, |p| p.hash);
+    }
     let (display, mut display_key) = canvas_display(app, &doc, output);
     let workbench = if doc.depth == photocraft_color::SampleType::F32 && !app.session.color.proof(doc.id).enabled {
         Some(photocraft_engine::hdr_cmds::settings(&app.session, &doc))
@@ -978,9 +984,9 @@ fn gpu_budget(app: &mut PhotocraftApp, gpu: &crate::gpu_canvas::GpuCanvas, idx: 
     app.perf.gpu_budget_allowance = allowance;
 }
 
-/// Live preview for an open filter dialog: run the filter on the proxy and upload it.
-fn ensure_filter_preview(app: &mut PhotocraftApp, idx: usize) -> Option<(u32, u64)> {
-    if crate::adjust_preview::on_layer(app, idx) {
+/// Shared CPU/GPU preview for an open filter dialog: run the command on a float-preserving proxy.
+fn filter_preview_document(app: &mut PhotocraftApp, idx: usize) -> Option<(std::sync::Arc<Document>, u32, u64)> {
+    if app.session.active_index() != Some(idx) {
         return None;
     }
     let d = app.ui.dialogs.iter().find(|d| d.fields.contains_key("__filter"))?;
@@ -995,22 +1001,40 @@ fn ensure_filter_preview(app: &mut PhotocraftApp, idx: usize) -> Option<(u32, u6
         (st.doc.id, st.revision, st.doc.clone(), st.active_layer)
     };
     let k = crate::proxy::factor(&doc);
-    let hash = format!("{cmd}{params}").bytes().fold(k as u64 ^ revision.wrapping_mul(0x9e37), |h, b| h.wrapping_mul(31).wrapping_add(b as u64));
+    let hash = format!("{cmd}{params}")
+        .bytes()
+        .fold(k as u64 ^ active.map_or(0, |id| id.0.rotate_left(17)) ^ revision.wrapping_mul(0x9e37), |h, b| h.wrapping_mul(31).wrapping_add(b as u64));
     let key = doc_id.0 ^ (1u64 << 61);
     let fresh = matches!(&app.filter_preview, Some(p) if p.doc == doc_id && p.hash == hash);
     if !fresh {
         let t0 = crate::gpu_canvas::now_ms();
         let result = crate::filter_dialog::preview_document(&doc, active, &cmd, &params, k).map(std::sync::Arc::new);
-        if let Some(r) = &result {
-            let buf = photocraft_compose::flatten(r);
-            let t1 = crate::gpu_canvas::now_ms();
-            let (display, _) = canvas_display(app, &doc, None);
-            app.gpu.as_ref()?.upload_buffer_full(key, &texture_buffer(display.as_deref(), &buf), doc.depth);
-            app.perf.record("filter-preview", r.size.area(), t1 - t0, crate::gpu_canvas::now_ms() - t1);
-        }
-        app.filter_preview = Some(crate::filter_dialog::FilterPreview { doc: doc_id, revision, hash, k, result });
+        app.perf.record("filter-preview", result.as_ref().map_or(0, |r| r.size.area()), crate::gpu_canvas::now_ms() - t0, 0.0);
+        app.filter_preview = Some(crate::filter_dialog::FilterPreview { doc: doc_id, revision, hash, k, result, uploaded: false });
     }
-    app.filter_preview.as_ref().filter(|p| p.result.is_some()).map(|p| (p.k, key))
+    app.filter_preview.as_ref().and_then(|p| p.result.as_ref().map(|r| (r.clone(), p.k, key)))
+}
+
+/// Upload the shared command preview only when its float radiance can survive the texture.
+fn ensure_filter_preview(app: &mut PhotocraftApp, idx: usize) -> Option<(u32, u64)> {
+    if crate::adjust_preview::on_layer(app, idx) {
+        return None;
+    }
+    let gpu = app.gpu.clone()?;
+    let (result, k, key) = filter_preview_document(app, idx)?;
+    let size = [result.size.width, result.size.height];
+    if result.depth == photocraft_color::SampleType::F32 && gpu.format_for(result.depth, size) != eframe::wgpu::TextureFormat::Rgba16Float {
+        return None;
+    }
+    if app.filter_preview.as_ref().is_some_and(|p| !p.uploaded) || !gpu.has(key, size) {
+        let buf = photocraft_compose::flatten(&result);
+        let (display, _) = canvas_display(app, &result, None);
+        gpu.upload_buffer_full(key, &texture_buffer(display.as_deref(), &buf), result.depth);
+        if let Some(p) = &mut app.filter_preview {
+            p.uploaded = true;
+        }
+    }
+    Some((k, key))
 }
 
 /// The document pixels a (non-rotated) view shows, with a margin for filtering.
@@ -1028,6 +1052,9 @@ fn ensure_adjust_proxy(app: &mut PhotocraftApp, idx: usize, zoom: f32) -> Option
     let key = frame.doc.id.0;
     let size = [frame.doc.size.width, frame.doc.size.height];
     let gpu = app.gpu.clone()?;
+    if frame.doc.depth == photocraft_color::SampleType::F32 && gpu.format_for(frame.doc.depth, size) != eframe::wgpu::TextureFormat::Rgba16Float {
+        return None;
+    }
     if frame.stale || !gpu.has(key, size) {
         let doc = app.session.documents().get(idx)?.doc.clone();
         let (display, _) = canvas_display(app, &doc, None);
@@ -1047,6 +1074,12 @@ fn ensure_proxy_preview(app: &mut PhotocraftApp, idx: usize) -> Option<(u32, u64
         (st.doc.id, st.revision, st.doc.clone())
     };
     let k = crate::proxy::factor(&doc);
+    let gpu = app.gpu.as_ref()?;
+    if doc.depth == photocraft_color::SampleType::F32
+        && gpu.format_for(doc.depth, [doc.size.width.div_ceil(k), doc.size.height.div_ceil(k)]) != eframe::wgpu::TextureFormat::Rgba16Float
+    {
+        return None;
+    }
     if k <= 1 {
         return None;
     }
@@ -3234,6 +3267,31 @@ fn hex(c: [f32; 4]) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn cpu_filter_preview_preserves_hdr_and_preview_toggle() {
+        let ctx = egui::Context::default();
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        let mut doc = Document::new("HDR", photocraft_doc::Size::new(16, 16), photocraft_color::ColorMode::Rgb, photocraft_color::SampleType::F32);
+        let mut layer = photocraft_doc::Layer::raster("HDR", doc.pixel_format());
+        layer.surface_mut().unwrap().fill_rect(doc.bounds(), &[2.0, 4.0, 8.0, 1.0]);
+        let target = layer.id;
+        doc.layers.push(layer);
+        app.session.add_document(doc, None);
+        app.session.select_layer(target).unwrap();
+        let dialog = crate::adjust_dialog::open(&mut app, "image.adjustments.exposure").unwrap();
+        app.ui.dialog_mut(dialog).unwrap().fields.insert("exposure".into(), serde_json::json!(-1.0));
+        ensure_texture(&mut app, &ctx, 0, None).unwrap();
+        let shown = app.filter_preview.as_ref().unwrap().result.as_ref().unwrap();
+        assert_eq!(photocraft_compose::flatten(shown).px[0], [1.0, 2.0, 4.0, 1.0]);
+        assert!(!app.filter_preview.as_ref().unwrap().uploaded);
+        app.ui.dialog_mut(dialog).unwrap().fields.insert("__preview".into(), serde_json::json!(false));
+        assert!(filter_preview_document(&mut app, 0).is_none());
+        ensure_texture(&mut app, &ctx, 0, None).unwrap();
+        assert_eq!(photocraft_compose::flatten(&app.session.active().unwrap().doc).px[0], [2.0, 4.0, 8.0, 1.0]);
+        app.ui.close_dialog(dialog);
+        assert!(filter_preview_document(&mut app, 0).is_none());
+    }
+
     #[test]
     fn windows_draws_its_own_crosshair() {
         // #737: Windows' inverting crosshair vanishes over mid-grey; the canvas draws one instead.

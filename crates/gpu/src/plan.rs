@@ -883,6 +883,7 @@ impl<'a> Planner<'a> {
         let (kind, params, lut) = adjustment_program(adj, self.cx.transfer, self.cx.depth);
         p.adjust_kind = kind;
         p.params = params;
+        p.params[3][3] = i32::from(self.cx.depth == photocraft_color::SampleType::F32) as f32;
         p.lut = lut;
         Ok(self.emit(p))
     }
@@ -1470,6 +1471,24 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: photocraf
         Adjustment::Exposure { exposure, offset, gamma } => {
             p[0] = [2f32.powf(*exposure), *offset, gamma.max(0.01), transfer_exponent(transfer.for_exposure())];
             (6, p, None)
+        }
+        // Float Levels use the analytical curve, including radiance outside the LUT domain.
+        Adjustment::Levels { master, per_channel, .. } if depth == photocraft_color::SampleType::F32 => {
+            for (row, ch) in p.iter_mut().zip(std::iter::once(master).chain(per_channel.iter())) {
+                *row = [ch.in_black, ch.in_white, ch.gamma, 0.0];
+            }
+            (
+                17,
+                p,
+                Some(vec![{
+                    let mut row = [0.0; 4096];
+                    for (i, ch) in std::iter::once(master).chain(per_channel.iter()).enumerate() {
+                        row[i * 2] = ch.out_black;
+                        row[i * 2 + 1] = ch.out_white;
+                    }
+                    row
+                }]),
+            )
         }
         // RGB space only (see `adjustment_on_gpu`); the rows are the CPU's channel∘master LUTs.
         Adjustment::Levels { .. } | Adjustment::Curves { .. } => {

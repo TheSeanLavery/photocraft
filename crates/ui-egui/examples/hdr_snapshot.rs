@@ -60,6 +60,44 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             return Err(v.to_string().into());
         }
     }
+    if let Some(command) = arg("--command") {
+        let ctx = harness.ctx.clone();
+        let (request, _) = ControlRequest::new("ui.menu.invoke", json!({"id":command}));
+        if let Outcome::Done(v) = handle(harness.state_mut(), &ctx, &request)
+            && v["ok"] == false
+        {
+            return Err(v.to_string().into());
+        }
+        if let Some(params) = arg("--params") {
+            let params: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&params)?;
+            let d = harness.state_mut().ui.dialogs.last_mut().ok_or("command did not open a dialog")?;
+            d.fields.extend(params);
+        }
+        if let Some(ui) = arg("--ui") {
+            let ui: serde_json::Value = serde_json::from_str(&ui)?;
+            let (request, _) = ControlRequest::new("ui.menu.invoke", json!({"id":command,"params":{"ui":ui}}));
+            if let Outcome::Done(v) = handle(harness.state_mut(), &ctx, &request)
+                && v["ok"] == false
+            {
+                return Err(v.to_string().into());
+            }
+        }
+        if args.iter().any(|a| a == "--no-preview") {
+            let d = harness.state_mut().ui.dialogs.last_mut().ok_or("no preview dialog")?;
+            d.fields.insert("__preview".into(), json!(false));
+        }
+        harness.run_steps(12);
+        if args.iter().any(|a| a == "--apply") || args.iter().any(|a| a == "--cancel") {
+            let dialog = harness.state().ui.dialogs.last().ok_or("no dialog")?.id;
+            let method = if args.iter().any(|a| a == "--cancel") { "ui.dialog.cancel" } else { "ui.dialog.confirm" };
+            let (request, _) = ControlRequest::new(method, json!({"dialog":dialog}));
+            if let Outcome::Done(v) = handle(harness.state_mut(), &ctx, &request)
+                && v["ok"] == false
+            {
+                return Err(v.to_string().into());
+            }
+        }
+    }
     harness.run_steps(12);
     let values = render(&rs, &harness.ctx, harness.output())?;
     let peak = values.iter().flat_map(|p| p[..3].iter().copied()).fold(0.0f32, f32::max);

@@ -1183,7 +1183,9 @@ fn levels_dont_clip_in_32_bit() {
     let level = |depth, v| {
         let mut b = Buffer::filled(Rect::new(0, 0, 1, 1), [v, v, v, 1.0]);
         adjust::apply_depth(&adj, &mut b, adjust::Transfer::Srgb, Some(depth));
-        (b.px[0][0] * 255.0).round()
+        // The oracle is an SDR rendered composite; clipping belongs to this comparison,
+        // not to the float adjustment itself.
+        (b.px[0][0].clamp(0.0, 1.0) * 255.0).round()
     };
     for (v, want) in [(0.0, 0.0), (0.0497, 3.0), (0.0976, 32.0), (0.4508, 140.0), (0.9473, 255.0), (1.0, 255.0)] {
         assert_eq!(level(SampleType::F32, v), want, "{v}");
@@ -1461,7 +1463,8 @@ fn photo_filter_matches_photoshop() {
         let adj = Adjustment::PhotoFilter { color, density: 0.4, preserve_luminosity: true };
         let mut b = Buffer::filled(Rect::new(0, 0, 1, 1), [v[0], v[1], v[2], 1.0]);
         adjust::apply_depth(&adj, &mut b, adjust::Transfer::for_document(ColorMode::Rgb, depth), Some(depth));
-        [b.px[0][0], b.px[0][1], b.px[0][2]].map(|c| c * 255.0)
+        // Compare the SDR oracle after presentation clipping, retaining raw HDR in the buffer.
+        [b.px[0][0], b.px[0][1], b.px[0][2]].map(|c| c.clamp(0.0, 1.0) * 255.0)
     };
     let warming = [236.0 / 255.0, 138.0 / 255.0, 0.0];
     for depth in [SampleType::U8, SampleType::U16] {

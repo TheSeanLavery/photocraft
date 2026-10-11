@@ -7,7 +7,8 @@ use photocraft_doc::{Adjustment, Document, Fill, GradientStyle, Layer, LayerCont
 use photocraft_geom::{Rect, Size};
 use photocraft_gpu::{Compositor, render_to_vec};
 
-const TOL: f32 = 1.0 / 255.0;
+// One 8-bit level, plus roundoff from float shader arithmetic and premultiplication.
+const TOL: f32 = 1.0 / 255.0 + 4.0 * f32::EPSILON;
 
 /// Concurrent wgpu instances in one process segfault on some drivers (RADV), so the GPU tests
 /// take this lock and hold it until their device is dropped.
@@ -1486,4 +1487,40 @@ fn the_focused_view_stays_resident_after_a_full_refresh() {
         let cpu = photocraft_compose::render(&d, view);
         assert!(worst_diff(&cpu.px, &out).0 <= TOL);
     }
+}
+
+#[test]
+fn hdr_adjustments_preserve_radiance_and_match_cpu() {
+    let Some(mut g) = gpu() else { return };
+    let mut doc = Document::new("HDR adjustments", Size::new(48, 32), ColorMode::Rgb, SampleType::F32);
+    let mut l = Layer::raster("HDR steps", doc.pixel_format());
+    for (i, v) in [0.0, 0.125, 0.5, 1.0, 2.0, 8.0].into_iter().enumerate() {
+        l.surface_mut().unwrap().fill_rect(Rect::from_xywh(i as i32 * 8, 0, 8, 32), &[v, v * 0.5, v * 0.25, 0.75]);
+    }
+    doc.layers.push(l);
+    let mut cases = adjustments();
+    cases.push(Adjustment::Levels { master: Default::default(), per_channel: Default::default(), space: Default::default(), black: Default::default() });
+    cases.push(Adjustment::Exposure { exposure: -1.0, offset: 0.0, gamma: 1.0 });
+    cases.push(Adjustment::Exposure { exposure: 0.8, offset: -0.02, gamma: 1.2 });
+    for adj in cases {
+        let mut shown = doc.clone();
+        let mut layer = Layer::new("HDR adjustment", LayerContent::Adjustment(adj.clone()));
+        layer.clipped = true;
+        layer.opacity = 0.7;
+        let mut mask = LayerMask::reveal_all();
+        mask.surface.fill_rect(Rect::new(8, 0, 24, 32), &[0.5]);
+        layer.mask = Some(mask);
+        shown.layers.push(layer);
+        check(&mut g, &shown, &format!("HDR {adj:?}"));
+    }
+}
+
+#[test]
+fn quantized_parity_budget_accepts_roundoff_and_rejects_two_levels() {
+    // Actual NVIDIA Vulkan output at a Hue/Saturation quantization boundary.
+    let cpu = [[0.46666667, 0.9019608, 0.89411765, 1.0]];
+    let gpu = [[0.46666664, 0.89803916, 0.8941176, 0.99999994]];
+    assert!(worst_diff(&cpu, &gpu).0 <= TOL);
+    let two_levels = [[0.46666664, 0.8941176, 0.8941176, 0.99999994]];
+    assert!(worst_diff(&cpu, &two_levels).0 > TOL);
 }

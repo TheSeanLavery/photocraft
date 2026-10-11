@@ -430,6 +430,8 @@ pub struct FilterPreview {
     pub hash: u64,
     pub k: u32,
     pub result: Option<Arc<Document>>,
+    /// Whether the GPU texture contains this exact cached command result.
+    pub uploaded: bool,
 }
 
 #[cfg(test)]

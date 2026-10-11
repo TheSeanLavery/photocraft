@@ -31,6 +31,7 @@ pub(crate) struct DetailPreview {
     failed_revision: Option<u64>,
     crop: Option<(u64, bool, PixelRect)>,
     texture: Option<TextureHandle>,
+    float_crop: Option<photocraft_compose::Buffer>,
     overlay_texture: Option<TextureHandle>,
     overlay_key: Option<OverlayKey>,
     pub(crate) ready: bool,
@@ -55,6 +56,7 @@ impl DetailPreview {
             failed_revision: None,
             crop: None,
             texture: None,
+            float_crop: None,
             overlay_texture: None,
             overlay_key: None,
             ready: false,
@@ -153,7 +155,17 @@ impl DetailPreview {
 
     /// Draw only the visible pixel rectangle. No full-image GPU texture and no GPU-size limit
     /// on the source image; uploads are capped to the current viewport plus a one-pixel border.
-    pub(crate) fn paint(&mut self, ui: &egui::Ui, image: Rect, revision: u64, before: bool, params: &CameraRaw, needed: bool) -> bool {
+    #[allow(clippy::too_many_arguments)] // The refinement state and shared color display are independent.
+    pub(crate) fn paint(
+        &mut self,
+        ui: &egui::Ui,
+        image: Rect,
+        revision: u64,
+        before: bool,
+        params: &CameraRaw,
+        needed: bool,
+        hdr: &crate::hdr_ui::PreviewDisplay<'_>,
+    ) -> bool {
         self.ready = false;
         self.poll(revision);
         if !needed {
@@ -176,6 +188,11 @@ impl DetailPreview {
         };
         let key = (if original { 0 } else { revision }, original, crop);
         if self.crop != Some(key) {
+            if surface.format().sample == photocraft_color::SampleType::F32 {
+                let mut px = vec![[0.0; 4]; crop.width() as usize * crop.height() as usize];
+                surface.read_rgba_into(crop, &mut px);
+                self.float_crop = Some(photocraft_compose::Buffer { rect: PixelRect::from_xywh(0, 0, crop.width(), crop.height()), px });
+            }
             let color = crop_image(surface, crop);
             let options = TextureOptions { magnification: egui::TextureFilter::Nearest, ..TextureOptions::LINEAR };
             match &mut self.texture {
@@ -190,7 +207,11 @@ impl DetailPreview {
                 image.min + vec2((crop.x0 - self.area.x0) as f32, (crop.y0 - self.area.y0) as f32) * scale,
                 vec2(crop.width() as f32, crop.height() as f32) * scale,
             );
-            ui.painter().image(texture.id(), screen, Rect::from_min_max(Pos2::ZERO, pos2(1.0, 1.0)), Color32::WHITE);
+            if !self.float_crop.as_ref().is_some_and(|b| {
+                hdr.paint(ui.painter(), screen, &b.px, [b.rect.width() as usize, b.rect.height() as usize], egui::Id::new(key).value(), "hdr-camera-detail")
+            }) {
+                ui.painter().image(texture.id(), screen, Rect::from_min_max(Pos2::ZERO, pos2(1.0, 1.0)), Color32::WHITE);
+            }
             self.ready = true;
         }
         true

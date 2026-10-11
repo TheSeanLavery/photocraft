@@ -73,7 +73,50 @@ pub fn apply_with(adj: &Adjustment, buf: &mut Buffer, transfer: Transfer) {
 /// unrounded). Integer depths work on whole levels like Photoshop's (see [`levels_q`] and
 /// `adjustment_quantum`), 32-bit documents get its float Levels (see [`levels_float`]).
 pub fn apply_depth(adj: &Adjustment, buf: &mut Buffer, transfer: Transfer, depth: Option<SampleType>) {
+    let float = depth == Some(SampleType::F32);
+    // Color-only operators evaluate bounded chromaticity, then restore radiance. This avoids
+    // invalid HSL math above white and lets bounded color LUTs grade HDR without clipping it.
+    // Deliberate tonal remaps (Threshold, Posterize, Gradient Map) keep bounded output.
+    if float
+        && matches!(
+            adj,
+            Adjustment::HueSaturation { .. }
+                | Adjustment::Vibrance { .. }
+                | Adjustment::BlackWhite { .. }
+                | Adjustment::SelectiveColor { .. }
+                | Adjustment::ColorLookup { .. }
+        )
+        && buf.px.iter().any(|p| p[0].max(p[1]).max(p[2]) > 1.0)
+    {
+        let scales: Vec<f32> = buf.px.iter().map(|p| p[0].max(p[1]).max(p[2]).max(1.0)).collect();
+        for (p, scale) in buf.px.iter_mut().zip(&scales) {
+            for v in &mut p[..3] {
+                *v /= scale;
+            }
+        }
+        apply_depth(adj, buf, transfer, None);
+        for (p, scale) in buf.px.iter_mut().zip(&scales) {
+            for v in &mut p[..3] {
+                *v *= scale;
+            }
+        }
+        return;
+    }
+    let limit = |v: f32| if float { v.max(0.0) } else { v.clamp(0.0, 1.0) };
     match adj {
+        Adjustment::Levels { master, per_channel, space: ToneSpace::Rgb, .. } if float => {
+            let evaluate = |c: [f32; 3]| std::array::from_fn(|i| levels_float(&per_channel[i], levels_float(master, c[i])));
+            if master.gamma != 1.0 || per_channel.iter().any(|ch| ch.gamma != 1.0) {
+                map_rgb_parallel(buf, evaluate);
+            } else {
+                // Linear edits are memory-bound: avoid waking the pool for cheap arithmetic.
+                map_rgb(buf, evaluate);
+            }
+        }
+        Adjustment::Curves { space: ToneSpace::Rgb, .. } if float => {
+            let luts = tone_luts_depth(adj, depth);
+            map_rgb(buf, |c| std::array::from_fn(|i| extended_lut(&luts[i], c[i])));
+        }
         Adjustment::Invert => map_rgb(buf, |c| [1.0 - c[0], 1.0 - c[1], 1.0 - c[2]]),
         Adjustment::Threshold { level } => {
             // Compared on the 8-bit grid like Photoshop (avoids float ties).
@@ -90,7 +133,7 @@ pub fn apply_depth(adj: &Adjustment, buf: &mut Buffer, transfer: Transfer, depth
             let b = brightness / 255.0;
             let c = contrast.clamp(-100.0, 99.0);
             let k = if c >= 0.0 { 1.0 / (1.0 - c / 100.0) } else { 1.0 + c / 100.0 };
-            map_rgb(buf, |px| px.map(|v| ((v - 0.5) * k + 0.5 + b).clamp(0.0, 1.0)))
+            map_rgb(buf, |px| px.map(|v| limit((v - 0.5) * k + 0.5 + b)))
         }
         Adjustment::BrightnessContrast { brightness, contrast, .. } => {
             // Modern (CS3+) Brightness/Contrast, reverse-engineered from Photoshop ground truth
@@ -104,7 +147,13 @@ pub fn apply_depth(adj: &Adjustment, buf: &mut Buffer, transfer: Transfer, depth
             // on the brightness side (the real curve is a spline); contrast matches closely.
             let b = *brightness;
             let c = *contrast;
-            map_rgb(buf, |px| px.map(|v| modern_contrast(modern_brightness(v, b), c).clamp(0.0, 1.0)))
+            let curve = |v| modern_contrast(modern_brightness(v, b), c);
+            map_rgb(buf, |px| {
+                px.map(|v| {
+                    // Extend the endpoint tangent above white; neutral controls remain identity.
+                    if float && v > 1.0 { limit(curve(1.0) + (v - 1.0) * (curve(1.0) - curve(1.0 - 1.0 / 4095.0)) * 4095.0) } else { limit(curve(v)) }
+                })
+            })
         }
         Adjustment::Exposure { exposure, offset, gamma } => {
             // In linear light: (lin·2^exposure + offset)^(1/gamma), then back
@@ -114,8 +163,15 @@ pub fn apply_depth(adj: &Adjustment, buf: &mut Buffer, transfer: Transfer, depth
             let transfer = transfer.for_exposure();
             map_rgb(buf, |c| {
                 c.map(|v| {
-                    let lin = (transfer.decode(v) * m + offset).max(0.0).powf(1.0 / g);
-                    transfer.encode(lin).clamp(0.0, 1.0)
+                    if float {
+                        // 32-bit samples are linear. Photoshop mirrors the gamma curve below
+                        // zero rather than discarding negative offsets (RGB/Gray32 oracles).
+                        let lin = v * m + offset;
+                        lin.signum() * lin.abs().powf(1.0 / g)
+                    } else {
+                        let lin = (transfer.decode(v) * m + offset).max(0.0).powf(1.0 / g);
+                        limit(transfer.encode(lin))
+                    }
                 })
             })
         }
@@ -151,7 +207,7 @@ pub fn apply_depth(adj: &Adjustment, buf: &mut Buffer, transfer: Transfer, depth
             })
         }
         Adjustment::ChannelMixer { matrix, monochrome } => map_rgb(buf, |c| {
-            let mix = |row: &[f32; 4]| (row[0] * c[0] + row[1] * c[1] + row[2] * c[2] + row[3]).clamp(0.0, 1.0);
+            let mix = |row: &[f32; 4]| limit(row[0] * c[0] + row[1] * c[1] + row[2] * c[2] + row[3]);
             if *monochrome { [mix(&matrix[0]); 3] } else { [mix(&matrix[0]), mix(&matrix[1]), mix(&matrix[2])] }
         }),
         Adjustment::PhotoFilter { color, density, preserve_luminosity } => {
@@ -161,7 +217,7 @@ pub fn apply_depth(adj: &Adjustment, buf: &mut Buffer, transfer: Transfer, depth
             map_rgb(buf, |c| {
                 let f = mat3_mul(&m, c.map(|v| transfer.decode(v))).map(|v| transfer.encode(v));
                 let f = if set_lum { photocraft_color::blend::set_lum(f, photocraft_color::blend::lum(c)) } else { f };
-                f.map(|v| v.clamp(0.0, 1.0))
+                f.map(limit)
             })
         }
         Adjustment::BlackWhite { weights, tint } => map_rgb(buf, |c| {
@@ -194,10 +250,10 @@ pub fn apply_depth(adj: &Adjustment, buf: &mut Buffer, transfer: Transfer, depth
             let ws = (1.0 - l * 2.0).clamp(0.0, 1.0);
             let wh = (l * 2.0 - 1.0).clamp(0.0, 1.0);
             let wm = 1.0 - ws - wh;
-            let out: [f32; 3] = std::array::from_fn(|i| (c[i] + (shadows[i] * ws + midtones[i] * wm + highlights[i] * wh) / 100.0 * 0.5).clamp(0.0, 1.0));
+            let out: [f32; 3] = std::array::from_fn(|i| limit(c[i] + (shadows[i] * ws + midtones[i] * wm + highlights[i] * wh) / 100.0 * 0.5));
             if *preserve_luminosity {
                 let l1 = rgb_to_gray(out).max(1e-6);
-                out.map(|v| (v * l / l1).clamp(0.0, 1.0))
+                out.map(|v| limit(v * l / l1))
             } else {
                 out
             }
@@ -251,7 +307,8 @@ pub fn tone_luts_q(adj: &Adjustment, quantum: Option<f32>) -> [Vec<f32>; 4] {
 }
 
 /// [`tone_luts_q`] in a document of `depth` (`None`: unrounded). 32-bit Levels use
-/// [`levels_float`], sampled on 0..1 and kept in 0..1 like every adjustment result here.
+/// [`levels_float`] for bounded LUT consumers. Float RGB compositing evaluates Levels
+/// analytically instead, so radiance outside 0..1 is never lost to this lookup.
 pub fn tone_luts_depth(adj: &Adjustment, depth: Option<SampleType>) -> [Vec<f32>; 4] {
     match (adj, depth) {
         (Adjustment::Levels { master, per_channel, space: ToneSpace::Rgb, .. }, Some(SampleType::F32)) => {
@@ -453,6 +510,23 @@ fn map_rgb(buf: &mut Buffer, f: impl Fn([f32; 3]) -> [f32; 3]) {
     }
 }
 
+/// Full-resolution destructive HDR edits are large; compositor tiles stay on their caller's
+/// thread to avoid nested Rayon overhead. The browser keeps the serial implementation.
+fn map_rgb_parallel(buf: &mut Buffer, f: impl Fn([f32; 3]) -> [f32; 3] + Sync) {
+    #[cfg(not(target_arch = "wasm32"))]
+    if buf.px.len() >= 65_536 {
+        use rayon::prelude::*;
+        buf.px.par_iter_mut().for_each(|p| {
+            if p[3] > 0.0 {
+                let rgb = f([p[0], p[1], p[2]]);
+                p[..3].copy_from_slice(&rgb);
+            }
+        });
+        return;
+    }
+    map_rgb(buf, f);
+}
+
 #[inline]
 fn lut(table: &[f32], v: f32) -> f32 {
     let x = v.clamp(0.0, 1.0) * (table.len() - 1) as f32;
@@ -460,6 +534,22 @@ fn lut(table: &[f32], v: f32) -> f32 {
     let j = (i + 1).min(table.len() - 1);
     let f = x - i as f32;
     table[i] * (1.0 - f) + table[j] * f
+}
+
+/// Extend a bounded tone LUT with its endpoint tangents for float documents.
+/// Integer documents keep the bounded lookup; an identity curve stays identity above white.
+fn extended_lut(table: &[f32], v: f32) -> f32 {
+    let (Some(&first), Some(&last)) = (table.first(), table.last()) else { return v };
+    let scale = table.len().saturating_sub(1) as f32;
+    if v > 1.0 {
+        let previous = table.get(table.len().saturating_sub(2)).copied().unwrap_or(last);
+        last + (v - 1.0) * (last - previous) * scale
+    } else if v < 0.0 {
+        let next = table.get(1).copied().unwrap_or(first);
+        first + v * (next - first) * scale
+    } else {
+        lut(table, v)
+    }
 }
 
 /// Photo Filter's linear-light RGB matrix. Photoshop multiplies the pixel's D50 XYZ, relative to
@@ -563,7 +653,7 @@ pub fn levels_q(ch: &LevelsChannel, v: f32, quantum: Option<f32>) -> f32 {
 /// the clipped curve).
 pub fn levels_float(ch: &LevelsChannel, v: f32) -> f32 {
     let t = (v - ch.in_black) / (ch.in_white - ch.in_black).max(1e-6);
-    let t = t.signum() * t.abs().powf(1.0 / ch.gamma.max(0.01));
+    let t = if ch.gamma == 1.0 { t } else { t.signum() * t.abs().powf(1.0 / ch.gamma.max(0.01)) };
     ch.out_black + t * (ch.out_white - ch.out_black)
 }
 
@@ -806,6 +896,73 @@ mod tone_tests {
         assert!((red[0] - red[1]).abs() < 0.05, "red desaturated {red:?}");
         assert!((b.px[1][2] - 0.9).abs() < 1e-4 && (b.px[1][0] - 0.1).abs() < 1e-4, "blue untouched {:?}", b.px[1]);
         assert_eq!(b.px[2], [0.5, 0.5, 0.5, 1.0]);
+    }
+
+    #[test]
+    fn hdr_neutral_tone_adjustments_preserve_radiance() {
+        let points = vec![CurvePoint { input: 0.0, output: 0.0 }, CurvePoint { input: 1.0, output: 1.0 }];
+        let adjustments = [
+            Adjustment::Levels { master: Default::default(), per_channel: Default::default(), space: Default::default(), black: Default::default() },
+            Adjustment::Curves { master: points.clone(), per_channel: [points.clone(), points.clone(), points], space: Default::default(), black: Vec::new() },
+            Adjustment::Exposure { exposure: 0.0, offset: 0.0, gamma: 1.0 },
+            Adjustment::BrightnessContrast { brightness: 0.0, contrast: 0.0, legacy: false },
+            Adjustment::BrightnessContrast { brightness: 0.0, contrast: 0.0, legacy: true },
+            Adjustment::ChannelMixer { matrix: [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]], monochrome: false },
+            Adjustment::PhotoFilter { color: [1.0; 3], density: 0.0, preserve_luminosity: false },
+            Adjustment::ColorBalance { shadows: [0.0; 3], midtones: [0.0; 3], highlights: [0.0; 3], preserve_luminosity: false },
+        ];
+        for adj in adjustments {
+            let pixels = vec![[0.125, 0.5, 1.0, 1.0], [2.0, 4.0, 8.0, 0.5]];
+            let mut buf = Buffer { rect: Rect::new(0, 0, 2, 1), px: pixels.clone() };
+            apply_depth(&adj, &mut buf, Transfer::Gamma(1.0), Some(SampleType::F32));
+            for (actual, expected) in buf.px.iter().zip(&pixels) {
+                for (a, e) in actual.iter().zip(expected) {
+                    assert!((a - e).abs() < 1e-4, "{adj:?}: {actual:?} != {expected:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn hdr_parallel_levels_matches_small_buffers() {
+        let adj = Adjustment::Levels {
+            master: LevelsChannel { gamma: 1.3, in_black: 0.1, out_white: 0.8, ..Default::default() },
+            per_channel: Default::default(),
+            space: Default::default(),
+            black: Default::default(),
+        };
+        let pixels: Vec<_> = (0..65_537).map(|i| [-0.25, 0.5, 8.0, if i % 2 == 0 { 0.75 } else { 0.0 }]).collect();
+        let mut full = Buffer { rect: Rect::from_xywh(0, 0, 65_537, 1), px: pixels.clone() };
+        apply_depth(&adj, &mut full, Transfer::Gamma(1.0), Some(SampleType::F32));
+        for (original, actual) in pixels.chunks(1024).zip(full.px.chunks(1024)) {
+            let mut small = Buffer { rect: Rect::from_xywh(0, 0, original.len() as u32, 1), px: original.to_vec() };
+            apply_depth(&adj, &mut small, Transfer::Gamma(1.0), Some(SampleType::F32));
+            assert_eq!(small.px, actual, "parallel HDR edits must preserve the serial result and transparent pixels");
+        }
+    }
+
+    #[test]
+    fn hdr_exposure_preserves_negative_offsets_with_signed_gamma() {
+        let mut buf = Buffer { rect: Rect::new(0, 0, 1, 1), px: vec![[0.0, -0.25, 8.0, 0.5]] };
+        apply_depth(&Adjustment::Exposure { exposure: 0.8, offset: -0.02, gamma: 1.2 }, &mut buf, Transfer::Gamma(1.0), Some(SampleType::F32));
+        assert!((buf.px[0][0] + 0.038387664).abs() < 1e-7);
+        assert!(buf.px[0][1] < 0.0 && buf.px[0][2] > 1.0);
+        assert_eq!(buf.px[0][3], 0.5);
+    }
+
+    #[test]
+    fn hdr_exposure_and_levels_can_recover_highlights() {
+        let mut buf = Buffer { rect: Rect::new(0, 0, 1, 1), px: vec![[2.0, 4.0, 8.0, 1.0]] };
+        apply_depth(&Adjustment::Exposure { exposure: -1.0, offset: 0.0, gamma: 1.0 }, &mut buf, Transfer::Gamma(1.0), Some(SampleType::F32));
+        assert_eq!(buf.px[0], [1.0, 2.0, 4.0, 1.0]);
+        let ch = LevelsChannel { out_white: 0.5, ..Default::default() };
+        apply_depth(
+            &Adjustment::Levels { master: ch, per_channel: Default::default(), space: Default::default(), black: Default::default() },
+            &mut buf,
+            Transfer::Gamma(1.0),
+            Some(SampleType::F32),
+        );
+        assert_eq!(buf.px[0], [0.5, 1.0, 2.0, 1.0]);
     }
 
     #[test]

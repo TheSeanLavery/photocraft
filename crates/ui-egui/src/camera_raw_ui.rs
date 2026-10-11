@@ -568,6 +568,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
     }
     let t = Tokens::get(ctx);
     let screen = ctx.content_rect();
+    let hdr = crate::hdr_ui::PreviewDisplay { session: &app.session, gpu: app.gpu.as_ref(), sdr: app.ui.sdr_output };
     let mut action: Option<&str> = None;
     egui::Area::new(egui::Id::new("camera-raw-dialog")).order(egui::Order::Foreground).fixed_pos(screen.min).show(ctx, |ui| {
         let Some(d) = app.camera_raw.as_mut() else { return };
@@ -605,9 +606,13 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
         if let Some(tex) = tex {
             // Never tile a checker across the offscreen extent of a highly zoomed image.
             widgets::checker(preview.painter(), r.intersect(view), 8.0);
-            preview.painter().image(tex.id(), r, ERect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+            let pixels = if d.show_before { &d.proxy } else { &d.processed };
+            let stamp = if d.show_before { 0 } else { d.preview_revision } ^ d.layer.0;
+            if !hdr.paint(preview.painter(), r, pixels, [d.pw, d.ph], stamp, if d.show_before { "hdr-camera-before" } else { "hdr-camera-after" }) {
+                preview.painter().image(tex.id(), r, ERect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+            }
             let detail_needed = r.width() * ctx.pixels_per_point() > d.pw as f32 || r.height() * ctx.pixels_per_point() > d.ph as f32;
-            d.detail.paint(&preview, r, d.preview_revision, d.show_before, &d.params, detail_needed);
+            d.detail.paint(&preview, r, d.preview_revision, d.show_before, &d.params, detail_needed, &hdr);
             if d.detail.pending() {
                 ctx.request_repaint_after(std::time::Duration::from_millis(50));
             }
