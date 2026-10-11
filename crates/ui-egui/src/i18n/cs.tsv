@@ -2223,3 +2223,5 @@ cameraRaw	Color	Barvy
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Místo pro vracení změn roste podle potřeby. Neomezená historie uchovává stavy do zaplnění úložiště. Cesty platí pro příští relaci mezipaměti.
 
 	Change opacity	Změnit krytí
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG zachovává podporované tvary a rastrové vrstvy. Nepodporované funkce mohou být rastrovány.

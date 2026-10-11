@@ -64,16 +64,16 @@ note = "codecs tiff_ifd.rs (bounds-checked IFD chain + SubIFD walk, classic and 
 [[item]]
 id = "FILE-215-9"
 target = "SVG opens and places as shape layers or a vector Smart Object"
-status = "missing"
+status = "partial"
 issue = 215
-note = "No SVG codec or import"
+note = "Our mixed SVG/SVGZ delivery reopens solid shapes/strokes and embedded PNG layers with bounded geometry and cache allocation. General foreign SVG import and vector Smart Object placement remain pending on this older fork."
 
 [[item]]
 id = "FILE-215-10"
 target = "Multi-page PDF save, PDF presentation, layer comps to PDF, vector/text output, PDF import"
-status = "missing"
+status = "partial"
 issue = 215
-note = "Raster PDF delivery now available in Export As (io raster_documents.rs): one page, 8/16-bit RGB/gray, ICC, soft mask and document DPI, with external Poppler checks. Multi-page/vector/text/import workflows remain pending."
+note = "Single-page mixed SVG/PDF delivery (io mixed_documents.rs): sRGB solid Bezier fills, centered solid/dashed strokes and raster layers, bounded SVG shape reopening, isolated opacity and warned composite-prefix fallback. Raster-only working spaces preserve existing delivery. Independent resvg/Poppler checks; multi-page, text/fonts and PDF import remain pending."
 
 [[item]]
 id = "FILE-215-11"

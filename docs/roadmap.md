@@ -31,8 +31,10 @@ readiness; treat it as an upper bound.
 2026-10-10: the additional-export follow-up adds 11 symmetric baseline legacy/asset codecs,
 layered OpenRaster and raster SVG/SVGZ/PDF delivery: 28 default Save As groups and 29 Export As
 groups. Tests cover 264 new codec layout/depth conversions, baseline ORA layers/groups at 8/16-bit,
-and rendered PDF outputs. Historical codec variants, JXL/JP2/HEIF encoding, vector PDF/SVG,
-PDF import and animation remain open; see [format catalog and limits](export-formats.md).
+and rendered PDF outputs. The mixed-export follow-up keeps sRGB solid Bézier fills, centered
+strokes and bitmap layers together in SVG/SVGZ and single-page PDF, with bounded shape reopening
+and warned raster fallback. Historical codec variants, JXL/JP2/HEIF encoding, vector text/paints,
+multi-page PDF, PDF import and animation remain open; see [format catalog and limits](export-formats.md).
 
 ## Honest parity assessment (2026-10-05)
 

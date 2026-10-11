@@ -14,7 +14,7 @@ pub fn document_formats() -> Vec<SaveFormat> {
         SaveFormat { name: "Large Document (PSB)", extensions: &["psb"] },
         SaveFormat { name: "PhotoCraft", extensions: &["pcraft"] },
         SaveFormat { name: "OpenRaster", extensions: &["ora"] },
-        SaveFormat { name: "SVG (embedded image)", extensions: &["svg", "svgz"] },
+        SaveFormat { name: "SVG", extensions: &["svg", "svgz"] },
     ];
     formats.extend(photocraft_codecs::Format::ALL.into_iter().filter(|f| f.caps().write).map(|f| SaveFormat { name: f.name(), extensions: f.extensions() }));
     formats
@@ -23,7 +23,7 @@ pub fn document_formats() -> Vec<SaveFormat> {
 /// Delivery formats include the writable document catalog plus export-only PDF.
 pub fn export_formats() -> Vec<SaveFormat> {
     let mut formats = document_formats();
-    formats.push(SaveFormat { name: "PDF (raster page)", extensions: &["pdf"] });
+    formats.push(SaveFormat { name: "PDF", extensions: &["pdf"] });
     formats
 }
 
@@ -69,7 +69,10 @@ pub(crate) fn show_choice(ctx: &egui::Context, format: &mut String) -> Option<Op
             );
         });
         ui.add_space(8.0);
-        if !matches!(format.as_str(), "pcraft" | "psd" | "psb" | "ora" | "tif" | "tiff") {
+        if matches!(format.as_str(), "svg" | "svgz") {
+            ui.label(tl!("SVG preserves supported shapes and raster layers. Unsupported features may be rasterized."));
+        }
+        if !matches!(format.as_str(), "pcraft" | "psd" | "psb" | "ora" | "tif" | "tiff" | "svg" | "svgz") {
             ui.label(tl!("This format saves a flattened image. Use Save a Copy to keep your editable document."));
             if format.as_str() == "pnm" {
                 ui.label(tl!("Netpbm chooses the subtype from the image depth and channels."));

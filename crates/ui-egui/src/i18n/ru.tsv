@@ -2492,3 +2492,5 @@ cameraRaw	Roughness	Неровность
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Место для отмены растёт по необходимости. Неограниченная история хранится до заполнения диска. Пути применяются со следующего сеанса кэша.
 
 	Change opacity	Изменить непрозрачность
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG сохраняет поддерживаемые фигуры и растровые слои. Неподдерживаемые функции могут быть растрированы.

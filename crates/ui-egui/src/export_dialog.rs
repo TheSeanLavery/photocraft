@@ -85,7 +85,21 @@ fn export_document(doc: &Document, f: &Map<String, Value>, max_side: Option<u32>
     }
     let fmt = s_fmt(f);
     if !f.get("transparency").and_then(Value::as_bool).unwrap_or(true) || fmt == "jpg" {
-        s.execute("layer.flattenImage", json!({})).map_err(|e| e.to_string())?;
+        if matches!(fmt.as_str(), "svg" | "svgz" | "pdf") {
+            s.edit("Export white background", |doc, _| {
+                doc.layers.insert(
+                    0,
+                    photocraft_doc::Layer::new(
+                        "White background",
+                        photocraft_doc::LayerContent::Fill(photocraft_doc::Fill::Solid(photocraft_doc::Color::WHITE)),
+                    ),
+                );
+                Ok(())
+            })
+            .map_err(|e| e.to_string())?;
+        } else {
+            s.execute("layer.flattenImage", json!({})).map_err(|e| e.to_string())?;
+        }
     }
     s.active().map(|d| (*d.doc).clone()).ok_or_else(|| "export failed".into())
 }
@@ -344,6 +358,54 @@ mod tests {
                 assert_eq!(app.session.active().unwrap().doc, before);
             }
             assert_eq!(writes.borrow().len(), crate::save_formats::export_formats().len());
+        }
+    }
+
+    #[test]
+    fn mixed_export_keeps_shapes_when_scaling_and_removing_transparency() {
+        use photocraft_doc::{Color, ColorMode, Document, Fill, Layer, LayerContent, Path, SampleType, ShapeLayer, Size, Subpath};
+        let mut doc = Document::new("Mixed", Size::new(64, 48), ColorMode::Rgb, SampleType::U16);
+        let mut shape = ShapeLayer {
+            path: Path::new(vec![Subpath::polygon(&[(8.0, 8.0), (52.0, 8.0), (52.0, 40.0)])]),
+            fill: Some(Fill::Solid(Color::rgba(0.2, 0.8, 0.4, 0.6))),
+            ..Default::default()
+        };
+        shape.cache = Some(photocraft_vector::render_shape(&shape, photocraft_color::PixelFormat::new(doc.mode, doc.depth, true), doc.bounds()));
+        doc.layers.push(Layer::new("Vector", LayerContent::Shape(shape)));
+        let before = doc.clone();
+        for ext in ["svg", "svgz", "pdf"] {
+            for scale in [50, 100] {
+                for transparency in [false, true] {
+                    let mut fields = Map::new();
+                    fields.insert("format".into(), json!(ext));
+                    fields.insert("scale".into(), json!(scale));
+                    fields.insert("transparency".into(), json!(transparency));
+                    let out = export_document(&doc, &fields, None).unwrap();
+                    assert_eq!(out.size.width, if scale == 50 { 32 } else { 64 });
+                    let shape = out
+                        .layers
+                        .iter()
+                        .find_map(|layer| match &layer.content {
+                            LayerContent::Shape(shape) => Some(shape),
+                            _ => None,
+                        })
+                        .unwrap();
+                    let anchor = shape.path.subpaths[0].knots[0].anchor;
+                    assert_eq!((anchor.x, anchor.y), if scale == 50 { (4.0, 4.0) } else { (8.0, 8.0) });
+                    assert_eq!(out.layers.len(), if transparency { 1 } else { 2 });
+                    let result = photocraft_io::export(&out, ext, &Default::default()).unwrap();
+                    if ext == "pdf" {
+                        let source = String::from_utf8_lossy(&result.bytes);
+                        assert!(source.contains("/Subtype /Form") && !source.contains("/Subtype /Image"));
+                    } else {
+                        let reopened = photocraft_io::import(&format!("mixed.{ext}"), &result.bytes).unwrap();
+                        assert!(reopened.document.layers.iter().all(|layer| matches!(layer.content, LayerContent::Shape(_))));
+                        let pixels = photocraft_compose::flatten(&reopened.document).to_rgba8();
+                        assert_eq!(pixels.pixels[3], if transparency { 0 } else { 255 });
+                    }
+                    assert_eq!(doc, before, "export never edits the user's document");
+                }
+            }
         }
     }
 

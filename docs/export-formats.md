@@ -21,7 +21,7 @@ image mode/depth, platform, application version and installed plug-ins change th
 - **PhotoCraft:** Save As changes the working path; Save a Copy leaves the original path and
   saved revision alone. Flat formats flatten the output and existing fidelity warnings report
   conversions/losses. macOS now chooses the format in the editor before its native destination
-  sheet; Windows/Linux use their native file-type list. Export As includes every writable Save As choice, including PhotoCraft, PSD, PSB and OpenRaster, plus export-only raster PDF. The default build has 28 Save As groups and 29 Export As groups.
+  sheet; Windows/Linux use their native file-type list. Export As includes every writable Save As choice, including PhotoCraft, PSD, PSB and OpenRaster, plus export-only PDF. The default build has 28 Save As groups and 29 Export As groups.
 
 ## Full image/document and asset union
 
@@ -58,7 +58,7 @@ that every released binary ships each plug-in. The PhotoCraft column includes th
 | JPEG XL `.jxl` | — | Optional | Optional | Future |
 | JPEG 2000 `.jp2 .j2k .j2c .jpc` | Yes | Import | Optional | Future |
 | JPEG 2000 in HEIF `.hej2` | — | — | Optional | Future |
-| PDF `.pdf` | Yes | Import | Yes | Single raster page in Export As; transparency, ICC and 8/16-bit; import pending |
+| PDF `.pdf` | Yes | Import | Yes | Single mixed vector/raster page in Export As; transparency, ICC and 8/16-bit; import pending |
 | PostScript `.ps` | — | — | Yes | Future |
 | Encapsulated PostScript `.eps` | Yes | — | Yes | Future |
 | Photoshop DCS 1.0 / 2.0 `.eps` and companion files | Yes | — | — | Future print separation |
@@ -118,10 +118,22 @@ animation rendering and GIMP's frame exports require separate timing/codec work.
    Masks, text, shapes and effects are baked; advanced blending, clipping, adjustments and artboards
    trigger a warned composite fallback. Imported mixed colour models/profiles are rejected rather
    than silently misinterpreted. Zip64 input and non-PNG layer sources remain unsupported.
-3. Raster PDF and SVG/SVGZ delivery exports now work. PDF preserves image ICC, grayscale/RGB,
-   8/16-bit samples, soft-mask transparency and physical dimensions from document DPI. It is
-   Export As-only because PDF import is still absent. SVG wraps an embedded PNG; no editable vector
-   or font preservation is claimed. Multi-page/vector PDF, SVG path export and PDF import remain open.
+3. SVG/SVGZ and single-page PDF export mix solid Bézier fills and centered solid/dashed
+   strokes with PNG bitmap layers. Solid fill layers stay vector too. Isolated shape opacity,
+   winding rules, stroke caps/joins and document DPI are preserved. Bitmap layer opacity stays
+   separate from the PNG samples, retaining faint overlays without per-layer 8-bit rounding. This vector path applies to
+   RGB documents with the default or built-in sRGB profile; other colour models/profiles retain
+   the existing composite raster delivery. Unsupported text, gradients/patterns, boolean paths,
+   masks/effects, clipping and backdrop-dependent blending rasterize the affected stack prefix
+   with a warning, then later supported shapes can stay vector. Hidden layers are omitted.
+   Safe groups are flattened; this is a delivery format, not a full native document save.
+   PNG pixels retain 8/16-bit samples (32-bit source becomes 16-bit); PDF uses soft masks and
+   optional sRGB ICC. Vector-only SVG/PDF omit document metadata with a warning. PDF remains
+   Export As-only because PDF import is absent. Multi-page PDF, editable text/fonts and broader
+   vector paint support remain open. SVG reopens our unchanged mixed output as shape and raster
+   layers; external edits go through the general importer upstream (unsupported on the older
+   fork). Preflight caps RGBA16 canvas data at 256 MiB, XML at 128 MiB, geometry at 16K knots
+   per shape and decoded SVG layers at 1 GiB. No whole hidden document is embedded in SVG.
 4. Evaluate pure-Rust JXL, JPEG2000 and HEIF encoders, then legacy/asset formats by concrete workflow.
 5. Add explicit Netpbm subtype selection and animation/frame export. Current Netpbm chooses P5/P6/P7
    or PFM from pixels, not the typed suffix; GIF/WebP/APNG aliases do not imply animation support.
@@ -180,7 +192,8 @@ Public format specifications used for clean-room implementation:
   [pattern](https://developer.gimp.org/core/standards/pat/) specifications.
 - [OpenRaster file layout](https://www.openraster.org/baseline/file-layout-spec.html) and
   [layer stack](https://www.openraster.org/baseline/layer-stack-spec.html).
-- [SVG image element](https://www.w3.org/TR/SVG11/struct.html) and
+- [SVG image element](https://www.w3.org/TR/SVG11/struct.html),
+  [SVG paths](https://www.w3.org/TR/SVG11/paths.html) and
   [Adobe PDF reference](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.6.pdf).
 
 ### Local release export cost

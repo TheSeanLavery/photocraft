@@ -2648,3 +2648,5 @@ cameraRaw	Whites	Brancos
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	O espaço para desfazer cresce conforme necessário. O histórico ilimitado mantém estados até o armazenamento ficar cheio. Os caminhos valem para a próxima sessão de cache.
 
 	Change opacity	Alterar opacidade
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG preserva as formas e camadas rasterizadas compatíveis. Recursos não compatíveis podem ser rasterizados.
