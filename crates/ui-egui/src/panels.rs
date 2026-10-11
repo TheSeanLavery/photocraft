@@ -412,7 +412,7 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                     // A narrow bar drops what is also in a menu, Discord first (below), then
                     // the theme toggle (Preferences), then search (Edit › Search), and narrows
                     // the switcher (Window › Workspace) before anything runs over.
-                    let room = ui.available_width();
+                    let room = (ui.available_width() - ICON_SLOT).max(0.0);
                     let icons_shown: u8 = if room >= WORKSPACE_MIN + 2.0 * ICON_SLOT {
                         2
                     } else if room >= WORKSPACE_MIN + ICON_SLOT {
@@ -436,6 +436,7 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                         let next = app.ui.theme.next();
                         app.set_theme(ui.ctx(), next);
                     }
+                    crate::collaboration_ui::entry_button(app, ui, control_size);
                     // The community Discord, one click away while the bar has room for it
                     // (narrow windows drop it first; it is also Help › Discord).
                     if ui.available_width() >= DISCORD_ROOM {
@@ -1106,6 +1107,8 @@ pub fn right_dock(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             let edge = if historical { vec2(f32::from(rail_margin), f32::from(rail_margin)) } else { vec2(6.0, 8.0) };
             ui.painter().line_segment([r.left_top() - edge, r.left_bottom() + vec2(-edge.x, edge.y)], Stroke::new(1.0, t.separator));
             ui.spacing_mut().item_spacing.y = if historical { layout.row_gap } else { 4.0 };
+            crate::collaboration_ui::entry_button(app, ui, rb);
+            ui.separator();
             use crate::dock::Group;
             let entries: [(&str, &str, Group); 5] = [
                 ("sliders-horizontal", tl!("Properties"), Group::Properties),

@@ -2,6 +2,7 @@
 use crate::{EngineError, Session};
 pub use photocraft_collab::DEFAULT_SIGNALING_URL;
 use photocraft_collab::*;
+pub use photocraft_collab::{Profile, RoomState, VisibilityMode, invite};
 use photocraft_doc::{Document, LayerId};
 use photocraft_geom::Rect;
 use photocraft_paint::{StrokeRenderer, render::COV_TILE};

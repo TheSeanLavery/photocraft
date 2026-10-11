@@ -239,11 +239,13 @@ impl Bridge {
                 .unwrap_or_default();
             let request = match intent {
                 NetworkIntent::Create { password, server, .. } => {
+                    app.ui.collaboration.signaling_url = server.clone();
                     app.session.active().ok_or("Open a document before creating a room")?;
                     app.ui.collaboration.transport_status = "Creating room…".into();
                     Request::Create { server, password, ice_servers }
                 }
                 NetworkIntent::Join { code, password, server, .. } => {
+                    app.ui.collaboration.signaling_url = server.clone();
                     app.ui.collaboration.transport_status = "Joining room…".into();
                     Request::Join { server, code, password, ice_servers }
                 }

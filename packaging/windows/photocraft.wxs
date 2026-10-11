@@ -83,6 +83,9 @@
         <RegistryValue Root="HKLM" Key="Software\Classes\.ico\OpenWithProgids" Name="Photocraft.Image" Value="" Type="string" />
 
         <!-- "Open with" app list and the Run dialog (Win+R "photocraft"). -->
+        <RegistryValue Root="HKLM" Key="Software\Classes\photocraft" Value="URL:PhotoCraft room invitation" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\photocraft" Name="URL Protocol" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\photocraft\shell\open\command" Value="&quot;[#PhotocraftExe]&quot; --join &quot;%1&quot;" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\photocraft.exe" Name="FriendlyAppName" Value="PhotoCraft" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\photocraft.exe\shell\open\command" Value="&quot;[#PhotocraftExe]&quot; &quot;%1&quot;" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\photocraft.exe\SupportedTypes" Name=".pcraft" Value="" Type="string" />

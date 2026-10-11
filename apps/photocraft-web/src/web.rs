@@ -9,6 +9,11 @@ use photocraft_ui_egui::theme::ThemeKind;
 use photocraft_ui_egui::{PhotocraftApp, Services};
 use wasm_bindgen::JsCast as _;
 
+#[path = "collaboration.rs"]
+mod collaboration;
+#[path = "collaboration_protocol.rs"]
+mod collaboration_protocol;
+
 type Inbox = Arc<Mutex<Vec<(String, Vec<u8>)>>>;
 
 /// Everything File › Open reads: PhotoCraft and Photoshop documents, flat images, and Photoshop
@@ -47,7 +52,24 @@ pub fn start() {
                 Box::new(move |cc| {
                     PhotocraftApp::setup_context(&cc.egui_ctx, ThemeKind::Pro);
                     let inbox: Inbox = Arc::default();
-                    let mut app = PhotocraftApp::new(Session::new(), services(inbox.clone(), cc.egui_ctx.clone()));
+                    let mut app = collaboration::attach(PhotocraftApp::new(Session::new(), services(inbox.clone(), cc.egui_ctx.clone())), cc.egui_ctx.clone());
+                    match invited_room() {
+                        Ok(Some(code)) => {
+                            app.ui.collaboration.open = true;
+                            app.ui.collaboration.code = code.clone();
+                            if let Err(error) = app.run(
+                                "collab.room.join",
+                                serde_json::json!({"code":code,"name":app.ui.collaboration.name,"signalingUrl":photocraft_collab::DEFAULT_SIGNALING_URL}),
+                            ) {
+                                app.ui.collaboration.error = error;
+                            }
+                        }
+                        Err(error) => {
+                            app.ui.collaboration.open = true;
+                            app.ui.collaboration.error = error;
+                        }
+                        Ok(None) => {}
+                    }
                     listen_pen(&pen_target, app.stylus.feed.clone());
                     // The shared preferences tick applies the persisted catalog selection.
                     if let Some(rs) = cc.wgpu_render_state.clone()
@@ -260,4 +282,12 @@ fn mime_for(name: &str) -> &'static str {
         Some("psd" | "psb") => "image/vnd.adobe.photoshop",
         _ => "application/octet-stream",
     }
+}
+
+/// Public invitation URLs route into the Rust browser app without exposing room credentials.
+fn invited_room() -> Result<Option<String>, String> {
+    let location = web_sys::window().ok_or("No browser window")?.location();
+    let path = location.pathname().map_err(|e| format!("Cannot read invitation path: {e:?}"))?;
+    let query = location.search().map_err(|e| format!("Cannot read invitation query: {e:?}"))?;
+    collaboration_protocol::room_from_location(&path, &query)
 }

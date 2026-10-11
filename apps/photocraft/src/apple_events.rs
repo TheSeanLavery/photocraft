@@ -16,6 +16,7 @@ use photocraft_ui_egui::OsEvent;
 pub struct AppleEvents {
     _registration: Registration,
     inbox: Inbox,
+    urls: Option<(photocraft_tablet::macos::UrlRegistration, photocraft_tablet::macos::UrlInbox)>,
 }
 
 impl AppleEvents {
@@ -23,23 +24,39 @@ impl AppleEvents {
     /// that launched the app (Finder double-click) is caught too.
     pub fn install() -> Self {
         let (registration, inbox) = Registration::install();
-        Self { _registration: registration, inbox }
+        let urls = match photocraft_tablet::macos::UrlRegistration::install() {
+            Ok(urls) => Some(urls),
+            Err(error) => {
+                log::warn!("Room URL registration failed: {error}");
+                None
+            }
+        };
+        Self { _registration: registration, inbox, urls }
     }
 
     /// The queue the UI drains (see `Services::os_events`); events arriving later wake `ctx`.
     pub fn connect(&self, ctx: &egui::Context) -> photocraft_ui_egui::OsEventsFn {
-        let ctx = ctx.clone();
-        self.inbox.set_wake(move || ctx.request_repaint());
+        let wake_ctx = ctx.clone();
+        self.inbox.set_wake(move || wake_ctx.request_repaint());
         let inbox = self.inbox.clone();
+        let urls = self.urls.as_ref().map(|(_, inbox)| inbox.clone());
+        if let Some(urls) = &urls {
+            let ctx = ctx.clone();
+            urls.set_wake(move || ctx.request_repaint());
+        }
         Box::new(move || {
-            inbox
+            let mut events: Vec<_> = inbox
                 .drain()
                 .into_iter()
                 .map(|e| match e {
                     Event::Open(paths) => OsEvent::Open(paths.into_iter().map(|p| p.to_string_lossy().into_owned()).collect()),
                     Event::Quit => OsEvent::Quit,
                 })
-                .collect()
+                .collect();
+            if let Some(urls) = &urls {
+                events.extend(urls.drain().into_iter().map(OsEvent::JoinRoom));
+            }
+            events
         })
     }
 }

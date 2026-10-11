@@ -99,6 +99,24 @@ fn control_args_exit_code(errors: &[String]) -> Option<i32> {
     if errors.is_empty() { None } else { Some(2) }
 }
 
+fn join_argument(value: Option<String>) -> Result<String, String> {
+    let value = value.ok_or_else(|| "--join: missing room code or invite link".to_owned())?;
+    photocraft_collab::invite::parse(&value).map_err(|error| format!("--join: {error}"))?;
+    Ok(value)
+}
+
+#[cfg(test)]
+mod join_args_tests {
+    #[test]
+    fn validates_join_arguments_without_opening_as_files() {
+        assert_eq!(super::join_argument(Some("abcd12".into())).unwrap(), "abcd12");
+        assert!(super::join_argument(Some("photocraft://join/ABCD12".into())).is_ok());
+        assert!(super::join_argument(None).is_err());
+        assert!(super::join_argument(Some("--safe-gpu".into())).is_err());
+        assert!(super::join_argument(Some("https://evil.example/join/ABCD12".into())).is_err());
+    }
+}
+
 #[cfg(test)]
 mod control_port_tests {
     use super::{control_args_exit_code, parse_control_port};
@@ -143,11 +161,16 @@ fn main() -> eframe::Result {
     let mut automation_read_root = std::env::var_os("PHOTOCRAFT_AUTOMATION_READ_ROOT").map(std::path::PathBuf::from);
     let mut automation_write_root = std::env::var_os("PHOTOCRAFT_AUTOMATION_WRITE_ROOT").map(std::path::PathBuf::from);
     let mut files = Vec::new();
+    let mut join_invites = Vec::new();
     let mut safe_gpu = false;
     let mut in_window_menus = std::env::var_os("PHOTOCRAFT_IN_WINDOW_MENUS").is_some_and(|v| !v.is_empty() && v != "0");
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
+            "--join" => match join_argument(args.next()) {
+                Ok(value) => join_invites.push(value),
+                Err(error) => control_arg_errors.push(error),
+            },
             "--control" => match args.next() {
                 Some(value) => match parse_control_port(&value, "--control") {
                     Ok(port) => control_port = Some(port),
@@ -167,6 +190,16 @@ fn main() -> eframe::Result {
             }
             // Old macOS passes a process serial number when launched from Finder.
             _ if a.starts_with("-psn_") => {}
+            _ if a.starts_with("photocraft://") || a.starts_with(&format!("{}/join/", photocraft_collab::DEFAULT_SIGNALING_URL)) => {
+                match photocraft_collab::invite::parse(&a) {
+                    Ok(_) => join_invites.push(a),
+                    Err(error) => control_arg_errors.push(format!("room invite: {error}")),
+                }
+            }
+            _ if a.starts_with("file://") => match url::Url::parse(&a).ok().and_then(|url| url.to_file_path().ok()) {
+                Some(path) => files.push(path.to_string_lossy().into_owned()),
+                None => control_arg_errors.push("invalid local file URL".into()),
+            },
             _ => files.push(a),
         }
     }
@@ -418,6 +451,17 @@ fn main() -> eframe::Result {
             }
             #[cfg(not(target_os = "macos"))]
             let _ = in_window_menus;
+            if !join_invites.is_empty() {
+                let mut initial = std::mem::take(&mut join_invites);
+                let mut platform = app.services.os_events.take();
+                app.services.os_events = Some(Box::new(move || {
+                    let mut events: Vec<_> = initial.drain(..).map(photocraft_ui_egui::OsEvent::JoinRoom).collect();
+                    if let Some(platform) = &mut platform {
+                        events.extend(platform());
+                    }
+                    events
+                }));
+            }
             // Where file drags and drops are (winit 0.30 doesn't say).
             app.services.cursor_pos = cursor::service(cc);
             // Tablet pressure/tilt/eraser (winit drops them): the macOS monitor installed above

@@ -1187,6 +1187,7 @@ impl eframe::App for PhotocraftApp {
             panels::toolbar(self, ui);
         }
         if chrome {
+            collaboration_ui::dock(self, ui);
             panels::right_dock(self, ui);
         }
         let t = theme::Tokens::get(&ctx);
@@ -1199,7 +1200,6 @@ impl eframe::App for PhotocraftApp {
         preset_panels::windows(self, &ctx);
         type_panels_ui::windows(self, &ctx);
         analysis_ui::windows(self, &ctx);
-        collaboration_ui::window(self, &ctx);
         timeline_ui::windows(self, &ctx);
         workspace_ui::windows(self, &ctx);
         palette::show(self, &ctx);

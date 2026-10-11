@@ -30,6 +30,9 @@ fn main() {
 }
 
 #[cfg(test)]
+mod collaboration_protocol;
+
+#[cfg(test)]
 mod tests {
     /// A WebAssembly module that never downloads (or doesn't match the page) runs no Rust, so the
     /// page itself replaces the endless "Loading" with what may have gone wrong and a way to

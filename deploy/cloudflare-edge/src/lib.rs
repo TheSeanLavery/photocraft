@@ -1,101 +1,107 @@
-//! A stable Cloudflare address for the native Rust playtest room service.
+//! Rust-only Cloudflare hosting: R2 editor assets and one SQLite Durable Object per room.
 #![forbid(unsafe_code)]
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
-
 #[cfg(any(test, target_arch = "wasm32"))]
-fn allowed(method: &str, path: &str) -> bool {
-    match method {
-        "GET" | "HEAD" => matches!(path, "/" | "/health") || path.starts_with("/downloads/"),
-        "POST" => matches!(path, "/create" | "/join" | "/signal" | "/poll" | "/leave" | "/kick" | "/ice"),
-        _ => false,
-    }
+mod room;
+#[cfg(target_arch = "wasm32")]
+mod runtime;
+#[cfg(target_arch = "wasm32")]
+pub use runtime::PhotoCraftRoom;
+#[cfg(any(test, target_arch = "wasm32"))]
+fn room_route(path: &str) -> bool {
+    matches!(path, "/create" | "/join" | "/signal" | "/poll" | "/leave" | "/kick" | "/ice")
 }
 #[cfg(any(test, target_arch = "wasm32"))]
-fn origin_url(origin: &str, path: &str, query: Option<&str>) -> Result<String, &'static str> {
-    let mut url = url::Url::parse(origin).map_err(|_| "Invalid room origin")?;
-    if url.scheme() != "https" || url.host_str().is_none() || !url.username().is_empty() || url.password().is_some() {
-        return Err("Room origin must be an HTTPS hostname");
+fn asset_key(path: &str) -> Option<String> {
+    if path == "/" {
+        return Some("index.html".into());
     }
-    // set_path preserves the configured origin even for paths beginning with //.
-    url.set_path(path);
-    url.set_query(query);
-    url.set_fragment(None);
-    Ok(url.into())
+    let (path, prefix) = if let Some(path) = path.strip_prefix("/app/") { (path, "room-panel/") } else { (path.strip_prefix('/')?, "") };
+    if path.is_empty() {
+        return Some(format!("{prefix}index.html"));
+    }
+    let key = path;
+    if key.is_empty()
+        || key.contains('/')
+        || key.contains('%')
+        || key.contains("..")
+        || !key.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+    {
+        return None;
+    }
+    let ext = key.rsplit_once('.')?.1;
+    matches!(ext, "html" | "wasm" | "js" | "css" | "png" | "svg" | "ico" | "json").then(|| format!("{prefix}{key}"))
 }
-
+#[cfg(any(test, target_arch = "wasm32"))]
+fn join_destination(path: &str) -> Option<String> {
+    let code = path.strip_prefix("/join/")?;
+    if !(4..=12).contains(&code.len()) || !code.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return None;
+    }
+    Some(format!("/app/?room={}", code.to_ascii_uppercase()))
+}
+#[cfg(any(test, target_arch = "wasm32"))]
+fn normalize_ice(mut v: serde_json::Value) -> Result<serde_json::Value, &'static str> {
+    let servers = v.get_mut("iceServers").and_then(serde_json::Value::as_array_mut).ok_or("Invalid TURN response")?;
+    if servers.is_empty() || servers.len() > 16 {
+        return Err("Invalid TURN response");
+    }
+    for server in servers {
+        if !server.is_object() {
+            return Err("Invalid TURN server");
+        }
+        let urls = server.get("urls").and_then(serde_json::Value::as_array).ok_or("Invalid TURN URLs")?;
+        if urls.is_empty()
+            || urls.len() > 16
+            || urls.iter().any(|v| v.as_str().is_none_or(|s| s.len() > 256 || !(s.starts_with("stun:") || s.starts_with("turn:") || s.starts_with("turns:"))))
+        {
+            return Err("Invalid TURN URLs");
+        }
+        let turn = urls.iter().any(|v| v.as_str().is_some_and(|s| !s.starts_with("stun:")));
+        for k in ["username", "credential"] {
+            if server.get(k).is_none() {
+                server[k] = serde_json::json!("");
+            }
+            if server.get(k).and_then(serde_json::Value::as_str).is_none_or(|s| s.len() > 1024 || (turn && s.is_empty())) {
+                return Err("Invalid TURN credentials");
+            }
+        }
+    }
+    Ok(v)
+}
 #[cfg(target_arch = "wasm32")]
 #[worker::event(fetch)]
-async fn main(mut req: worker::Request, env: worker::Env, _ctx: worker::Context) -> worker::Result<worker::Response> {
-    use futures_util::StreamExt;
-    use worker::*;
-    let method = req.method();
-    let url = req.url()?;
-    if !allowed(method.as_ref(), url.path()) {
-        return Response::error("Route unavailable", 404);
-    }
-    let origin = match env.secret("ROOM_ORIGIN") {
-        Ok(origin) => origin.to_string(),
-        Err(_) => return Response::error("PhotoCraft room service is not configured", 503),
-    };
-    let upstream = match origin_url(&origin, url.path(), url.query()) {
-        Ok(upstream) => upstream,
-        Err(_) => return Response::error("PhotoCraft room service is not configured", 503),
-    };
-    let headers = Headers::new();
-    headers.set("User-Agent", "PhotoCraft-dev")?;
-    // Pass only headers needed by JSON signaling and resumable artifact downloads.
-    for name in ["content-type", "range", "if-range", "if-none-match", "if-modified-since"] {
-        if let Some(value) = req.headers().get(name)? {
-            headers.set(name, &value)?;
-        }
-    }
-    let mut init = RequestInit::new();
-    init.with_method(method.clone()).with_headers(headers).with_redirect(RequestRedirect::Manual);
-    if method == Method::Post {
-        if req.headers().get("content-length")?.and_then(|n| n.parse::<usize>().ok()).is_some_and(|n| n > 96 * 1024) {
-            return Response::error("Request too large", 413);
-        }
-        let mut body = Vec::new();
-        let mut stream = match req.stream() {
-            Ok(stream) => stream,
-            Err(_) => return Response::error("JSON body required", 400),
-        };
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            if chunk.len() > (96 * 1024usize).saturating_sub(body.len()) {
-                return Response::error("Request too large", 413);
-            }
-            body.extend_from_slice(&chunk);
-        }
-        let text = match String::from_utf8(body) {
-            Ok(text) => text,
-            Err(_) => return Response::error("UTF-8 JSON required", 400),
-        };
-        init.with_body(Some(wasm_bindgen::JsValue::from_str(&text)));
-    }
-    // Preserve streaming responses; never buffer downloadable application bundles.
-    match Fetch::Request(Request::new_with_init(&upstream, &init)?).send().await {
-        Ok(response) => Ok(response),
-        Err(_) => Response::error("PhotoCraft playtest host is offline. Try again when the host is running.", 503),
-    }
+async fn main(req: worker::Request, env: worker::Env, _ctx: worker::Context) -> worker::Result<worker::Response> {
+    runtime::fetch(req, env).await
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn only_room_and_download_routes_are_public() {
-        assert!(allowed("POST", "/ice"));
-        assert!(allowed("GET", "/downloads/PhotoCraft.zip"));
-        assert!(!allowed("GET", "/ice"));
-        assert!(!allowed("POST", "/engine.execute"));
-        assert!(!allowed("GET", "/private/token"));
+    fn assets_cannot_expose_private_or_traversed_paths() {
+        assert_eq!(asset_key("/"), Some("index.html".into()));
+        assert!(asset_key("/app-hash_bg.wasm").is_some());
+        for path in ["/../secret.json", "//private.json", "/private/token.json", "/secret.txt", "/%2e%2e.json"] {
+            assert!(asset_key(path).is_none());
+        }
+        assert!(!room_route("/engine.execute"));
     }
     #[test]
-    fn untrusted_paths_cannot_replace_the_origin() {
-        let url = origin_url("https://room.example", "//attacker.example/ice", None).unwrap();
-        assert_eq!(url::Url::parse(&url).unwrap().host_str(), Some("room.example"));
-        assert!(origin_url("http://room.example", "/ice", None).is_err());
-        assert!(origin_url("https://user:password@room.example", "/ice", None).is_err());
+    fn room_links_and_prefixed_assets_are_bounded() {
+        assert_eq!(join_destination("/join/deadBEEF").as_deref(), Some("/app/?room=DEADBEEF"));
+        assert_eq!(asset_key("/app/"), Some("room-panel/index.html".into()));
+        assert_eq!(asset_key("/app/editor-hash_bg.wasm"), Some("room-panel/editor-hash_bg.wasm".into()));
+        for bad in ["/join/", "/join/../../private", "/join/DEADBEEF/extra", "/join/DEAD%0A1", "/join/日本語", "/join/TOOLONGROOMCODE"] {
+            assert!(join_destination(bad).is_none());
+        }
+        for bad in ["/app/../private.json", "/app//secret.json", "/app/a/b.json"] {
+            assert!(asset_key(bad).is_none());
+        }
+    }
+    #[test]
+    fn stun_defaults_are_compatible_and_turn_requires_credentials() {
+        let v = normalize_ice(serde_json::json!({"iceServers":[{"urls":["stun:stun.cloudflare.com:3478"]}]})).unwrap();
+        assert_eq!(v["iceServers"][0]["username"], "");
+        assert!(normalize_ice(serde_json::json!({"iceServers":[{"urls":["turn:turn.cloudflare.com:3478"]}]})).is_err());
     }
 }
