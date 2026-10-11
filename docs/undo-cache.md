@@ -62,8 +62,10 @@ remain accounted and are reported.
 ## Vertical scrubber and branches
 
 The narrow History sidebar draws a thumbnail and action label per state, a
-stable color and number per branch, and a current-state marker. Its original
-state remains reachable with **Return to Original**. Dragging highlights a
+stable color and number per branch, and a current-state marker. New actions
+scroll into view while the sidebar is already at the bottom. Scrolling up
+keeps your browsing position; returning to the bottom resumes following. The
+original state remains reachable with **Return to Original**. Dragging highlights a
 destination; release commits one jump. Rows are virtualized. Previews are
 computed on a worker and cached separately (up to 256 GPU thumbnails), so
 painting the panel never hydrates cold documents.
