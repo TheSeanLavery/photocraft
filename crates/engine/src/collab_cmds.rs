@@ -38,7 +38,7 @@ fn room(s: &mut Session, p: &Value, create: bool) -> Result<Value> {
     }
     let server = p.get("signalingUrl").and_then(Value::as_str).unwrap_or(photocraft_collab::DEFAULT_SIGNALING_URL).to_string();
     s.collaboration = crate::collab::Collaboration::default();
-    s.collaboration.document_id = s.active().map(|st| st.doc.id);
+    s.collaboration.document_id = create.then(|| s.active().map(|st| st.doc.id)).flatten();
     s.collaboration.room = Some(RoomState::new(code.clone(), if create { peer.clone() } else { "host".into() }, peer.clone()));
     s.collaboration.network_intents.push(if create {
         crate::collab::NetworkIntent::Create { code: code.clone(), password, server }
@@ -250,6 +250,22 @@ pub fn specs() -> Vec<CommandSpec> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn joining_existing_document_keeps_pre_admission_edits_and_undo_private() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width":32,"height":32,"background":"transparent"})).unwrap();
+        let id = s.active().unwrap().doc.id;
+        s.execute("collab.room.join", json!({"code":"TEST01","peer":"guest"})).unwrap();
+        assert!(s.collaboration.document_id.is_none());
+        s.execute("layer.new.layer", json!({"name":"Private while joining"})).unwrap();
+        assert_eq!(s.active().unwrap().doc.layer_count(), 2);
+        assert!(s.collaboration.outbox.is_empty());
+        s.execute("edit.undo", json!({})).unwrap();
+        assert_eq!(s.active().unwrap().doc.layer_count(), 1);
+        assert_eq!(s.active().unwrap().doc.id, id);
+        assert!(s.collaboration.outbox.is_empty());
+        assert_eq!(s.collaboration.applied_revision, 0);
+    }
     #[test]
     fn guest_can_join_from_home_without_local_document() {
         let mut s = Session::new();

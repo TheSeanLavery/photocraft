@@ -38,9 +38,56 @@ pub(super) fn same_instance<T>(current: &std::rc::Rc<T>, expected: &std::rc::Rc<
 pub(super) fn release_credit(jobs: usize, bytes: usize, departed_jobs: usize, departed_bytes: usize) -> (usize, usize) {
     (jobs.saturating_sub(departed_jobs), bytes.saturating_sub(departed_bytes))
 }
+pub(super) fn receive_limit(restoring: bool) -> usize {
+    if restoring { 4096 } else { 1024 }
+}
+pub(super) fn pump_allowed(hidden: bool, restoring: bool) -> bool {
+    hidden || restoring
+}
+pub(super) fn restore_valid(generation: u64, current_generation: u64, same_instance: bool) -> bool {
+    generation == current_generation && same_instance
+}
+pub(super) fn retain_restore_window(restoring: bool, previously_enlarged: bool, depth: usize) -> bool {
+    restoring || (previously_enlarged && depth > receive_limit(false))
+}
+pub(super) fn commit_ready(pointer_down: bool, canvas_gesture: bool) -> bool {
+    !pointer_down && !canvas_gesture
+}
+pub(super) fn preserve_private_tab(join_started: Option<(u64, u64)>, active: Option<(u64, u64)>) -> bool {
+    active.is_some() && active != join_started
+}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn restore_completion_does_not_shrink_below_buffered_reliable_events() {
+        assert!(retain_restore_window(true, false, 0));
+        assert!(retain_restore_window(false, true, 2000));
+        assert!(!retain_restore_window(false, true, 1024));
+        assert!(!retain_restore_window(false, false, 1024));
+    }
+    #[test]
+    fn commit_waits_for_release_handling_and_preserves_chosen_private_tab() {
+        assert!(!commit_ready(true, true));
+        assert!(!commit_ready(false, true), "pointer release precedes canvas release handling");
+        assert!(commit_ready(false, false));
+        assert!(!preserve_private_tab(Some((1, 0)), Some((1, 0))));
+        assert!(preserve_private_tab(Some((1, 0)), Some((2, 0))));
+        assert!(preserve_private_tab(None, Some((2, 0))));
+        assert!(preserve_private_tab(Some((1, 0)), Some((1, 1))), "local edits during loading preserve the same private tab");
+        assert!(!preserve_private_tab(Some((1, 0)), None));
+    }
+    #[test]
+    fn visible_restore_pump_stops_on_completion_or_cancellation() {
+        assert!(pump_allowed(false, true));
+        assert!(!pump_allowed(false, false));
+        assert!(pump_allowed(true, false));
+        assert!(restore_valid(8, 8, true));
+        assert!(!restore_valid(8, 9, true));
+        assert!(!restore_valid(8, 8, false));
+        assert_eq!(receive_limit(true), 4096);
+        assert_eq!(receive_limit(false), 1024);
+    }
     #[test]
     fn queued_events_and_decode_replies_cannot_target_replacement() {
         let first = std::rc::Rc::new(1_u64);

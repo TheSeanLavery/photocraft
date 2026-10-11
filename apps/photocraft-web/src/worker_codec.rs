@@ -115,13 +115,16 @@ pub struct Codec {
     next: Cell<u64>,
     last_progress: Rc<Cell<f64>>,
     highest_reply: Rc<Cell<u64>>,
+    reply_deserialize_ms: Rc<Cell<f64>>,
+    reply_deserialize_max_ms: Rc<Cell<f64>>,
+    reply_bytes: Rc<Cell<usize>>,
     pub started: f64,
     _message: Closure<dyn FnMut(web_sys::MessageEvent)>,
     _error: Closure<dyn FnMut(web_sys::Event)>,
 }
 #[allow(dead_code)]
 impl Codec {
-    pub fn new(callback: impl Fn(Reply) + 'static) -> Result<Rc<Self>, String> {
+    pub fn new(callback: impl Fn(Reply) + 'static, current_generation: impl Fn(u64) -> bool + 'static) -> Result<Rc<Self>, String> {
         let worker = web_sys::Worker::new("photocraft-wire-worker_loader.js").map_err(js_error)?;
         let ready = Rc::new(Cell::new(false));
         let ready_callback = ready.clone();
@@ -131,16 +134,47 @@ impl Codec {
         let callback_progress = last_progress.clone();
         let highest_reply = Rc::new(Cell::new(0u64));
         let callback_highest = highest_reply.clone();
+        let reply_deserialize_ms = Rc::new(Cell::new(0.0));
+        let reply_deserialize_max_ms = Rc::new(Cell::new(0.0_f64));
+        let reply_bytes = Rc::new(Cell::new(0_usize));
+        let callback_deserialize = reply_deserialize_ms.clone();
+        let callback_max = reply_deserialize_max_ms.clone();
+        let callback_bytes = reply_bytes.clone();
         let callback = Rc::new(callback);
         let error_callback = callback.clone();
         let message = Closure::<dyn FnMut(web_sys::MessageEvent)>::new(move |event: web_sys::MessageEvent| {
             callback_progress.set(js_sys::Date::now());
-            let reply = serde_wasm_bindgen::from_value::<Reply>(event.data()).unwrap_or_else(|error| Reply {
+            let data = event.data();
+            let metadata = (|| -> Result<(u64, u64), String> {
+                let generation = serde_wasm_bindgen::from_value(js_sys::Reflect::get(&data, &JsValue::from_str("generation")).map_err(js_error)?)
+                    .map_err(|e| e.to_string())?;
+                let id = serde_wasm_bindgen::from_value(js_sys::Reflect::get(&data, &JsValue::from_str("id")).map_err(js_error)?).map_err(|e| e.to_string())?;
+                Ok((generation, id))
+            })();
+            if let Ok((generation, id)) = metadata
+                && id != 0
+                && !current_generation(generation)
+            {
+                callback(Reply { generation, id, elapsed_ms: 0.0, result: ResultData::Removed });
+                return;
+            }
+            callback_bytes.set(
+                js_sys::Reflect::get(&data, &JsValue::from_str("ipcBytes"))
+                    .ok()
+                    .and_then(|v| v.as_f64())
+                    .filter(|n| n.is_finite() && *n >= 0.0 && *n <= policy::MAX_SINGLE as f64)
+                    .map_or(0, |n| n as usize),
+            );
+            let started = js_sys::Date::now();
+            let reply = serde_wasm_bindgen::from_value::<Reply>(data).unwrap_or_else(|error| Reply {
                 generation: 0,
                 id: 0,
                 elapsed_ms: 0.0,
                 result: ResultData::Failed(error.to_string()),
             });
+            let elapsed = (js_sys::Date::now() - started).max(0.0);
+            callback_deserialize.set(elapsed);
+            callback_max.set(callback_max.get().max(elapsed));
             if reply.id != 0 {
                 callback_highest.set(callback_highest.get().max(reply.id));
                 if let Some(task) = callback_pending.borrow_mut().get_mut(&reply.id) {
@@ -168,12 +202,18 @@ impl Codec {
             pending,
             last_progress,
             highest_reply,
+            reply_deserialize_ms,
+            reply_deserialize_max_ms,
+            reply_bytes,
             bytes: Cell::new(0),
             next: Cell::new(0),
             started: js_sys::Date::now(),
             _message: message,
             _error: error,
         }))
+    }
+    pub fn conversion_metrics(&self) -> serde_json::Value {
+        serde_json::json!({"replyDeserializeMs":self.reply_deserialize_ms.get(),"maxReplyDeserializeMs":self.reply_deserialize_max_ms.get(),"replyStructuredBytes":self.reply_bytes.get()})
     }
     pub fn submit(&self, generation: u64, task: Task) -> Result<(u64, usize), String> {
         let id = self.next.get().checked_add(1).ok_or("Worker id exhausted")?;
@@ -317,7 +357,8 @@ pub fn run() -> Result<(), String> {
         };
         let reply = Reply { generation: gen_id, id, elapsed_ms: js_sys::Date::now() - started, result };
         let sent = serialize(&reply).and_then(|value| {
-            let (_, transfer) = envelope(&value)?;
+            let (bytes, transfer) = envelope(&value)?;
+            js_sys::Reflect::set(&value, &JsValue::from_str("ipcBytes"), &JsValue::from_f64(bytes as f64)).map_err(js_error)?;
             reply_scope.post_message_with_transfer(&value, &transfer).map_err(js_error)
         });
         if let Err(error) = sent {

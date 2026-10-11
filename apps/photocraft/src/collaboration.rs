@@ -11,6 +11,8 @@ const FRAME_WORK_BUDGET: Duration = Duration::from_millis(4);
 const MAX_PENDING: usize = 16_384;
 const MAX_OUTGOING_JOBS: usize = 4096;
 const MAX_OUTGOING_BYTES: usize = wire::MAX_TRANSFER;
+const MAX_RESTORE_PACKETS: usize = 4096;
+const MAX_RESTORE_PACKET_BYTES: usize = 64 << 20;
 /// Remove only the accepted FIFO prefix, including when a later send hits backpressure.
 fn enqueue_prefix<T>(queue: &mut Vec<T>, budget: Duration, mut send: impl FnMut(&T) -> Result<(), String>) -> (usize, Result<(), String>) {
     let started = Instant::now();
@@ -43,6 +45,114 @@ impl Outgoing {
     }
 }
 
+enum RestoreUpdate {
+    Progress { progress: photocraft_engine::collab::CheckpointProgress, prepare_ms: f64, max_step_ms: f64 },
+    Complete { restore: Box<photocraft_engine::collab::CheckpointRestore>, prepare_ms: f64, max_step_ms: f64 },
+    Failed(String),
+}
+struct NativeRestore {
+    updates: std::sync::mpsc::Receiver<RestoreUpdate>,
+    cancelled: Arc<std::sync::atomic::AtomicBool>,
+    room: RoomState,
+    progress: photocraft_engine::collab::CheckpointProgress,
+    complete: Option<Box<photocraft_engine::collab::CheckpointRestore>>,
+    prepare_ms: f64,
+    max_step_ms: f64,
+}
+impl Drop for NativeRestore {
+    fn drop(&mut self) {
+        self.cancelled.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+impl NativeRestore {
+    fn start(checkpoint: photocraft_collab::JournalCheckpoint, room: RoomState) -> Result<Self, String> {
+        let total = checkpoint.entries.len().saturating_mul(2);
+        let (tx, updates) = std::sync::mpsc::sync_channel(2);
+        let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let cancel = cancelled.clone();
+        std::thread::Builder::new()
+            .name("photocraft-checkpoint-restore".into())
+            .spawn(move || {
+                let result = (|| -> Result<RestoreUpdate, String> {
+                    let preparing = Instant::now();
+                    let mut restore = photocraft_engine::collab::CheckpointRestore::new(checkpoint).map_err(|e| e.to_string())?;
+                    let prepare_ms = preparing.elapsed().as_secs_f64() * 1000.0;
+                    let mut max_step_ms = 0.0f64;
+                    let mut units = 0usize;
+                    loop {
+                        if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                            return Err("Checkpoint restoration cancelled".into());
+                        }
+                        let started = Instant::now();
+                        let progress = restore.step(1).map_err(|e| e.to_string())?;
+                        max_step_ms = max_step_ms.max(started.elapsed().as_secs_f64() * 1000.0);
+                        if progress.done {
+                            return Ok(RestoreUpdate::Complete { restore: Box::new(restore), prepare_ms, max_step_ms });
+                        }
+                        units = units.saturating_add(1);
+                        if units.is_multiple_of(32) {
+                            let _ = tx.try_send(RestoreUpdate::Progress { progress, prepare_ms, max_step_ms });
+                        }
+                    }
+                })();
+                let update = match result {
+                    Ok(update) => update,
+                    Err(error) => RestoreUpdate::Failed(error),
+                };
+                let _ = tx.send(update);
+            })
+            .map_err(|e| format!("Cannot start checkpoint restoration: {e}"))?;
+        Ok(Self {
+            updates,
+            cancelled,
+            room,
+            progress: photocraft_engine::collab::CheckpointProgress { completed: 0, total, done: false, work_units: 0 },
+            complete: None,
+            prepare_ms: 0.0,
+            max_step_ms: 0.0,
+        })
+    }
+    fn poll(&mut self) -> Result<(), String> {
+        if self.complete.is_some() {
+            return Ok(());
+        }
+        for _ in 0..2 {
+            match self.updates.try_recv() {
+                Ok(RestoreUpdate::Progress { progress, prepare_ms, max_step_ms }) => {
+                    self.progress = progress;
+                    self.prepare_ms = prepare_ms;
+                    self.max_step_ms = max_step_ms;
+                }
+                Ok(RestoreUpdate::Complete { restore, prepare_ms, max_step_ms }) => {
+                    self.progress = restore.progress();
+                    self.complete = Some(restore);
+                    self.prepare_ms = prepare_ms;
+                    self.max_step_ms = max_step_ms;
+                    return Ok(());
+                }
+                Ok(RestoreUpdate::Failed(error)) => return Err(error),
+                Err(std::sync::mpsc::TryRecvError::Empty) => return Ok(()),
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => return Err("Checkpoint restoration worker stopped before completion".into()),
+            }
+        }
+        Ok(())
+    }
+    #[cfg(test)]
+    fn completed(restore: photocraft_engine::collab::CheckpointRestore, room: RoomState) -> Self {
+        let (_, updates) = std::sync::mpsc::sync_channel(2);
+        let progress = restore.progress();
+        Self {
+            updates,
+            cancelled: Arc::new(std::sync::atomic::AtomicBool::new(false)),
+            room,
+            progress,
+            complete: Some(Box::new(restore)),
+            prepare_ms: 0.0,
+            max_step_ms: 0.0,
+        }
+    }
+}
+
 struct Bridge {
     worker: Worker,
     connected: HashSet<String>,
@@ -58,6 +168,12 @@ struct Bridge {
     processed_incoming: usize,
     queued_outgoing: usize,
     worst_tick_ms: f64,
+    restore: Option<NativeRestore>,
+    restore_packets: VecDeque<Event>,
+    restore_packet_bytes: usize,
+    max_restore_step_ms: f64,
+    checkpoint_prepare_ms: f64,
+    join_started_doc: Option<(photocraft_doc::DocId, u64)>,
 }
 
 pub fn attach(mut app: PhotocraftApp) -> PhotocraftApp {
@@ -78,6 +194,12 @@ pub fn attach(mut app: PhotocraftApp) -> PhotocraftApp {
                 processed_incoming: 0,
                 queued_outgoing: 0,
                 worst_tick_ms: 0.0,
+                restore: None,
+                restore_packets: VecDeque::new(),
+                restore_packet_bytes: 0,
+                max_restore_step_ms: 0.0,
+                checkpoint_prepare_ms: 0.0,
+                join_started_doc: None,
             };
             app = app.with_collaboration_frame_hook(Box::new(move |app| {
                 if let Err(error) = bridge.tick(app) {
@@ -212,6 +334,11 @@ impl Bridge {
             "clientOpsQueued": app.session.collaboration.outbox.len(),
             "outgoingJobs": self.outgoing.values().map(VecDeque::len).sum::<usize>(),
             "bufferedRequests": self.pending.len(),
+            "checkpointRestorePending": self.restore.is_some(),
+            "checkpointPacketsQueued": self.restore_packets.len(),
+            "checkpointPacketBytes": self.restore_packet_bytes,
+            "maxRestoreStepMs": self.max_restore_step_ms,
+            "checkpointPrepareMs": self.checkpoint_prepare_ms,
             "processedIncoming": self.processed_incoming,
             "queuedOutgoing": self.queued_outgoing,
             "tickMs": tick_ms,
@@ -221,6 +348,9 @@ impl Bridge {
     }
     fn tick_inner(&mut self, app: &mut PhotocraftApp) -> Result<(), String> {
         for intent in std::mem::take(&mut app.session.collaboration.network_intents) {
+            self.restore = None;
+            self.restore_packets.clear();
+            self.restore_packet_bytes = 0;
             self.connected.clear();
             self.pending_bootstraps.clear();
             self.decoder = Decoder::default();
@@ -245,6 +375,8 @@ impl Bridge {
                     Request::Create { server, password, ice_servers }
                 }
                 NetworkIntent::Join { code, password, server, .. } => {
+                    self.join_started_doc = app.session.active().map(|state| (state.doc.id, state.revision));
+                    app.session.collaboration.document_id = None;
                     app.ui.collaboration.signaling_url = server.clone();
                     app.ui.collaboration.transport_status = "Joining room…".into();
                     Request::Join { server, code, password, ice_servers }
@@ -261,75 +393,47 @@ impl Bridge {
             if count > 0 && receiving_started.elapsed() >= FRAME_WORK_BUDGET {
                 break;
             }
-            let Ok(event) = self.worker.events.try_recv() else {
-                break;
+            let event = if self.restore.is_none() && !self.restore_packets.is_empty() {
+                let Some(event) = self.restore_packets.pop_front() else {
+                    break;
+                };
+                if let Event::Packet { payload, .. } = &event {
+                    self.restore_packet_bytes = self.restore_packet_bytes.saturating_sub(payload.len());
+                }
+                event
+            } else {
+                let Ok(event) = self.worker.events.try_recv() else {
+                    break;
+                };
+                event
             };
             self.processed_incoming += 1;
-            match event {
-                Event::Joined { admission } => {
-                    app.session.collaboration = Collaboration::default();
-                    app.session.collaboration.document_id = app.session.active().map(|s| s.doc.id);
-                    app.session.collaboration.room = Some(RoomState::new(admission.code.clone(), admission.host.clone(), admission.peer.clone()));
-                    app.ui.collaboration.code = admission.code.clone();
-                    app.ui.collaboration.password.clear();
-                    app.ui.collaboration.transport_status =
-                        if admission.peer == admission.host { "Hosting — WebRTC ready".into() } else { "Connecting to host…".into() };
-                    self.admission = Some(admission);
-                    if self.host() {
-                        app.ui.collaboration.transport_pending = false;
-                        publish_profile(app)?;
-                    }
+            self.handle_event(app, event)?;
+        }
+        if let Some(mut pending) = self.restore.take() {
+            if let Err(error) = pending.poll() {
+                self.abandon_restore(app);
+                return Err(error);
+            }
+            self.max_restore_step_ms = self.max_restore_step_ms.max(pending.max_step_ms);
+            self.checkpoint_prepare_ms = pending.prepare_ms;
+            if pending.complete.is_some() && !app.canvas_gesture_active() {
+                let chosen_doc =
+                    app.session.active().map(|state| (state.doc.id, state.revision)).filter(|state| Some(*state) != self.join_started_doc).map(|state| state.0);
+                let restore = pending.complete.take().ok_or("Checkpoint completion missing")?;
+                if let Err(error) = app.session.collaboration_commit_checkpoint(*restore, pending.room.clone()) {
+                    self.abandon_restore(app);
+                    return Err(error.to_string());
                 }
-                Event::PeerConnected { peer } => {
-                    if self.host() {
-                        if !self.connected.contains(&peer) && !self.pending_bootstraps.contains(&peer) {
-                            self.pending_bootstraps.push_back(peer);
-                        }
-                    } else {
-                        self.connected.insert(peer);
-                    }
+                if let Some(index) = chosen_doc.and_then(|id| app.session.documents().iter().position(|state| state.doc.id == id)) {
+                    app.session.set_active(index);
                 }
-                Event::PeerDisconnected { peer } => {
-                    self.connected.remove(&peer);
-                    self.outgoing.remove(&peer);
-                    self.pending_bootstraps.retain(|p| p != &peer);
-                    self.decoder.remove(&peer);
-                    if let Some(room) = app.session.collaboration.room.as_mut() {
-                        room.members.remove(&peer);
-                    }
-                    if self.host() {
-                        app.session.collaboration.sequencer.forget_peer(&peer);
-                        self.broadcast(None, ChannelKind::Edits, &Wire::Left(peer))?;
-                    } else if self.admission.as_ref().is_some_and(|a| a.host == peer) {
-                        app.ui.collaboration.transport_status = "Host disconnected — shared session stopped".into();
-                        app.ui.collaboration.error = "The host left. The received drawing is preserved locally; rejoin a new room to collaborate.".into();
-                        app.session.collaboration = Default::default();
-                        app.ui.collaboration.transport_pending = false;
-                        self.admission = None;
-                        self.pending.clear();
-                        self.outgoing.clear();
-                        self.outgoing_next = None;
-                        self.voice = None;
-                    }
-                }
-                Event::Packet { peer, channel, payload } => {
-                    if let Some(wire) = self.decode(&peer, channel, &payload)? {
-                        self.receive(app, &peer, channel, wire)?;
-                    }
-                }
-                Event::Error(error) => {
-                    app.ui.collaboration.error = error;
-                    if self.admission.is_none() {
-                        app.ui.collaboration.transport_pending = false;
-                        app.session.collaboration = Default::default();
-                        app.ui.collaboration.transport_status = "Disconnected — room admission failed".into();
-                    }
-                }
-                Event::Closed => {
-                    app.ui.collaboration.transport_pending = false;
-                    app.session.collaboration = Default::default();
-                    app.ui.collaboration.transport_status = "Disconnected".into();
-                }
+                app.ui.collaboration.transport_pending = false;
+                app.ui.collaboration.transport_status = "Connected — WebRTC drawing".into();
+                publish_profile(app)?;
+            } else {
+                app.ui.collaboration.transport_status = format!("Restoring room drawing… {}/{}", pending.progress.completed, pending.progress.total);
+                self.restore = Some(pending);
             }
         }
         if self.host() && !self.pending_bootstraps.is_empty() {
@@ -375,6 +479,112 @@ impl Bridge {
         self.flush_pending()?;
         Ok(())
     }
+    fn handle_event(&mut self, app: &mut PhotocraftApp, event: Event) -> Result<(), String> {
+        match event {
+            Event::Joined { admission } => {
+                self.restore = None;
+                self.restore_packets.clear();
+                self.restore_packet_bytes = 0;
+                app.session.collaboration = Collaboration::default();
+                app.session.collaboration.document_id = if admission.peer == admission.host { app.session.active().map(|s| s.doc.id) } else { None };
+                app.session.collaboration.room = Some(RoomState::new(admission.code.clone(), admission.host.clone(), admission.peer.clone()));
+                app.ui.collaboration.code = admission.code.clone();
+                app.ui.collaboration.password.clear();
+                app.ui.collaboration.transport_status =
+                    if admission.peer == admission.host { "Hosting — WebRTC ready".into() } else { "Connecting to host…".into() };
+                self.admission = Some(admission);
+                if self.host() {
+                    app.ui.collaboration.transport_pending = false;
+                    publish_profile(app)?;
+                }
+            }
+            Event::PeerConnected { peer } => {
+                if self.host() {
+                    if !self.connected.contains(&peer) && !self.pending_bootstraps.contains(&peer) {
+                        self.pending_bootstraps.push_back(peer);
+                    }
+                } else {
+                    self.connected.insert(peer);
+                }
+            }
+            Event::PeerDisconnected { peer } => {
+                self.connected.remove(&peer);
+                self.outgoing.remove(&peer);
+                self.pending_bootstraps.retain(|p| p != &peer);
+                self.decoder.remove(&peer);
+                if let Some(room) = app.session.collaboration.room.as_mut() {
+                    room.members.remove(&peer);
+                }
+                if self.host() {
+                    app.session.collaboration.sequencer.forget_peer(&peer);
+                    self.broadcast(None, ChannelKind::Edits, &Wire::Left(peer))?;
+                } else if self.admission.as_ref().is_some_and(|a| a.host == peer) {
+                    self.restore = None;
+                    self.restore_packets.clear();
+                    self.restore_packet_bytes = 0;
+                    app.ui.collaboration.transport_status = "Host disconnected — shared session stopped".into();
+                    app.ui.collaboration.error = "The host left. The received drawing is preserved locally; rejoin a new room to collaborate.".into();
+                    app.session.collaboration = Default::default();
+                    app.ui.collaboration.transport_pending = false;
+                    self.admission = None;
+                    self.pending.clear();
+                    self.outgoing.clear();
+                    self.outgoing_next = None;
+                    self.voice = None;
+                }
+            }
+            Event::Packet { peer, channel, payload } => {
+                if self.restore.is_some() {
+                    // Cursor/voice are ephemeral while admission is incomplete.
+                    if channel != ChannelKind::Edits {
+                        return Ok(());
+                    }
+                    if self.restore_packets.len() >= MAX_RESTORE_PACKETS || self.restore_packet_bytes.saturating_add(payload.len()) > MAX_RESTORE_PACKET_BYTES {
+                        self.abandon_restore(app);
+                        return Err("Checkpoint pending edit queue exceeded budget; rejoin the room".into());
+                    }
+                    self.restore_packet_bytes = self.restore_packet_bytes.saturating_add(payload.len());
+                    self.restore_packets.push_back(Event::Packet { peer, channel, payload });
+                    return Ok(());
+                }
+                if let Some(wire) = self.decode(&peer, channel, &payload)? {
+                    self.receive(app, &peer, channel, wire)?;
+                }
+            }
+            Event::Error(error) => {
+                app.ui.collaboration.error = error;
+                if self.admission.is_none() {
+                    self.restore = None;
+                    self.restore_packets.clear();
+                    self.restore_packet_bytes = 0;
+                    app.ui.collaboration.transport_pending = false;
+                    app.session.collaboration = Default::default();
+                    app.ui.collaboration.transport_status = "Disconnected — room admission failed".into();
+                }
+            }
+            Event::Closed => {
+                self.restore = None;
+                self.restore_packets.clear();
+                self.restore_packet_bytes = 0;
+                app.ui.collaboration.transport_pending = false;
+                app.session.collaboration = Default::default();
+                app.ui.collaboration.transport_status = "Disconnected".into();
+            }
+        }
+        Ok(())
+    }
+    fn abandon_restore(&mut self, app: &mut PhotocraftApp) {
+        self.restore = None;
+        self.restore_packets.clear();
+        self.restore_packet_bytes = 0;
+        self.admission = None;
+        // Queued host edits must never apply to the pre-join local document after
+        // an invalid checkpoint. Close the worker through the normal intent path.
+        app.session.collaboration = Default::default();
+        app.session.collaboration.network_intents.push(NetworkIntent::Leave);
+        app.ui.collaboration.transport_pending = false;
+        app.ui.collaboration.transport_status = "Disconnected — room restoration failed".into();
+    }
     fn receive(&mut self, app: &mut PhotocraftApp, peer: &str, channel: ChannelKind, wire: Wire) -> Result<(), String> {
         let admission = self.admission.as_ref().ok_or("Packet received outside room")?;
         let host_id = admission.host.clone();
@@ -382,31 +592,22 @@ impl Bridge {
             return Err("Message came from a non-host peer".into());
         }
         match wire {
-            Wire::Checkpoint { document, mut room, checkpoint } if !self.host() && channel == ChannelKind::Edits => {
-                if app.session.collaboration.applied_revision != 0 {
+            Wire::Checkpoint { document: _, mut room, checkpoint } if !self.host() && channel == ChannelKind::Edits => {
+                if app.session.collaboration.applied_revision != 0 || self.restore.is_some() {
                     return Err("Unexpected duplicate checkpoint".into());
                 }
-                let limits =
-                    photocraft_format::LoadOptions { max_manifest_bytes: 8 << 20, max_blob_bytes: 64 << 20, max_total_bytes: 512 << 20, preserve_ids: true };
-                let anchor = if document.is_empty() { &checkpoint.baseline } else { &document };
-                let mut doc = photocraft_format::load_from_bytes_with(anchor, &limits).map_err(|e| e.to_string())?;
-                doc.selection = None;
-                doc.quick_mask = None;
                 room.local_peer = admission.peer.clone();
                 room.host = host_id;
                 room.code = admission.code.clone();
-                app.session.collaboration = Collaboration::default();
-                app.session.add_document(doc, None);
-                app.session.collaboration.document_id = app.session.active().map(|s| s.doc.id);
-                app.session.collaboration.room = Some(room);
-                app.session.collaboration_install_checkpoint(checkpoint).map_err(|e| e.to_string())?;
-                if let Some(document) = app.session.active_mut() {
-                    Arc::make_mut(&mut document.doc).selection = None;
-                    Arc::make_mut(&mut document.doc).quick_mask = None;
-                }
-                publish_profile(app)?;
-                app.ui.collaboration.transport_pending = false;
-                app.ui.collaboration.transport_status = "Connected — WebRTC drawing".into();
+                self.restore = Some(match NativeRestore::start(checkpoint, room) {
+                    Ok(restore) => restore,
+                    Err(error) => {
+                        self.abandon_restore(app);
+                        return Err(error);
+                    }
+                });
+                app.ui.collaboration.transport_pending = true;
+                app.ui.collaboration.transport_status = "Restoring room drawing…".into();
             }
             Wire::Bootstrap { document, events, mut room } if !self.host() && channel == ChannelKind::Edits => {
                 if app.session.collaboration.applied_revision != 0 {
@@ -552,6 +753,12 @@ mod tests {
             processed_incoming: 0,
             queued_outgoing: 0,
             worst_tick_ms: 0.0,
+            restore: None,
+            restore_packets: VecDeque::new(),
+            restore_packet_bytes: 0,
+            max_restore_step_ms: 0.0,
+            checkpoint_prepare_ms: 0.0,
+            join_started_doc: None,
         }
     }
     #[test]
@@ -583,6 +790,82 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(accepted, 1);
         assert_eq!(queue, vec![2, 3]);
+    }
+    #[test]
+    fn staged_checkpoint_lifecycle_cancels_pending_fifo_without_touching_private_document() {
+        for closed in [false, true] {
+            let mut source = photocraft_engine::Session::new();
+            source.execute("file.new", json!({"width":64,"height":64})).unwrap();
+            source.execute("collab.room.create", json!({"peer":"host","code":"TEST01"})).unwrap();
+            let mut room = source.collaboration.room.clone().unwrap();
+            room.local_peer = "guest".into();
+            let mut restore = photocraft_engine::collab::CheckpointRestore::new(source.collaboration_checkpoint().unwrap()).unwrap();
+            while !restore.step(1).unwrap().done {}
+            let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+            app.run("file.new", json!({"width":32,"height":32})).unwrap();
+            let id = app.session.active().unwrap().doc.id;
+            let mut bridge = bridge();
+            bridge.admission = Some(photocraft_collab::signaling::Admission {
+                code: "TEST01".into(),
+                peer: "guest".into(),
+                host: "host".into(),
+                token: "synthetic-test".into(),
+            });
+            bridge.restore = Some(NativeRestore::completed(restore, room));
+            bridge.handle_event(&mut app, Event::Packet { peer: "host".into(), channel: ChannelKind::Edits, payload: vec![1] }).unwrap();
+            bridge.handle_event(&mut app, Event::Packet { peer: "host".into(), channel: ChannelKind::Edits, payload: vec![2] }).unwrap();
+            assert_eq!(bridge.restore_packets.len(), 2);
+            assert_eq!(bridge.restore_packet_bytes, 2);
+            bridge.handle_event(&mut app, if closed { Event::Closed } else { Event::PeerDisconnected { peer: "host".into() } }).unwrap();
+            assert!(bridge.restore.is_none());
+            assert!(bridge.restore_packets.is_empty());
+            assert_eq!(bridge.restore_packet_bytes, 0);
+            assert_eq!(app.session.documents().len(), 1);
+            assert_eq!(app.session.active().unwrap().doc.id, id);
+            bridge.worker.requests.try_send(Request::Close).unwrap();
+        }
+    }
+    #[test]
+    fn staged_checkpoint_defers_transform_and_preserves_new_private_revision_or_tab() {
+        for switch_tab in [false, true] {
+            let mut source = photocraft_engine::Session::new();
+            source.execute("file.new", json!({"width":64,"height":64})).unwrap();
+            source.execute("collab.room.create", json!({"peer":"host","code":"TEST01"})).unwrap();
+            let mut room = source.collaboration.room.clone().unwrap();
+            room.local_peer = "guest".into();
+            let mut restore = photocraft_engine::collab::CheckpointRestore::new(source.collaboration_checkpoint().unwrap()).unwrap();
+            while !restore.step(1).unwrap().done {}
+            let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+            app.run("file.new", json!({"width":64,"height":64})).unwrap();
+            let mut bridge = bridge();
+            bridge.join_started_doc = app.session.active().map(|state| (state.doc.id, state.revision));
+            bridge.restore = Some(NativeRestore::completed(restore, room));
+            if switch_tab {
+                app.run("file.new", json!({"width":32,"height":32})).unwrap();
+            } else {
+                app.run("layer.new.layer", json!({"name":"Private edit during restore"})).unwrap();
+            }
+            let chosen = app.session.active().unwrap().doc.id;
+            let count = app.session.documents().len();
+            app.ui.transform = Some(
+                serde_json::from_value(
+                    json!({"session":1,"layer":1,"rect":[0,0,8,8],"quad":[[0,0],[8,0],[8,8],[0,8]],"pivot":[4,4],"interpolation":"bilinear"}),
+                )
+                .unwrap(),
+            );
+            bridge.tick_inner(&mut app).unwrap();
+            assert!(bridge.restore.is_some());
+            assert_eq!(app.session.documents().len(), count);
+            assert_eq!(app.session.active().unwrap().doc.id, chosen);
+            app.ui.transform = None;
+            bridge.tick_inner(&mut app).unwrap();
+            assert!(bridge.restore.is_none());
+            assert_eq!(app.session.documents().len(), count + 1);
+            assert_eq!(app.session.active().unwrap().doc.id, chosen);
+            assert_ne!(app.session.collaboration.document_id, Some(chosen));
+            assert!(!app.ui.collaboration.transport_pending);
+            bridge.worker.requests.try_send(Request::Close).unwrap();
+        }
     }
     #[test]
     fn reliable_fanout_shares_bytes_and_preserves_per_peer_order() {

@@ -309,3 +309,24 @@ stateDiagram-v2
 ```
 
 Five peer-policy regressions and four Worker policy regressions passed on Linux. Strict browser WASM Clippy passed for both binaries, all targets and HEIF. Live disconnect validation remains pending at the time of this source entry. Current-main integration separately passed 870 engine, 1,019 UI, 17 collaboration tests, strict native Clippy, adversarial command tests, layers, and 2,080 corpus tests plus 14 imported-format regressions on Linux.
+
+### Guest checkpoint restoration
+
+A fresh Chrome late join on `a1deb2fb` reproduced a 57,050.7 ms synchronous checkpoint apply on a retained 1920×1080 RGB/8 room at revision 3484. The codec Worker took 110 ms, network queues drained, and the maximum logic-frame gap was 57,240 ms. CPU throttling was 1× and network throttling was disabled. These guest measurements explain a join freeze that the earlier host-only samples did not cover. Sanitized evidence is in [`collaboration-checkpoint-join-before-2026-10-11.json`](evidence/collaboration-checkpoint-join-before-2026-10-11.json).
+
+Browser restoration builds a detached candidate with incremental journal validation, renderer construction, and tile composition. Desktop restoration runs the same builder on a dedicated cancellable background thread, including baseline decoding; bounded progress messages keep loading visible. The candidate commits atomically only after successful restoration; cancellation or failure preserves existing documents. Reliable post-checkpoint edits wait until commit and then resume in order, while connection lifecycle events can cancel loading immediately.
+
+```mermaid
+flowchart LR
+    A[Worker decodes checkpoint] --> B[Validate generation and admission]
+    B --> C[Detached restore candidate]
+    C --> D[Bounded points, mask samples and tiles]
+    D --> E{Complete?}
+    E -->|No| F[Yield to UI and show progress]
+    F --> D
+    E -->|Yes| G[Atomic document and history commit]
+    G --> H[Apply queued canonical edits in order]
+    C -->|Leave or error| I[Discard candidate; retain existing documents]
+```
+
+The browser work quota limits small rendering units rather than guaranteeing a hard wall-clock cap. Baseline format decoding, individual semantic commands, and the first GPU upload remain coarse operations and require separate measurements. Existing local documents stay detached from the joining room and retain private edits/history throughout loading. Commit waits for active gestures or document dialogs and preserves a private tab edited or selected during loading. Final staged-restore validation is pending.

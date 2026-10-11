@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-11",
+  "sourceCommit": "a1deb2fb",
+  "fixture": {
+    "width": 1920,
+    "height": 1080,
+    "depth": "RGB/8",
+    "revision": 3484,
+    "notes": "Retained overlapping pressure paint/erase journal; four independent layers and Background."
+  },
+  "browser": "Isolated Chrome DevTools context",
+  "cpuThrottling": 1,
+  "networkThrottling": "none",
+  "checkpointApplyMs": 57050.7,
+  "worstCollaborationTickMs": 57050.9,
+  "maxLogicFrameIntervalMs": 57240,
+  "codecWorkerMs": 110,
+  "networkQueuesDrained": true,
+  "scope": "Guest late join; host steady-state timings do not bound checkpoint restoration."
+}

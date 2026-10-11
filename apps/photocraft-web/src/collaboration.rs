@@ -3,7 +3,7 @@ use photocraft_collab::{
     Operation, Presence, Profile, RoomState,
     wire::{self, Decoder, Wire},
 };
-use photocraft_engine::collab::{Collaboration, NetworkIntent};
+use photocraft_engine::collab::{CheckpointRestore, Collaboration, NetworkIntent};
 use photocraft_ui_egui::PhotocraftApp;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -18,7 +18,6 @@ use wasm_bindgen_futures::{JsFuture, spawn_local};
 use web_sys::{RtcConfiguration, RtcDataChannel, RtcDataChannelInit, RtcDataChannelState, RtcPeerConnection, RtcSdpType, RtcSessionDescriptionInit};
 #[path = "peer_policy.rs"]
 mod peer_policy;
-const MAX_EVENTS: usize = 1024;
 // Encoded queues retain the protocol cap plus conservative structured-clone metadata credit.
 const MAX_QUEUE_BYTES: usize = super::worker_codec::policy::MAX_SINGLE;
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -88,6 +87,7 @@ enum Event {
 struct Transport {
     generation: u64,
     next_instance: u64,
+    restoring: bool,
     links: BTreeMap<String, Link>,
     events: VecDeque<Event>,
     worker_events: VecDeque<Event>,
@@ -103,6 +103,14 @@ struct Job {
     index: usize,
     bulk: bool,
     queued_at: f64,
+}
+struct PendingRestore {
+    generation: u64,
+    peer: String,
+    identity: Rc<u64>,
+    room: RoomState,
+    builder: CheckpointRestore,
+    started: f64,
 }
 struct Bridge {
     shared: Shared,
@@ -132,6 +140,10 @@ struct Bridge {
     pending_bootstraps: Vec<String>,
     pending_decoder_removals: HashSet<String>,
     bootstrapped: bool,
+    restore: Option<PendingRestore>,
+    join_document: Option<(photocraft_doc::DocId, u64)>,
+    checkpoint_prepare_ms: f64,
+    max_restore_step_ms: f64,
 }
 type SharedApp = Rc<RefCell<PhotocraftApp>>;
 fn hidden() -> bool {
@@ -140,6 +152,7 @@ fn hidden() -> bool {
 struct BackgroundPump {
     channel: web_sys::MessageChannel,
     pending: Cell<bool>,
+    restore_active: Cell<bool>,
     app: Weak<RefCell<PhotocraftApp>>,
     bridge: Weak<RefCell<Bridge>>,
     ctx: egui::Context,
@@ -168,13 +181,23 @@ impl BackgroundPump {
             });
             channel.port1().set_onmessage(Some(callback.as_ref().unchecked_ref()));
             channel.port1().start();
-            Self { channel, pending: Cell::new(false), app, bridge, ctx, _callback: callback, document: document.clone(), visibility_callback }
+            Self {
+                channel,
+                pending: Cell::new(false),
+                restore_active: Cell::new(false),
+                app,
+                bridge,
+                ctx,
+                _callback: callback,
+                document: document.clone(),
+                visibility_callback,
+            }
         });
         document.add_event_listener_with_callback("visibilitychange", pump.visibility_callback.as_ref().unchecked_ref()).map_err(js_error)?;
         Ok(pump)
     }
     fn wake(&self) {
-        if !hidden() || self.pending.replace(true) {
+        if !peer_policy::pump_allowed(hidden(), self.restore_active.get()) || self.pending.replace(true) {
             return;
         }
         if let Err(error) = self.channel.port2().post_message(&JsValue::NULL) {
@@ -185,7 +208,7 @@ impl BackgroundPump {
     }
     fn run(&self) {
         self.pending.set(false);
-        if !hidden() {
+        if !peer_policy::pump_allowed(hidden(), self.restore_active.get()) {
             return;
         }
         let (Some(app), Some(bridge)) = (self.app.upgrade(), self.bridge.upgrade()) else {
@@ -204,7 +227,8 @@ impl BackgroundPump {
             || !app.session.collaboration.outbox.is_empty()
             || !app.session.collaboration.canonical_outbox.is_empty()
             || bridge.outgoing_jobs > 0
-            || !bridge.pending_bootstraps.is_empty();
+            || !bridge.pending_bootstraps.is_empty()
+            || bridge.restore.is_some();
         let healthy = result.is_ok();
         if let Err(error) = result {
             app.ui.collaboration.error = error;
@@ -212,7 +236,7 @@ impl BackgroundPump {
         drop(bridge);
         drop(app);
         self.ctx.request_repaint();
-        if super::collaboration_protocol::continue_background(hidden(), queued, progressed, healthy) {
+        if super::collaboration_protocol::continue_background(peer_policy::pump_allowed(hidden(), self.restore_active.get()), queued, progressed, healthy) {
             self.wake();
         }
     }
@@ -346,7 +370,8 @@ fn event(shared: &Shared, generation: u64, e: Event, ctx: &egui::Context) {
     if state.generation != generation {
         return;
     }
-    if state.events.len().saturating_add(state.worker_events.len()) >= MAX_EVENTS {
+    let limit = peer_policy::receive_limit(state.restoring);
+    if state.events.len().saturating_add(state.worker_events.len()) >= limit {
         state.events.clear();
         let codec = state.codec.as_ref().and_then(Weak::upgrade);
         if let (Some(codec), Event::Worker(reply)) = (&codec, &e) {
@@ -687,6 +712,7 @@ pub fn attach(mut app: PhotocraftApp, ctx: egui::Context) -> SharedApp {
     let shared = Rc::new(RefCell::new(Transport {
         generation: 0,
         next_instance: 0,
+        restoring: false,
         links: BTreeMap::new(),
         events: VecDeque::new(),
         worker_events: VecDeque::new(),
@@ -721,25 +747,33 @@ pub fn attach(mut app: PhotocraftApp, ctx: egui::Context) -> SharedApp {
         pending_bootstraps: Vec::new(),
         pending_decoder_removals: HashSet::new(),
         bootstrapped: false,
+        restore: None,
+        join_document: None,
+        checkpoint_prepare_ms: 0.0,
+        max_restore_step_ms: 0.0,
     }));
     let disabled =
         web_sys::window().and_then(|w| w.location().search().ok()).is_some_and(|q| q.trim_start_matches('?').split('&').any(|p| p == "collab_worker=0"));
     if !disabled {
         let weak = Rc::downgrade(&shared);
         let callback_ctx = ctx.clone();
-        match super::worker_codec::Codec::new(move |reply| {
-            if let Some(shared) = weak.upgrade() {
-                let current = shared.borrow().generation;
-                if reply.id != 0 && reply.generation != current {
-                    if let Some(codec) = shared.borrow().codec.as_ref().and_then(Weak::upgrade) {
-                        codec.acknowledge(reply.id);
+        let current_shared = Rc::downgrade(&shared);
+        match super::worker_codec::Codec::new(
+            move |reply| {
+                if let Some(shared) = weak.upgrade() {
+                    let current = shared.borrow().generation;
+                    if reply.id != 0 && reply.generation != current {
+                        if let Some(codec) = shared.borrow().codec.as_ref().and_then(Weak::upgrade) {
+                            codec.acknowledge(reply.id);
+                        }
+                        return;
                     }
-                    return;
+                    let generation = if reply.id == 0 { current } else { reply.generation };
+                    event(&shared, generation, Event::Worker(Box::new(reply)), &callback_ctx);
                 }
-                let generation = if reply.id == 0 { current } else { reply.generation };
-                event(&shared, generation, Event::Worker(Box::new(reply)), &callback_ctx);
-            }
-        }) {
+            },
+            move |generation| current_shared.upgrade().is_some_and(|shared| shared.try_borrow().ok().is_some_and(|state| state.generation == generation)),
+        ) {
             Ok(codec) => {
                 shared.borrow_mut().codec = Some(Rc::downgrade(&codec));
                 bridge.borrow_mut().codec = Some(codec);
@@ -988,6 +1022,16 @@ impl Bridge {
             let generation = self.shared.borrow().generation;
             event(&self.shared, generation, Event::Error(error.clone()), ctx);
         }
+        {
+            let mut shared = self.shared.borrow_mut();
+            let depth = shared.events.len().saturating_add(shared.worker_events.len());
+            // Keep the enlarged bounded receive window while an existing restore backlog drains;
+            // shrinking below its current depth would reject the next otherwise valid packet.
+            shared.restoring = peer_policy::retain_restore_window(self.restore.is_some(), shared.restoring, depth);
+        }
+        if let Some(pump) = &self.shared.borrow().pump {
+            pump.restore_active.set(self.restore.is_some());
+        }
         let elapsed = clock_ms() - started;
         self.worst_tick_ms = self.worst_tick_ms.max(elapsed);
         let oldest = self.outgoing.values().filter_map(|lane| lane.front().map(|job| job.queued_at)).reduce(f64::min);
@@ -998,7 +1042,7 @@ impl Bridge {
             .values()
             .map(|link| link.channels.borrow().values().map(|channel| u64::from(channel.buffered_amount())).sum::<u64>())
             .sum::<u64>();
-        app.ui.collaboration.transport_metrics = json!({"browser":true,"documentHidden":hidden(),"backgroundPumpTicks":self.background_ticks,"tickMs":elapsed,"worstTickMs":self.worst_tick_ms,"maxApplyMs":self.max_apply_ms,"snapshotMs":self.last_snapshot_ms,"drawingPriority":busy,"incomingEventsQueued":self.shared.borrow().events.len(),"codecRepliesQueued":self.shared.borrow().worker_events.len(),"canonicalOpsQueued":app.session.collaboration.canonical_outbox.len(),"clientOpsQueued":app.session.collaboration.outbox.len(),"outgoingJobs":self.outgoing_jobs,"bufferedBytes":self.queued_bytes,"sctpBufferedBytes":sctp,"oldestQueuedMs":oldest.map(|time|(clock_ms()-time).max(0.0)),"pendingBootstraps":self.pending_bootstraps.len(),"codecWorkerActive":self.codec.as_ref().is_some_and(|c|c.ready.get()),"codecWorkerCompleted":self.worker_completed,"codecWorkerMs":self.worker_ms,"codecWorkerQueued":self.codec.as_ref().map_or(0,|c|c.queued()),"codecWorkerBytes":self.codec.as_ref().map_or(0,|c|c.bytes()),"codecWorkerCompletion":self.codec.as_ref().map(|c|c.completion_metrics())});
+        app.ui.collaboration.transport_metrics = json!({"browser":true,"documentHidden":hidden(),"backgroundPumpTicks":self.background_ticks,"tickMs":elapsed,"worstTickMs":self.worst_tick_ms,"maxApplyMs":self.max_apply_ms,"snapshotMs":self.last_snapshot_ms,"drawingPriority":busy,"incomingEventsQueued":self.shared.borrow().events.len(),"codecRepliesQueued":self.shared.borrow().worker_events.len(),"canonicalOpsQueued":app.session.collaboration.canonical_outbox.len(),"clientOpsQueued":app.session.collaboration.outbox.len(),"outgoingJobs":self.outgoing_jobs,"bufferedBytes":self.queued_bytes,"sctpBufferedBytes":sctp,"oldestQueuedMs":oldest.map(|time|(clock_ms()-time).max(0.0)),"pendingBootstraps":self.pending_bootstraps.len(),"codecWorkerActive":self.codec.as_ref().is_some_and(|c|c.ready.get()),"codecWorkerCompleted":self.worker_completed,"codecWorkerMs":self.worker_ms,"codecWorkerQueued":self.codec.as_ref().map_or(0,|c|c.queued()),"codecWorkerBytes":self.codec.as_ref().map_or(0,|c|c.bytes()),"codecWorkerCompletion":self.codec.as_ref().map(|c|c.completion_metrics()),"codecWindowConversion":self.codec.as_ref().map(|c|c.conversion_metrics()),"checkpointPrepareMs":self.checkpoint_prepare_ms,"maxRestoreStepMs":self.max_restore_step_ms,"checkpointRestore":self.restore.as_ref().map(|restore|{let progress=restore.builder.progress(); json!({"completed":progress.completed,"total":progress.total,"workUnits":progress.work_units,"elapsedMs":clock_ms()-restore.started})})});
         if let Some(diagnostics) = self.diagnostics.as_mut() {
             diagnostics.publish(started, elapsed, self.frame_apply_ms, &app.ui.collaboration.transport_metrics, !from_pump);
         }
@@ -1040,11 +1084,17 @@ impl Bridge {
             self.pending_bootstraps.clear();
             self.pending_decoder_removals.clear();
             self.bootstrapped = false;
+            self.restore = None;
+            self.shared.borrow_mut().restoring = false;
             self.admission = None;
             let generation = self.shared.borrow().generation;
             let (server, code, password) = match intent {
                 NetworkIntent::Create { server, password, .. } => (server, None, password),
-                NetworkIntent::Join { server, code, password, .. } => (server, Some(code), password),
+                NetworkIntent::Join { server, code, password, .. } => {
+                    self.join_document = app.session.active().map(|state| (state.doc.id, state.revision));
+                    app.session.collaboration.document_id = None;
+                    (server, Some(code), password)
+                }
                 NetworkIntent::Leave => {
                     sync_room_address(None);
                     app.ui.collaboration.transport_pending = false;
@@ -1087,7 +1137,18 @@ impl Bridge {
         while budget.event(clock_ms()) {
             let incoming = {
                 let mut shared = self.shared.borrow_mut();
-                shared.worker_events.pop_front().or_else(|| shared.events.pop_front())
+                if self.restore.is_some() {
+                    // Reliable packets and decoded replies retain FIFO ordering and IPC credit
+                    // until the isolated checkpoint candidate commits. Lifecycle events can cancel.
+                    let worker_control = shared.worker_events.iter().position(|event| matches!(event, Event::Worker(reply) if reply.id == 0));
+                    if let Some(index) = worker_control {
+                        shared.worker_events.remove(index)
+                    } else {
+                        shared.events.iter().position(|event| !matches!(event, Event::Packet(..))).and_then(|index| shared.events.remove(index))
+                    }
+                } else {
+                    shared.worker_events.pop_front().or_else(|| shared.events.pop_front())
+                }
             };
             let Some(incoming) = incoming else { break };
             self.progress = self.progress.saturating_add(1);
@@ -1095,7 +1156,9 @@ impl Bridge {
                 Event::Joined(a) => {
                     sync_room_address(Some(&a.code));
                     app.session.collaboration = Default::default();
-                    app.session.collaboration.document_id = app.session.active().map(|s| s.doc.id);
+                    // A joining guest's existing document remains an ordinary local document
+                    // until the isolated restore commits. Hosting pins the current document.
+                    app.session.collaboration.document_id = if a.peer == a.host { app.session.active().map(|s| s.doc.id) } else { None };
                     app.session.collaboration.room = Some(RoomState::new(a.code.clone(), a.host.clone(), a.peer.clone()));
                     app.ui.collaboration.code = a.code.clone();
                     app.ui.collaboration.password.clear();
@@ -1223,6 +1286,9 @@ impl Bridge {
                     }
                 }
                 Event::Replaced(peer, identity, previous) => {
+                    if self.restore.as_ref().is_some_and(|restore| peer_policy::same_instance(&restore.identity, &previous)) {
+                        self.restore = None;
+                    }
                     self.remove_decoder(decoder_key(&peer, &previous));
                     if self.current_link(&peer, &identity) {
                         self.connected.remove(&peer);
@@ -1276,6 +1342,8 @@ impl Bridge {
                     self.pending_bootstraps.clear();
                     self.pending_decoder_removals.clear();
                     self.bootstrapped = false;
+                    self.restore = None;
+                    self.shared.borrow_mut().restoring = false;
                     self.queued_bytes = 0;
                     app.session.collaboration = Default::default();
                     app.ui.collaboration.error = if error.contains("401") { "This room requires a password. Enter it and Join again.".into() } else { error };
@@ -1284,6 +1352,10 @@ impl Bridge {
                     app.ui.collaboration.transport_status = "Connection failed — retry Join".into();
                 }
             }
+        }
+        if self.restore.is_some() {
+            self.advance_restore(app, ctx, budget)?;
+            return Ok(());
         }
         if self.host()
             && !self.pending_bootstraps.is_empty()
@@ -1397,6 +1469,63 @@ impl Bridge {
         app.ui.collaboration.voice_status = "Voice off".into();
         Ok(())
     }
+    fn advance_restore(&mut self, app: &mut PhotocraftApp, ctx: &egui::Context, budget: &super::collaboration_protocol::FrameBudget) -> Result<(), String> {
+        let Some(mut restore) = self.restore.take() else { return Ok(()) };
+        if !peer_policy::restore_valid(restore.generation, self.shared.borrow().generation, self.current_link(&restore.peer, &restore.identity)) {
+            return Ok(());
+        }
+        let mut progressed = false;
+        // One bounded unit guarantees progress even if a lifecycle event consumed this task's
+        // deadline; subsequent units share the same 1–2ms deadline as all collaboration work.
+        let mut progress = restore.builder.progress();
+        while !progress.done && (!progressed || budget.available(clock_ms())) {
+            let started = clock_ms();
+            match restore.builder.step(1) {
+                Ok(next) => progress = next,
+                Err(error) => {
+                    self.peer_error(app, restore.peer, format!("Cannot restore room history: {error}"))?;
+                    return Ok(());
+                }
+            }
+            self.max_restore_step_ms = self.max_restore_step_ms.max(clock_ms() - started);
+            self.progress = self.progress.saturating_add(1);
+            progressed = true;
+        }
+        if progress.done && !peer_policy::commit_ready(ctx.input(|input| input.pointer.any_down()), app.canvas_gesture_active()) {
+            app.ui.collaboration.transport_status = "Drawing ready — finish your local gesture to join".into();
+            self.restore = Some(restore);
+            ctx.request_repaint_after(std::time::Duration::from_millis(16));
+            return Ok(());
+        }
+        if progress.done {
+            let active = app.session.active().map(|state| (state.doc.id, state.revision));
+            let preserve = active
+                .filter(|_| {
+                    peer_policy::preserve_private_tab(self.join_document.map(|(id, revision)| (id.0, revision)), active.map(|(id, revision)| (id.0, revision)))
+                })
+                .map(|(id, _)| id);
+            if let Err(error) = app.session.collaboration_commit_checkpoint(restore.builder, restore.room) {
+                self.peer_error(app, restore.peer, format!("Cannot install room history: {error}"))?;
+                return Ok(());
+            }
+            if let Some(id) = preserve
+                && let Some(index) = app.session.documents().iter().position(|state| state.doc.id == id)
+            {
+                app.session.set_active(index);
+            }
+            self.bootstrapped = true;
+            app.ui.collaboration.transport_pending = false;
+            app.ui.collaboration.transport_status = "Connected — WebRTC drawing".into();
+            if let Err(error) = publish_profile(app) {
+                app.ui.collaboration.error = format!("Drawing joined; update your participant profile: {error}");
+            }
+        } else {
+            app.ui.collaboration.transport_status = format!("Preparing drawing history… {} / {}", progress.completed, progress.total);
+            self.restore = Some(restore);
+        }
+        ctx.request_repaint();
+        Ok(())
+    }
     fn remove_decoder(&mut self, key: String) {
         self.decoder.remove(&key);
         if self.codec.is_some() {
@@ -1411,6 +1540,9 @@ impl Bridge {
         }
         if !known {
             return Ok(());
+        }
+        if self.restore.as_ref().is_some_and(|restore| restore.peer == peer) {
+            self.restore = None;
         }
         self.pending_bootstraps.retain(|p| p != peer);
         self.connected.remove(peer);
@@ -1429,6 +1561,9 @@ impl Bridge {
         Ok(())
     }
     fn peer_error(&mut self, app: &mut PhotocraftApp, peer: String, error: String) -> Result<(), String> {
+        if self.restore.as_ref().is_some_and(|restore| restore.peer == peer) {
+            self.restore = None;
+        }
         let link = self.shared.borrow_mut().links.remove(&peer);
         if let Some(link) = link {
             self.remove_decoder(decoder_key(&peer, &link.identity));
@@ -1465,28 +1600,23 @@ impl Bridge {
                 if self.bootstrapped {
                     return Err("Unexpected duplicate checkpoint".into());
                 }
-                let limits =
-                    photocraft_format::LoadOptions { max_manifest_bytes: 8 << 20, max_blob_bytes: 64 << 20, max_total_bytes: 512 << 20, preserve_ids: true };
-                let anchor = if document.is_empty() { &checkpoint.baseline } else { &document };
-                let mut doc = photocraft_format::load_from_bytes_with(anchor, &limits).map_err(|e| e.to_string())?;
-                doc.selection = None;
-                doc.quick_mask = None;
+                if self.restore.is_some() {
+                    return Err("Unexpected duplicate checkpoint".into());
+                }
+                // Current hosts use checkpoint.baseline; legacy document is bounded by the wire
+                // decoder but is not inflated a second time. Session stays untouched until commit.
+                drop(document);
                 room.local_peer = admission.peer.clone();
                 room.host = host_id;
                 room.code = admission.code.clone();
-                app.session.collaboration = Collaboration::default();
-                app.session.add_document(doc, None);
-                app.session.collaboration.document_id = app.session.active().map(|s| s.doc.id);
-                app.session.collaboration.room = Some(room);
-                app.session.collaboration_install_checkpoint(checkpoint).map_err(|e| e.to_string())?;
-                if let Some(document) = app.session.active_mut() {
-                    Arc::make_mut(&mut document.doc).selection = None;
-                    Arc::make_mut(&mut document.doc).quick_mask = None;
-                }
-                publish_profile(app)?;
-                self.bootstrapped = true;
-                app.ui.collaboration.transport_pending = false;
-                app.ui.collaboration.transport_status = "Connected — WebRTC drawing".into();
+                let identity = self.shared.borrow().links.get(peer).map(|link| link.identity.clone()).ok_or("Host disconnected during checkpoint")?;
+                let started = clock_ms();
+                let builder = CheckpointRestore::new(checkpoint).map_err(|e| e.to_string())?;
+                self.checkpoint_prepare_ms = clock_ms() - started;
+                self.restore = Some(PendingRestore { generation: self.shared.borrow().generation, peer: peer.to_owned(), identity, room, builder, started });
+                self.shared.borrow_mut().restoring = true;
+                app.ui.collaboration.transport_pending = true;
+                app.ui.collaboration.transport_status = "Preparing drawing history…".into();
             }
             Wire::Bootstrap { document, events, mut room } if !self.host() && channel == ChannelKind::Edits => {
                 if self.bootstrapped {

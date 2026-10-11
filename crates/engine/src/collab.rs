@@ -1,5 +1,7 @@
 //! Session collaboration state and deterministic sparse-tile stroke replay.
 use crate::{EngineError, Session};
+#[path = "collab_restore.rs"]
+mod restore;
 pub use photocraft_collab::DEFAULT_SIGNALING_URL;
 use photocraft_collab::*;
 pub use photocraft_collab::{Profile, RoomState, VisibilityMode, invite};
@@ -7,6 +9,7 @@ use photocraft_doc::{Document, LayerId};
 use photocraft_geom::Rect;
 use photocraft_paint::{StrokeRenderer, render::COV_TILE};
 use photocraft_raster::Surface;
+pub use restore::{CheckpointProgress, CheckpointRestore};
 use std::collections::{BTreeMap, VecDeque};
 
 struct ReplayStroke {
@@ -539,7 +542,10 @@ impl Collaboration {
                 if let Some(key) = self.redo.get_mut(owner).and_then(Vec::pop) {
                     if let Some((index, stroke)) = self.strokes.iter_mut().enumerate().find(|(_, stroke)| stroke.owner == *owner && stroke.start.id == key) {
                         stroke.visible = true;
-                        if self.commands.iter().all(|command| command.independent_strokes) && event.delta.is_none() {
+                        if self.commands.iter().all(|command| command.independent_strokes)
+                            && event.delta.is_none()
+                            && doc.layer(stroke.start.layer).and_then(|layer| layer.surface()).is_some()
+                        {
                             history_stroke = Some(index);
                             affected = Some(stroke.start.layer);
                         } else {
@@ -650,6 +656,83 @@ impl Collaboration {
         self.applied_revision = event.revision;
         Ok(())
     }
+    fn rebuild_command(&mut self, index: usize, rebuilt: &mut Document) -> crate::Result<()> {
+        let needs_prototypes = self.commands.get(index).is_some_and(|command| {
+            command.created.is_empty() && command.edit.context.get("createdLayerIds").and_then(serde_json::Value::as_array).is_some_and(|ids| !ids.is_empty())
+        });
+        let recovered = if needs_prototypes {
+            let command = self.commands.get(index).ok_or_else(|| EngineError::Other("missing checkpoint command".into()))?;
+            let (next, _) = crate::collab_resources::execute_resolved(rebuilt, &command.edit)?;
+            let created = all_layers(&next).into_iter().filter(|layer| rebuilt.layer(layer.id).is_none()).cloned().collect();
+            if let Some(command) = self.commands.get_mut(index) {
+                command.created = created;
+            }
+            Some(next)
+        } else {
+            None
+        };
+        if let Some(command) = self.commands.get(index) {
+            if command.visible {
+                let mut next = match recovered {
+                    Some(next) => next,
+                    None => match crate::collab_resources::execute_resolved(rebuilt, &command.edit) {
+                        Ok((next, _)) => next,
+                        // Removing an author's source ink can leave a previously
+                        // accepted peer transform with no pixels. Keep the operator
+                        // in history so redo applies it when its input returns.
+                        Err(EngineError::Other(message)) if command.edit.id.starts_with("edit.transform") && message == "nothing to transform" => {
+                            (*rebuilt).clone()
+                        }
+                        Err(error) => return Err(error),
+                    },
+                };
+                let fresh: Vec<_> = all_layers(&next).into_iter().filter(|l| rebuilt.layer(l.id).is_none()).map(|l| l.id).collect();
+                for (fresh, original) in fresh.into_iter().zip(&command.created) {
+                    if let Some(layer) = next.layer_mut(fresh) {
+                        layer.id = original.id;
+                    }
+                }
+                let independent = independent_creation_documents(&command.edit.id, rebuilt, &next);
+                if let Some(command) = self.commands.get_mut(index) {
+                    command.independent_strokes = independent;
+                }
+                *rebuilt = next;
+            } else {
+                // Retain structural prerequisites used by another artist, while removing this author's pixels.
+                let created: std::collections::BTreeSet<_> = command.created.iter().map(|layer| layer.id).collect();
+                let needed: std::collections::BTreeSet<_> = self
+                    .commands
+                    .iter()
+                    .filter(|other| other.visible && other.owner != command.owner)
+                    .flat_map(|other| other.edit.dependencies.iter().copied())
+                    .chain(self.strokes.iter().filter(|stroke| stroke.visible && stroke.owner != command.owner).map(|stroke| stroke.start.layer))
+                    .collect();
+                for layer in &command.created {
+                    if rebuilt.layer(layer.id).is_none()
+                        && let Some(shell) = dependency_shell(layer, &created, &needed, rebuilt, false, 0)?
+                    {
+                        let mut descendants = Vec::new();
+                        let mut stack = vec![&shell];
+                        while let Some(layer) = stack.pop() {
+                            if layer.id != shell.id {
+                                descendants.push(layer.id);
+                            }
+                            if let Some(children) = layer.children() {
+                                stack.extend(children.iter());
+                            }
+                        }
+                        for id in descendants {
+                            let _ = rebuilt.remove(id);
+                        }
+                        let above = command.edit.context.get("activeLayer").and_then(serde_json::Value::as_u64).map(LayerId);
+                        rebuilt.insert_above(above, shell);
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
     fn rebuild_document(&mut self, doc: &mut Document) -> crate::Result<()> {
         let mut rebuilt = self.baseline.clone().ok_or(EngineError::NoDocument)?;
         for entry in self.journal.clone() {
@@ -680,82 +763,7 @@ impl Collaboration {
                         }
                     }
                 }
-                JournalEntry::Command(index) => {
-                    let needs_prototypes = self.commands.get(index).is_some_and(|command| {
-                        command.created.is_empty()
-                            && command.edit.context.get("createdLayerIds").and_then(serde_json::Value::as_array).is_some_and(|ids| !ids.is_empty())
-                    });
-                    let recovered = if needs_prototypes {
-                        let command = self.commands.get(index).ok_or_else(|| EngineError::Other("missing checkpoint command".into()))?;
-                        let (next, _) = crate::collab_resources::execute_resolved(&rebuilt, &command.edit)?;
-                        let created = all_layers(&next).into_iter().filter(|layer| rebuilt.layer(layer.id).is_none()).cloned().collect();
-                        if let Some(command) = self.commands.get_mut(index) {
-                            command.created = created;
-                        }
-                        Some(next)
-                    } else {
-                        None
-                    };
-                    if let Some(command) = self.commands.get(index) {
-                        if command.visible {
-                            let mut next = match recovered {
-                                Some(next) => next,
-                                None => match crate::collab_resources::execute_resolved(&rebuilt, &command.edit) {
-                                    Ok((next, _)) => next,
-                                    // Removing an author's source ink can leave a previously
-                                    // accepted peer transform with no pixels. Keep the operator
-                                    // in history so redo applies it when its input returns.
-                                    Err(EngineError::Other(message)) if command.edit.id.starts_with("edit.transform") && message == "nothing to transform" => {
-                                        rebuilt.clone()
-                                    }
-                                    Err(error) => return Err(error),
-                                },
-                            };
-                            let fresh: Vec<_> = all_layers(&next).into_iter().filter(|l| rebuilt.layer(l.id).is_none()).map(|l| l.id).collect();
-                            for (fresh, original) in fresh.into_iter().zip(&command.created) {
-                                if let Some(layer) = next.layer_mut(fresh) {
-                                    layer.id = original.id;
-                                }
-                            }
-                            let independent = independent_creation_documents(&command.edit.id, &rebuilt, &next);
-                            if let Some(command) = self.commands.get_mut(index) {
-                                command.independent_strokes = independent;
-                            }
-                            rebuilt = next;
-                        } else {
-                            // Retain structural prerequisites used by another artist, while removing this author's pixels.
-                            let created: std::collections::BTreeSet<_> = command.created.iter().map(|layer| layer.id).collect();
-                            let needed: std::collections::BTreeSet<_> = self
-                                .commands
-                                .iter()
-                                .filter(|other| other.visible && other.owner != command.owner)
-                                .flat_map(|other| other.edit.dependencies.iter().copied())
-                                .chain(self.strokes.iter().filter(|stroke| stroke.visible && stroke.owner != command.owner).map(|stroke| stroke.start.layer))
-                                .collect();
-                            for layer in &command.created {
-                                if rebuilt.layer(layer.id).is_none()
-                                    && let Some(shell) = dependency_shell(layer, &created, &needed, &rebuilt, false, 0)?
-                                {
-                                    let mut descendants = Vec::new();
-                                    let mut stack = vec![&shell];
-                                    while let Some(layer) = stack.pop() {
-                                        if layer.id != shell.id {
-                                            descendants.push(layer.id);
-                                        }
-                                        if let Some(children) = layer.children() {
-                                            stack.extend(children.iter());
-                                        }
-                                    }
-                                    for id in descendants {
-                                        let _ = rebuilt.remove(id);
-                                    }
-                                    let above = command.edit.context.get("activeLayer").and_then(serde_json::Value::as_u64).map(LayerId);
-                                    rebuilt.insert_above(above, shell);
-                                }
-                            }
-                        }
-                    }
-                }
+                JournalEntry::Command(index) => self.rebuild_command(index, &mut rebuilt)?,
             }
         }
         rebuilt.selection = doc.selection.clone();
@@ -1085,140 +1093,14 @@ impl Session {
         Ok(JournalCheckpoint { baseline, revision: collab.applied_revision, entries, redo: collab.redo.clone(), undo_floor: collab.undo_floor.clone() })
     }
     pub fn collaboration_install_checkpoint(&mut self, checkpoint: JournalCheckpoint) -> crate::Result<()> {
-        if checkpoint.entries.len() > 4096
-            || checkpoint.undo_floor.len() > 4096
-            || checkpoint.undo_floor.values().any(|floor| *floor > checkpoint.entries.len())
-            || serialized_size(&checkpoint).map_err(error)? > 480 * 1024 * 1024
-        {
-            return Err(EngineError::Other("checkpoint exceeds history budget".into()));
-        }
-        let mut document = photocraft_format::load_from_bytes(&checkpoint.baseline).map_err(|e| EngineError::Other(e.to_string()))?;
-        let id = self.collaboration.document_id.ok_or(EngineError::NoDocument)?;
-        document.id = id;
-        document.selection = None;
-        document.quick_mask = None;
-        let mut restored = Collaboration {
-            room: self.collaboration.room.clone(),
-            document_id: Some(id),
-            baseline: Some(document.clone()),
-            history_bytes: serialized_size(&checkpoint).map_err(error)?,
-            baseline_bytes: Some(checkpoint.baseline.clone()),
-            ..Default::default()
-        };
-        // Build the archive once. Normal live apply computes deltas and repaints after
-        // every chunk; replaying that path here made late joins quadratic in history.
-        let mut nonce = BTreeMap::<String, u64>::new();
-        for archived in checkpoint.entries {
-            match archived {
-                ArchivedEdit::Command { edit, owner, visible } => {
-                    validate(&Operation::Command { edit: edit.clone() }).map_err(error)?;
-                    if owner.is_empty() || owner.len() > 128 || restored.commands.iter().any(|command| command.edit.key == edit.key) {
-                        return Err(EngineError::Other("invalid checkpoint command identity".into()));
-                    }
-                    restored.commands.push(ReplayCommand {
-                        independent_strokes: independent_layer_creation(&edit.id, edit.outcome.as_ref()),
-                        edit: *edit,
-                        owner,
-                        visible,
-                        created: Vec::new(),
-                    });
-                    restored.journal.push(JournalEntry::Command(restored.commands.len().saturating_sub(1)));
-                }
-                ArchivedEdit::Stroke { start, owner, chunks, ended, visible } => {
-                    let stroke_id = start.id.clone();
-                    if restored.strokes.iter().any(|stroke| stroke.start.id == stroke_id) {
-                        return Err(EngineError::Other("duplicate checkpoint stroke".into()));
-                    }
-                    let mut accept = |operation| -> crate::Result<()> {
-                        let next = nonce.entry(owner.clone()).or_default();
-                        *next = next.saturating_add(1);
-                        let mut candidate = restored.sequencer.candidate();
-                        candidate.accept(&owner, ClientMessage { version: PROTOCOL_VERSION, peer: owner.clone(), nonce: *next, operation }).map_err(error)?;
-                        restored.sequencer = candidate.candidate();
-                        Ok(())
-                    };
-                    accept(Operation::StrokeBegin { stroke: start.clone() })?;
-                    let mut renderer = StrokeRenderer::new(&start.brush, Some(document.pixel_format()), start.zoom);
-                    let mut last = None;
-                    for (sequence, points) in chunks.iter().enumerate() {
-                        accept(Operation::StrokeChunk {
-                            id: stroke_id.clone(),
-                            sequence: u32::try_from(sequence).map_err(|e| EngineError::Other(e.to_string()))?,
-                            points: points.clone(),
-                        })?;
-                        ChunkBudget::new(&start.brush).validate(last, points).map_err(error)?;
-                        let radius = f64::from(start.brush.size) * 2.0;
-                        let mut bounds = renderer.bounds();
-                        for point in points {
-                            if let Some(previous) = last {
-                                let previous: photocraft_paint::StrokePoint = previous;
-                                if point.time < previous.time
-                                    || point.time - previous.time > 1000.0
-                                    || (point.x - previous.x).hypot(point.y - previous.y) > 4096.0
-                                {
-                                    return Err(EngineError::Other("invalid checkpoint sample gap".into()));
-                                }
-                            }
-                            bounds = bounds.union(&photocraft_geom::Rect::new(
-                                (point.x - radius).floor() as i32,
-                                (point.y - radius).floor() as i32,
-                                (point.x + radius).ceil() as i32,
-                                (point.y + radius).ceil() as i32,
-                            ));
-                            last = Some(*point);
-                        }
-                        if i64::from(bounds.width()).saturating_mul(i64::from(bounds.height())) > 16_777_216 {
-                            return Err(EngineError::Other("checkpoint stroke exceeds rendering budget".into()));
-                        }
-                        renderer.push(points);
-                    }
-                    if ended {
-                        accept(Operation::StrokeEnd { id: stroke_id, sequence: u32::try_from(chunks.len()).map_err(|e| EngineError::Other(e.to_string()))? })?;
-                        renderer.finish();
-                    }
-                    let mut selection =
-                        Surface::new(photocraft_color::PixelFormat::new(photocraft_color::ColorMode::Grayscale, photocraft_color::SampleType::F32, false));
-                    for run in &start.selection {
-                        for (offset, coverage) in run.coverage.iter().enumerate() {
-                            selection.write_pixel(run.x.saturating_add(i32::try_from(offset).unwrap_or(i32::MAX)), run.y, &[*coverage]);
-                        }
-                    }
-                    // Completed historical identities need no active sequence metadata.
-                    // Keep metadata only while this owner has an unfinished stream.
-                    if ended && !restored.strokes.iter().any(|stroke| stroke.owner == owner && !stroke.ended) {
-                        restored.sequencer.forget_peer(&owner);
-                    }
-                    restored.strokes.push(ReplayStroke {
-                        selection: (!start.selection.is_empty()).then_some(selection),
-                        start: *start,
-                        owner,
-                        renderer,
-                        pre: Surface::new(document.pixel_format()),
-                        last,
-                        before_document: None,
-                        chunks,
-                        ended,
-                        visible,
-                    });
-                    restored.journal.push(JournalEntry::Stroke(restored.strokes.len().saturating_sub(1)));
-                }
-            }
-        }
-        restored.rebuild_document(&mut document)?;
-        restored.redo = checkpoint.redo;
-        restored.undo_floor = checkpoint.undo_floor;
-        restored.applied_revision = checkpoint.revision;
-        restored.sequencer.revision = checkpoint.revision;
-        restored.next_nonce = checkpoint.revision;
-        restored.canonical_document = Some(document.clone());
-        let st = self.docs.iter_mut().find(|st| st.doc.id == id).ok_or(EngineError::NoDocument)?;
-        st.active_layer = document.top_layer();
-        st.selected_layers = st.active_layer.into_iter().collect();
-        st.doc = std::sync::Arc::new(document);
-        st.revision = st.revision.saturating_add(1);
-        st.last_damage = None;
-        self.collaboration = restored;
-        Ok(())
+        let id = self.collaboration.document_id.or_else(|| self.active().map(|state| state.doc.id)).ok_or(EngineError::NoDocument)?;
+        let mut restore = CheckpointRestore::new(checkpoint)?;
+        while !restore.step(64)?.done {}
+        restore.install_existing(self, id)
+    }
+    /// Commit a fully restored guest room atomically. Dropping an unfinished builder cancels it.
+    pub fn collaboration_commit_checkpoint(&mut self, restore: CheckpointRestore, room: RoomState) -> crate::Result<photocraft_doc::DocId> {
+        restore.install_new(self, room)
     }
     pub fn collaboration_execute(&mut self, id: &str, params: serde_json::Value) -> crate::Result<serde_json::Value> {
         let before = self.docs.iter().find(|st| Some(st.doc.id) == self.collaboration.document_id).map(|st| st.doc.clone()).ok_or(EngineError::NoDocument)?;
@@ -1509,6 +1391,7 @@ mod tests {
         let mut guest = Session::new();
         guest.add_document((*host.active().unwrap().doc).clone(), None);
         guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+        guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
         guest
             .collaboration_submit(Operation::StrokeBegin {
                 stroke: Box::new(StrokeStart {
@@ -1593,6 +1476,7 @@ mod tests {
                 let mut guest = Session::new();
                 guest.add_document((*host.active().unwrap().doc).clone(), None);
                 guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+                guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
                 guest.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
                 guest
                     .collaboration_submit(Operation::StrokeBegin {
@@ -1693,6 +1577,7 @@ mod tests {
                     let mut guest = Session::new();
                     guest.add_document((*host.active().unwrap().doc).clone(), None);
                     guest.execute("collab.room.join", json!({"peer":format!("guest-{artist}"),"code":"TEST01"})).unwrap();
+                    guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
                     guest.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
                     guest
                 })
@@ -1778,6 +1663,7 @@ mod tests {
                 let mut guest = Session::new();
                 guest.add_document((*host.active().unwrap().doc).clone(), None);
                 guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+                guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
                 guest
                     .collaboration_submit(Operation::StrokeBegin {
                         stroke: Box::new(StrokeStart {
@@ -1851,6 +1737,7 @@ mod tests {
             let mut guest = Session::new();
             guest.add_document((*host.active().unwrap().doc).clone(), None);
             guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+            guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
             let created = LayerId(guest.execute("layer.new.layer", json!({"name":"pending creation"})).unwrap()["layer"].as_u64().unwrap());
             assert_eq!(guest.active().unwrap().active_layer, Some(created));
             if choice != "untouched" {
@@ -1878,6 +1765,7 @@ mod tests {
                 let mut guest = Session::new();
                 guest.add_document((*host.active().unwrap().doc).clone(), None);
                 guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+                guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
                 begin(&mut host, "peer", "earlier-disjoint", [0.1, 0.6, 0.9, 1.0]);
                 guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
                 guest
@@ -1951,6 +1839,7 @@ mod tests {
         let mut guest = Session::new();
         guest.add_document((*host.active().unwrap().doc).clone(), None);
         guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+        guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
         guest
             .collaboration_submit(Operation::StrokeBegin {
                 stroke: Box::new(StrokeStart {
@@ -1982,6 +1871,7 @@ mod tests {
             let mut guest = Session::new();
             guest.add_document((*host.active().unwrap().doc).clone(), None);
             guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+            guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
             let mut first = None;
             for index in 0..3 {
                 let id = format!("rapid-{index}");
@@ -2050,6 +1940,7 @@ mod tests {
         let mut guest = Session::new();
         guest.add_document((*host.active().unwrap().doc).clone(), None);
         guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+        guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
         guest
             .collaboration_submit(Operation::StrokeBegin {
                 stroke: Box::new(StrokeStart {
@@ -2122,6 +2013,7 @@ mod tests {
                     let mut guest = Session::new();
                     guest.add_document((*host.active().unwrap().doc).clone(), None);
                     guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+                    guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
                     let private_selection = guest.active().unwrap().doc.selection.clone();
                     let start = StrokeStart {
                         id: "prediction".into(),
@@ -2341,6 +2233,7 @@ mod tests {
         let mut guest = Session::new();
         guest.add_document(initial, None);
         guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+        guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
         guest.collaboration.document_id = host.collaboration.document_id;
         guest.execute("select.rect", json!({"x":1,"y":1,"width":5,"height":5})).unwrap();
         let selection = guest.active().unwrap().doc.selection.clone();
@@ -2378,6 +2271,7 @@ mod tests {
             let mut guest = Session::new();
             guest.add_document((*host.active().unwrap().doc).clone(), None);
             guest.execute("collab.room.join", json!({"peer":"guest","code":"TEST01"})).unwrap();
+            guest.collaboration.document_id = guest.active().map(|state| state.doc.id); // Simulate completed transport admission.
             guest.execute("select.rect", json!({"x":50,"y":50,"width":3,"height":3})).unwrap();
             let private_selection = guest.active().unwrap().doc.selection.clone();
             host.execute("select.rect", json!({"x":2,"y":2,"width":4,"height":4})).unwrap();
@@ -2472,6 +2366,142 @@ mod tests {
         assert_eq!(host.collaboration.applied_revision, revision);
         assert!(host.execute("edit.fill", json!([1, 2])).is_err());
         assert_eq!(host.collaboration.applied_revision, revision);
+    }
+    #[test]
+    fn staged_checkpoint_dense_atomic_cancel_and_fifo_all_depths() {
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            for n in 0..128 {
+                let id = format!("staged-{n}");
+                begin(&mut host, "host", &id, [0.2, 0.5, 0.8, 0.6]);
+                let points = (0..24)
+                    .map(|i| {
+                        let mut p = StrokePoint::new(8.0 + f64::from(i), 8.0 + f64::from(n % 36), 0.2 + f64::from(i % 8) as f32 / 10.0);
+                        p.tilt_x = 20.0;
+                        p.rotation = 45.0;
+                        p
+                    })
+                    .collect();
+                chunk(&mut host, "host", &id, 0, points);
+                end(&mut host, "host", &id, 1);
+            }
+            host.execute("edit.undo", json!({})).unwrap();
+            let checkpoint = host.collaboration_checkpoint().unwrap();
+            let mut guest = session(depth);
+            let local = pixels(&guest);
+            let original_id = guest.active().unwrap().doc.id;
+            let mut cancelled = CheckpointRestore::new(checkpoint.clone()).unwrap();
+            for _ in 0..20 {
+                assert!(!cancelled.step(1).unwrap().done);
+            }
+            drop(cancelled);
+            assert_eq!(pixels(&guest), local);
+            assert_eq!(guest.docs.len(), 1);
+            let mut job = CheckpointRestore::new(checkpoint).unwrap();
+            assert!(
+                guest
+                    .collaboration_commit_checkpoint(
+                        CheckpointRestore::new(host.collaboration_checkpoint().unwrap()).unwrap(),
+                        host.collaboration.room.clone().unwrap()
+                    )
+                    .is_err()
+            );
+            let mut steps = 0;
+            let mut worst = 0.0f64;
+            while !job.progress().done {
+                let start = std::time::Instant::now();
+                job.step(1).unwrap();
+                worst = worst.max(start.elapsed().as_secs_f64() * 1000.0);
+                steps += 1;
+                assert_eq!(guest.active().unwrap().doc.id, original_id);
+                assert_eq!(pixels(&guest), local);
+                assert!(steps < 100000);
+            }
+            let expected = pixels(&host);
+            let history = host.collaboration.own_history();
+            host.collaboration.canonical_outbox.clear();
+            begin(&mut host, "peer", "post-checkpoint", [0.8, 0.1, 0.3, 0.5]);
+            chunk(&mut host, "peer", "post-checkpoint", 0, vec![StrokePoint::new(30.0, 30.0, 0.8)]);
+            end(&mut host, "peer", "post-checkpoint", 1);
+            let events = std::mem::take(&mut host.collaboration.canonical_outbox);
+            let id = guest.collaboration_commit_checkpoint(job, host.collaboration.room.clone().unwrap()).unwrap();
+            assert_ne!(id, original_id);
+            assert_eq!(guest.docs.len(), 2);
+            assert_eq!(pixels(&guest), expected);
+            assert_eq!(guest.collaboration.own_history(), history);
+            for event in events {
+                guest.collaboration_receive(&event).unwrap();
+            }
+            assert_eq!(pixels(&guest), pixels(&host));
+            assert_eq!(guest.collaboration.applied_revision, host.collaboration.applied_revision);
+            println!("staged checkpoint depth={depth} steps={steps} max_step_ms={worst:.3}");
+        }
+    }
+    #[test]
+    fn staged_checkpoint_guest_local_edits_survive_cancel_and_atomic_commit() {
+        let host = session(8);
+        let mut guest = session(8);
+        let local_id = guest.active().unwrap().doc.id;
+        let mut room = host.collaboration.room.clone().unwrap();
+        room.local_peer = "guest".into();
+        guest.collaboration.room = Some(room.clone());
+        guest.collaboration.document_id = None;
+        let pending = CheckpointRestore::new(host.collaboration_checkpoint().unwrap()).unwrap();
+        guest.execute("layer.new.layer", json!({"name":"Private during admission"})).unwrap();
+        guest.execute("edit.fill", json!({"color":[0.3,0.6,0.8,1.0]})).unwrap();
+        let private = guest.active().unwrap().doc.clone();
+        let private_revision = guest.active().unwrap().revision;
+        assert!(guest.collaboration.outbox.is_empty());
+        drop(pending);
+        assert_eq!(guest.active().unwrap().doc.id, local_id);
+        assert_eq!(guest.active().unwrap().revision, private_revision);
+        let mut restore = CheckpointRestore::new(host.collaboration_checkpoint().unwrap()).unwrap();
+        while !restore.step(1).unwrap().done {}
+        guest.collaboration_commit_checkpoint(restore, room).unwrap();
+        assert_eq!(guest.docs.len(), 2);
+        assert_eq!(guest.docs[0].doc.id, local_id);
+        assert_eq!(guest.docs[0].revision, private_revision);
+        assert_eq!(guest.docs[0].doc.layers.len(), private.layers.len());
+        assert_eq!(
+            guest.docs[0].doc.layer(guest.docs[0].active_layer.unwrap()).unwrap().surface(),
+            private.layer(guest.docs[0].active_layer.unwrap()).unwrap().surface()
+        );
+    }
+    #[test]
+    fn staged_checkpoint_errors_do_not_mutate_session() {
+        let mut host = session(8);
+        begin(&mut host, "peer", "duplicate", [1.0, 0.0, 0.0, 0.5]);
+        chunk(&mut host, "peer", "duplicate", 0, vec![StrokePoint::new(8.0, 8.0, 0.5)]);
+        end(&mut host, "peer", "duplicate", 1);
+        let mut checkpoint = host.collaboration_checkpoint().unwrap();
+        checkpoint.entries.push(checkpoint.entries[0].clone());
+        let mut guest = session(8);
+        let before = pixels(&guest);
+        let revision = guest.collaboration.applied_revision;
+        let mut job = CheckpointRestore::new(checkpoint).unwrap();
+        while job.step(1).is_ok() {}
+        assert!(guest.collaboration_commit_checkpoint(job, host.collaboration.room.clone().unwrap()).is_err());
+        assert_eq!(pixels(&guest), before);
+        assert_eq!(guest.collaboration.applied_revision, revision);
+        assert_eq!(guest.docs.len(), 1);
+    }
+    #[test]
+    fn staged_checkpoint_hidden_missing_layer_ink_survives_peer_redo() {
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            host.execute("layer.new.layer", json!({"name":"Hidden prerequisite"})).unwrap();
+            begin(&mut host, "peer", "hidden-ink", [0.2, 0.7, 0.3, 0.6]);
+            chunk(&mut host, "peer", "hidden-ink", 0, vec![StrokePoint::new(20.0, 20.0, 0.7)]);
+            end(&mut host, "peer", "hidden-ink", 1);
+            emit(&mut host, "peer", Operation::Undo);
+            host.execute("edit.undo", json!({})).unwrap();
+            let mut restored = session(depth);
+            restored.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+            assert_eq!(pixels(&restored), pixels(&host));
+            emit(&mut host, "peer", Operation::Redo);
+            emit(&mut restored, "peer", Operation::Redo);
+            assert_eq!(pixels(&restored), pixels(&host));
+        }
     }
     #[test]
     fn checkpoint_accepts_more_than_64_historical_authors_and_keeps_active_sequences() {
