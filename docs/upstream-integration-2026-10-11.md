@@ -47,7 +47,7 @@ targets rerun before acceptance.
 | Automation | 58 library and 37 MCP cases passed; installed-profile requests reject implicit ambient filesystem scans. |
 | Native app | 119 cases passed in the broad run; the sole retry-timing failure passed its focused correction run (30.07 s). The retry test now accounts for the existing 30 s backoff and async completion. |
 | Adversarial commands | Explicit ignored `panic_hunt` invocation passed. |
-| Tooling and packaging | All 59 xtask cases passed, including 6 asset-packer cases; 6 Python packaging regressions passed; workspace doctests passed (1 executable case across 27 reported targets). |
+| Tooling and packaging | All 59 xtask cases passed, including 6 asset-packer cases; 7 Python packaging regressions passed; workspace doctests passed (1 executable case across 27 reported targets). |
 | Static gates | Formatting and diff checks passed; strict workspace Clippy with `--locked --features heif --all-targets -D warnings` passed; 31 crates passed layering; all 25 WASM-safe crate checks passed and both browser binaries built. |
 | Catalogs | All 17 Fluent catalogs validate; all 17 registry catalogs, including English, cover 1,772/1,772 source IDs. Authored compressed locale bytes round-trip exactly. Menu dispatch remains 631/631; this measures wiring, not full Photoshop behavior. Generated scorecard is current. |
 
@@ -55,6 +55,15 @@ The source-preservation inventory checked 1,966 test names in fork-touched files
 This is a name audit, not an executed-test count or a claim that every repository
 test was inventoried. Missing names were restored or mapped to moved/expanded
 tests and the intentional upstream behavior changes described above.
+
+Hosted Windows packaging exposed a pre-existing setup omission: ARM64 binaries
+compiled and passed PE checks, but WiX could not find its required UI extension.
+The native-package, ARM64 and signed-release workflows now install both UI and
+utility extensions at the same pinned WiX 5.0.2 version, checking every setup
+command's exit code. A contract regression checks every Windows packager's
+extension requirements and fail-fast setup. Payload, signing and separate CLI
+packaging remain unchanged. Hosted gate results are recorded on the integration
+pull request.
 
 ### Runtime and visual acceptance
 
@@ -128,6 +137,8 @@ The checked-in M4 Pro baseline differs from this M1 Max, so regression compariso
 is skipped. Some heavy layout operations exceed 16 ms; no new performance-baseline
 or all-operations-within-budget claim is made.
 
-Physical tablet/Force Touch feel, public WAN/forced-TURN sessions and non-macOS
-installer execution require separate hardware/network/platform evidence. These
-limits do not replace the passing source, corpus and loopback runtime checks.
+Physical tablet/Force Touch feel and public WAN/forced-TURN sessions require
+separate hardware/network evidence. Installer execution on other platforms is
+checked separately by hosted workflows; the local macOS acceptance does not
+prove it. These limits do not replace the passing source, corpus and loopback
+runtime checks.
