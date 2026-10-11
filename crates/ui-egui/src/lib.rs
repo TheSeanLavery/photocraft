@@ -523,6 +523,16 @@ pub struct PhotocraftApp {
 }
 
 impl PhotocraftApp {
+    /// A room restore must not activate a new document before a canvas gesture ends.
+    /// The frame hook runs before tool release handling, so pointer state alone is insufficient.
+    pub fn canvas_gesture_active(&self) -> bool {
+        self.drag.is_some()
+            || self.live_stroke.is_some()
+            || self.ui.transform.is_some()
+            || self.ui.text_edit.is_some()
+            || self.ui.dialogs.iter().any(|dialog| matches!(dialog.kind, state::DialogKind::Command | state::DialogKind::LayerStyle))
+    }
+
     pub fn new(session: Session, services: Services) -> Self {
         let mut app = Self {
             collaboration_frame_hook: None,
@@ -1196,6 +1206,7 @@ impl eframe::App for PhotocraftApp {
             panels::toolbar(self, ui);
         }
         if chrome {
+            collaboration_ui::dock(self, ui);
             panels::right_dock(self, ui);
         }
         let t = theme::Tokens::get(&ctx);
@@ -1208,7 +1219,6 @@ impl eframe::App for PhotocraftApp {
         preset_panels::windows(self, &ctx);
         type_panels_ui::windows(self, &ctx);
         analysis_ui::windows(self, &ctx);
-        collaboration_ui::window(self, &ctx);
         timeline_ui::windows(self, &ctx);
         workspace_ui::windows(self, &ctx);
         palette::show(self, &ctx);

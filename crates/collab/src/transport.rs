@@ -205,27 +205,47 @@ pub enum Event {
     Error(String),
     Closed,
 }
+type Epoch = Arc<std::sync::atomic::AtomicU64>;
+struct ScopedEvent {
+    generation: u64,
+    event: Event,
+}
+struct ScopedRequest {
+    generation: u64,
+    request: Request,
+}
 #[derive(Clone)]
 struct EventSender {
-    sender: std::sync::mpsc::SyncSender<Event>,
+    sender: std::sync::mpsc::SyncSender<ScopedEvent>,
     depth: Arc<std::sync::atomic::AtomicUsize>,
+    latest: Epoch,
+    generation: u64,
 }
 impl EventSender {
+    fn scoped(&self, generation: u64) -> Self {
+        Self { generation, ..self.clone() }
+    }
     fn try_send(&self, event: Event) -> Result<(), std::sync::mpsc::TrySendError<Event>> {
         use std::sync::atomic::Ordering;
+        if self.generation != self.latest.load(Ordering::Acquire) {
+            return Ok(());
+        }
         self.depth.fetch_add(1, Ordering::Relaxed);
-        let result = self.sender.try_send(event);
+        let result = self.sender.try_send(ScopedEvent { generation: self.generation, event });
         if result.is_err() {
             self.depth.fetch_sub(1, Ordering::Relaxed);
         }
-        result
+        result.map_err(|error| match error {
+            std::sync::mpsc::TrySendError::Full(event) => std::sync::mpsc::TrySendError::Full(event.event),
+            std::sync::mpsc::TrySendError::Disconnected(event) => std::sync::mpsc::TrySendError::Disconnected(event.event),
+        })
     }
 }
-/// Nonblocking event inbox with approximate queue-depth telemetry.
-/// Depth can briefly include a concurrent sender attempting to enqueue.
+/// Nonblocking event inbox; stale room callbacks never enter the next session.
 pub struct EventReceiver {
-    receiver: std::sync::mpsc::Receiver<Event>,
+    receiver: std::sync::mpsc::Receiver<ScopedEvent>,
     depth: Arc<std::sync::atomic::AtomicUsize>,
+    latest: Epoch,
 }
 impl EventReceiver {
     pub fn len(&self) -> usize {
@@ -235,49 +255,84 @@ impl EventReceiver {
         self.len() == 0
     }
     pub fn try_recv(&self) -> Result<Event, std::sync::mpsc::TryRecvError> {
-        let event = self.receiver.try_recv()?;
-        self.depth.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
-        Ok(event)
+        loop {
+            let event = self.receiver.try_recv()?;
+            self.depth.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+            if event.generation == self.latest.load(std::sync::atomic::Ordering::Acquire) {
+                return Ok(event.event);
+            }
+        }
     }
     pub fn recv_timeout(&self, timeout: Duration) -> Result<Event, std::sync::mpsc::RecvTimeoutError> {
-        let event = self.receiver.recv_timeout(timeout)?;
-        self.depth.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
-        Ok(event)
+        let started = std::time::Instant::now();
+        loop {
+            let remaining = timeout.saturating_sub(started.elapsed());
+            let event = self.receiver.recv_timeout(remaining)?;
+            self.depth.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+            if event.generation == self.latest.load(std::sync::atomic::Ordering::Acquire) {
+                return Ok(event.event);
+            }
+            if started.elapsed() >= timeout {
+                return Err(std::sync::mpsc::RecvTimeoutError::Timeout);
+            }
+        }
     }
 }
-fn event_channel(capacity: usize) -> (EventSender, EventReceiver) {
+fn event_channel(capacity: usize, latest: Epoch) -> (EventSender, EventReceiver) {
     let (sender, receiver) = std::sync::mpsc::sync_channel(capacity);
     let depth = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    (EventSender { sender, depth: depth.clone() }, EventReceiver { receiver, depth })
+    let generation = latest.load(std::sync::atomic::Ordering::Acquire);
+    (EventSender { sender, depth: depth.clone(), latest: latest.clone(), generation }, EventReceiver { receiver, depth, latest })
 }
 /// Independent bounded lanes keep Leave and live cursors/audio responsive to a slow edit peer.
 #[derive(Clone)]
 pub struct RequestSender {
-    edits: mpsc::Sender<Request>,
-    live: mpsc::Sender<Request>,
-    control: mpsc::Sender<Request>,
+    edits: mpsc::Sender<ScopedRequest>,
+    live: mpsc::Sender<ScopedRequest>,
+    control: mpsc::Sender<ScopedRequest>,
+    latest: Epoch,
+    enqueue: Arc<std::sync::Mutex<()>>,
 }
 impl RequestSender {
     pub fn try_send(&self, request: Request) -> Result<(), mpsc::error::TrySendError<Request>> {
-        match &request {
-            Request::Send { channel: ChannelKind::Edits, .. } => self.edits.try_send(request),
-            Request::Send { .. } => self.live.try_send(request),
-            _ => self.control.try_send(request),
-        }
+        use std::sync::atomic::Ordering;
+        // Serialize epoch publication with all lane enqueues, including cloned senders.
+        let _guard = self.enqueue.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let control = !matches!(request, Request::Send { .. });
+        let lane = match &request {
+            Request::Send { channel: ChannelKind::Edits, .. } => &self.edits,
+            Request::Send { .. } => &self.live,
+            _ => &self.control,
+        };
+        let permit = match lane.try_reserve() {
+            Ok(permit) => permit,
+            Err(mpsc::error::TrySendError::Full(_)) => return Err(mpsc::error::TrySendError::Full(request)),
+            Err(mpsc::error::TrySendError::Closed(_)) => return Err(mpsc::error::TrySendError::Closed(request)),
+        };
+        let current = self.latest.load(Ordering::Acquire);
+        let generation = if control {
+            let Some(next) = current.checked_add(1) else {
+                return Err(mpsc::error::TrySendError::Closed(request));
+            };
+            self.latest.store(next, Ordering::Release);
+            next
+        } else {
+            current
+        };
+        permit.send(ScopedRequest { generation, request });
+        Ok(())
     }
 }
-fn discard_room_sends(edits: &mut mpsc::Receiver<Request>, live: &mut mpsc::Receiver<Request>) {
-    // A room switch may overtake queued edits through the control lane. Never send
-    // an old room's payloads to the new room; the editor retains the local document.
+fn discard_room_sends(edits: &mut mpsc::Receiver<ScopedRequest>, live: &mut mpsc::Receiver<ScopedRequest>) {
     while edits.try_recv().is_ok() {}
     while live.try_recv().is_ok() {}
 }
 async fn receive_request(
-    edits: &mut mpsc::Receiver<Request>,
-    live: &mut mpsc::Receiver<Request>,
-    control: &mut mpsc::Receiver<Request>,
+    edits: &mut mpsc::Receiver<ScopedRequest>,
+    live: &mut mpsc::Receiver<ScopedRequest>,
+    control: &mut mpsc::Receiver<ScopedRequest>,
     accept_edits: bool,
-) -> Option<Request> {
+) -> Option<ScopedRequest> {
     tokio::select! {
         biased;
         request = control.recv() => request,
@@ -294,8 +349,9 @@ impl Worker {
         let (edits, receiver) = mpsc::channel(512);
         let (live, live_receiver) = mpsc::channel(128);
         let (control, control_receiver) = mpsc::channel(8);
-        let requests = RequestSender { edits, live, control };
-        let (sender, events) = event_channel(512);
+        let latest = Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let requests = RequestSender { edits, live, control, latest: latest.clone(), enqueue: Arc::new(std::sync::Mutex::new(())) };
+        let (sender, events) = event_channel(512, latest);
         std::thread::Builder::new().name("photocraft-webrtc".into()).spawn(move || {
             match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
                 Ok(runtime) => runtime.block_on(run_worker(receiver, live_receiver, control_receiver, sender)),
@@ -598,7 +654,12 @@ async fn close_room(client: &reqwest::Client, room: ConnectedRoom) {
     }
     let _ = post(client, &room.server, "/leave", &crate::signaling::Auth::from(&room.admission)).await;
 }
-async fn run_worker(mut requests: mpsc::Receiver<Request>, mut live: mpsc::Receiver<Request>, mut control: mpsc::Receiver<Request>, events: EventSender) {
+async fn run_worker(
+    mut requests: mpsc::Receiver<ScopedRequest>,
+    mut live: mpsc::Receiver<ScopedRequest>,
+    mut control: mpsc::Receiver<ScopedRequest>,
+    mut events: EventSender,
+) {
     let client = match reqwest::Client::builder().user_agent("PhotoCraft-dev").timeout(Duration::from_secs(20)).build() {
         Ok(c) => c,
         Err(e) => {
@@ -615,7 +676,9 @@ async fn run_worker(mut requests: mpsc::Receiver<Request>, mut live: mpsc::Recei
         tokio::select! {
             request = receive_request(&mut requests, &mut live, &mut control, held.is_none()) => {
                 let Some(request) = request else {break;};
-                match request {
+                if request.generation != events.latest.load(std::sync::atomic::Ordering::Acquire) {continue;}
+                if !matches!(request.request, Request::Send { .. }) {events=events.scoped(request.generation);}
+                match request.request {
                     Request::Create {server,password,ice_servers} => {
                         held = None;
                         discard_room_sends(&mut requests, &mut live);
@@ -694,7 +757,7 @@ mod queue_tests {
     use super::*;
     #[test]
     fn event_depth_tracks_successful_enqueues_and_failed_backpressure() {
-        let (sender, receiver) = event_channel(1);
+        let (sender, receiver) = event_channel(1, Arc::new(std::sync::atomic::AtomicU64::new(0)));
         assert!(receiver.is_empty());
         sender.try_send(Event::Closed).unwrap();
         assert_eq!(receiver.len(), 1);
@@ -703,19 +766,81 @@ mod queue_tests {
         receiver.try_recv().unwrap();
         assert_eq!(receiver.len(), 0);
     }
+    #[test]
+    fn room_generation_rejects_queued_and_late_callbacks_of_every_kind() {
+        use std::sync::atomic::Ordering;
+        let latest = Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let (old, receiver) = event_channel(16, latest.clone());
+        let events = || {
+            vec![
+                Event::Closed,
+                Event::Joined {
+                    admission: crate::signaling::Admission { code: "OLD001".into(), peer: "old".into(), token: "test".into(), host: "old".into() },
+                },
+                Event::Error("old 401".into()),
+                Event::Packet { peer: "old".into(), channel: ChannelKind::Edits, payload: vec![1] },
+                Event::PeerConnected { peer: "old".into() },
+                Event::PeerDisconnected { peer: "old".into() },
+            ]
+        };
+        for event in events() {
+            old.try_send(event).unwrap();
+        }
+        latest.store(1, Ordering::Release);
+        for event in events() {
+            old.try_send(event).unwrap();
+        }
+        let current = old.scoped(1);
+        current.try_send(Event::Error("current".into())).unwrap();
+        assert!(matches!(receiver.try_recv(), Ok(Event::Error(error)) if error=="current"));
+        assert!(receiver.is_empty());
+        assert!(matches!(receiver.recv_timeout(Duration::from_millis(1)), Err(std::sync::mpsc::RecvTimeoutError::Timeout)));
+        // An already queued stale item is also filtered by the blocking receiver.
+        current.try_send(Event::Closed).unwrap();
+        latest.store(2, Ordering::Release);
+        current.scoped(2).try_send(Event::Error("newest".into())).unwrap();
+        assert!(matches!(receiver.recv_timeout(Duration::from_secs(1)),Ok(Event::Error(error)) if error=="newest"));
+        assert!(receiver.is_empty());
+    }
+
+    #[test]
+    fn rejected_control_does_not_advance_epoch_and_sends_use_accepted_epoch() {
+        use std::sync::atomic::Ordering;
+        let (edits, mut edit_rx) = mpsc::channel(1);
+        let (live, _live_rx) = mpsc::channel(1);
+        let (control, mut control_rx) = mpsc::channel(1);
+        let latest = Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let sender = RequestSender { edits, live, control, latest: latest.clone(), enqueue: Arc::new(std::sync::Mutex::new(())) };
+        sender.try_send(Request::Close).unwrap();
+        assert_eq!(latest.load(Ordering::Acquire), 1);
+        assert!(matches!(sender.try_send(Request::Close), Err(mpsc::error::TrySendError::Full(Request::Close))));
+        assert_eq!(latest.load(Ordering::Acquire), 1);
+        sender.try_send(Request::Send { peer: None, channel: ChannelKind::Edits, payload: vec![9] }).unwrap();
+        assert_eq!(edit_rx.try_recv().unwrap().generation, 1);
+        assert_eq!(control_rx.try_recv().unwrap().generation, 1);
+        latest.store(u64::MAX, Ordering::Release);
+        assert!(matches!(sender.try_send(Request::Close), Err(mpsc::error::TrySendError::Closed(Request::Close))));
+        assert_eq!(latest.load(Ordering::Acquire), u64::MAX);
+        assert!(control_rx.try_recv().is_err());
+    }
+
     #[tokio::test]
     async fn blocked_reliable_requests_leave_control_and_voice_live() {
         let (edits, mut edit_rx) = mpsc::channel(1);
         let (live, mut live_rx) = mpsc::channel(1);
         let (control, mut control_rx) = mpsc::channel(1);
-        let sender = RequestSender { edits, live, control };
+        let sender =
+            RequestSender { edits, live, control, latest: Arc::new(std::sync::atomic::AtomicU64::new(0)), enqueue: Arc::new(std::sync::Mutex::new(())) };
         sender.try_send(Request::Send { peer: None, channel: ChannelKind::Edits, payload: vec![1] }).unwrap();
         assert!(sender.try_send(Request::Send { peer: None, channel: ChannelKind::Edits, payload: vec![2] }).is_err());
         sender.try_send(Request::Send { peer: None, channel: ChannelKind::Voice, payload: vec![3] }).unwrap();
         sender.try_send(Request::Close).unwrap();
-        assert!(matches!(receive_request(&mut edit_rx, &mut live_rx, &mut control_rx, false).await, Some(Request::Close)));
-        assert!(matches!(receive_request(&mut edit_rx, &mut live_rx, &mut control_rx, false).await, Some(Request::Send { channel: ChannelKind::Voice, .. })));
-        assert!(matches!(edit_rx.try_recv(),Ok(Request::Send {channel:ChannelKind::Edits,payload,..}) if payload == vec![1]));
+        assert!(matches!(receive_request(&mut edit_rx, &mut live_rx, &mut control_rx, false).await, Some(ScopedRequest { request: Request::Close, .. })));
+        assert!(matches!(
+            receive_request(&mut edit_rx, &mut live_rx, &mut control_rx, false).await,
+            Some(ScopedRequest { request: Request::Send { channel: ChannelKind::Voice, .. }, .. })
+        ));
+        assert!(matches!(edit_rx.try_recv(),Ok(ScopedRequest {request:Request::Send {channel:ChannelKind::Edits,payload,..},..}) if payload == vec![1]));
     }
     #[tokio::test]
     async fn saturated_edit_lane_preserves_order_and_does_not_block_live_lane() {

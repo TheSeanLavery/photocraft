@@ -16,6 +16,12 @@
   <string>ai.storyteller.photocraft</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
+  <key>CFBundleURLTypes</key>
+  <array><dict>
+    <key>CFBundleURLName</key><string>PhotoCraft room invitation</string>
+    <key>CFBundleURLSchemes</key><array><string>photocraft</string></array>
+    <key>CFBundleTypeRole</key><string>Viewer</string>
+  </dict></array>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleSignature</key>

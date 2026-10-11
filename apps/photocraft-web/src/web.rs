@@ -1,6 +1,10 @@
 //! The browser shell: web `Services`, drag-and-drop, and the eframe web runner.
 
-use std::sync::{Arc, Mutex};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
 
 use photocraft_codecs::{ChannelLayout, EncodeOptions, Image};
 use photocraft_doc::Document;
@@ -8,6 +12,13 @@ use photocraft_engine::Session;
 use photocraft_ui_egui::theme::ThemeKind;
 use photocraft_ui_egui::{PhotocraftApp, Services};
 use wasm_bindgen::JsCast as _;
+
+#[path = "collaboration.rs"]
+mod collaboration;
+#[path = "collaboration_protocol.rs"]
+mod collaboration_protocol;
+#[path = "worker_codec.rs"]
+mod worker_codec;
 
 type Inbox = Arc<Mutex<Vec<(String, Vec<u8>)>>>;
 
@@ -48,6 +59,23 @@ pub fn start() {
                     PhotocraftApp::setup_context(&cc.egui_ctx, ThemeKind::Pro);
                     let inbox: Inbox = Arc::default();
                     let mut app = PhotocraftApp::new(Session::new(), services(inbox.clone(), cc.egui_ctx.clone()));
+                    match invited_room() {
+                        Ok(Some(code)) => {
+                            app.ui.collaboration.reveal_for_invite();
+                            app.ui.collaboration.code = code.clone();
+                            if let Err(error) = app.run(
+                                "collab.room.join",
+                                serde_json::json!({"code":code,"name":app.ui.collaboration.name,"signalingUrl":photocraft_collab::DEFAULT_SIGNALING_URL}),
+                            ) {
+                                app.ui.collaboration.error = error;
+                            }
+                        }
+                        Err(error) => {
+                            app.ui.collaboration.reveal_for_invite();
+                            app.ui.collaboration.error = error;
+                        }
+                        Ok(None) => {}
+                    }
                     listen_pen(&pen_target, app.stylus.feed.clone());
                     // The shared preferences tick applies the persisted catalog selection.
                     if let Some(rs) = cc.wgpu_render_state.clone()
@@ -56,6 +84,7 @@ pub fn start() {
                         log::info!("photocraft-web: wgpu backend {:?}", rs.adapter.get_info().backend);
                         app.set_wgpu(rs);
                     }
+                    let app = collaboration::attach(app, cc.egui_ctx.clone());
                     Ok(Box::new(WebShell { app, inbox }))
                 }),
             )
@@ -106,7 +135,7 @@ fn query() -> String {
 /// Wraps the app to read dropped files asynchronously (browsers can't read them synchronously,
 /// so the app's own drop path can't handle them) and feed them through the inbox.
 struct WebShell {
-    app: PhotocraftApp,
+    app: Rc<RefCell<PhotocraftApp>>,
     inbox: Inbox,
 }
 
@@ -127,11 +156,19 @@ impl eframe::App for WebShell {
                 }
             });
         }
-        self.app.logic(ctx, frame);
+        if let Ok(mut app) = self.app.try_borrow_mut() {
+            app.logic(ctx, frame);
+        } else {
+            ctx.request_repaint();
+        }
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
-        self.app.ui(ui, frame);
+        if let Ok(mut app) = self.app.try_borrow_mut() {
+            app.ui(ui, frame);
+        } else {
+            ui.ctx().request_repaint();
+        }
     }
 }
 
@@ -260,4 +297,12 @@ fn mime_for(name: &str) -> &'static str {
         Some("psd" | "psb") => "image/vnd.adobe.photoshop",
         _ => "application/octet-stream",
     }
+}
+
+/// Public invitation URLs route into the Rust browser app without exposing room credentials.
+fn invited_room() -> Result<Option<String>, String> {
+    let location = web_sys::window().ok_or("No browser window")?.location();
+    let path = location.pathname().map_err(|e| format!("Cannot read invitation path: {e:?}"))?;
+    let query = location.search().map_err(|e| format!("Cannot read invitation query: {e:?}"))?;
+    collaboration_protocol::room_from_location(&path, &query)
 }

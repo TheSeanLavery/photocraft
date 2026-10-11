@@ -198,7 +198,7 @@ impl LiveStroke {
 /// The live stroke on document `idx`, while it is current.
 fn live_stroke(app: &PhotocraftApp, idx: usize) -> Option<&LiveStroke> {
     let st = app.session.documents().get(idx)?;
-    app.live_stroke.as_ref().filter(|l| app.drag.is_some() && l.doc == st.doc.id && l.revision == st.revision)
+    app.live_stroke.as_ref().filter(|l| app.drag.is_some() && l.collaboration_id.is_none() && l.doc == st.doc.id && l.revision == st.revision)
 }
 
 /// `paint.stroke` params for a Brush/Eraser drag (shared by the live preview and the commit). The
@@ -319,12 +319,10 @@ pub(crate) fn feed_live_stroke(app: &mut PhotocraftApp) {
     if app.defer_live_stroke {
         return;
     }
-    // A streamed gesture is already rendered by canonical application. Once that
-    // document advances, its private preview cannot be displayed (it would hide
-    // peer edits). Keep forwarding input without painting that hidden copy too.
-    let render_preview = app.live_stroke.as_ref().is_some_and(|live| {
-        live.collaboration_id.is_none() || app.session.active().is_some_and(|state| state.doc.id == live.doc && state.revision == live.revision)
-    });
+    // Streamed room gestures are predicted by the engine on the current canonical
+    // document. A separate whole-document preview would hide concurrent peer edits.
+    // Generic local strokes retain their ordinary private preview.
+    let render_preview = app.live_stroke.as_ref().is_some_and(|live| live.collaboration_id.is_none());
     let (Some(l), Some(d)) = (app.live_stroke.as_mut(), app.drag.as_ref()) else { return };
     let pose = &app.stylus.stroke;
     let pts: Vec<_> = (l.fed..d.points.len())
@@ -3346,6 +3344,32 @@ mod tests {
         app.run("edit.fill", json!({"color":"#445588"})).unwrap();
         ensure_texture(&mut app, &ctx, 0, None);
         assert_eq!(app.perf.last_refresh, "full", "semantic edits retain conservative invalidation");
+    }
+
+    #[test]
+    fn guest_stream_uses_predicted_document_before_ack_and_after_release() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":64,"height":64,"background":"transparent"})).unwrap();
+        app.run("tools.setBrush", json!({"brush":{"size":8,"hardness":1,"spacing":0.2}})).unwrap();
+        app.run("collab.room.join", json!({"code":"TEST01","peer":"guest"})).unwrap();
+        // This fixture starts after checkpoint admission; joining itself keeps local documents private.
+        app.session.collaboration.document_id = app.session.active().map(|state| state.doc.id);
+        app.ui.tool = Tool::Brush;
+        let modifiers = egui::Modifiers::NONE;
+        tool_event(&mut app, ToolEvent::Down { x: 12.0, y: 20.0, pressure: 0.3 }, modifiers);
+        tool_event(&mut app, ToolEvent::Move { x: 30.0, y: 20.0, pressure: 0.8 }, modifiers);
+        assert!(app.live_stroke.as_ref().unwrap().collaboration_id.is_some());
+        assert!(live_stroke(&app, 0).is_none(), "streamed gestures never overlay a stale document");
+        let (shown, key) = display_doc(&mut app, 0);
+        assert_eq!(key, 0);
+        assert!(std::sync::Arc::ptr_eq(&shown, &app.session.active().unwrap().doc));
+        assert!(shown.layers[0].surface().unwrap().rgba(30, 20)[3] > 0.0, "guest input displays before host acknowledgement");
+        assert!(app.session.collaboration.canonical_outbox.is_empty());
+        tool_event(&mut app, ToolEvent::Up { x: 36.0, y: 20.0 }, modifiers);
+        let (released, key) = display_doc(&mut app, 0);
+        assert_eq!(key, 0);
+        assert!(app.live_stroke.is_none());
+        assert!(released.layers[0].surface().unwrap().rgba(30, 20)[3] > 0.0, "prediction survives release while End awaits acknowledgement");
     }
 
     #[test]

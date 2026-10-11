@@ -1,4 +1,4 @@
-//! AppKit local event monitor for tablet data. The only module in the workspace that allows
+//! AppKit local event monitor and bounded room-URL Apple-event adapter. The only module in the workspace that allows
 //! `unsafe`: calls into AppKit's Objective-C API that objc2 can't prove sound on its own
 //! (each has a `SAFETY:` comment). Everything the monitor reads goes through the pure, tested
 //! mapping in [`crate::appkit`].
@@ -6,6 +6,7 @@
 //! A *local* monitor sees this app's events only, on the main thread, inside `-[NSApplication
 //! sendEvent:]` before the event reaches winit's view, so the sample is current when the UI
 //! handles the matching pointer event. The monitor passes every event through unchanged.
+//! The separate GetURL registration leaves the application's delegate and document/quit handlers alone.
 
 #![allow(unsafe_code)]
 
@@ -24,6 +25,123 @@ use objc2_game_controller::{GCDevice, GCMouse, GCMouseDidConnectNotification, GC
 
 use crate::appkit::{RawEvent, State, TrackpadUpdate};
 use crate::{Error, Sample, Update, deliver, deliver_trackpad};
+
+/// Main-thread URL Apple events, separate from document/quit handlers and winit's delegate.
+#[derive(Clone, Default)]
+pub struct UrlInbox(Rc<RefCell<PendingUrls>>);
+
+#[derive(Default)]
+struct PendingUrls {
+    queue: std::collections::VecDeque<String>,
+    wake: Option<Box<dyn Fn()>>,
+}
+
+impl UrlInbox {
+    pub fn drain(&self) -> Vec<String> {
+        self.0.borrow_mut().queue.drain(..).collect()
+    }
+    pub fn set_wake(&self, wake: impl Fn() + 'static) {
+        self.0.borrow_mut().wake = Some(Box::new(wake));
+    }
+    fn push(&self, url: String) {
+        if url.len() > 2048 {
+            return;
+        }
+        let mut pending = self.0.borrow_mut();
+        if pending.queue.len() < 8 {
+            pending.queue.push_back(url);
+        }
+        if let Some(wake) = &pending.wake {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(wake));
+        }
+    }
+}
+
+objc2::define_class!(
+    // SAFETY: NSObject has no subclass invariants. Ivars and callbacks are main-thread only.
+    #[unsafe(super = objc2_foundation::NSObject)]
+    #[thread_kind = objc2::MainThreadOnly]
+    #[ivars = UrlInbox]
+    struct PhotoCraftUrlHandler;
+    // SAFETY: The NSObjectProtocol implementation introduces no additional requirements.
+    unsafe impl NSObjectProtocol for PhotoCraftUrlHandler {}
+    impl PhotoCraftUrlHandler {
+        // SAFETY: The selector follows Apple's two-descriptor Apple-event handler signature.
+        #[unsafe(method(photoCraftOpenUrl:withReplyEvent:))]
+        fn open_url(&self, event: &objc2_foundation::NSAppleEventDescriptor, _reply: &objc2_foundation::NSAppleEventDescriptor) {
+            use objc2::DefinedClass;
+            // SAFETY: '----' is Apple's keyDirectObject; the nullable retained descriptor is checked.
+            let value: Option<Retained<objc2_foundation::NSAppleEventDescriptor>> = unsafe {
+                objc2::msg_send![event, paramDescriptorForKeyword: u32::from_be_bytes(*b"----")]
+            };
+            let Some(value) = value.and_then(|value| value.stringValue()) else { return };
+            if value.length() > 2048 { return; }
+            self.ivars().push(value.to_string());
+        }
+    }
+);
+
+/// Retains only the GetURL event registration. Drop after the event loop exits.
+pub struct UrlRegistration(Retained<PhotoCraftUrlHandler>);
+
+impl UrlRegistration {
+    pub fn install() -> Result<(Self, UrlInbox), Error> {
+        use objc2::MainThreadOnly;
+        let mtm = MainThreadMarker::new().ok_or(Error::NotMainThread)?;
+        let inbox = UrlInbox::default();
+        let allocated = PhotoCraftUrlHandler::alloc(mtm).set_ivars(inbox.clone());
+        // SAFETY: NSObject init initializes the main-thread subclass with its bounded inbox.
+        let handler: Retained<PhotoCraftUrlHandler> = unsafe { objc2::msg_send![super(allocated), init] };
+        let manager = objc2_foundation::NSAppleEventManager::sharedAppleEventManager();
+        // SAFETY: Retained handler lives until registration drops; selector takes two descriptors.
+        unsafe {
+            let _: () = objc2::msg_send![&*manager, setEventHandler: &*handler,
+                andSelector: objc2::sel!(photoCraftOpenUrl:withReplyEvent:),
+                forEventClass: u32::from_be_bytes(*b"GURL"), andEventID: u32::from_be_bytes(*b"GURL")];
+        }
+        Ok((Self(handler), inbox))
+    }
+}
+
+#[cfg(test)]
+mod url_tests {
+    #[test]
+    fn bounds_queue_and_payload_and_preserves_fifo() {
+        let inbox = super::UrlInbox::default();
+        inbox.push("x".repeat(2049));
+        assert!(inbox.drain().is_empty());
+        for i in 0..20 {
+            inbox.push(format!("photocraft://join/TEST{i:02}"));
+        }
+        let urls = inbox.drain();
+        assert_eq!(urls.len(), 8);
+        assert_eq!(urls.first().map(String::as_str), Some("photocraft://join/TEST00"));
+        assert_eq!(urls.last().map(String::as_str), Some("photocraft://join/TEST07"));
+        assert!(inbox.drain().is_empty());
+    }
+    #[test]
+    fn wakes_without_losing_urls() {
+        let inbox = super::UrlInbox::default();
+        let count = std::rc::Rc::new(std::cell::Cell::new(0));
+        let wake_count = count.clone();
+        inbox.set_wake(move || wake_count.set(wake_count.get() + 1));
+        inbox.push("photocraft://join/TEST01".into());
+        assert_eq!(count.get(), 1);
+        assert_eq!(inbox.drain().len(), 1);
+    }
+}
+
+impl Drop for UrlRegistration {
+    fn drop(&mut self) {
+        let _retained = &self.0;
+        let manager = objc2_foundation::NSAppleEventManager::sharedAppleEventManager();
+        // SAFETY: Remove only our GetURL registration while the retained handler still lives.
+        unsafe {
+            let _: () = objc2::msg_send![&*manager, removeEventHandlerForEventClass: u32::from_be_bytes(*b"GURL"),
+                andEventID: u32::from_be_bytes(*b"GURL")];
+        }
+    }
+}
 
 /// Keeps the monitor installed; dropping it removes the monitor. Main-thread only (not `Send`).
 pub struct Monitor {

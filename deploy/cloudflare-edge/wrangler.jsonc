@@ -3,8 +3,46 @@
   "main": "build/worker/shim.mjs",
   "compatibility_date": "2026-10-10",
   "workers_dev": true,
-  "build": { "command": "worker-build --release" },
-  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
-  "limits": { "cpu_ms": 50 }
+  "build": {
+    "command": "worker-build --release"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  },
+  "limits": {
+    "cpu_ms": 50
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOMS",
+        "class_name": "PhotoCraftRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1-rooms-sqlite",
+      "new_sqlite_classes": [
+        "PhotoCraftRoom"
+      ]
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "WEB_ASSETS",
+      "bucket_name": "photocraft-web-assets"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "ADMISSION_LIMIT",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    }
+  ]
 }
-

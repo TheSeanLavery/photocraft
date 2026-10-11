@@ -231,7 +231,11 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
         }
         "window.collaboration.settings" => crate::collaboration_ui::settings(app, &params),
         "window.collaboration" => {
-            app.ui.collaboration.open = !app.ui.collaboration.open;
+            app.ui.collaboration.open = !app.ui.collaboration.open || app.ui.collaboration.panel_mode == crate::collaboration_ui::PanelMode::Collapsed;
+            if app.ui.collaboration.open {
+                app.ui.collaboration.panel_mode = crate::collaboration_ui::PanelMode::Full;
+            }
+            app.ui.collaboration.push_to_talk = false;
             Ok(json!({"open": app.ui.collaboration.open}))
         }
         // ⌘↩ / Ctrl+Enter (#306): load the path selected in the Paths panel (or the one being

@@ -1,0 +1,421 @@
+{
+  "date": "2026-10-10",
+  "browserBuild": "d520ec345ef5f722",
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "model": "RGB",
+    "depth": 8
+  },
+  "totalStrokes": 256,
+  "samplesPerStroke": 96,
+  "chunkPoints": 8,
+  "pressure": true,
+  "erase": true,
+  "ownUndoRedo": true,
+  "passes": [
+    {
+      "drawingWallSeconds": 42.812798459,
+      "strokesPerArtist": 32,
+      "pointsPerStroke": 96,
+      "chunkPoints": 8,
+      "layerChurn": false,
+      "revisions": [
+        1944,
+        1944,
+        1944,
+        1944
+      ],
+      "rgbaHashes": [
+        "9fc8fc21a8201092647145fd8d4e03953c2710fddd2c532f0957efd837030000",
+        "9fc8fc21a8201092647145fd8d4e03953c2710fddd2c532f0957efd837030000",
+        "9fc8fc21a8201092647145fd8d4e03953c2710fddd2c532f0957efd837030000",
+        "9fc8fc21a8201092647145fd8d4e03953c2710fddd2c532f0957efd837030000"
+      ],
+      "converged": true,
+      "quiescent": true,
+      "errors": [],
+      "artists": [
+        {
+          "artist": 0,
+          "baselineHistoryCount": 0,
+          "completedStrokes": 32,
+          "pointerRoundtripMs": {
+            "p50": 24.297791999998708,
+            "p95": 88.15383399999988,
+            "p99": 171.46191599999838,
+            "max": 240.50858300000044
+          },
+          "historyRoundtripMs": {
+            "p50": 36.634083000002704,
+            "p95": 68.89162499999912,
+            "p99": 68.89162499999912,
+            "max": 68.89162499999912
+          }
+        },
+        {
+          "artist": 1,
+          "baselineHistoryCount": 0,
+          "completedStrokes": 32,
+          "pointerRoundtripMs": {
+            "p50": 23.468583999999737,
+            "p95": 80.66337500000031,
+            "p99": 160.24679100000583,
+            "max": 337.6506660000009
+          },
+          "historyRoundtripMs": {
+            "p50": 41.914874999999796,
+            "p95": 182.97237499999852,
+            "p99": 182.97237499999852,
+            "max": 182.97237499999852
+          }
+        },
+        {
+          "artist": 2,
+          "baselineHistoryCount": 0,
+          "completedStrokes": 32,
+          "pointerRoundtripMs": {
+            "p50": 21.666208000000076,
+            "p95": 87.97362500000006,
+            "p99": 171.9393750000009,
+            "max": 295.9738750000005
+          },
+          "historyRoundtripMs": {
+            "p50": 34.898582999998595,
+            "p95": 55.25920799999895,
+            "p99": 55.25920799999895,
+            "max": 55.25920799999895
+          }
+        },
+        {
+          "artist": 3,
+          "baselineHistoryCount": 0,
+          "completedStrokes": 32,
+          "pointerRoundtripMs": {
+            "p50": 26.604000000002515,
+            "p95": 97.72466599999952,
+            "p99": 182.30145799999775,
+            "max": 216.29929199999864
+          },
+          "historyRoundtripMs": {
+            "p50": 27.919541999999353,
+            "p95": 50.22874999999871,
+            "p99": 50.22874999999871,
+            "max": 50.22874999999871
+          }
+        }
+      ]
+    },
+    {
+      "drawingWallSeconds": 47.606279625,
+      "strokesPerArtist": 32,
+      "pointsPerStroke": 96,
+      "chunkPoints": 8,
+      "layerChurn": false,
+      "revisions": [
+        3888,
+        3888,
+        3888,
+        3888
+      ],
+      "rgbaHashes": [
+        "b21bb6367ba9e5d4b9e59335e0868321fff7dd6597b38c7b43f3350e062ed556",
+        "b21bb6367ba9e5d4b9e59335e0868321fff7dd6597b38c7b43f3350e062ed556",
+        "b21bb6367ba9e5d4b9e59335e0868321fff7dd6597b38c7b43f3350e062ed556",
+        "b21bb6367ba9e5d4b9e59335e0868321fff7dd6597b38c7b43f3350e062ed556"
+      ],
+      "converged": true,
+      "quiescent": true,
+      "errors": [],
+      "artists": [
+        {
+          "artist": 0,
+          "baselineHistoryCount": 32,
+          "completedStrokes": 32,
+          "pointerRoundtripMs": {
+            "p50": 30.199999999997118,
+            "p95": 88.00045899999986,
+            "p99": 246.01070900000366,
+            "max": 556.7076670000049
+          },
+          "historyRoundtripMs": {
+            "p50": 31.487499999999002,
+            "p95": 59.39562500000051,
+            "p99": 59.39562500000051,
+            "max": 59.39562500000051
+          }
+        },
+        {
+          "artist": 1,
+          "baselineHistoryCount": 32,
+          "completedStrokes": 32,
+          "pointerRoundtripMs": {
+            "p50": 29.488458000002993,
+            "p95": 103.30212499999902,
+            "p99": 275.3119580000032,
+            "max": 471.20833299999987
+          },
+          "historyRoundtripMs": {
+            "p50": 34.58370799999955,
+            "p95": 48.57791699999581,
+            "p99": 48.57791699999581,
+            "max": 48.57791699999581
+          }
+        },
+        {
+          "artist": 2,
+          "baselineHistoryCount": 32,
+          "completedStrokes": 32,
+          "pointerRoundtripMs": {
+            "p50": 30.25316700000147,
+            "p95": 107.33470899999986,
+            "p99": 267.34004099999885,
+            "max": 364.6801249999996
+          },
+          "historyRoundtripMs": {
+            "p50": 27.064875000000654,
+            "p95": 59.09058399999978,
+            "p99": 59.09058399999978,
+            "max": 59.09058399999978
+          }
+        },
+        {
+          "artist": 3,
+          "baselineHistoryCount": 32,
+          "completedStrokes": 32,
+          "pointerRoundtripMs": {
+            "p50": 28.332167000000297,
+            "p95": 76.74187499999974,
+            "p99": 212.60954099999995,
+            "max": 550.7096249999961
+          },
+          "historyRoundtripMs": {
+            "p50": 32.54462499999988,
+            "p95": 49.99212500000105,
+            "p99": 49.99212500000105,
+            "max": 49.99212500000105
+          }
+        }
+      ]
+    }
+  ],
+  "browserSamples": [
+    {
+      "applyMs": {
+        "max": 210.40000000596046,
+        "p50": 7.200000002980232,
+        "p95": 21.399999991059303,
+        "samples": 240
+      },
+      "diagnostic": "PhotoCraft collaboration",
+      "logicFrameIntervalMs": {
+        "max": 270.79999999701977,
+        "p50": 16.900000005960464,
+        "p95": 38.099999994039536,
+        "samples": 240
+      },
+      "queues": {
+        "backgroundPumpTicks": 0,
+        "browser": true,
+        "bufferedBytes": 99480,
+        "canonicalOpsQueued": 2,
+        "clientOpsQueued": 0,
+        "codecRepliesQueued": 42,
+        "codecWorkerActive": true,
+        "codecWorkerBytes": 76337,
+        "codecWorkerCompleted": 490,
+        "codecWorkerCompletion": {
+          "awaitingResults": 1,
+          "oldestReceivedMs": 290.0,
+          "oldestUnansweredMs": 0.0,
+          "receivedResultsQueued": 42,
+          "workerSilenceMs": 9.0
+        },
+        "codecWorkerMs": 25.0,
+        "codecWorkerQueued": 43,
+        "documentHidden": false,
+        "drawingPriority": false,
+        "incomingEventsQueued": 25,
+        "maxApplyMs": 210.40000000596046,
+        "oldestQueuedMs": 290.1000000089407,
+        "outgoingJobs": 12,
+        "pendingBootstraps": 0,
+        "sctpBufferedBytes": 1929,
+        "snapshotMs": 225.5,
+        "tickMs": 9.100000008940697,
+        "worstTickMs": 225.5
+      },
+      "scope": "last 240 collaboration ticks; logic-frame cadence sampled separately; not pointer-to-photon latency",
+      "tickMs": {
+        "max": 210.5,
+        "p50": 7.4000000059604645,
+        "p95": 22.200000002980232,
+        "samples": 240
+      }
+    },
+    {
+      "applyMs": {
+        "max": 154.6000000089407,
+        "p50": 10.700000002980232,
+        "p95": 22.799999997019768,
+        "samples": 240
+      },
+      "diagnostic": "PhotoCraft collaboration",
+      "logicFrameIntervalMs": {
+        "max": 183.79999999701977,
+        "p50": 18.099999994039536,
+        "p95": 31.799999997019768,
+        "samples": 240
+      },
+      "queues": {
+        "backgroundPumpTicks": 0,
+        "browser": true,
+        "bufferedBytes": 144816,
+        "canonicalOpsQueued": 0,
+        "clientOpsQueued": 0,
+        "codecRepliesQueued": 10,
+        "codecWorkerActive": true,
+        "codecWorkerBytes": 43327,
+        "codecWorkerCompleted": 2357,
+        "codecWorkerCompletion": {
+          "awaitingResults": 1,
+          "oldestReceivedMs": 93.0,
+          "oldestUnansweredMs": 0.0,
+          "receivedResultsQueued": 10,
+          "workerSilenceMs": 11.0
+        },
+        "codecWorkerMs": 25.0,
+        "codecWorkerQueued": 11,
+        "documentHidden": false,
+        "drawingPriority": false,
+        "incomingEventsQueued": 9,
+        "maxApplyMs": 812.6999999880791,
+        "oldestQueuedMs": 92.40000000596046,
+        "outgoingJobs": 24,
+        "pendingBootstraps": 0,
+        "sctpBufferedBytes": 0,
+        "snapshotMs": 225.5,
+        "tickMs": 10.700000002980232,
+        "worstTickMs": 812.7999999970198
+      },
+      "scope": "last 240 collaboration ticks; logic-frame cadence sampled separately; not pointer-to-photon latency",
+      "tickMs": {
+        "max": 156.09999999403954,
+        "p50": 11.099999994039536,
+        "p95": 23.200000002980232,
+        "samples": 240
+      }
+    },
+    {
+      "applyMs": {
+        "max": 31.0,
+        "p50": 0.0,
+        "p95": 11.0,
+        "samples": 240
+      },
+      "diagnostic": "PhotoCraft collaboration",
+      "logicFrameIntervalMs": {
+        "max": 36.0,
+        "p50": 7.4000000059604645,
+        "p95": 15.400000005960464,
+        "samples": 240
+      },
+      "queues": {
+        "backgroundPumpTicks": 0,
+        "browser": true,
+        "bufferedBytes": 0,
+        "canonicalOpsQueued": 0,
+        "clientOpsQueued": 0,
+        "codecRepliesQueued": 0,
+        "codecWorkerActive": true,
+        "codecWorkerBytes": 4158,
+        "codecWorkerCompleted": 6683,
+        "codecWorkerCompletion": {
+          "awaitingResults": 3,
+          "oldestReceivedMs": 0.0,
+          "oldestUnansweredMs": 0.0,
+          "receivedResultsQueued": 0,
+          "workerSilenceMs": 0.0
+        },
+        "codecWorkerMs": 25.0,
+        "codecWorkerQueued": 3,
+        "documentHidden": false,
+        "drawingPriority": false,
+        "incomingEventsQueued": 0,
+        "maxApplyMs": 1126.0,
+        "oldestQueuedMs": null,
+        "outgoingJobs": 0,
+        "pendingBootstraps": 0,
+        "sctpBufferedBytes": 9975,
+        "snapshotMs": 225.5,
+        "tickMs": 0.29999999701976776,
+        "worstTickMs": 1127.7000000029802
+      },
+      "scope": "last 240 collaboration ticks; logic-frame cadence sampled separately; not pointer-to-photon latency",
+      "tickMs": {
+        "max": 31.100000008940697,
+        "p50": 0.0,
+        "p95": 11.299999997019768,
+        "samples": 240
+      }
+    }
+  ],
+  "browserGuestUndo": [
+    {
+      "revision": 3900,
+      "historyCount": 64,
+      "hash": "b21bb6367ba9e5d4b9e59335e0868321fff7dd6597b38c7b43f3350e062ed556",
+      "error": ""
+    },
+    {
+      "revision": 3900,
+      "historyCount": 64,
+      "hash": "b21bb6367ba9e5d4b9e59335e0868321fff7dd6597b38c7b43f3350e062ed556",
+      "error": ""
+    },
+    {
+      "revision": 3900,
+      "historyCount": 64,
+      "hash": "b21bb6367ba9e5d4b9e59335e0868321fff7dd6597b38c7b43f3350e062ed556",
+      "error": ""
+    },
+    {
+      "revision": 3900,
+      "historyCount": 64,
+      "hash": "b21bb6367ba9e5d4b9e59335e0868321fff7dd6597b38c7b43f3350e062ed556",
+      "error": ""
+    }
+  ],
+  "video": {
+    "acceptedFrames": 208,
+    "audio": false,
+    "captureComplete": true,
+    "displaySleepPrevented": true,
+    "encoder": "H264; hardware required",
+    "frameStatuses": {
+      "0": 217
+    },
+    "height": 902,
+    "heldEndFrame": true,
+    "invalidFrames": 0,
+    "outcome": "complete",
+    "queueDepth": 8,
+    "requestedFPS": 30,
+    "requestedSeconds": 8,
+    "sampleDurationSeconds": 8.275022541,
+    "screenCallbacks": 217,
+    "source": "live PhotoCraft browser/native windows",
+    "startedUTC": "2026-10-11T03:44:51Z",
+    "validVideo": true,
+    "videoDurationSeconds": 8.341666666666667,
+    "wallSeconds": 9.494454979896545,
+    "width": 1486,
+    "writerBackpressureDrops": 9,
+    "writerCompleted": true
+  },
+  "limits": [
+    "Control roundtrips and logic cadence are not pointer-to-photon latency.",
+    "Worst host engine apply during dense overlap/history was1126ms; networking threads do not eliminate this engine cost.",
+    "Background-host execution was not established by browser automation because focus emulation reports the host visible."
+  ]
+}

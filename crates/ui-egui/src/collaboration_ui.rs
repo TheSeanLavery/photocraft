@@ -8,6 +8,8 @@ use serde_json::{Value, json};
 #[serde(default)]
 pub struct CollaborationUi {
     pub open: bool,
+    pub panel_mode: PanelMode,
+    pub notes_tab: bool,
     pub name: String,
     pub icon: String,
     pub color: [u8; 3],
@@ -41,6 +43,8 @@ impl Default for CollaborationUi {
     fn default() -> Self {
         Self {
             open: false,
+            panel_mode: PanelMode::Full,
+            notes_tab: false,
             name: "Artist".into(),
             icon: String::new(),
             color: [80, 170, 240],
@@ -67,156 +71,263 @@ impl Default for CollaborationUi {
     }
 }
 
-pub fn window(app: &mut PhotocraftApp, ctx: &egui::Context) {
+impl CollaborationUi {
+    /// Invitations reveal the complete room dock regardless of saved display preferences.
+    pub fn reveal_for_invite(&mut self) {
+        self.open = true;
+        self.panel_mode = PanelMode::Full;
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PanelMode {
+    #[default]
+    Full,
+    Minimal,
+    Collapsed,
+}
+
+/// A discoverable people button, drawn with native primitives in every theme.
+pub fn entry_button(app: &mut PhotocraftApp, ui: &mut egui::Ui, side: f32) {
+    let t = crate::theme::Tokens::get(ui.ctx());
+    let (rect, response) = ui.allocate_exact_size(egui::Vec2::splat(side), egui::Sense::click());
+    let selected = app.ui.collaboration.open;
+    if selected || response.hovered() {
+        ui.painter().rect_filled(rect, t.radius_sm, if selected { t.accent_soft } else { t.hover });
+    }
+    let color = if selected { t.accent } else { t.text_dim };
+    let c = rect.center();
+    for dx in [-4.0, 4.0] {
+        ui.painter().circle_stroke(c + egui::vec2(dx, -3.0), 2.5, egui::Stroke::new(1.3, color));
+        ui.painter().line_segment([c + egui::vec2(dx - 3.0, 7.0), c + egui::vec2(dx - 3.0, 3.0)], egui::Stroke::new(1.3, color));
+        ui.painter().line_segment([c + egui::vec2(dx - 3.0, 3.0), c + egui::vec2(dx + 3.0, 3.0)], egui::Stroke::new(1.3, color));
+        ui.painter().line_segment([c + egui::vec2(dx + 3.0, 3.0), c + egui::vec2(dx + 3.0, 7.0)], egui::Stroke::new(1.3, color));
+    }
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Room"));
+    if response.on_hover_text("Room — invite people and draw together").clicked() {
+        let state = &mut app.ui.collaboration;
+        if state.open && state.panel_mode != PanelMode::Collapsed {
+            state.open = false;
+            state.push_to_talk = false;
+        } else {
+            state.open = true;
+            if state.panel_mode == PanelMode::Collapsed {
+                state.panel_mode = PanelMode::Full;
+            }
+        }
+    }
+}
+
+/// Open an invitation without closing or replacing an existing drawing.
+pub fn open_invite(app: &mut PhotocraftApp, input: &str) -> Result<(), String> {
+    app.ui.collaboration.reveal_for_invite();
+    let invite = photocraft_engine::collab::invite::parse_with_server(input, &app.ui.collaboration.signaling_url)?;
+    if let Some(room) = app.session.collaboration.room.as_ref() {
+        if room.code != invite.code {
+            return Err("Leave the current room before joining another room. Your drawing is preserved.".into());
+        }
+        if app.ui.collaboration.transport_pending
+            || app.ui.collaboration.transport_status.starts_with("Connected")
+            || app.ui.collaboration.transport_status.starts_with("Hosting")
+            || !app.session.collaboration.network_intents.is_empty()
+        {
+            return Ok(());
+        }
+    }
+    app.ui.collaboration.code = invite.code.clone();
+    app.ui.collaboration.signaling_url = invite.signaling_url.clone();
+    app.run(
+        "collab.room.join",
+        json!({"code":invite.code,"name":app.ui.collaboration.name,"password":app.ui.collaboration.password,"signalingUrl":invite.signaling_url}),
+    )?;
+    Ok(())
+}
+
+fn color_of(profile: &photocraft_engine::collab::Profile) -> egui::Color32 {
+    egui::Color32::from_rgb(
+        (profile.color[0].clamp(0.0, 1.0) * 255.0) as u8,
+        (profile.color[1].clamp(0.0, 1.0) * 255.0) as u8,
+        (profile.color[2].clamp(0.0, 1.0) * 255.0) as u8,
+    )
+}
+
+fn people(ui: &mut egui::Ui, room: &photocraft_engine::collab::RoomState, minimal: bool) {
+    let t = crate::theme::Tokens::get(ui.ctx());
+    ui.label(RichText::new("People").strong());
+    egui::ScrollArea::vertical().id_salt("room-people").max_height(if minimal { 150.0 } else { 220.0 }).show(ui, |ui| {
+        for (id, member) in &room.members {
+            let color = color_of(&member.profile);
+            ui.horizontal(|ui| {
+                let (rect, _) = ui.allocate_exact_size(egui::Vec2::splat(if minimal { 20.0 } else { 28.0 }), egui::Sense::hover());
+                ui.painter().circle_filled(rect.center(), rect.width() / 2.0, color);
+                let initials = member
+                    .profile
+                    .icon
+                    .clone()
+                    .filter(|v| !v.is_empty())
+                    .unwrap_or_else(|| member.profile.name.chars().take(2).collect::<String>().to_uppercase());
+                ui.painter().text(rect.center(), egui::Align2::CENTER_CENTER, initials, crate::theme::medium(10.0), t.canvas);
+                ui.label(if *id == room.local_peer { "You" } else { &member.profile.name });
+                if *id == room.host {
+                    ui.label(RichText::new("Host").small().color(t.text_dim));
+                }
+                if member.speaking {
+                    ui.label(RichText::new("Speaking").small().color(color));
+                }
+            });
+        }
+    });
+}
+
+/// Persistent right dock. Called before the central canvas so no drawing is covered.
+pub fn dock(app: &mut PhotocraftApp, root: &mut egui::Ui) {
     if !app.ui.collaboration.open {
         app.ui.collaboration.push_to_talk = false;
         return;
     }
-    let room = app.session.collaboration.room.as_ref().and_then(|room| serde_json::to_value(room).ok());
+    let mode = app.ui.collaboration.panel_mode;
+    let t = crate::theme::Tokens::get(root.ctx());
+    if mode == PanelMode::Collapsed {
+        app.ui.collaboration.push_to_talk = false;
+        return;
+    }
     let center = app.session.active().map(|s| [f64::from(s.doc.size.width) / 2.0, f64::from(s.doc.size.height) / 2.0]).unwrap_or([0.0, 0.0]);
-    let layers = app
-        .session
-        .active()
-        .map(|s| {
-            let mut pending: Vec<_> = s.doc.layers.iter().collect();
-            let mut values = serde_json::Map::new();
-            while let Some(layer) = pending.pop() {
-                values.insert(layer.id.0.to_string(), Value::Bool(layer.visible));
-                if let Some(children) = layer.children() {
-                    pending.extend(children);
-                }
+    let mut layers = serde_json::Map::new();
+    if let Some(doc) = app.session.documents().iter().find(|st| Some(st.doc.id) == app.session.collaboration.document_id) {
+        let mut pending: Vec<_> = doc.doc.layers.iter().collect();
+        while let Some(layer) = pending.pop() {
+            layers.insert(layer.id.0.to_string(), json!(layer.visible));
+            if let Some(children) = layer.children() {
+                pending.extend(children);
             }
-            values
-        })
-        .unwrap_or_default();
-    let mut open = true;
+        }
+    }
     let mut action: Option<(&str, Value)> = None;
+    let mut desktop_url = None;
+    let room = app.session.collaboration.room.as_ref();
     let state = &mut app.ui.collaboration;
-    egui::Window::new("Collaboration").open(&mut open).default_width(360.0).show(ctx, |ui| {
-        let t = crate::theme::Tokens::get(ctx);
-        ui.label(RichText::new(&state.transport_status).color(t.text));
-        if !state.error.is_empty() {
-            ui.label(RichText::new(&state.error).color(t.accent));
-        }
+    state.push_to_talk = false;
+    let width = if mode == PanelMode::Minimal { 184.0 } else { 300.0 };
+    egui::Panel::right("room-dock").resizable(mode == PanelMode::Full).default_size(width).min_size(if mode == PanelMode::Minimal { 184.0 } else { 240.0 }).max_size(if mode == PanelMode::Minimal { 184.0 } else { 360.0 }).frame(egui::Frame::NONE.fill(t.dock).inner_margin(12)).show(root, |ui| {
         ui.horizontal(|ui| {
-            ui.label("Your name");
-            ui.text_edit_singleline(&mut state.name);
-        });
-        ui.horizontal(|ui| {
-            ui.label("Icon");
-            ui.text_edit_singleline(&mut state.icon);
-            ui.color_edit_button_srgb(&mut state.color);
-        });
-        ui.horizontal(|ui| { ui.checkbox(&mut state.cursor_visible, "Show my cursor"); ui.checkbox(&mut state.name_visible, "Show my name"); });
-        if ui.button("Update profile").clicked() {
-            action = Some(("collab.profile", json!({"name": state.name, "icon": if state.icon.is_empty() { None } else { Some(state.icon.clone()) }, "visible":state.cursor_visible, "showName":state.name_visible, "color": [f32::from(state.color[0])/255.0, f32::from(state.color[1])/255.0, f32::from(state.color[2])/255.0, 1.0]})));
-        }
-        ui.separator();
-        ui.horizontal(|ui| {
-            ui.label("Signaling server");
-            ui.text_edit_singleline(&mut state.signaling_url);
-        });
-        ui.horizontal(|ui| {
-            ui.label("Room code");
-            ui.text_edit_singleline(&mut state.code);
-        });
-        ui.horizontal(|ui| {
-            ui.label("Password (optional)");
-            ui.add(egui::TextEdit::singleline(&mut state.password).password(true));
-        });
-        ui.horizontal(|ui| {
-            if ui.button("Create room").clicked() {
-                action = Some(("collab.room.create", json!({"name": state.name, "password": state.password, "signalingUrl": state.signaling_url})));
-            }
-            if ui.button("Join room").clicked() {
-                action = Some((
-                    "collab.room.join",
-                    json!({"code": state.code, "name": state.name, "password": state.password, "signalingUrl": state.signaling_url}),
-                ));
-            }
-            if ui.button("Leave").clicked() {
-                action = Some(("collab.room.leave", json!({})));
-            }
-        });
-        ui.separator();
-        ui.horizontal(|ui| {
-            ui.checkbox(&mut state.show_cursors, "Cursors");
-            ui.checkbox(&mut state.show_names, "Names");
-            ui.checkbox(&mut state.show_notes, "Sticky notes");
-        });
-        ui.label("Tools and selections belong to each artist. The host orders shared edits.");
-        if let Some(room) = &room {
-            if let Some(code) = room.get("code").and_then(Value::as_str) {
-                ui.label(format!("Room: {code}"));
-            }
-            ui.horizontal(|ui| {
-                if ui.selectable_label(room.get("visibility_mode").and_then(Value::as_str) == Some("shared"), "Shared layer visibility").clicked() {
-                    action = Some(("collab.visibility", json!({"mode":"shared", "layers":layers})));
-                }
-                if ui.selectable_label(room.get("visibility_mode").and_then(Value::as_str) == Some("personal"), "Personal layer visibility").clicked() {
-                    action = Some(("collab.visibility", json!({"mode":"personal", "layers":layers})));
+            ui.label(RichText::new("Room").strong());
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if crate::icons::button(ui, "chevrons-right", 22.0, false, "Collapse room panel").clicked() { state.panel_mode = PanelMode::Collapsed; }
+                if crate::icons::button(ui, "maximize-2", 22.0, false, if mode == PanelMode::Minimal { "Full room panel" } else { "Minimal room panel" }).clicked() {
+                    state.panel_mode = if mode == PanelMode::Full { PanelMode::Minimal } else { PanelMode::Full };
                 }
             });
-            ui.collapsing("Participants", |ui| {
-                if let Some(members) = room.get("members").and_then(Value::as_object) {
-                    for (id, member) in members {
-                        ui.label(member.get("profile").unwrap_or(member).get("name").and_then(Value::as_str).unwrap_or(id));
+        });
+        ui.separator();
+        let ready = room.is_some() && !state.transport_pending && (state.transport_status.starts_with("Hosting") || state.transport_status.starts_with("Connected"));
+        ui.label(RichText::new(if ready { format!("Connected · {} people", room.map_or(0, |r| r.members.len())) } else { state.transport_status.clone() }).small().color(t.text_dim));
+        if !state.error.is_empty() { ui.label(RichText::new(&state.error).color(t.danger)); }
+        egui::ScrollArea::vertical().id_salt("room-content").show(ui, |ui| {
+            if let Some(room) = room {
+                if ui.add_enabled(ready, egui::Button::image_and_text(crate::icons::image("link", 14.0, t.accent_text), "Copy invite").fill(t.accent).min_size(egui::vec2(ui.available_width(), 30.0))).clicked() {
+                    match photocraft_engine::collab::invite::share_url_with_server(&room.code, &state.signaling_url) {
+                        Ok(link) => ui.ctx().copy_text(link),
+                        Err(error) => state.error = error,
                     }
                 }
-            });
-            if let Some(messages) = room.get("chat").and_then(Value::as_array) {
-                egui::ScrollArea::vertical().max_height(130.0).show(ui, |ui| {
-                    for message in messages {
-                        if let Some(parts) = message.as_array() {
-                            let author = parts.first().and_then(Value::as_str).unwrap_or("Artist");
-                            let text = parts.get(1).and_then(Value::as_str).unwrap_or("");
-                            let name = room.get("members").and_then(|m|m.get(author)).and_then(|m|m.get("profile")).and_then(|p|p.get("name")).and_then(Value::as_str).unwrap_or(author);
-                            ui.label(format!("{name}: {text}"));
-                        }
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new("Code").small().color(t.text_dim));
+                    ui.monospace(&room.code);
+                    if crate::icons::button(ui, "copy", 20.0, false, "Copy room code").clicked() { ui.ctx().copy_text(room.code.clone()); }
+                });
+                ui.separator();
+                people(ui, room, mode == PanelMode::Minimal);
+            }
+            if mode == PanelMode::Full && !ready && !state.transport_pending {
+                ui.add_space(8.0);
+                ui.label("Draw together");
+                ui.add(egui::TextEdit::singleline(&mut state.code).hint_text("Invite link or room code").desired_width(f32::INFINITY));
+                if crate::widgets::primary_button(ui, "Join room", ui.available_width()).clicked() {
+                    match photocraft_engine::collab::invite::parse_with_server(&state.code, &state.signaling_url) {
+                        Ok(invite) => action = Some(("collab.room.join", json!({"code":invite.code,"name":state.name,"password":state.password,"signalingUrl":invite.signaling_url}))),
+                        Err(error) => state.error = error,
                     }
+                }
+                if ui.button("Create a room").clicked() { action = Some(("collab.room.create", json!({"name":state.name,"password":state.password,"signalingUrl":state.signaling_url}))); }
+            }
+            ui.separator();
+            if cfg!(target_arch = "wasm32") {
+                state.voice_enabled = false;
+                ui.label(RichText::new("Voice available in desktop").small().color(t.text_dim));
+                if let Some(room) = room && ui.button("Open in PhotoCraft").clicked() { desktop_url = Some(format!("photocraft://join/{}", room.code)); }
+            } else {
+                ui.add_enabled_ui(ready, |ui| {
+                    ui.checkbox(&mut state.voice_enabled, "Voice");
+                    let talk = ui.add_sized([ui.available_width(), 30.0], egui::Button::new("Hold to talk"));
+                    state.push_to_talk = ready && state.voice_enabled && talk.is_pointer_button_down_on();
+                    if mode == PanelMode::Full { ui.label(RichText::new(&state.voice_status).small().color(t.text_dim)); }
                 });
             }
-            if state.show_notes {
-                ui.collapsing("Sticky notes", |ui| {
-                    if let Some(notes) = room.get("notes").and_then(Value::as_object) {
-                        for (id, note) in notes {
-                            let text = note.get("text").and_then(Value::as_str).unwrap_or("");
-                            let can_edit = note.get("author") == room.get("local_peer") || room.get("host") == room.get("local_peer");
-                            ui.collapsing(id, |ui| {
+            if mode == PanelMode::Full && let Some(room) = room {
+                    ui.separator();
+                    ui.horizontal(|ui| {
+                        ui.selectable_value(&mut state.notes_tab, false, "Chat");
+                        ui.selectable_value(&mut state.notes_tab, true, format!("Notes  {}", room.notes.len()));
+                    });
+                    if state.notes_tab {
+                        ui.checkbox(&mut state.show_notes, "Show notes on canvas");
+                        if state.show_notes {
+                            for (id, note) in &room.notes {
+                                let can_edit = note.author == room.local_peer || room.host == room.local_peer;
+                                ui.collapsing(format!("{}: {}", room.members.get(&note.author).map_or("Artist", |p| p.profile.name.as_str()), note.text.chars().take(24).collect::<String>()), |ui| {
+                                    ui.label(&note.text);
+                                    let mut collapsed = note.collapsed;
+                                    if ui.add_enabled(can_edit, egui::Checkbox::new(&mut collapsed, "Collapse on canvas")).changed() { action = Some(("collab.note", json!({"id":id,"text":note.text,"position":note.position,"collapsed":collapsed}))); }
+                                    if ui.add_enabled(can_edit, egui::Button::new("Remove")).clicked() { action = Some(("collab.note.remove", json!({"id":id}))); }
+                                });
+                            }
+                        }
+                        ui.add(egui::TextEdit::multiline(&mut state.note_draft).hint_text("Comment on the drawing…").desired_rows(2));
+                        if ui.button("Place note at canvas center").clicked() && !state.note_draft.trim().is_empty() { action = Some(("collab.note", json!({"text":state.note_draft,"position":center}))); }
+                    } else {
+                        egui::ScrollArea::vertical().id_salt("room-chat").max_height(160.0).stick_to_bottom(true).show(ui, |ui| {
+                            for (author, text) in &room.chat {
+                                let profile = room.members.get(author).map(|p| &p.profile);
+                                ui.label(RichText::new(profile.map_or(author.as_str(), |p| p.name.as_str())).small().color(profile.map_or(t.accent, color_of)));
                                 ui.label(text);
-                                let mut collapsed = note.get("collapsed").and_then(Value::as_bool).unwrap_or(false);
-                                if ui.add_enabled(can_edit, egui::Checkbox::new(&mut collapsed, "Collapse on canvas")).changed() {
-                                    action = Some(("collab.note", json!({"id":id,"text":text,"position":note.get("position"),"collapsed":collapsed})));
-                                }
-                                if ui.add_enabled(can_edit, egui::Button::new("Remove")).clicked() {
-                                    action = Some(("collab.note.remove", json!({"id":id})));
-                                }
-                            });
-                        }
+                                ui.add_space(4.0);
+                            }
+                        });
+                        ui.add(egui::TextEdit::singleline(&mut state.chat_draft).hint_text("Message the room…").desired_width(f32::INFINITY));
+                        if ui.button("Send").clicked() && !state.chat_draft.trim().is_empty() { action = Some(("collab.chat", json!({"text":state.chat_draft}))); }
                     }
-                });
             }
-        }
-        ui.separator();
-        ui.checkbox(&mut state.voice_enabled, "Enable voice");
-        let talk = ui.button("Hold to talk");
-        state.push_to_talk = state.voice_enabled && talk.is_pointer_button_down_on();
-        ui.label(&state.voice_status);
-        ui.separator();
-        ui.label("Room chat");
-        ui.horizontal(|ui| {
-            ui.text_edit_singleline(&mut state.chat_draft);
-            if ui.button("Send").clicked() && !state.chat_draft.trim().is_empty() {
-                action = Some(("collab.chat", json!({"text": state.chat_draft})));
+            ui.separator();
+            if mode == PanelMode::Full {
+            ui.collapsing("Your profile", |ui| {
+                ui.label("Name"); ui.text_edit_singleline(&mut state.name);
+                ui.label("Optional icon"); ui.text_edit_singleline(&mut state.icon);
+                ui.color_edit_button_srgb(&mut state.color);
+                ui.checkbox(&mut state.cursor_visible, "Show my cursor"); ui.checkbox(&mut state.name_visible, "Show my name");
+                if ui.button("Update profile").clicked() { action = Some(("collab.profile", json!({"name":state.name,"icon":if state.icon.is_empty(){None}else{Some(state.icon.clone())},"visible":state.cursor_visible,"showName":state.name_visible,"color":[f32::from(state.color[0])/255.0,f32::from(state.color[1])/255.0,f32::from(state.color[2])/255.0,1.0]}))); }
+            });
+            egui::CollapsingHeader::new("Advanced").open(if state.error.to_lowercase().contains("password") { Some(true) } else { None }).show(ui, |ui| {
+                ui.label("Signaling service"); ui.add_enabled(room.is_none() && !state.transport_pending, egui::TextEdit::singleline(&mut state.signaling_url));
+                ui.label("Password (optional)"); ui.add(egui::TextEdit::singleline(&mut state.password).password(true));
+                ui.checkbox(&mut state.show_cursors, "Show cursors"); ui.checkbox(&mut state.show_names, "Show names"); ui.checkbox(&mut state.show_notes, "Show sticky notes");
+                if let Some(room) = room {
+                    if ui.selectable_label(room.visibility_mode == photocraft_engine::collab::VisibilityMode::Shared, "Shared layer visibility").clicked() { action = Some(("collab.visibility", json!({"mode":"shared","layers":layers}))); }
+                    if ui.selectable_label(room.visibility_mode == photocraft_engine::collab::VisibilityMode::Personal, "Personal layer visibility").clicked() { action = Some(("collab.visibility", json!({"mode":"personal","layers":layers}))); }
+                }
+                ui.label(RichText::new("Tools and selections stay personal. The host orders shared edits.").small().color(t.text_dim));
+                ui.collapsing("Connection details", |ui| { ui.label(&state.transport_status); ui.label(state.transport_metrics.to_string()); });
+            });
             }
+            if room.is_some() && ui.button("Leave room").clicked() { action = Some(("collab.room.leave", json!({}))); }
         });
-        ui.label("Sticky note at canvas center");
-        ui.text_edit_multiline(&mut state.note_draft);
-        if ui.button("Place note").clicked() && !state.note_draft.trim().is_empty() {
-            action = Some(("collab.note", json!({"text": state.note_draft, "position": center})));
-        }
     });
-    app.ui.collaboration.open = open;
+    if !app.ui.collaboration.open || app.ui.collaboration.panel_mode == PanelMode::Collapsed {
+        app.ui.collaboration.push_to_talk = false;
+    }
+    if let Some(url) = desktop_url {
+        crate::links::open(app, root.ctx(), &url);
+    }
     if let Some((id, params)) = action {
         match app.run(id, params) {
             Ok(value) => {
@@ -226,9 +337,6 @@ pub fn window(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 }
                 if id == "collab.note" {
                     app.ui.collaboration.note_draft.clear();
-                }
-                if matches!(id, "collab.room.create" | "collab.room.join") && app.ui.collaboration.transport_status != "Disconnected" {
-                    app.ui.collaboration.transport_pending = true;
                 }
                 if let Some(code) = value.get("code").and_then(Value::as_str) {
                     app.ui.collaboration.code = code.into();
@@ -333,6 +441,9 @@ pub fn settings(app: &mut PhotocraftApp, params: &Value) -> Result<Value, String
             if value.len() > 1024 {
                 return Err(format!("{key} is too long"));
             }
+            if key == "signalingUrl" && value != slot.as_str() && (app.session.collaboration.room.is_some() || state.transport_pending) {
+                return Err("Leave the room before changing its signaling service".into());
+            }
             *slot = value.into();
         }
     }
@@ -348,6 +459,12 @@ pub fn settings(app: &mut PhotocraftApp, params: &Value) -> Result<Value, String
         if let Some(value) = params.get(key) {
             *slot = value.as_bool().ok_or_else(|| format!("{key} must be boolean"))?;
         }
+    }
+    if let Some(mode) = params.get("panelMode").or_else(|| params.get("panel_mode")) {
+        state.panel_mode = serde_json::from_value(mode.clone()).map_err(|_| "panelMode must be full, minimal, or collapsed".to_string())?;
+    }
+    if !state.open || state.panel_mode == PanelMode::Collapsed || !state.voice_enabled {
+        state.push_to_talk = false;
     }
     if let Some(color) = params.get("color") {
         state.color = serde_json::from_value(color.clone()).map_err(|e| e.to_string())?;
@@ -388,6 +505,112 @@ pub fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn dock_modes_reserve_space_and_collapsing_stops_talk() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        let ctx = egui::Context::default();
+        crate::theme::install_fonts(&ctx);
+        let mut widths = Vec::new();
+        for mode in [PanelMode::Full, PanelMode::Minimal, PanelMode::Collapsed] {
+            app.ui.collaboration.open = true;
+            app.ui.collaboration.panel_mode = mode;
+            app.ui.collaboration.voice_enabled = true;
+            app.ui.collaboration.push_to_talk = true;
+            ctx.run_ui(
+                egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1000.0, 700.0))), ..Default::default() },
+                |ui| {
+                    let before = ui.available_width();
+                    dock(&mut app, ui);
+                    widths.push(before - ui.available_width());
+                },
+            )
+            .textures_delta
+            .clear();
+            assert!(!app.ui.collaboration.push_to_talk);
+        }
+        assert!(widths[0] > widths[1] && widths[1] > 150.0, "{widths:?}");
+        assert_eq!(widths[2], 0.0);
+        app.ui.collaboration.push_to_talk = true;
+        settings(&mut app, &json!({"open":false})).unwrap();
+        assert!(!app.ui.collaboration.push_to_talk);
+        app.ui.collaboration.open = true;
+        crate::menus::invoke(&mut app, &ctx, "window.collaboration", json!({})).unwrap();
+        assert!(app.ui.collaboration.open);
+        assert_eq!(app.ui.collaboration.panel_mode, PanelMode::Full);
+    }
+
+    #[test]
+    fn join_os_event_preserves_documents_and_same_room_is_idempotent() {
+        for saved in [false, true] {
+            let mut app = PhotocraftApp::new(Default::default(), Default::default());
+            app.run("file.new", json!({"width":16,"height":16,"name":"Keep my drawing"})).unwrap();
+            if saved {
+                let state = app.session.active_mut().unwrap();
+                state.saved_revision = state.revision;
+            }
+            let before = app.session.active().unwrap().doc.clone();
+            let dirty = app.session.active().unwrap().is_dirty();
+            let mut events = vec![crate::OsEvent::JoinRoom("photocraft://join/ROOM01".into())];
+            app.services.os_events = Some(Box::new(move || std::mem::take(&mut events)));
+            app.drain_os_events(&egui::Context::default());
+            assert_eq!(app.session.documents().len(), 1);
+            assert_eq!(app.session.active().unwrap().doc.id, before.id);
+            assert_eq!(app.session.active().unwrap().doc.name, before.name);
+            assert_eq!(app.session.active().unwrap().is_dirty(), dirty);
+            assert_eq!(app.ui.collaboration.code, "ROOM01");
+            let intents = app.session.collaboration.network_intents.len();
+            open_invite(&mut app, "room01").unwrap();
+            assert_eq!(app.session.collaboration.network_intents.len(), intents);
+            app.session.collaboration.network_intents.clear();
+            app.ui.collaboration.transport_status = "Connected to host".into();
+            open_invite(&mut app, "ROOM01").unwrap();
+            assert!(app.session.collaboration.network_intents.is_empty());
+            assert!(open_invite(&mut app, "OTHER1").is_err());
+            assert_eq!(app.ui.collaboration.code, "ROOM01");
+            assert_eq!(app.session.active().unwrap().doc.id, before.id);
+            app.ui.collaboration.transport_status = "Disconnected".into();
+            open_invite(&mut app, "ROOM01").unwrap();
+            assert!(!app.session.collaboration.network_intents.is_empty(), "failed admission can retry");
+        }
+    }
+
+    #[test]
+    fn invitations_reopen_hidden_minimal_and_collapsed_docks_even_in_same_room() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        open_invite(&mut app, "ROOM01").unwrap();
+        let intents = app.session.collaboration.network_intents.len();
+        for open in [false, true] {
+            for mode in [PanelMode::Full, PanelMode::Minimal, PanelMode::Collapsed] {
+                app.ui.collaboration.open = open;
+                app.ui.collaboration.panel_mode = mode;
+                open_invite(&mut app, "photocraft://join/ROOM01").unwrap();
+                assert!(app.ui.collaboration.open);
+                assert_eq!(app.ui.collaboration.panel_mode, PanelMode::Full);
+                assert_eq!(app.session.collaboration.network_intents.len(), intents);
+            }
+        }
+        app.ui.collaboration.open = false;
+        app.ui.collaboration.panel_mode = PanelMode::Collapsed;
+        assert!(open_invite(&mut app, "photocraft://join/invalid!").is_err());
+        assert!(app.ui.collaboration.open);
+        assert_eq!(app.ui.collaboration.panel_mode, PanelMode::Full);
+    }
+
+    #[test]
+    fn panel_mode_settings_are_serde_compatible_atomic_and_stop_voice() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        let old: CollaborationUi = serde_json::from_value(json!({})).unwrap();
+        assert_eq!(old.panel_mode, PanelMode::Full);
+        app.ui.collaboration.push_to_talk = true;
+        settings(&mut app, &json!({"panelMode":"collapsed"})).unwrap();
+        assert_eq!(app.ui.collaboration.panel_mode, PanelMode::Collapsed);
+        assert!(!app.ui.collaboration.push_to_talk);
+        assert!(settings(&mut app, &json!({"name":"Changed","panelMode":"huge"})).is_err());
+        assert_eq!(app.ui.collaboration.name, "Artist");
+        settings(&mut app, &json!({"panel_mode":"minimal"})).unwrap();
+        assert_eq!(app.ui.collaboration.panel_mode, PanelMode::Minimal);
+    }
+
     #[test]
     fn stationary_cursor_does_not_emit_idle_presence_traffic() {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());

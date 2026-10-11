@@ -114,6 +114,13 @@ jobs:
     name: test (${{ matrix.os }})
     needs: platforms
     runs-on: ${{ matrix.os }}
+    # This lane builds HEIF, no-HEIF and craft-fonts variants. Debug symbols and
+    # incremental objects exhausted the Linux runner before it could report tests.
+    # Keep every check while reducing retained artifacts; packaging is separate.
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
     strategy:
       fail-fast: false
       matrix:
@@ -134,6 +141,8 @@ jobs:
           components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: test-small-artifacts-v1
 
       - name: Format
         if: runner.os == 'Linux'

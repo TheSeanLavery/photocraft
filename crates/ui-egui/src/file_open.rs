@@ -14,6 +14,8 @@ use photocraft_engine::file_cmds::{is_template, untitled_name};
 pub enum OsEvent {
     /// Open these files (absolute paths), e.g. a Finder double-click.
     Open(Vec<String>),
+    /// A bounded room invitation from a native URL or explicit CLI join.
+    JoinRoom(String),
     /// Quit (e.g. the Dock menu's Quit, log out): goes through the normal close path, which asks
     /// about unsaved changes.
     Quit,
@@ -220,6 +222,14 @@ impl PhotocraftApp {
                 OsEvent::Open(paths) => {
                     self.open_paths(&paths);
                     // Bring the window forward when another app (Finder, the Dock) asked us to open.
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                    ctx.request_repaint();
+                }
+                OsEvent::JoinRoom(invite) => {
+                    if let Err(error) = crate::collaboration_ui::open_invite(self, &invite) {
+                        self.ui.collaboration.open = true;
+                        self.ui.collaboration.error = error;
+                    }
                     ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                     ctx.request_repaint();
                 }

@@ -1,0 +1,86 @@
+{
+  "source": "collab.rs committed4e6edf1a; surrounding engine AST compiled before merge4994d6fb",
+  "scope": "native engine prediction recomposition only; excludes canonical apply, browser networking, GPU upload and presentation",
+  "profile": "dev opt-level1 debug0 incremental0; shared machine",
+  "samplesPerCase": 16,
+  "percentiles": "p95/p99 are maximum of16samples",
+  "canvas": [
+    2048,
+    1536
+  ],
+  "correctness": "exact surface equality each iteration; nonempty canonical remote damage; >=32owncoverage tiles",
+  "rows": [
+    {
+      "brushSize": 512.0,
+      "coverageTiles": 60,
+      "depth": 8,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 9.129708,
+        "p95": 9.609167,
+        "p99": 9.609167
+      },
+      "iterations": 16,
+      "replayedCoverageTiles": 0,
+      "reuseMs": {
+        "p50": 0.175833,
+        "p95": 0.255041,
+        "p99": 0.255041
+      }
+    },
+    {
+      "brushSize": 1024.0,
+      "coverageTiles": 224,
+      "depth": 8,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 34.750416,
+        "p95": 35.445249999999994,
+        "p99": 35.445249999999994
+      },
+      "iterations": 16,
+      "replayedCoverageTiles": 0,
+      "reuseMs": {
+        "p50": 0.176042,
+        "p95": 0.31262500000000004,
+        "p99": 0.31262500000000004
+      }
+    },
+    {
+      "brushSize": 512.0,
+      "coverageTiles": 60,
+      "depth": 32,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 15.955542,
+        "p95": 16.375,
+        "p99": 16.375
+      },
+      "iterations": 16,
+      "replayedCoverageTiles": 0,
+      "reuseMs": {
+        "p50": 0.32375,
+        "p95": 0.4325,
+        "p99": 0.4325
+      }
+    },
+    {
+      "brushSize": 1024.0,
+      "coverageTiles": 224,
+      "depth": 32,
+      "exact": true,
+      "fullRebaseMs": {
+        "p50": 59.784625,
+        "p95": 62.345833000000006,
+        "p99": 62.345833000000006
+      },
+      "iterations": 16,
+      "replayedCoverageTiles": 0,
+      "reuseMs": {
+        "p50": 0.329208,
+        "p95": 0.6066659999999999,
+        "p99": 0.6066659999999999
+      }
+    }
+  ]
+}

@@ -14,7 +14,7 @@ todo = "warn"
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "=0.6.4"
 block2 = "=0.6.2"
-objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSGeometry", "NSProcessInfo", "NSEnumerator", "NSNotification", "NSOperation", "NSString", "block2"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSGeometry", "NSProcessInfo", "NSEnumerator", "NSNotification", "NSOperation", "NSString", "NSAppleEventDescriptor", "NSAppleEventManager", "block2"] }
 objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "block2", "NSEvent", "NSPressureConfiguration", "NSView", "NSWindow", "NSResponder"] }
 objc2-game-controller = { version = "=0.3.2", default-features = false, features = ["std", "block2", "dispatch2", "GCDevice", "GCMouse", "GCMouseInput", "GCPhysicalInputProfile"] }
 dispatch2 = "=0.3.1"

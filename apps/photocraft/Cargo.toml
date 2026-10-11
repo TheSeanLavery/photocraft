@@ -34,6 +34,7 @@ eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit", "
 egui = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
+url = "2"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 photocraft-collab = { workspace = true, features = ["native"] }
