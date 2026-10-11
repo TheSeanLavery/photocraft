@@ -46,15 +46,16 @@ pub(crate) fn float_picker_preview(
     if g.format_for(photocraft_color::SampleType::F32, size) != eframe::wgpu::TextureFormat::Rgba16Float {
         return false;
     }
-    let Ok(display) = app.session.color.canvas_display(&st.doc) else { return false };
-    let signature = egui::Id::new((app.session.color.display_signature(&st.doc), content_signature, size)).value();
+    let display_signature = app.session.color.display_signature(&st.doc);
+    let signature = egui::Id::new((display_signature, content_signature, size)).value();
     let mode = if let Some((_, mode)) = g.display_lut_signature(key, 0).filter(|(saved, _)| *saved == signature) {
         mode
     } else {
+        let Ok(display) = app.session.color.canvas_display(&st.doc) else { return false };
         let b = pixels();
         let b = display.texture_buffer(&b);
         g.upload_buffer_full(key, &b, photocraft_color::SampleType::F32);
-        let mode = match app.session.color.gpu_canvas_lut(&st.doc, 33) {
+        let mode = match picker_display_lut(ui.ctx(), key, display_signature, || app.session.color.gpu_canvas_lut(&st.doc, 33)) {
             Ok(Some(lut)) => {
                 g.set_display_lut(key, 0, 33, Some(&lut));
                 1
@@ -86,6 +87,25 @@ pub(crate) fn float_picker_preview(
         },
     );
     true
+}
+
+/// Pixel changes (including gain dragging) do not change the ICC display LUT.
+/// Keep its CPU bytes separately from the texture signature; egui bounds this
+/// temporary cache's lifetime and GPU resource retention remains unchanged.
+fn picker_display_lut<E>(
+    ctx: &egui::Context,
+    key: u64,
+    signature: u64,
+    build: impl FnOnce() -> Result<Option<Vec<u8>>, E>,
+) -> Result<Option<std::sync::Arc<Vec<u8>>>, E> {
+    type Cached = (u64, Option<std::sync::Arc<Vec<u8>>>);
+    let id = egui::Id::new(("hdr-picker-display-lut", key));
+    if let Some((_, bytes)) = ctx.data(|d| d.get_temp::<Cached>(id)).filter(|(saved, _)| *saved == signature) {
+        return Ok(bytes);
+    }
+    let bytes = build()?.map(std::sync::Arc::new);
+    ctx.data_mut(|d| d.insert_temp(id, (signature, bytes.clone())));
+    Ok(bytes)
 }
 
 pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
@@ -336,6 +356,32 @@ pub(crate) fn gpu_keys() -> impl Iterator<Item = u64> {
 
 #[cfg(test)]
 mod preview_tests {
+    #[test]
+    fn picker_lut_reuses_bytes_and_invalidates_display_changes() {
+        let ctx = egui::Context::default();
+        let builds = std::cell::Cell::new(0);
+        let build = || {
+            builds.set(builds.get() + 1);
+            Ok::<_, ()>(Some(vec![7; 4]))
+        };
+        let first = super::picker_display_lut(&ctx, 1, 10, build).unwrap().unwrap();
+        for _ in 0..100 {
+            let cached = super::picker_display_lut(&ctx, 1, 10, build).unwrap().unwrap();
+            assert!(std::sync::Arc::ptr_eq(&first, &cached));
+        }
+        assert_eq!(builds.get(), 1);
+        super::picker_display_lut(&ctx, 1, 11, build).unwrap();
+        super::picker_display_lut(&ctx, 2, 11, build).unwrap();
+        assert_eq!(builds.get(), 3);
+    }
+
+    #[test]
+    fn picker_lut_caches_identity_and_retries_errors() {
+        let ctx = egui::Context::default();
+        assert!(super::picker_display_lut(&ctx, 1, 10, || Err::<Option<Vec<u8>>, _>(())).is_err());
+        assert!(super::picker_display_lut(&ctx, 1, 10, || Ok::<_, ()>(None)).unwrap().is_none());
+        assert!(super::picker_display_lut(&ctx, 1, 10, || Err::<Option<Vec<u8>>, _>(())).unwrap().is_none());
+    }
     use super::*;
     #[test]
     fn float_filter_cpu_fallback_tone_maps_before_quantization_and_caches() {
