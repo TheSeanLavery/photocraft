@@ -44,6 +44,8 @@ pub fn start() {
         let q = query();
         let force_cpu = q.contains("cpu");
         let mut options = eframe::WebOptions::default();
+        // Preserve main's HDR pipeline; request float presentation only for WebGPU.
+        options.wgpu_options.surface.hdr = !force_cpu && !q.contains("webgl") && !q.contains("sdr");
         photocraft_ui_egui::gpu_canvas::use_adapter_limits(&mut options.wgpu_options.wgpu_setup);
         if q.contains("webgl")
             && let eframe::egui_wgpu::WgpuSetup::CreateNew(create) = &mut options.wgpu_options.wgpu_setup
@@ -81,7 +83,12 @@ pub fn start() {
                     if let Some(rs) = cc.wgpu_render_state.clone()
                         && !force_cpu
                     {
-                        log::info!("photocraft-web: wgpu backend {:?}", rs.adapter.get_info().backend);
+                        log::info!(
+                            "photocraft-web: wgpu backend {:?}, output {:?} {:?}",
+                            rs.adapter.get_info().backend,
+                            rs.target_format,
+                            rs.output_color_space
+                        );
                         app.set_wgpu(rs);
                     }
                     let app = collaboration::attach(app, cc.egui_ctx.clone());
