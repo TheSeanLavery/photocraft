@@ -32,6 +32,38 @@ const CANVAS_ID: &str = "photocraft_canvas";
 
 pub fn start() {
     eframe::WebLogger::init(log::LevelFilter::Info).ok();
+    let Some(document) = web_sys::window().and_then(|w| w.document()) else {
+        log::error!("no document");
+        return;
+    };
+    let Some(button) = document.get_element_by_id("photocraft_launch_button") else {
+        log::error!("missing Launch button");
+        return;
+    };
+    let launch = wasm_bindgen::closure::Closure::once_into_js(move |_event: web_sys::Event| {
+        if let Some(document) = web_sys::window().and_then(|w| w.document()) {
+            if let Some(overlay) = document.get_element_by_id("photocraft_launch") {
+                overlay.remove();
+            }
+            if let Some(loading) = document.get_element_by_id("photocraft_loading") {
+                let _ = loading.remove_attribute("hidden");
+            }
+        }
+        start_editor();
+    });
+    if let Err(error) = button.add_event_listener_with_callback("click", launch.unchecked_ref()) {
+        log::error!("could not install Launch handler: {error:?}");
+        return;
+    }
+    button.set_text_content(Some("Launch"));
+    let _ = button.remove_attribute("disabled");
+    if let Some(hint) = document.get_element_by_id("photocraft_stalled") {
+        hint.remove();
+    }
+}
+
+/// Initialize the HDR-capable surface only after an explicit browser interaction.
+fn start_editor() {
     wasm_bindgen_futures::spawn_local(async {
         let Some(document) = web_sys::window().and_then(|w| w.document()) else {
             log::error!("no document");
