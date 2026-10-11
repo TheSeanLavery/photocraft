@@ -608,6 +608,70 @@ impl StrokeRenderer {
         } else {
             self.cov.take_dirty()
         };
+        let damage = self.composite_keys(pre, target, selection, lock_transparency, keys, None);
+        if all { self.bounds() } else { damage }
+    }
+
+    /// Every tile touched by this stroke, including coverage removed by undo.
+    pub fn coverage_tiles(&self) -> Vec<(i32, i32)> {
+        let mut keys: Vec<_> = self.cov.tiles.keys().copied().collect();
+        keys.sort_unstable();
+        keys
+    }
+
+    /// Coverage tiles changed since the last composite, in stable order.
+    pub fn dirty_tiles(&self) -> Vec<(i32, i32)> {
+        let mut keys: Vec<_> = self.cov.dirty.iter().copied().collect();
+        keys.sort_unstable();
+        keys
+    }
+
+    /// Recompose only existing coverage tiles selected by a canonical replay.
+    /// Each selected tile is evaluated against `pre`, never accumulated over a prior result.
+    pub fn composite_tiles(&mut self, pre: &Surface, target: &mut Surface, selection: Option<&Surface>, lock_transparency: bool, tiles: &[(i32, i32)]) -> Rect {
+        self.composite_selected(pre, target, selection, lock_transparency, tiles, None)
+    }
+
+    /// Recompose selected tiles inside an undo region, retaining pixels outside it.
+    pub fn composite_tiles_in_rect(
+        &mut self,
+        pre: &Surface,
+        target: &mut Surface,
+        selection: Option<&Surface>,
+        lock_transparency: bool,
+        tiles: &[(i32, i32)],
+        rect: Rect,
+    ) -> Rect {
+        self.composite_selected(pre, target, selection, lock_transparency, tiles, Some(rect))
+    }
+
+    fn composite_selected(
+        &mut self,
+        pre: &Surface,
+        target: &mut Surface,
+        selection: Option<&Surface>,
+        lock_transparency: bool,
+        tiles: &[(i32, i32)],
+        clip: Option<Rect>,
+    ) -> Rect {
+        let unique: HashSet<_> = tiles.iter().copied().filter(|key| self.cov.tiles.contains_key(key)).collect();
+        let mut keys: Vec<_> = unique.into_iter().collect();
+        keys.sort_unstable();
+        for key in &keys {
+            self.cov.dirty.remove(key);
+        }
+        self.composite_keys(pre, target, selection, lock_transparency, keys, clip)
+    }
+
+    fn composite_keys(
+        &mut self,
+        pre: &Surface,
+        target: &mut Surface,
+        selection: Option<&Surface>,
+        lock_transparency: bool,
+        keys: Vec<(i32, i32)>,
+        clip: Option<Rect>,
+    ) -> Rect {
         if let Some(d) = self.dual.as_mut() {
             d.dirty.clear();
         }
@@ -628,6 +692,7 @@ impl StrokeRenderer {
         for (tx, ty) in keys {
             let Some(tile) = self.cov.tiles.get(&(tx, ty)) else { continue };
             let tr = Rect::new(tx * COV_TILE, ty * COV_TILE, (tx + 1) * COV_TILE, (ty + 1) * COV_TILE).intersect(&bounds);
+            let tr = clip.map_or(tr, |rect| tr.intersect(&rect));
             if tr.is_empty() {
                 continue;
             }
@@ -688,7 +753,7 @@ impl StrokeRenderer {
             target.write_region(tr, &region);
             dmg = dmg.union(&tr);
         }
-        if all { bounds } else { dmg }
+        dmg
     }
 }
 
@@ -709,4 +774,61 @@ pub fn render_stroke(
     r.push(points);
     r.finish();
     r.composite(&pre, target, selection, lock_transparency, true)
+}
+
+#[cfg(test)]
+mod tile_replay_tests {
+    use super::*;
+
+    #[test]
+    fn selected_dirty_tiles_match_full_composite_at_every_depth() {
+        for format in [PixelFormat::RGBA8, PixelFormat::RGBA16, PixelFormat::RGBA32F] {
+            for (erase, lock) in [(false, false), (false, true), (true, false), (true, true)] {
+                let mut pre = Surface::new(format);
+                pre.write_region(Rect::new(0, 0, 256, 128), &[0.2, 0.4, 0.6, 0.8].repeat(256 * 128));
+                let mut selection = Surface::new(PixelFormat::GRAY8);
+                let mask: Vec<_> = (0..256 * 128).map(|i| if i % 256 < 128 { 0.25 } else { 0.75 }).collect();
+                selection.write_region(Rect::new(0, 0, 256, 128), &mask);
+                let brush =
+                    BrushSettings { size: 19.0, erase, color: [0.9, 0.1, 0.2, 1.0], opacity: 0.4, pressure_opacity: true, seed: 42, ..Default::default() };
+                let mut renderer = StrokeRenderer::new(&brush, Some(format), 0.75);
+                let mut tiled = pre.clone();
+                for step in 0..12 {
+                    renderer.push(&[StrokePoint::new(15.0 + f64::from(step) * 17.0, 46.0, 0.2 + step as f32 * 0.06)]);
+                    let tiles = renderer.dirty_tiles();
+                    renderer.composite_tiles(&pre, &mut tiled, Some(&selection), lock, &tiles);
+                    assert!(renderer.dirty_tiles().is_empty());
+                    let mut full = pre.clone();
+                    renderer.composite(&pre, &mut full, Some(&selection), lock, true);
+                    assert_eq!(tiled.read_region(Rect::new(0, 0, 256, 128)), full.read_region(Rect::new(0, 0, 256, 128)));
+                }
+                renderer.finish();
+                let tiles = renderer.dirty_tiles();
+                renderer.composite_tiles(&pre, &mut tiled, Some(&selection), lock, &tiles);
+                let mut full = pre.clone();
+                renderer.composite(&pre, &mut full, Some(&selection), lock, true);
+                assert_eq!(tiled.read_region(Rect::new(0, 0, 256, 128)), full.read_region(Rect::new(0, 0, 256, 128)));
+                let clip = Rect::new(61, 35, 149, 58);
+                let mut clipped = pre.clone();
+                clipped.write_region(Rect::new(0, 0, 256, 128), &[0.7, 0.5, 0.3, 0.6].repeat(256 * 128));
+                let untouched = clipped.clone();
+                renderer.composite_tiles_in_rect(&pre, &mut clipped, Some(&selection), lock, &renderer.coverage_tiles(), clip);
+                for y in 0..128 {
+                    for x in 0..256 {
+                        let bounds = renderer.bounds();
+                        let expected =
+                            if (61..149).contains(&x) && (35..58).contains(&y) && (bounds.x0..bounds.x1).contains(&x) && (bounds.y0..bounds.y1).contains(&y) {
+                                full.pixel(x, y)
+                            } else {
+                                untouched.pixel(x, y)
+                            };
+                        assert_eq!(clipped.pixel(x, y), expected, "clip at ({x},{y}), {format:?}, erase {erase}, lock {lock}");
+                    }
+                }
+                let unrelated = tiled.clone();
+                renderer.composite_tiles(&pre, &mut tiled, Some(&selection), lock, &[(i32::MAX, i32::MIN)]);
+                assert_eq!(tiled.read_region(Rect::new(0, 0, 256, 128)), unrelated.read_region(Rect::new(0, 0, 256, 128)));
+            }
+        }
+    }
 }

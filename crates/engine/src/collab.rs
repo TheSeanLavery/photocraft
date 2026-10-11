@@ -3,9 +3,10 @@ use crate::{EngineError, Session};
 pub use photocraft_collab::DEFAULT_SIGNALING_URL;
 use photocraft_collab::*;
 use photocraft_doc::{Document, LayerId};
-use photocraft_paint::StrokeRenderer;
+use photocraft_geom::Rect;
+use photocraft_paint::{StrokeRenderer, render::COV_TILE};
 use photocraft_raster::Surface;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 struct ReplayStroke {
     start: StrokeStart,
@@ -52,6 +53,8 @@ pub struct Collaboration {
     strokes: Vec<ReplayStroke>,
     redo: BTreeMap<String, Vec<String>>,
     undo_floor: BTreeMap<String, usize>,
+    operation_damage: Option<Rect>,
+    damage_ledger: VecDeque<(photocraft_doc::DocId, u64, Option<Rect>)>,
 }
 #[derive(Clone, Debug)]
 pub enum NetworkIntent {
@@ -60,6 +63,40 @@ pub enum NetworkIntent {
     Leave,
 }
 impl Collaboration {
+    /// Union known damage across consecutive document revisions. Missing history or
+    /// semantic document edits require a full refresh (`None`). Metadata yields EMPTY.
+    pub fn damage_since(&self, doc_id: photocraft_doc::DocId, seen: u64, current: u64) -> Option<Rect> {
+        if seen > current || self.document_id != Some(doc_id) {
+            return None;
+        }
+        if seen == current {
+            return Some(Rect::EMPTY);
+        }
+        let mut expected = seen.checked_add(1)?;
+        let mut damage = Rect::EMPTY;
+        for (id, revision, rect) in &self.damage_ledger {
+            if *id != doc_id || *revision < expected {
+                continue;
+            }
+            if *revision != expected {
+                return None;
+            }
+            damage = damage.union(&(*rect)?);
+            if *revision == current {
+                return Some(damage);
+            }
+            expected = expected.checked_add(1)?;
+        }
+        None
+    }
+
+    fn record_damage(&mut self, doc_id: photocraft_doc::DocId, revision: u64, damage: Option<Rect>) {
+        self.damage_ledger.push_back((doc_id, revision, damage));
+        if self.damage_ledger.len() > 256 {
+            self.damage_ledger.pop_front();
+        }
+    }
+
     /// This artist's completed strokes in canonical creation order, including undone entries.
     pub fn own_history(&self) -> Vec<(String, bool)> {
         let Some(room) = &self.room else { return Vec::new() };
@@ -127,6 +164,10 @@ impl Collaboration {
         if event.revision != self.applied_revision.saturating_add(1) {
             return Err(EngineError::Other("missing authoritative operation; request reconnect replay".into()));
         }
+        self.operation_damage = Some(Rect::EMPTY);
+        if matches!(event.message.operation, Operation::Command { .. } | Operation::Visibility { mode: VisibilityMode::Shared, .. }) {
+            self.operation_damage = None;
+        }
         validate(&event.message.operation).map_err(error)?;
         let owner = &event.message.peer;
         let history_charge = self.history_charge(doc, owner, &event.message.operation)?;
@@ -147,6 +188,7 @@ impl Collaboration {
         let before = doc.clone();
         let mut full_replay = false;
         let mut affected = None;
+        let mut history_stroke = None;
         match &event.message.operation {
             Operation::StrokeBegin { stroke } => {
                 if self.strokes.len() >= 4096 || self.strokes.iter().any(|s| s.start.id == stroke.id) {
@@ -267,16 +309,28 @@ impl Collaboration {
                     };
                     if let Some(key) = key {
                         self.redo.entry(owner.clone()).or_default().push(key);
-                        full_replay = true;
+                        if self.commands.is_empty() && event.delta.is_none() {
+                            if let JournalEntry::Stroke(index) = entry {
+                                history_stroke = Some(*index);
+                                affected = self.strokes.get(*index).map(|stroke| stroke.start.layer);
+                            }
+                        } else {
+                            full_replay = true;
+                        }
                         break;
                     }
                 }
             }
             Operation::Redo => {
                 if let Some(key) = self.redo.get_mut(owner).and_then(Vec::pop) {
-                    if let Some(s) = self.strokes.iter_mut().find(|s| s.owner == *owner && s.start.id == key) {
-                        s.visible = true;
-                        full_replay = true;
+                    if let Some((index, stroke)) = self.strokes.iter_mut().enumerate().find(|(_, stroke)| stroke.owner == *owner && stroke.start.id == key) {
+                        stroke.visible = true;
+                        if self.commands.is_empty() && event.delta.is_none() {
+                            history_stroke = Some(index);
+                            affected = Some(stroke.start.layer);
+                        } else {
+                            full_replay = true;
+                        }
                     }
                     if let Some(c) = self.commands.iter_mut().find(|c| c.owner == *owner && c.edit.key == key) {
                         c.visible = true;
@@ -299,8 +353,13 @@ impl Collaboration {
                 .any(|entry| matches!(entry,JournalEntry::Command(index) if self.commands.get(*index).is_some_and(|command|command.visible)));
         }
         if full_replay {
+            self.operation_damage = None;
             if let Some(delta) = &event.delta {
-                *doc = photocraft_collab::delta::apply_delta(doc, delta).map_err(error)?;
+                let authoritative = photocraft_collab::delta::apply_delta(doc, delta).map_err(error)?;
+                // Undo/redo also changes the prefix caches used by live overlapping
+                // strokes. Refresh those once, while retaining the host's exact result.
+                self.rebuild_document(doc)?;
+                *doc = authoritative;
             } else {
                 self.rebuild_document(doc)?;
             }
@@ -311,29 +370,17 @@ impl Collaboration {
                 Operation::StrokeChunk { id, .. } | Operation::StrokeEnd { id, .. } => Some(id.as_str()),
                 _ => None,
             };
-            let fast = changed.and_then(|id| self.strokes.iter().find(|s| s.start.id == id)).is_some_and(|stroke| {
-                self.strokes
-                    .iter()
-                    .filter(|other| other.start.layer == layer && other.visible && other.start.id != stroke.start.id)
-                    .filter(|other| {
-                        !other.ended
-                            || self.strokes.iter().position(|s| s.start.id == other.start.id) > self.strokes.iter().position(|s| s.start.id == stroke.start.id)
-                    })
-                    .all(|other| other.renderer.bounds().intersect(&stroke.renderer.bounds()).is_empty())
-            });
-            if fast {
-                if let Some(stroke) = self.strokes.iter_mut().find(|s| Some(s.start.id.as_str()) == changed) {
-                    let target = doc.layer_mut(layer).and_then(|l| l.surface_mut()).ok_or(EngineError::NoLayer(layer))?;
-                    stroke.renderer.composite(&stroke.pre, target, stroke.selection.as_ref(), stroke.start.lock_transparency, false);
-                }
-            } else {
-                if self.commands.is_empty() {
-                    self.rebuild(doc, layer)?;
-                } else {
-                    self.rebuild_document(doc)?;
-                }
+            if let Some(index) = history_stroke.or_else(|| changed.and_then(|id| self.strokes.iter().position(|stroke| stroke.start.id == id))) {
+                let tiles = self
+                    .strokes
+                    .get(index)
+                    .map(|stroke| if history_stroke.is_some() { stroke.renderer.coverage_tiles() } else { stroke.renderer.dirty_tiles() })
+                    .unwrap_or_default();
+                let damage = self.rebuild_changed_tiles(doc, layer, index, &tiles, history_stroke.is_some())?;
+                self.operation_damage = self.operation_damage.map(|known| known.union(&damage));
             }
         }
+
         if let Some(room) = self.room.as_mut() {
             match &event.message.operation {
                 Operation::Presence { presence } => {
@@ -373,7 +420,10 @@ impl Collaboration {
                 _ => {}
             }
         }
-        if matches!(event.message.operation, Operation::Command { .. } | Operation::Undo | Operation::Redo) && event.delta.is_none() {
+        if (matches!(event.message.operation, Operation::Command { .. })
+            || (full_replay && matches!(event.message.operation, Operation::Undo | Operation::Redo)))
+            && event.delta.is_none()
+        {
             event.delta = Some(photocraft_collab::delta::delta_between(&before, doc).map_err(error)?);
         }
         if let Some(delta) = event.delta.as_mut() {
@@ -391,8 +441,13 @@ impl Collaboration {
         for entry in self.journal.clone() {
             match entry {
                 JournalEntry::Stroke(index) => {
-                    if let Some(stroke) = self.strokes.get_mut(index).filter(|s| s.visible) {
-                        let target = rebuilt.layer_mut(stroke.start.layer).and_then(|l| l.surface_mut()).ok_or(EngineError::NoLayer(stroke.start.layer))?;
+                    if let Some(stroke) = self.strokes.get_mut(index) {
+                        let Some(target) = rebuilt.layer_mut(stroke.start.layer).and_then(|layer| layer.surface_mut()) else {
+                            if !stroke.visible {
+                                continue;
+                            }
+                            return Err(EngineError::NoLayer(stroke.start.layer));
+                        };
                         self.bases.entry(stroke.start.layer).or_insert_with(|| target.clone());
                         if stroke.pre.format() != target.format() {
                             stroke.renderer = StrokeRenderer::new(&stroke.start.brush, Some(target.format()), stroke.start.zoom);
@@ -403,8 +458,12 @@ impl Collaboration {
                                 stroke.renderer.finish();
                             }
                         }
+                        // Hidden strokes still need the current prefix for a later
+                        // sparse redo, including after checkpoint installation.
                         stroke.pre = target.clone();
-                        stroke.renderer.composite(&stroke.pre, target, stroke.selection.as_ref(), stroke.start.lock_transparency, true);
+                        if stroke.visible {
+                            stroke.renderer.composite(&stroke.pre, target, stroke.selection.as_ref(), stroke.start.lock_transparency, true);
+                        }
                     }
                 }
                 JournalEntry::Command(index) => {
@@ -486,16 +545,58 @@ impl Collaboration {
         *doc = rebuilt;
         Ok(())
     }
-    fn rebuild(&mut self, doc: &mut Document, id: LayerId) -> crate::Result<()> {
-        let mut target = self.bases.get(&id).cloned().ok_or(EngineError::NoLayer(id))?;
-        for stroke in self.strokes.iter_mut().filter(|s| s.start.layer == id && s.visible) {
-            let pre = target.clone();
-            stroke.pre = pre.clone();
-            stroke.renderer.composite(&pre, &mut target, stroke.selection.as_ref(), stroke.start.lock_transparency, true);
+    /// A stroke's saved pre-surface is the canonical prefix immediately before
+    /// that stroke. Replay only changed coverage tiles through its later siblings;
+    /// earlier strokes and commands cannot depend on the changed suffix.
+    fn rebuild_changed_tiles(&mut self, doc: &mut Document, id: LayerId, changed: usize, tiles: &[(i32, i32)], history: bool) -> crate::Result<Rect> {
+        if tiles.is_empty() {
+            return Ok(Rect::EMPTY);
         }
-        let surface = doc.layer_mut(id).and_then(|l| l.surface_mut()).ok_or(EngineError::NoLayer(id))?;
-        *surface = target;
-        Ok(())
+        let pre = self.strokes.get(changed).ok_or_else(|| EngineError::Other("missing changed stroke".into()))?.pre.clone();
+        let clip = history.then(|| self.strokes.get(changed).map(|stroke| stroke.renderer.bounds()).unwrap_or(Rect::EMPTY));
+        let target = doc.layer_mut(id).and_then(|layer| layer.surface_mut()).ok_or(EngineError::NoLayer(id))?;
+        let mut damage = Rect::EMPTY;
+        let mut regions = Vec::with_capacity(tiles.len());
+        for &(x, y) in tiles {
+            let rect = Rect::new(
+                x.saturating_mul(COV_TILE),
+                y.saturating_mul(COV_TILE),
+                x.saturating_add(1).saturating_mul(COV_TILE),
+                y.saturating_add(1).saturating_mul(COV_TILE),
+            );
+            let rect = clip.map_or(rect, |bounds| rect.intersect(&bounds));
+            if rect.is_empty() {
+                continue;
+            }
+            regions.push(rect);
+            damage = damage.union(&rect);
+            target.write_region(rect, &pre.read_region(rect));
+        }
+        for stroke in self.strokes.iter_mut().skip(changed).filter(|stroke| stroke.start.layer == id) {
+            let intersects = regions.iter().any(|rect| !rect.intersect(&stroke.renderer.bounds()).is_empty());
+            if stroke.ended && !intersects {
+                continue;
+            }
+            // A live later stroke can enter this tile in a future chunk, so its
+            // prefix must advance even while its current coverage is disjoint.
+            for rect in &regions {
+                // Ended coverage cannot grow; retain only the prefix pixels its
+                // compositor can read. Live strokes keep the whole future tile.
+                let prefix = if stroke.ended { rect.intersect(&stroke.renderer.bounds()) } else { *rect };
+                if !prefix.is_empty() {
+                    stroke.pre.write_region(prefix, &target.read_region(prefix));
+                }
+            }
+            if !intersects || !stroke.visible {
+                continue;
+            }
+            if let Some(rect) = clip {
+                stroke.renderer.composite_tiles_in_rect(&stroke.pre, target, stroke.selection.as_ref(), stroke.start.lock_transparency, tiles, rect);
+            } else {
+                stroke.renderer.composite_tiles(&stroke.pre, target, stroke.selection.as_ref(), stroke.start.lock_transparency, tiles);
+            }
+        }
+        Ok(damage)
     }
 }
 fn dependency_shell(
@@ -998,7 +1099,9 @@ impl Session {
                     floating.revision = st.revision;
                     st.floating = Some(floating);
                 }
-                st.last_damage = None;
+                let damage = if collab.pending_commands.is_empty() { collab.operation_damage } else { None };
+                st.last_damage = damage;
+                collab.record_damage(st.doc.id, st.revision, damage);
             })
         } else {
             Err(EngineError::NoDocument)
@@ -1500,6 +1603,304 @@ mod tests {
             let undone = pixels(&host);
             host.execute("edit.redo", json!({})).unwrap();
             assert_ne!(pixels(&host), undone);
+        }
+    }
+    #[test]
+    fn overlapping_suffix_replay_matches_full_journal_with_erase_and_private_undo() {
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            host.execute("layer.new.layer", json!({"name":"Overlap"})).unwrap();
+            begin(&mut host, "host", "earlier", [0.9, 0.2, 0.1, 1.0]);
+            let layer = host.active().unwrap().active_layer.unwrap();
+            let brush = photocraft_paint::BrushSettings { size: 12.0, erase: true, opacity: 0.7, pressure_opacity: true, ..Default::default() };
+            emit(
+                &mut host,
+                "peer",
+                Operation::StrokeBegin {
+                    stroke: Box::new(StrokeStart { id: "later".into(), layer, brush, zoom: 1.0, selection: Vec::new(), lock_transparency: false }),
+                },
+            );
+            let mut oracle = session(depth);
+            for step in 0..16 {
+                for (peer, id) in [("host", "earlier"), ("peer", "later")] {
+                    chunk(&mut host, peer, id, step, vec![StrokePoint::new(10.0 + f64::from(step) * 2.0, 22.0, 0.2 + step as f32 * 0.04)]);
+                    oracle.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+                    assert_eq!(pixels(&host), pixels(&oracle), "depth {depth}, step {step}, {peer}");
+                }
+            }
+            end(&mut host, "host", "earlier", 16);
+            end(&mut host, "peer", "later", 16);
+            let original = pixels(&host);
+            host.execute("collab.undo", json!({})).unwrap();
+            assert_ne!(pixels(&host), original);
+            host.execute("collab.redo", json!({})).unwrap();
+            assert_eq!(pixels(&host), original);
+        }
+    }
+
+    #[test]
+    fn disjoint_live_stroke_prefix_updates_before_it_grows_into_changed_tile() {
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            begin(&mut host, "host", "earlier", [0.8, 0.2, 0.1, 1.0]);
+            begin(&mut host, "peer", "later", [0.1, 0.2, 0.8, 1.0]);
+            chunk(&mut host, "host", "earlier", 0, vec![StrokePoint::new(8.0, 18.0, 1.0)]);
+            chunk(&mut host, "peer", "later", 0, vec![StrokePoint::new(180.0, 18.0, 0.5)]);
+            chunk(&mut host, "host", "earlier", 1, vec![StrokePoint::new(28.0, 18.0, 0.8)]);
+            chunk(&mut host, "peer", "later", 1, vec![StrokePoint::new(28.0, 18.0, 0.7)]);
+            let actual = pixels(&host);
+            let mut oracle = (*host.active().unwrap().doc).clone();
+            host.collaboration.rebuild_document(&mut oracle).unwrap();
+            let layer = host.active().unwrap().active_layer.unwrap();
+            assert_eq!(actual, oracle.layer(layer).unwrap().surface().unwrap().read_region(Rect::new(0, 0, 64, 64)), "depth {depth}");
+        }
+    }
+
+    #[test]
+    fn peer_undo_refreshes_live_prefix_before_more_overlapping_chunks() {
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            begin(&mut host, "host", "finished", [0.8, 0.2, 0.1, 1.0]);
+            chunk(&mut host, "host", "finished", 0, vec![StrokePoint::new(20.0, 20.0, 1.0)]);
+            end(&mut host, "host", "finished", 1);
+            begin(&mut host, "peer", "live", [0.1, 0.2, 0.8, 1.0]);
+            chunk(&mut host, "peer", "live", 0, vec![StrokePoint::new(20.0, 20.0, 0.5)]);
+            let mut guest = session(depth);
+            guest.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+            host.execute("collab.undo", json!({})).unwrap();
+            guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+            chunk(&mut host, "peer", "live", 1, vec![StrokePoint::new(22.0, 20.0, 0.8)]);
+            guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+            assert_eq!(pixels(&host), pixels(&guest), "depth {depth}");
+        }
+    }
+
+    #[test]
+    fn sparse_undo_redo_preserves_growing_earlier_peer_and_checkpoint_hidden_prefixes() {
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            begin(&mut host, "early", "early", [0.1, 0.2, 0.8, 1.0]);
+            chunk(&mut host, "early", "early", 0, vec![StrokePoint::new(4.0, 20.0, 0.4)]);
+            begin(&mut host, "host", "mine", [0.8, 0.2, 0.1, 1.0]);
+            chunk(&mut host, "host", "mine", 0, vec![StrokePoint::new(20.0, 20.0, 0.7)]);
+            end(&mut host, "host", "mine", 1);
+            begin(&mut host, "late", "late", [0.1, 0.8, 0.2, 1.0]);
+            chunk(&mut host, "late", "late", 0, vec![StrokePoint::new(18.0, 20.0, 0.6), StrokePoint::new(54.0, 20.0, 0.6)]);
+            end(&mut host, "late", "late", 1);
+            chunk(&mut host, "early", "early", 1, vec![StrokePoint::new(50.0, 20.0, 0.4)]);
+            let before = pixels(&host);
+            let seen = host.active().unwrap().revision;
+            host.execute("collab.undo", json!({})).unwrap();
+            assert!(host.collaboration.canonical_outbox.last().unwrap().delta.is_none());
+            let state = host.active().unwrap();
+            let damage = host.collaboration.damage_since(state.doc.id, seen, state.revision).unwrap();
+            assert!(!damage.is_empty());
+            assert!(damage.x1 < 40, "undo damage must not overwrite an unrelated peer region");
+            let after = pixels(&host);
+            assert_eq!(&before[(20 * 64 + 50) * 4..(20 * 64 + 51) * 4], &after[(20 * 64 + 50) * 4..(20 * 64 + 51) * 4]);
+            let mut oracle = session(depth);
+            oracle.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+            assert_eq!(pixels(&host), pixels(&oracle), "undo depth {depth}");
+            let mut guest = session(depth);
+            guest.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+            chunk(&mut host, "early", "early", 2, vec![StrokePoint::new(20.0, 20.0, 1.0)]);
+            guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+            host.execute("collab.redo", json!({})).unwrap();
+            guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+            assert!(host.collaboration.canonical_outbox.last().unwrap().delta.is_none());
+            assert_eq!(pixels(&host), pixels(&guest), "checkpoint redo depth {depth}");
+            oracle.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+            assert_eq!(pixels(&host), pixels(&oracle), "redo depth {depth}");
+        }
+    }
+
+    #[test]
+    fn pending_predicted_transform_or_gradient_requires_full_damage() {
+        for (id, params) in
+            [("edit.transform", json!({"matrix":[1,0,0,1,3,4],"interpolation":"nearest"})), ("paint.gradient", json!({"from":[0,0],"to":[63,0]}))]
+        {
+            let mut host = session(8);
+            begin(&mut host, "host", "ink", [1.0, 0.1, 0.3, 1.0]);
+            chunk(&mut host, "host", "ink", 0, vec![StrokePoint::new(12.0, 10.0, 0.7)]);
+            end(&mut host, "host", "ink", 1);
+            begin(&mut host, "peer", "next", [0.1, 0.3, 1.0, 1.0]);
+            let edit = crate::collab_resources::prepare_command(&host, id, &params).unwrap();
+            host.collaboration.pending_commands.push(edit);
+            let seen = host.active().unwrap().revision;
+            chunk(&mut host, "peer", "next", 0, vec![StrokePoint::new(20.0, 10.0, 0.7)]);
+            let state = host.active().unwrap();
+            assert_eq!(state.last_damage, None, "{id}");
+            assert_eq!(host.collaboration.damage_since(state.doc.id, seen, state.revision), None, "{id}");
+        }
+    }
+
+    #[test]
+    fn damage_ledger_unions_contiguous_revisions_and_rejects_gaps() {
+        let mut room = Collaboration::default();
+        let id = photocraft_doc::DocId(42);
+        room.document_id = Some(id);
+        room.record_damage(id, 2, Some(Rect::new(1, 2, 3, 4)));
+        room.record_damage(id, 3, Some(Rect::EMPTY));
+        room.record_damage(id, 4, Some(Rect::new(8, 9, 12, 14)));
+        assert_eq!(room.damage_since(id, 1, 4), Some(Rect::new(1, 2, 12, 14)));
+        assert_eq!(room.damage_since(id, 0, 4), None);
+        assert_eq!(room.damage_since(id, 4, 4), Some(Rect::EMPTY));
+        room.record_damage(id, 5, None);
+        assert_eq!(room.damage_since(id, 1, 5), None);
+        room.record_damage(id, 7, Some(Rect::EMPTY));
+        assert_eq!(room.damage_since(id, 5, 7), None);
+        for revision in 8..300 {
+            room.record_damage(id, revision, Some(Rect::EMPTY));
+        }
+        assert_eq!(room.damage_ledger.len(), 256);
+        assert_eq!(room.damage_since(id, 7, 299), None);
+    }
+
+    #[test]
+    #[ignore = "aged active stroke with 100 later overlapping strokes; percentile evidence"]
+    fn collaboration_aged_overlap_latency_benchmark() {
+        fn stats(samples: &mut [f64]) -> serde_json::Value {
+            samples.sort_by(f64::total_cmp);
+            let at = |p: usize| samples.get(samples.len().saturating_sub(1) * p / 100).copied().unwrap_or(0.0);
+            json!({"p50_ms":at(50),"p95_ms":at(95),"p99_ms":at(99),"max_ms":samples.last().copied().unwrap_or(0.0),"samples":samples.len()})
+        }
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            host.execute("layer.new.layer", json!({"name":"Aged overlap"})).unwrap();
+            begin(&mut host, "slow", "aged", [0.9, 0.2, 0.1, 1.0]);
+            chunk(&mut host, "slow", "aged", 0, vec![StrokePoint::new(18.0, 22.0, 0.4)]);
+            for n in 0..100 {
+                let id = format!("newer-{n}");
+                let layer = host.active().unwrap().active_layer.unwrap();
+                let brush = BrushSettings {
+                    size: 28.0,
+                    opacity: 0.5,
+                    erase: n % 3 == 0,
+                    pressure_opacity: true,
+                    noise: true,
+                    seed: 234 + n as u64,
+                    color: [0.1, 0.3, 0.8, 1.0],
+                    ..Default::default()
+                };
+                emit(
+                    &mut host,
+                    "rapid",
+                    Operation::StrokeBegin {
+                        stroke: Box::new(StrokeStart { id: id.clone(), layer, brush, zoom: 0.75, selection: Vec::new(), lock_transparency: false }),
+                    },
+                );
+                chunk(&mut host, "rapid", &id, 0, vec![StrokePoint::new(20.0 + f64::from(n % 11), 22.0, 0.4 + 0.01 * (n % 30) as f32)]);
+                end(&mut host, "rapid", &id, 1);
+            }
+            let mut guest = session(depth);
+            guest.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+            host.collaboration.canonical_outbox.clear();
+            let mut host_ms = Vec::new();
+            let mut guest_ms = Vec::new();
+            for sequence in 1..65 {
+                let start = std::time::Instant::now();
+                chunk(&mut host, "slow", "aged", sequence, vec![StrokePoint::new(14.0 + f64::from(sequence % 24), 22.0, 0.3 + 0.02 * (sequence % 24) as f32)]);
+                host_ms.push(start.elapsed().as_secs_f64() * 1000.0);
+                let start = std::time::Instant::now();
+                guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+                guest_ms.push(start.elapsed().as_secs_f64() * 1000.0);
+            }
+            end(&mut host, "slow", "aged", 65);
+            guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+            assert_eq!(pixels(&host), pixels(&guest));
+            let mut oracle = session(depth);
+            oracle.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+            assert_eq!(pixels(&host), pixels(&oracle));
+            let original = pixels(&host);
+            emit(&mut host, "slow", Operation::Undo);
+            guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+            assert_eq!(pixels(&host), pixels(&guest));
+            assert!(host.collaboration.strokes.iter().filter(|stroke| stroke.owner == "rapid").all(|stroke| stroke.visible));
+            emit(&mut host, "slow", Operation::Redo);
+            guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+            assert_eq!(pixels(&host), original);
+            assert_eq!(pixels(&host), pixels(&guest));
+            let result =
+                json!({"depth":depth,"later_completed_overlapping_strokes":100,"host":stats(&mut host_ms),"guest":stats(&mut guest_ms),"converged":true});
+            println!("AGED_OVERLAP_BENCH {result}");
+        }
+    }
+    #[test]
+    #[ignore = "same-source overlap latency benchmark; prints percentile evidence"]
+    fn collaboration_overlap_latency_benchmark() {
+        fn percentiles(samples: &mut [f64]) -> serde_json::Value {
+            samples.sort_by(f64::total_cmp);
+            let at = |p: usize| samples.get(samples.len().saturating_sub(1) * p / 100).copied().unwrap_or(0.0);
+            json!({"p50_ms":at(50),"p95_ms":at(95),"p99_ms":at(99),"samples":samples.len()})
+        }
+        for depth in [8, 16, 32] {
+            let mut host = session(depth);
+            host.execute("layer.new.layer", json!({"name":"Overlap layer"})).unwrap();
+            for n in 0..96 {
+                let id = format!("history-{n}");
+                begin(&mut host, "old", &id, [0.1, 0.3, 0.8, 1.0]);
+                chunk(&mut host, "old", &id, 0, vec![StrokePoint::new(f64::from(n % 32), f64::from(n % 24), 0.8)]);
+                end(&mut host, "old", &id, 1);
+            }
+            let mut guest = session(depth);
+            guest.collaboration.document_id = guest.active().map(|state| state.doc.id);
+            guest.collaboration_install_checkpoint(host.collaboration_checkpoint().unwrap()).unwrap();
+            host.collaboration.canonical_outbox.clear();
+            let mut host_ms = Vec::new();
+            let mut guest_ms = Vec::new();
+            for round in 0..8 {
+                for peer in ["draw", "erase"] {
+                    let id = format!("{peer}-{round}");
+                    let layer = host.active().unwrap().active_layer.unwrap();
+                    emit(
+                        &mut host,
+                        peer,
+                        Operation::StrokeBegin {
+                            stroke: Box::new(StrokeStart {
+                                id,
+                                layer,
+                                zoom: 0.75,
+                                brush: BrushSettings {
+                                    size: 28.0,
+                                    opacity: 0.6,
+                                    erase: peer == "erase",
+                                    seed: 234,
+                                    pressure_opacity: true,
+                                    color: [0.9, 0.2, 0.1, 1.0],
+                                    ..Default::default()
+                                },
+                                selection: Vec::new(),
+                                lock_transparency: false,
+                            }),
+                        },
+                    );
+                    guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+                }
+                for sequence in 0..16 {
+                    for peer in ["draw", "erase"] {
+                        let id = format!("{peer}-{round}");
+                        let instant = std::time::Instant::now();
+                        chunk(
+                            &mut host,
+                            peer,
+                            &id,
+                            sequence,
+                            vec![StrokePoint::new(12.0 + f64::from(sequence), 18.0 + f64::from(round % 3), 0.25 + 0.04 * sequence as f32)],
+                        );
+                        host_ms.push(instant.elapsed().as_secs_f64() * 1000.0);
+                        let instant = std::time::Instant::now();
+                        guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+                        guest_ms.push(instant.elapsed().as_secs_f64() * 1000.0);
+                    }
+                }
+                for peer in ["draw", "erase"] {
+                    end(&mut host, peer, &format!("{peer}-{round}"), 16);
+                    guest.collaboration_receive(host.collaboration.canonical_outbox.last().unwrap()).unwrap();
+                }
+            }
+            assert_eq!(pixels(&host), pixels(&guest));
+            let result = json!({"depth":depth,"history_strokes":96,"active_peers":2,"host":percentiles(&mut host_ms),"guest":percentiles(&mut guest_ms),"converged":true});
+            println!("OVERLAP_BENCH {result}");
         }
     }
     #[test]
