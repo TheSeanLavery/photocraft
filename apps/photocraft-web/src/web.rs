@@ -55,7 +55,7 @@ pub fn start() {
                     let mut app = collaboration::attach(PhotocraftApp::new(Session::new(), services(inbox.clone(), cc.egui_ctx.clone())), cc.egui_ctx.clone());
                     match invited_room() {
                         Ok(Some(code)) => {
-                            app.ui.collaboration.open = true;
+                            app.ui.collaboration.reveal_for_invite();
                             app.ui.collaboration.code = code.clone();
                             if let Err(error) = app.run(
                                 "collab.room.join",
@@ -65,7 +65,7 @@ pub fn start() {
                             }
                         }
                         Err(error) => {
-                            app.ui.collaboration.open = true;
+                            app.ui.collaboration.reveal_for_invite();
                             app.ui.collaboration.error = error;
                         }
                         Ok(None) => {}

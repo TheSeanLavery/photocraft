@@ -71,6 +71,14 @@ impl Default for CollaborationUi {
     }
 }
 
+impl CollaborationUi {
+    /// Invitations reveal the complete room dock regardless of saved display preferences.
+    pub fn reveal_for_invite(&mut self) {
+        self.open = true;
+        self.panel_mode = PanelMode::Full;
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PanelMode {
@@ -113,9 +121,8 @@ pub fn entry_button(app: &mut PhotocraftApp, ui: &mut egui::Ui, side: f32) {
 
 /// Open an invitation without closing or replacing an existing drawing.
 pub fn open_invite(app: &mut PhotocraftApp, input: &str) -> Result<(), String> {
+    app.ui.collaboration.reveal_for_invite();
     let invite = photocraft_engine::collab::invite::parse_with_server(input, &app.ui.collaboration.signaling_url)?;
-    app.ui.collaboration.open = true;
-    app.ui.collaboration.panel_mode = PanelMode::Full;
     if let Some(room) = app.session.collaboration.room.as_ref() {
         if room.code != invite.code {
             return Err("Leave the current room before joining another room. Your drawing is preserved.".into());
@@ -565,6 +572,28 @@ mod tests {
             open_invite(&mut app, "ROOM01").unwrap();
             assert!(!app.session.collaboration.network_intents.is_empty(), "failed admission can retry");
         }
+    }
+
+    #[test]
+    fn invitations_reopen_hidden_minimal_and_collapsed_docks_even_in_same_room() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        open_invite(&mut app, "ROOM01").unwrap();
+        let intents = app.session.collaboration.network_intents.len();
+        for open in [false, true] {
+            for mode in [PanelMode::Full, PanelMode::Minimal, PanelMode::Collapsed] {
+                app.ui.collaboration.open = open;
+                app.ui.collaboration.panel_mode = mode;
+                open_invite(&mut app, "photocraft://join/ROOM01").unwrap();
+                assert!(app.ui.collaboration.open);
+                assert_eq!(app.ui.collaboration.panel_mode, PanelMode::Full);
+                assert_eq!(app.session.collaboration.network_intents.len(), intents);
+            }
+        }
+        app.ui.collaboration.open = false;
+        app.ui.collaboration.panel_mode = PanelMode::Collapsed;
+        assert!(open_invite(&mut app, "photocraft://join/invalid!").is_err());
+        assert!(app.ui.collaboration.open);
+        assert_eq!(app.ui.collaboration.panel_mode, PanelMode::Full);
     }
 
     #[test]

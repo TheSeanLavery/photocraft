@@ -4,6 +4,8 @@ Click the people icon beside Discord to open the persistent Room panel. The
 diagonal-arrow button switches between full and minimal modes. The chevrons
 collapse the panel completely; the people icon restores it. Window >
 Collaboration is another way to reopen the panel.
+Opening an invitation always reveals the full Room dock, overriding a hidden,
+minimal or collapsed mode, including when already connected to that room.
 
 Create a room, then use **Copy invite**. Guests can paste a room code or invitation
 into Join. Password, connection server and TURN settings live under Advanced.
