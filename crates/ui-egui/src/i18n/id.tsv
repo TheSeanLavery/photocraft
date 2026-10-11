@@ -483,6 +483,12 @@
 	Color Range…	Rentang Warna…
 	Focus Area…	Area Fokus…
 	Select and Mask…	Seleksi dan Mask…
+# Select and Mask dialog labels
+	Smart Radius	Radius Cerdas
+	Shift Edge	Geser Tepi
+	Decontaminate	Dekontaminasi
+	Output	Keluaran
+	Refine Edge	Perbaiki Tepi
 	Modify	Ubah
 	Border…	Border…
 	Smooth…	Haluskan…
@@ -751,6 +757,7 @@
 	Split Warp Horizontally	Bagi Warp Horizontal
 	Split Warp Vertically	Bagi Warp Vertikal
 	Statistics…	Statistik…
+	Refine Strokes	Goresan penyempurnaan
 @plural	{n} item|{n} items	{n} item
 	Auto	Otomatis
 	(print to the printer)	(cetak ke printer)
@@ -3046,3 +3053,7 @@ cameraData	Lens	Lensa
 	Use available disk space	Gunakan ruang disk tersedia
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Ruang pembatalan bertambah sesuai kebutuhan. Riwayat tanpa batas menyimpan keadaan hingga penyimpanan penuh. Jalur berlaku pada sesi cache berikutnya.
 	Change opacity	Ubah opasitas
+# Print dialog (#2697)
+	Emulsion Down	Emulsi di Bawah
+	Functions	Fungsi
+	Print Resolution:	Resolusi Cetak:

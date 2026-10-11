@@ -500,6 +500,12 @@
 	Color Range…	色域指定…
 	Focus Area…	焦点領域…
 	Select and Mask…	選択とマスク…
+# Select and Mask dialog labels
+	Smart Radius	スマート半径
+	Shift Edge	エッジをシフト
+	Decontaminate	混入を除去
+	Output	出力
+	Refine Edge	境界線を調整
 	Modify	選択範囲を修正
 	Border…	境界…
 	Smooth…	滑らかに…
@@ -768,6 +774,7 @@
 	Split Warp Horizontally	ワープを水平方向に分割
 	Split Warp Vertically	ワープを垂直方向に分割
 	Statistics…	統計情報…
+	Refine Strokes	調整ストローク
 @plural	{n} item|{n} items	{n} 件
 	Auto	自動
 
@@ -3657,3 +3664,7 @@ cameraData	Lens	レンズ
 	Use available disk space	空きディスク容量を使用
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	取り消し用ディスク容量は必要に応じて増加します。無制限の履歴は容量がいっぱいになるまで保持されます。パスは次のキャッシュセッションに適用されます。
 	Change opacity	不透明度を変更
+# Print dialog (#2697)
+	Emulsion Down	乳剤面を下
+	Functions	機能
+	Print Resolution:	プリント解像度:

@@ -499,6 +499,12 @@
 	Color Range…	Intervallo colori…
 	Focus Area…	Area di messa a fuoco…
 	Select and Mask…	Seleziona e maschera…
+# Select and Mask dialog labels
+	Smart Radius	Raggio avanzato
+	Shift Edge	Sposta bordo
+	Decontaminate	Decontamina
+	Output	Output
+	Refine Edge	Migliora bordo
 	Modify	Modifica
 	Border…	Bordo…
 	Smooth…	Smussa…
@@ -766,6 +772,7 @@
 	Split Warp Horizontally	Dividi altera orizzontalmente
 	Split Warp Vertically	Dividi altera verticalmente
 	Statistics…	Statistiche…
+	Refine Strokes	Tratti di perfezionamento
 @plural	{n} item|{n} items	{n} elemento|{n} elementi
 	Auto	Automatico
 
@@ -2717,3 +2724,7 @@ cameraData	Lens	Obiettivo
 	Use available disk space	Usa spazio disponibile su disco
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Lo spazio per annullare cresce secondo necessità. La cronologia illimitata conserva gli stati fino a esaurire lo spazio. I percorsi valgono per la prossima sessione cache.
 	Change opacity	Cambia opacità
+# Print dialog (#2697)
+	Emulsion Down	Emulsione sotto
+	Functions	Funzioni
+	Print Resolution:	Risoluzione di stampa:

@@ -7589,3 +7589,19 @@ ui-x11-52a9397deddd2397 = X11
 ui-xor-521a5a7ded63a364 = XOR
 
 ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Your keyboard shortcut set { $set } is in use here: { $n } shortcuts differ from the defaults. Edit › Keyboard Shortcuts shows them; Reset All to Defaults undoes this.
+
+ui-decontaminate-1f0aa396647233f3 = Decontaminate
+
+ui-emulsion-down-04563fb4794ff91f = Emulsion Down
+
+ui-functions-16dce49f49de2be4 = Functions
+
+ui-print-resolution-ce140e05758a8376 = Print Resolution:
+
+ui-refine-edge-394e57164384edb3 = Refine Edge
+
+ui-refine-strokes-0b1c46698a8ef47f = Refine Strokes
+
+ui-shift-edge-4fadcbcd31772f0a = Shift Edge
+
+ui-smart-radius-2179959cee59e956 = Smart Radius

@@ -6021,3 +6021,21 @@ ui-x11-52a9397deddd2397 = X11
 ui-xor-521a5a7ded63a364 = XOR
 
 ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Votre jeu de raccourcis clavier { $set } est utilisé ici : { $n } raccourcis diffèrent des valeurs par défaut. Édition › Raccourcis clavier les affiche ; Tout rétablir par défaut annule l'import.
+
+ui-decontaminate-1f0aa396647233f3 = Décontaminer
+
+ui-emulsion-down-04563fb4794ff91f = Émulsion verso
+
+ui-functions-16dce49f49de2be4 = Fonctions
+
+ui-output-2555373b75aa89b2 = Sortie
+
+ui-print-resolution-ce140e05758a8376 = Résolution d’impression :
+
+ui-refine-edge-394e57164384edb3 = Améliorer le contour
+
+ui-refine-strokes-0b1c46698a8ef47f = Traits d'affinement
+
+ui-shift-edge-4fadcbcd31772f0a = Décaler le contour
+
+ui-smart-radius-2179959cee59e956 = Rayon dynamique

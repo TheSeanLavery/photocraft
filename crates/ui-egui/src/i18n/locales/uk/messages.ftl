@@ -7090,3 +7090,21 @@ ui-zoom-tool-29d5178fea89df7a = Інструмент «Масштаб»
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Масштабувати коліщатком миші
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Масштабувати щипком на трекпаді
+
+ui-decontaminate-1f0aa396647233f3 = Очистити
+
+ui-emulsion-down-04563fb4794ff91f = Емульсією донизу
+
+ui-functions-16dce49f49de2be4 = Функції
+
+ui-output-2555373b75aa89b2 = Вивід
+
+ui-print-resolution-ce140e05758a8376 = Роздільна здатність друку:
+
+ui-refine-edge-394e57164384edb3 = Уточнити край
+
+ui-refine-strokes-0b1c46698a8ef47f = Штрихи уточнення
+
+ui-shift-edge-4fadcbcd31772f0a = Змістити край
+
+ui-smart-radius-2179959cee59e956 = Розумний радіус

@@ -7455,3 +7455,19 @@ ui-zoom-tool-29d5178fea89df7a = Zoomgereedschap
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Zoomen met scrollwiel
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Zoomen met knijpgebaar op trackpad
+
+ui-decontaminate-1f0aa396647233f3 = Verontreiniging verwijderen
+
+ui-emulsion-down-04563fb4794ff91f = Emulsie omlaag
+
+ui-functions-16dce49f49de2be4 = Functies
+
+ui-print-resolution-ce140e05758a8376 = Afdrukresolutie:
+
+ui-refine-edge-394e57164384edb3 = Rand verfijnen
+
+ui-refine-strokes-0b1c46698a8ef47f = Verfijningsstreken
+
+ui-shift-edge-4fadcbcd31772f0a = Rand verschuiven
+
+ui-smart-radius-2179959cee59e956 = Slimme straal

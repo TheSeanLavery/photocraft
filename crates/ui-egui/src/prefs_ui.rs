@@ -1686,6 +1686,9 @@ fn ctx_take_pick(ui: &egui::Ui) -> Option<(String, String)> {
 
 /// Generic editor for a section's fields: checkboxes, dropdowns for choices, colour swatches,
 /// number fields with the preference's range, text fields.
+// The catalog and native appearance are separate read-only inputs; keeping them explicit
+// lets the shared section editor render installed runtime packs without accessing app state.
+#[allow(clippy::too_many_arguments)]
 fn section_fields(
     ui: &mut egui::Ui,
     section: &str,

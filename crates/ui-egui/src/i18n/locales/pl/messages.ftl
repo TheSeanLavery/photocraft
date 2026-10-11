@@ -7074,3 +7074,23 @@ ui-zoom-tool-29d5178fea89df7a = Narzędzie Lupa
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Powiększaj kółkiem myszy
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Powiększaj szczypnięciem na gładziku
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = Zastosuj w granicach obszaru roboczego
+
+ui-decontaminate-1f0aa396647233f3 = Dekontaminacja
+
+ui-emulsion-down-04563fb4794ff91f = Emulsja w dół
+
+ui-functions-16dce49f49de2be4 = Funkcje
+
+ui-output-2555373b75aa89b2 = Wyjście
+
+ui-print-resolution-ce140e05758a8376 = Rozdzielczość druku:
+
+ui-refine-edge-394e57164384edb3 = Popraw krawędź
+
+ui-refine-strokes-0b1c46698a8ef47f = Pociągnięcia udoskonalania
+
+ui-shift-edge-4fadcbcd31772f0a = Przesuń krawędź
+
+ui-smart-radius-2179959cee59e956 = Inteligentny promień

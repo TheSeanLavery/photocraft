@@ -5708,3 +5708,21 @@ ui-x11-52a9397deddd2397 = X11
 ui-xor-521a5a7ded63a364 = XOR
 
 ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Здесь используется ваш набор сочетаний клавиш { $set }: сочетаний, отличных от стандартных: { $n }. Их показывает Редактирование › Сочетания клавиш; «Сбросить всё к значениям по умолчанию» отменяет импорт.
+
+ui-decontaminate-1f0aa396647233f3 = Очистить
+
+ui-emulsion-down-04563fb4794ff91f = Эмульсией вниз
+
+ui-functions-16dce49f49de2be4 = Функции
+
+ui-output-2555373b75aa89b2 = Вывод
+
+ui-print-resolution-ce140e05758a8376 = Разрешение печати:
+
+ui-refine-edge-394e57164384edb3 = Уточнить край
+
+ui-refine-strokes-0b1c46698a8ef47f = Штрихи уточнения
+
+ui-shift-edge-4fadcbcd31772f0a = Сместить край
+
+ui-smart-radius-2179959cee59e956 = Умный радиус

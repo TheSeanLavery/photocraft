@@ -5613,7 +5613,6 @@ dependencies = [
  "photocraft-algo",
  "photocraft-cms",
  "photocraft-codecs",
- "photocraft-collab",
  "photocraft-color",
  "photocraft-compose",
  "photocraft-doc",

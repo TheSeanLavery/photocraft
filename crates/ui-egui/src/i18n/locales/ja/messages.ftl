@@ -7184,3 +7184,21 @@ ui-zigzag-76d193b600c78947 = ジグザグ
 ui-zigzag-8cdab3b69e8095a7 = ジグザグ
 
 ui-zoom-1cb440cd80187719 = { $zoom }%
+
+ui-decontaminate-1f0aa396647233f3 = 混入を除去
+
+ui-emulsion-down-04563fb4794ff91f = 乳剤面を下
+
+ui-functions-16dce49f49de2be4 = 機能
+
+ui-output-2555373b75aa89b2 = 出力
+
+ui-print-resolution-ce140e05758a8376 = プリント解像度:
+
+ui-refine-edge-394e57164384edb3 = 境界線を調整
+
+ui-refine-strokes-0b1c46698a8ef47f = 調整ストローク
+
+ui-shift-edge-4fadcbcd31772f0a = エッジをシフト
+
+ui-smart-radius-2179959cee59e956 = スマート半径

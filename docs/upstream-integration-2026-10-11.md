@@ -1,10 +1,11 @@
 # Upstream integration, 2026-10-11
 
 This merge integrates upstream `storytold/photocraft` main
-`4ecf8ea6b92512a5ed55a59f9a231c8c8e7a268a` into fork main
+`5f55a29d2bb0601edbaabe7f2f708c8e51d6439c` into fork main
 `611b78373405c228e2b2d02a3ff5b727e78d01bb`. The merge base is
 `bdd0141cf31b23c32a95d891e67990e462b212d2`: 101 fork-only commits,
-998 upstream-only commits and 152 conflicted files.
+1005 upstream-only commits and 152 initially conflicted files. Seven newer upstream
+commits were reviewed and integrated in a follow-up merge with 15 conflicts.
 
 Three agents reviewed core/history/collaboration, UI/platform behavior and
 formats/rendering. After resolving their assigned files, they independently

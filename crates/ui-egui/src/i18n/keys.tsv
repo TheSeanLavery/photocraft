@@ -935,6 +935,7 @@
 	Day For Night	ui-day-for-night-ea9d433a6a554c72
 	De-Interlace	ui-de-interlace-ae7ae324db373ee8
 	De-Interlace…	ui-de-interlace-d0d966f05f09db74
+	Decontaminate	ui-decontaminate-1f0aa396647233f3
 	Deep Blue	ui-deep-blue-33be2202660d9607
 	Deep Emerald	ui-deep-emerald-7bd872466648cea5
 	Deep Red	ui-deep-red-c367968a9486fd92
@@ -1193,6 +1194,7 @@
 	Embedded Profile Mismatch	ui-embedded-profile-mismatch-4db32743c6add27c
 	Emboss	ui-emboss-aa0637dc64e48258
 	Emboss…	ui-emboss-8053988efda08604
+	Emulsion Down	ui-emulsion-down-04563fb4794ff91f
 	Enable	ui-enable-b79dc956c1d89568
 	Enable Crop Shield	ui-enable-crop-shield-f3578921d3d300ef
 	Enable Layer Mask	ui-enable-layer-mask-7fc5abd57d183cf3
@@ -1450,6 +1452,7 @@
 	Full size tip	ui-full-size-tip-bc2207df85a00062
 	Full-resolution preview unavailable	ui-full-resolution-preview-unavailable-9ee8e0b766b213e1
 	Fullscreen	ui-fullscreen-ba9472192fec84e6
+	Functions	ui-functions-16dce49f49de2be4
 	Fuzziness	ui-fuzziness-c52cb63a37cb195a
 	Fuzziness:	ui-fuzziness-d61304ecce1c1e20
 	GPS	ui-gps-e5810c7e40eb8e61
@@ -2588,6 +2591,7 @@
 	Prime35	ui-prime35-fea8d92b21276a32
 	Print	ui-print-949cb11bf15c2a06
 	Print One Copy	ui-print-one-copy-91c41a16a0cc1993
+	Print Resolution:	ui-print-resolution-ce140e05758a8376
 	Print Size	ui-print-size-c3553b862f76073b
 	Print resolution	ui-print-resolution-5a7e54f05d0d7368
 	Printer	ui-printer-58688b36b61eb171
@@ -2714,7 +2718,9 @@
 	Reduce Noise…	ui-reduce-noise-662854e3e0397b99
 	Reference point location	ui-reference-point-location-d5d0aada333a3e05
 	Refine	ui-refine-9e0be4b61fc803be
+	Refine Edge	ui-refine-edge-394e57164384edb3
 	Refine Edge Brush (R)	ui-refine-edge-brush-r-c2b236a925ebf002
+	Refine Strokes	ui-refine-strokes-0b1c46698a8ef47f
 	Reflect	ui-reflect-d0229494c0f576bc
 	Reflected	ui-reflected-5a58ced77d64b0ed
 	Reflected Gradient	ui-reflected-gradient-6c5e3c479dbe643b
@@ -3078,6 +3084,7 @@
 	Shell Lower	ui-shell-lower-9a5cf3f1252fc476
 	Shell Upper	ui-shell-upper-9eca01f8c0d1f003
 	Shift	ui-shift-cc9fb6543c9236b5
+	Shift Edge	ui-shift-edge-4fadcbcd31772f0a
 	Shine	ui-shine-ccbad5543ca9331a
 	Short Lines	ui-short-lines-391876c9aa45d0ec
 	Short Strokes	ui-short-strokes-3c6608d26843dd02
@@ -3167,6 +3174,7 @@
 	Smart Object	ui-smart-object-aca3e41563574087
 	Smart Object Layer	ui-smart-object-layer-24f1982b88d84116
 	Smart Objects	ui-smart-objects-b1bd8457cd435e9c
+	Smart Radius	ui-smart-radius-2179959cee59e956
 	Smart Sharpen	ui-smart-sharpen-4c1d50dbbe6b62e7
 	Smart Sharpen…	ui-smart-sharpen-ca2a8f2444f11051
 	Smart guide color	ui-smart-guide-color-0f55d4c3011d8f2f

@@ -6370,3 +6370,21 @@ ui-x11-52a9397deddd2397 = X11
 ui-xor-521a5a7ded63a364 = XOR
 
 ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = 키보드 단축키 세트 { $set }을(를) 여기서 사용합니다. 단축키 { $n }개가 기본값과 다릅니다. 편집 › 키보드 단축키에서 확인할 수 있고, 모두 기본값으로 재설정으로 되돌릴 수 있습니다.
+
+ui-decontaminate-1f0aa396647233f3 = 오염 제거
+
+ui-emulsion-down-04563fb4794ff91f = 감광면 아래로
+
+ui-functions-16dce49f49de2be4 = 기능
+
+ui-output-2555373b75aa89b2 = 출력
+
+ui-print-resolution-ce140e05758a8376 = 인쇄 해상도:
+
+ui-refine-edge-394e57164384edb3 = 가장자리 다듬기
+
+ui-refine-strokes-0b1c46698a8ef47f = 다듬기 획
+
+ui-shift-edge-4fadcbcd31772f0a = 가장자리 이동
+
+ui-smart-radius-2179959cee59e956 = 고급 반경

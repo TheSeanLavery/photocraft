@@ -490,6 +490,12 @@
 	Color Range…	Plage de couleurs…
 	Focus Area…	Zone de mise au point…
 	Select and Mask…	Sélectionner et masquer…
+# Select and Mask dialog labels
+	Smart Radius	Rayon dynamique
+	Shift Edge	Décaler le contour
+	Decontaminate	Décontaminer
+	Output	Sortie
+	Refine Edge	Améliorer le contour
 	Modify	Modifier
 	Border…	Bordure…
 	Smooth…	Lisser…
@@ -758,6 +764,7 @@
 	Split Warp Horizontally	Diviser la déformation horizontalement
 	Split Warp Vertically	Diviser la déformation verticalement
 	Statistics…	Statistiques…
+	Refine Strokes	Traits d'affinement
 @plural	{n} item|{n} items	{n} élément|{n} éléments
 	Auto	Auto
 	(print to the printer)	(imprimer sur l'imprimante)
@@ -3059,3 +3066,7 @@ cameraData	Lens	Objectif
 	Use available disk space	Utiliser l’espace disque disponible
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Le stockage d’annulation grandit selon les besoins. L’historique illimité conserve les états jusqu’à saturation. Les chemins s’appliquent à la prochaine session du cache.
 	Change opacity	Modifier l’opacité
+# Print dialog (#2697)
+	Emulsion Down	Émulsion verso
+	Functions	Fonctions
+	Print Resolution:	Résolution d’impression :

@@ -7289,3 +7289,21 @@ ui-zoom-tool-29d5178fea89df7a = Μεγέθυνση (Zoom Tool)
 ui-zoom-with-scroll-wheel-405e9e1a41be72fa = Μεγέθυνση με τον τροχό κύλισης
 
 ui-zoom-with-trackpad-pinch-40fe5f36f9b286c4 = Μεγέθυνση με τσίμπημα στην επιφάνεια αφής
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = Εφαρμογή στα όρια του καμβά
+
+ui-decontaminate-1f0aa396647233f3 = Απομάκρυνση επιμόλυνσης
+
+ui-emulsion-down-04563fb4794ff91f = Γαλάκτωμα προς τα κάτω
+
+ui-functions-16dce49f49de2be4 = Λειτουργίες
+
+ui-print-resolution-ce140e05758a8376 = Ανάλυση εκτύπωσης:
+
+ui-refine-edge-394e57164384edb3 = Βελτίωση άκρης
+
+ui-refine-strokes-0b1c46698a8ef47f = Πινελιές βελτίωσης
+
+ui-shift-edge-4fadcbcd31772f0a = Μετατόπιση άκρης
+
+ui-smart-radius-2179959cee59e956 = Έξυπνη ακτίνα

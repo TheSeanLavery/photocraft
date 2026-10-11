@@ -5198,3 +5198,21 @@ ui-x11-52a9397deddd2397 = X11
 ui-xor-521a5a7ded63a364 = XOR
 
 ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Vaše sada klávesových zkratek { $set } se zde používá: { $n } zkratek se liší od výchozích. Zobrazí je Úpravy › Klávesové zkratky; Obnovit vše na výchozí to vrátí zpět.
+
+ui-decontaminate-1f0aa396647233f3 = Dekontaminovat
+
+ui-emulsion-down-04563fb4794ff91f = Emulze dolů
+
+ui-functions-16dce49f49de2be4 = Funkce
+
+ui-output-2555373b75aa89b2 = Výstup
+
+ui-print-resolution-ce140e05758a8376 = Rozlišení tisku:
+
+ui-refine-edge-394e57164384edb3 = Upřesnit okraj
+
+ui-refine-strokes-0b1c46698a8ef47f = Tahy zpřesnění
+
+ui-shift-edge-4fadcbcd31772f0a = Posunout okraj
+
+ui-smart-radius-2179959cee59e956 = Chytrý poloměr

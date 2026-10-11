@@ -7595,3 +7595,19 @@ ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Seu conjunto de a
 ui-zigzag-76d193b600c78947 = Zigue-zague
 
 ui-zigzag-8cdab3b69e8095a7 = Zigue-zague
+
+ui-decontaminate-1f0aa396647233f3 = Descontaminar
+
+ui-emulsion-down-04563fb4794ff91f = Emulsão para baixo
+
+ui-functions-16dce49f49de2be4 = Funções
+
+ui-print-resolution-ce140e05758a8376 = Resolução de impressão:
+
+ui-refine-edge-394e57164384edb3 = Refinar borda
+
+ui-refine-strokes-0b1c46698a8ef47f = Traços de refinamento
+
+ui-shift-edge-4fadcbcd31772f0a = Deslocar borda
+
+ui-smart-radius-2179959cee59e956 = Raio inteligente
