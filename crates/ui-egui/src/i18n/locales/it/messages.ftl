@@ -4435,3 +4435,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = La definizione del tema su
 ui-theme-id-2057ac72399d5a4d = ID tema
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Tema Windows 98 SE
+
+ui-return-to-original-49ddd457800418b3 = Torna all’originale
+
+ui-branch-7a07940a2b62f185 = Ramo
+
+ui-retry-storage-2e07dc65352aa868 = Riprova archiviazione
+
+ui-unlimited-history-d3654847d93db9b8 = Cronologia illimitata
+
+ui-use-available-disk-space-44211d74d7260f1a = Usa spazio disponibile su disco
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Lo spazio per annullare cresce secondo necessità. La cronologia illimitata conserva gli stati fino a esaurire lo spazio. I percorsi valgono per la prossima sessione cache.
+
+ui-change-opacity-c419e848020b25f4 = Cambia opacità

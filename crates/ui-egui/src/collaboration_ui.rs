@@ -24,6 +24,8 @@ pub struct CollaborationUi {
     pub note_draft: String,
     pub error: String,
     pub transport_status: String,
+    /// Read-only diagnostics for bounded network work; no presence or tool payloads.
+    pub transport_metrics: Value,
     #[serde(skip)]
     pub transport_pending: bool,
     #[serde(skip)]
@@ -59,6 +61,7 @@ impl Default for CollaborationUi {
             push_to_talk: false,
             voice_status: "Voice off".into(),
             transport_status: "Disconnected".into(),
+            transport_metrics: Value::Null,
             transport_pending: false,
         }
     }

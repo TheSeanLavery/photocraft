@@ -585,6 +585,11 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             // being drawn moves instead of growing (hold_keys.rs).
             let space = flag("space");
             crate::crop_ui::set_space(app, space);
+            // Automation supplies the same ordered sample batch as a native
+            // frame. Render/send its moves together, but flush at gesture
+            // boundaries so samples cannot leak into the next stroke.
+            let previous_defer = app.defer_live_stroke;
+            app.defer_live_stroke = true;
             for e in events {
                 let x = e.get("x").and_then(Value::as_f64).unwrap_or(0.0);
                 let y = e.get("y").and_then(Value::as_f64).unwrap_or(0.0);
@@ -594,6 +599,11 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     "up" => ToolEvent::Up { x, y },
                     _ => ToolEvent::Move { x, y, pressure: pr },
                 };
+                if !matches!(ev, ToolEvent::Move { .. }) {
+                    app.defer_live_stroke = previous_defer;
+                    crate::canvas::feed_live_stroke(app);
+                    app.defer_live_stroke = true;
+                }
                 // With the Color Picker on top the image is its eyedropper, as for the mouse.
                 if crate::color_picker_ui::top(app).is_some() {
                     if !matches!(ev, ToolEvent::Up { .. }) {
@@ -633,6 +643,8 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 }
                 tool_event(app, ev, mods);
             }
+            app.defer_live_stroke = previous_defer;
+            crate::canvas::feed_live_stroke(app);
             app.stylus.feed.set(None);
             ok(json!({"status": app.ui.status}))
         }
@@ -1001,6 +1013,47 @@ mod tests {
             assert!(!r.to_string().contains("unknown field"), "{field}: {r}");
         }
         assert_eq!(call(&mut app, &ctx, "ui.set", Value::Null)["ok"], true);
+    }
+
+    #[test]
+    fn pointer_batches_preserve_pressure_and_two_gesture_boundaries() {
+        let ctx = egui::Context::default();
+        let make = || {
+            let mut app = PhotocraftApp::new(Default::default(), Default::default());
+            app.run("file.new", json!({"width":64,"height":64,"background":"transparent"})).unwrap();
+            app.run("tools.setBrush", json!({"brush":{"size":8,"hardness":1,"spacing":0.2}})).unwrap();
+            app.run("collab.room.create", json!({"code":"BATCH1","peer":"artist"})).unwrap();
+            app
+        };
+        let events = vec![
+            json!({"kind":"down","x":8,"y":12,"pressure":0.2}),
+            json!({"kind":"move","x":22,"y":12,"pressure":0.6}),
+            json!({"kind":"move","x":35,"y":12,"pressure":0.9}),
+            json!({"kind":"up","x":35,"y":12}),
+            json!({"kind":"down","x":8,"y":40,"pressure":0.3}),
+            json!({"kind":"move","x":22,"y":40,"pressure":0.7}),
+            json!({"kind":"move","x":35,"y":40,"pressure":0.8}),
+            json!({"kind":"up","x":35,"y":40}),
+        ];
+        let mut batched = make();
+        assert_eq!(call(&mut batched, &ctx, "ui.pointer", json!({"events":events}))["ok"], true);
+        let mut separate = make();
+        for event in &events {
+            assert_eq!(call(&mut separate, &ctx, "ui.pointer", json!({"events":[event]}))["ok"], true);
+        }
+        assert_eq!(batched.session.collaboration.own_history().len(), 2);
+        let canonical = serde_json::to_value(&batched.session.collaboration.canonical_outbox).unwrap();
+        let chunks: Vec<_> = canonical.as_array().unwrap().iter().filter(|event| event["message"]["operation"]["type"] == "strokeChunk").collect();
+        assert_eq!(chunks.len(), 4, "one initial chunk and one movement batch per gesture");
+        let pressures: Vec<_> = chunks
+            .iter()
+            .flat_map(|event| event["message"]["operation"]["points"].as_array().unwrap().iter().map(|point| point["pressure"].as_f64().unwrap() as f32))
+            .collect();
+        assert_eq!(pressures, [0.2, 0.6, 0.9, 0.3, 0.7, 0.8]);
+        let a = batched.session.active().unwrap().doc.layers[0].surface().unwrap();
+        let b = separate.session.active().unwrap().doc.layers[0].surface().unwrap();
+        assert!((0..64).all(|y| (0..64).all(|x| a.rgba(x, y) == b.rgba(x, y))), "batching changes neither stroke pixels nor gesture boundaries");
+        assert!(!batched.defer_live_stroke);
     }
 
     #[test]

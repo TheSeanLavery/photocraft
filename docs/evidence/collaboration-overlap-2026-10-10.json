@@ -1,0 +1,152 @@
+{
+  "sourceProvenance": {
+    "prBaseCommit": "db1569b363524ce8add164a84e98450f8897b0d2",
+    "oldExploratoryBase": "845a3235",
+    "candidateBaseCommit": "db1569b363524ce8add164a84e98450f8897b0d2",
+    "baselineProductionChanges": "none; identical harness plus additive RtcPeer.buffered_bytes telemetry only",
+    "flags": "--overlap OUTPUT --rounds 4 --no-frames",
+    "environment": {
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "2"
+    },
+    "candidateSourceCommit": "5ecd37a17f8481528e728409ed1432771998dad4",
+    "candidateSourceSha256": {
+      "crates/engine/src/collab.rs": "0f8141b19e39a4edecaa8cc6009d340c0d737912ec45249bd88c0c8e45d9643f",
+      "crates/paint/src/render.rs": "598e4752e5ef2b01bc367189c285926cbeec6c110543f0520ad1208fc1c00ea8",
+      "crates/collab/src/transport.rs": "eac30c96aef40a1772514a3b498185993a889ff4b78f7e00be512c5036cfeb6a",
+      "apps/photocraft/src/collaboration.rs": "a916edc910c14ca3c38b2b36ee4113e7e9d7f033d03fe357c478e3fd7635f3d4",
+      "apps/photocraft-room-server/src/bin/collaboration_doodles/overlap.rs": "9fa372b6237fa89b71318baa7fa8764332cf9fdda2c641905188e345ce2eff73"
+    }
+  },
+  "baselineActualPrBase": {
+    "actualWebrtcLinks": 3,
+    "allCanvasesEqual": true,
+    "artists": 4,
+    "canonicalBurstStages": 4,
+    "canvas": [
+      512,
+      320
+    ],
+    "chunksPerStroke": 24,
+    "drawingSeconds": 65.665040834,
+    "inflightRedo": 0,
+    "inflightUndo": 3,
+    "metrics": {
+      "ackLatencyMs": {
+        "max": 3540.967792,
+        "p50": 1141.579708,
+        "p95": 3017.888125,
+        "p99": 3354.51875
+      },
+      "applicationWireBytes": 3889873,
+      "canonicalOperationsPerSecond": 6.380868092433316,
+      "canonicalRevisions": 419,
+      "duplicateCanonicalRevisions": 0,
+      "hostCanonicalQueueHighWater": 17,
+      "hostRtcInboxPacketsHighWater": 1,
+      "outstandingOperationHighWater": 17,
+      "rtcBufferedBytesHighWater": 2135,
+      "submitted": 419,
+      "unacknowledged": 0
+    },
+    "note": "latency includes configured 0-12ms arrival jitter and native engine apply/fanout; one canonical acknowledgement per client operation is expected, not a feedback loop",
+    "pacingMs": 1,
+    "pressurePoints": 3072,
+    "quietUnexpectedPackets": 0,
+    "replayedClientEditsIgnored": 12,
+    "rounds": 4,
+    "sameLayer": true,
+    "setupMs": 37.379374999999996,
+    "wholeCanvas": true
+  },
+  "fixedSameWorkload": {
+    "actualWebrtcLinks": 3,
+    "allCanvasesEqual": true,
+    "artists": 4,
+    "canonicalBurstStages": 4,
+    "canvas": [
+      512,
+      320
+    ],
+    "chunksPerStroke": 24,
+    "drawingSeconds": 20.336351292,
+    "inflightRedo": 0,
+    "inflightUndo": 3,
+    "metrics": {
+      "ackLatencyMs": {
+        "max": 1697.140667,
+        "p50": 318.58445800000004,
+        "p95": 1176.617208,
+        "p99": 1474.693625
+      },
+      "applicationWireBytes": 1428127,
+      "canonicalOperationsPerSecond": 20.60347584892017,
+      "canonicalRevisions": 419,
+      "duplicateCanonicalRevisions": 0,
+      "hostCanonicalQueueHighWater": 17,
+      "hostRtcInboxPacketsHighWater": 1,
+      "outstandingOperationHighWater": 17,
+      "rtcBufferedBytesHighWater": 1712,
+      "submitted": 419,
+      "unacknowledged": 0
+    },
+    "note": "latency includes configured 0-12ms arrival jitter and native engine apply/fanout; one canonical acknowledgement per client operation is expected, not a feedback loop",
+    "pacingMs": 1,
+    "pressurePoints": 3072,
+    "quietUnexpectedPackets": 0,
+    "replayedClientEditsIgnored": 12,
+    "rounds": 4,
+    "sameLayer": true,
+    "setupMs": 30.506708,
+    "wholeCanvas": true
+  },
+  "fixedSustained256": {
+    "actualWebrtcLinks": 3,
+    "allCanvasesEqual": true,
+    "artists": 4,
+    "canonicalBurstStages": 4,
+    "canvas": [
+      512,
+      320
+    ],
+    "chunksPerStroke": 24,
+    "drawingSeconds": 244.488360958,
+    "inflightRedo": 63,
+    "inflightUndo": 63,
+    "metrics": {
+      "ackLatencyMs": {
+        "max": 1841.230709,
+        "p50": 282.140125,
+        "p95": 671.9777919999999,
+        "p99": 1133.466334
+      },
+      "applicationWireBytes": 22938857,
+      "canonicalOperationsPerSecond": 27.73956079097907,
+      "canonicalRevisions": 6782,
+      "duplicateCanonicalRevisions": 0,
+      "hostCanonicalQueueHighWater": 18,
+      "hostRtcInboxPacketsHighWater": 1,
+      "outstandingOperationHighWater": 18,
+      "rtcBufferedBytesHighWater": 858,
+      "submitted": 6782,
+      "unacknowledged": 0
+    },
+    "note": "latency includes configured 0-12ms arrival jitter and native engine apply/fanout; one canonical acknowledgement per client operation is expected, not a feedback loop",
+    "pacingMs": 24,
+    "pressurePoints": 49152,
+    "quietUnexpectedPackets": 0,
+    "replayedClientEditsIgnored": 192,
+    "rounds": 64,
+    "sameLayer": true,
+    "setupMs": 22.181791,
+    "wholeCanvas": true
+  },
+  "sameWorkloadSpeedup": 3.228948983578563,
+  "supersededExploratoryBase": "845a3235; exclude from PR-causal comparisons",
+  "limitations": [
+    "Acknowledgement latency includes host and three serial native engine replicas, configured jitter, and fanout; it is not isolated network latency or FPS.",
+    "Paused-reader packet-order test passes both old and current sources and does not prove a timeout regression.",
+    "Headless harness renders 512x320; native UI uses 1024x640; release single-brush benchmark uses 36MP."
+  ]
+}

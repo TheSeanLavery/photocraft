@@ -2278,3 +2278,19 @@ cameraRaw	Amount	Cantidad
 	Scroll up	Desplazar hacia arriba
 	Scroll down	Desplazar hacia abajo
 	Caption font	Fuente del título
+
+	Return to Original	Volver al original
+
+	Current	Actual
+
+	Branch	Rama
+
+	Retry storage	Reintentar almacenamiento
+
+	Unlimited history	Historial ilimitado
+
+	Use available disk space	Usar espacio disponible en disco
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	El espacio de deshacer crece según sea necesario. El historial ilimitado conserva estados hasta llenar el almacenamiento. Las rutas se aplican a la próxima sesión de caché.
+
+	Change opacity	Cambiar opacidad

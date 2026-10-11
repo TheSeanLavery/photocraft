@@ -2184,3 +2184,19 @@ cameraRaw	Blending	混合
 	Scroll up	向上捲動
 	Scroll down	向下捲動
 	Caption font	標題字型
+
+	Return to Original	返回原始狀態
+
+	Current	目前
+
+	Branch	分支
+
+	Retry storage	重試儲存
+
+	Unlimited history	無限歷史記錄
+
+	Use available disk space	使用可用磁碟空間
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	復原儲存空間按需增長。無限歷史記錄保留狀態，直到儲存空間已滿。暫存路徑適用於下次快取工作階段。
+
+	Change opacity	變更不透明度

@@ -51,21 +51,22 @@ Windows it is `%APPDATA%\Photocraft\Recovery`; on Linux it is
 
 ## Storage boundaries
 
-The undo cache's shared 4 GiB RAM / 8 GiB scratch defaults remain independent.
+The undo cache's shared 4 GiB RAM target and available-space scratch retention remain independent.
 Recovery is durable and cannot use temporary undo-cache leases as its authority.
 Both systems reuse native-format serialization. Pending recovery snapshots extend
 COW allocation lifetimes; the memory preference is a managed-data target, not a
 hard cap on process memory.
 
-Recovery has an 8 GiB admission ceiling **per document bundle**, not an aggregate
-quota or preallocation. The descriptor is capped at 256 MiB, navigation context
-at 64 KiB, and history at 10,000 retained states; native decoder limits also apply.
-A full bundle fails visibly and preserves the last checkpoint. It never silently
-shortens history to make a checkpoint fit. Roots with live recovered-history
-leases conservatively defer object garbage collection until those leases expire.
-Many open documents can use more than 8 GiB in total. Crashes can leave orphan
-object roots that are not automatically reclaimed. A configurable shared
-recovery quota and finer per-object pinning remain follow-ups.
+Recovery grows with available storage rather than an 8 GiB bundle ceiling or
+10,000-state limit. The descriptor remains capped at 256 MiB and navigation
+context at 64 KiB; native decoder allocation limits still apply. Storage or
+validation failure preserves the last completed checkpoint and never silently
+shortens history to make it fit. Version 2 checkpoints include alternate branches
+and stable navigation identities; version 1 checkpoints remain readable and get
+linear identities on restoration. Older builds reject version 2 rather than
+silently dropping branches. Roots with live recovered-history leases defer
+object collection until those leases expire. Crash-leftover object cleanup and
+finer per-object pinning remain follow-ups.
 
 ## Validation
 

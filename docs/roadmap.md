@@ -36,9 +36,21 @@ PDF import and animation remain open; see [format catalog and limits](export-for
 
 ## Honest parity assessment (2026-10-05)
 
+2026-10-10 collaboration overlap validation: four native artists completed 256
+full-canvas paint/erase gestures with individual undo/redo and identical decoded
+pixels. Host control roundtrip p99 was 57.22 ms; the same headless WebRTC workload
+ran 3.23 times faster against the exact PR base. This is local-machine automation evidence, not a physical
+input-latency or WAN guarantee. See [collaboration-performance.md](collaboration-performance.md).
+
 2026-10-10 themes integration: the regenerated preference audit measures 56 unused
-settings out of 141; runtime theme selection is connected to Preferences and the
+settings out of 143; runtime theme selection is connected to Preferences and the
 Theme Manager. Historical visual fidelity remains an ongoing acceptance task.
+
+2026-10-10 history update: a narrow vertical scrubber now uses action labels and
+background state previews. Direct navigation restores only the destination;
+unlimited disk-backed retention preserves the original and alternate branches.
+A synthetic 24 MP release restore measured 1090 ms sequential versus 107 ms
+direct, excluding canvas presentation (see [undo-cache.md](undo-cache.md)).
 
 2026-10-06 infrastructure update: undo now has demand-grown compressed scratch
 storage with shared 4 GiB managed-RAM / 8 GiB disk defaults. Exact restoration,

@@ -400,6 +400,8 @@ pub struct Performance {
     pub memory_usage_mb: u32,
     /// Undo steps kept per document (History panel states).
     pub history_states: u32,
+    /// Native history is retained by storage capacity rather than a step count.
+    pub unlimited_history: bool,
     /// Display cache levels (mip levels kept for zoomed-out views).
     pub cache_levels: u32,
     /// Side of the GPU canvas texture tiles, in pixels (applies at next launch).
@@ -432,6 +434,7 @@ impl Default for Performance {
         Self {
             memory_usage_mb: 4096,
             history_states: 50,
+            unlimited_history: true,
             cache_levels: 4,
             cache_tile_size: 8192,
             use_gpu: true,
@@ -456,13 +459,15 @@ pub struct ScratchDisks {
     /// Maximum compressed history bytes on scratch disks, in MiB (0 disables disk spill).
     /// The cache grows on demand; no space is reserved upfront.
     pub budget_mb: u32,
+    /// Grow scratch files on demand until the filesystem refuses a write.
+    pub use_available_space: bool,
     /// Disks for spilling tiles once the memory budget is reached (in priority order).
     pub disks: Vec<ScratchDisk>,
 }
 
 impl Default for ScratchDisks {
     fn default() -> Self {
-        Self { budget_mb: 8192, disks: vec![ScratchDisk { path: "(system temp)".into(), enabled: true }] }
+        Self { budget_mb: 8192, use_available_space: true, disks: vec![ScratchDisk { path: "(system temp)".into(), enabled: true }] }
     }
 }
 
@@ -1084,6 +1089,13 @@ impl Preferences {
         let candidate: Self = serde_json::from_value(root).map_err(|e| format!("invalid value for `{path}`: {e}"))?;
         crate::hdr_cmds::validate_swatches(&candidate.hdr_swatches)?;
         *self = candidate;
+        // Explicit numeric limits remain compatible with older automation clients.
+        if path == "performance.historyStates" {
+            self.performance.unlimited_history = false;
+        }
+        if path == "scratchDisks.budgetMb" {
+            self.scratch_disks.use_available_space = false;
+        }
         Ok(())
     }
 
@@ -1253,10 +1265,11 @@ impl Session {
     /// Push engine-relevant preferences into live state: every document's history limit and
     /// the layer-effect cache budget.
     pub fn apply_prefs(&mut self) {
-        let n = self.prefs().performance.history_states.max(1) as usize;
+        let n = if self.prefs().performance.unlimited_history { 0 } else { self.prefs().performance.history_states.max(1) as usize };
         let budget = self.prefs().performance.effect_cache_mb as usize;
         for st in &mut self.docs {
             st.history.max_states = n;
+            st.history.max_bytes = 0;
             st.history.enforce_state_limit();
         }
         self.configure_history_cache();

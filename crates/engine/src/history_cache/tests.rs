@@ -18,6 +18,8 @@ fn small_cache(disk_mb: u32) -> Session {
     let mut s = Session::new();
     s.prefs.edit(|p| {
         p.performance.memory_usage_mb = 1;
+        p.performance.unlimited_history = false;
+        p.scratch_disks.use_available_space = false;
         p.scratch_disks.budget_mb = disk_mb;
     });
     s
@@ -280,4 +282,40 @@ fn a_large_stroke_remains_one_exact_step_between_compact_moves() {
         assert!(s.try_redo().unwrap());
         assert_eq!(s.active().unwrap().doc.as_ref(), painted.as_ref());
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn unlimited_storage_failure_retains_original_and_refuses_the_next_edit_atomically() {
+    let sentinel = std::env::temp_dir().join(format!("photocraft-unlimited-blocked-{}", photocraft_doc::DocId::fresh().0));
+    std::fs::write(&sentinel, b"not a directory").unwrap();
+    let mut s = Session::new();
+    s.edit_prefs(|p| {
+        p.performance.memory_usage_mb = 1;
+        p.scratch_disks.disks = vec![crate::prefs::ScratchDisk { path: sentinel.to_string_lossy().into_owned(), enabled: true }];
+    });
+    s.add_document(document("original", SampleType::U8), None);
+    replace_pixels(&mut s, "one", SampleType::U8);
+    drain(&mut s);
+    replace_pixels(&mut s, "two", SampleType::U8);
+    drain(&mut s);
+    assert!(s.history_storage_error().is_some());
+    let before = s.active().unwrap().doc.clone();
+    let cursor = s.active().unwrap().history.timeline_stamp();
+    let mut invoked = false;
+    assert!(
+        s.edit("three", |doc, _| {
+            invoked = true;
+            doc.name = "three".into();
+            Ok(())
+        })
+        .is_err()
+    );
+    assert!(!invoked);
+    assert!(Arc::ptr_eq(&before, &s.active().unwrap().doc));
+    assert_eq!(cursor, s.active().unwrap().history.timeline_stamp());
+    s.execute("history.jump", serde_json::json!({"state":0})).unwrap();
+    assert_eq!(s.active().unwrap().doc.name, "original");
+    assert_eq!(s.active().unwrap().history.timeline().len(), 3);
+    std::fs::remove_file(sentinel).unwrap();
 }

@@ -2478,3 +2478,17 @@ cameraRaw	Roughness	Неровность
 	Scroll up	Прокрутить вверх
 	Scroll down	Прокрутить вниз
 	Caption font	Шрифт заголовка
+
+	Return to Original	Вернуться к оригиналу
+
+	Branch	Ветка
+
+	Retry storage	Повторить сохранение
+
+	Unlimited history	Неограниченная история
+
+	Use available disk space	Использовать свободное место на диске
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Место для отмены растёт по необходимости. Неограниченная история хранится до заполнения диска. Пути применяются со следующего сеанса кэша.
+
+	Change opacity	Изменить непрозрачность

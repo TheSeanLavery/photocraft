@@ -4354,3 +4354,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = 主题定义超过 64 KiB
 ui-theme-id-2057ac72399d5a4d = 主题 ID
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE 主题
+
+ui-return-to-original-49ddd457800418b3 = 返回原始状态
+
+ui-branch-7a07940a2b62f185 = 分支
+
+ui-retry-storage-2e07dc65352aa868 = 重试存储
+
+ui-unlimited-history-d3654847d93db9b8 = 无限历史记录
+
+ui-use-available-disk-space-44211d74d7260f1a = 使用可用磁盘空间
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = 撤销存储空间按需增长。无限历史记录保留状态，直到存储空间已满。暂存路径适用于下次缓存会话。
+
+ui-change-opacity-c419e848020b25f4 = 更改不透明度

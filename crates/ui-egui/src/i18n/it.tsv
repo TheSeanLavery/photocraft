@@ -2273,3 +2273,19 @@ cameraRaw	Amount	Quantità
 
 	Duplicate	Duplica
 	Import…	Importa…
+
+	Return to Original	Torna all’originale
+
+	Current	Attuale
+
+	Branch	Ramo
+
+	Retry storage	Riprova archiviazione
+
+	Unlimited history	Cronologia illimitata
+
+	Use available disk space	Usa spazio disponibile su disco
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Lo spazio per annullare cresce secondo necessità. La cronologia illimitata conserva gli stati fino a esaurire lo spazio. I percorsi valgono per la prossima sessione cache.
+
+	Change opacity	Cambia opacità

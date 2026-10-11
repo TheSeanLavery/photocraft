@@ -6,9 +6,28 @@ use photocraft_engine::collab::{Collaboration, NetworkIntent};
 use photocraft_ui_egui::PhotocraftApp;
 use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
+const FRAME_WORK_BUDGET: Duration = Duration::from_millis(4);
 const MAX_PENDING: usize = 16_384;
 const MAX_OUTGOING_JOBS: usize = 4096;
 const MAX_OUTGOING_BYTES: usize = wire::MAX_TRANSFER;
+/// Remove only the accepted FIFO prefix, including when a later send hits backpressure.
+fn enqueue_prefix<T>(queue: &mut Vec<T>, budget: Duration, mut send: impl FnMut(&T) -> Result<(), String>) -> (usize, Result<(), String>) {
+    let started = Instant::now();
+    let mut accepted = 0;
+    let result = (|| {
+        for item in queue.iter().take(256) {
+            if accepted > 0 && started.elapsed() >= budget {
+                break;
+            }
+            send(item)?;
+            accepted += 1;
+        }
+        Ok(())
+    })();
+    drop(queue.drain(..accepted));
+    (accepted, result)
+}
 struct Outgoing {
     peer: Option<String>,
     id: u64,
@@ -36,6 +55,9 @@ struct Bridge {
     transfer_id: u64,
     voice: Option<crate::collaboration_voice::Voice>,
     voice_failed: bool,
+    processed_incoming: usize,
+    queued_outgoing: usize,
+    worst_tick_ms: f64,
 }
 
 pub fn attach(mut app: PhotocraftApp) -> PhotocraftApp {
@@ -53,6 +75,9 @@ pub fn attach(mut app: PhotocraftApp) -> PhotocraftApp {
                 transfer_id: 0,
                 voice: None,
                 voice_failed: false,
+                processed_incoming: 0,
+                queued_outgoing: 0,
+                worst_tick_ms: 0.0,
             };
             app = app.with_collaboration_frame_hook(Box::new(move |app| {
                 if let Err(error) = bridge.tick(app) {
@@ -175,6 +200,26 @@ impl Bridge {
         }
     }
     fn tick(&mut self, app: &mut PhotocraftApp) -> Result<(), String> {
+        let started = Instant::now();
+        self.processed_incoming = 0;
+        self.queued_outgoing = 0;
+        let result = self.tick_inner(app);
+        let tick_ms = started.elapsed().as_secs_f64() * 1000.0;
+        self.worst_tick_ms = self.worst_tick_ms.max(tick_ms);
+        app.ui.collaboration.transport_metrics = serde_json::json!({
+            "incomingEventsQueued": self.worker.events.len(),
+            "canonicalOpsQueued": app.session.collaboration.canonical_outbox.len(),
+            "clientOpsQueued": app.session.collaboration.outbox.len(),
+            "outgoingJobs": self.outgoing.values().map(VecDeque::len).sum::<usize>(),
+            "bufferedRequests": self.pending.len(),
+            "processedIncoming": self.processed_incoming,
+            "queuedOutgoing": self.queued_outgoing,
+            "tickMs": tick_ms,
+            "worstTickMs": self.worst_tick_ms,
+        });
+        result
+    }
+    fn tick_inner(&mut self, app: &mut PhotocraftApp) -> Result<(), String> {
         for intent in std::mem::take(&mut app.session.collaboration.network_intents) {
             self.connected.clear();
             self.pending_bootstraps.clear();
@@ -207,10 +252,17 @@ impl Bridge {
             self.worker.requests.try_send(request).map_err(|e| e.to_string())?;
         }
         self.flush_pending()?;
-        for _ in 0..256 {
+        let receiving_started = Instant::now();
+        for count in 0..256 {
+            // Always admit one item; a single engine edit/checkpoint cannot be preempted.
+            // Leave the remaining FIFO untouched for the next room repaint.
+            if count > 0 && receiving_started.elapsed() >= FRAME_WORK_BUDGET {
+                break;
+            }
             let Ok(event) = self.worker.events.try_recv() else {
                 break;
             };
+            self.processed_incoming += 1;
             match event {
                 Event::Joined { admission } => {
                     app.session.collaboration = Collaboration::default();
@@ -294,22 +346,22 @@ impl Bridge {
             }
         }
         // Do not drain the operation queue until there is a negotiated host channel.
-        if self.host() {
-            for _ in 0..256 {
-                let Some(event) = app.session.collaboration.canonical_outbox.first().cloned() else {
-                    break;
-                };
-                self.broadcast(None, ChannelKind::Edits, &Wire::Host(event))?;
-                app.session.collaboration.canonical_outbox.remove(0);
-            }
+        let (accepted, send_result) = if self.host() {
+            enqueue_prefix(&mut app.session.collaboration.canonical_outbox, FRAME_WORK_BUDGET, |event| {
+                self.broadcast(None, ChannelKind::Edits, &Wire::Host(event.clone()))
+            })
         } else if self.admission.as_ref().is_some_and(|a| self.connected.contains(&a.host)) {
-            for _ in 0..256 {
-                let Some(message) = app.session.collaboration.outbox.first().cloned() else {
-                    break;
-                };
-                self.send(None, ChannelKind::Edits, &Wire::Client(message))?;
-                app.session.collaboration.outbox.remove(0);
-            }
+            enqueue_prefix(&mut app.session.collaboration.outbox, FRAME_WORK_BUDGET, |message| {
+                self.send(None, ChannelKind::Edits, &Wire::Client(message.clone()))
+            })
+        } else {
+            (0, Ok(()))
+        };
+        self.queued_outgoing = accepted;
+        match send_result {
+            // Edit backpressure must not skip cursor/voice work. The unsent FIFO tail remains.
+            Err(error) if error.starts_with("Collaboration send queue full") => {}
+            result => result?,
         }
         if let Some(presence) = app.session.collaboration.queued_presence.take()
             && let Some(admission) = self.admission.as_ref()
@@ -495,7 +547,40 @@ mod tests {
             transfer_id: 0,
             voice: None,
             voice_failed: false,
+            processed_incoming: 0,
+            queued_outgoing: 0,
+            worst_tick_ms: 0.0,
         }
+    }
+    #[test]
+    fn accepted_prefix_survives_backpressure_without_echo_or_loss() {
+        let mut queue = vec![1, 2, 3];
+        let mut sent = Vec::new();
+        let (accepted, result) = enqueue_prefix(&mut queue, Duration::from_secs(1), |item| {
+            if *item == 2 {
+                return Err("full".into());
+            }
+            sent.push(*item);
+            Ok(())
+        });
+        assert_eq!(accepted, 1);
+        assert!(result.is_err());
+        assert_eq!(queue, vec![2, 3]);
+        let (_, result) = enqueue_prefix(&mut queue, Duration::from_secs(1), |item| {
+            sent.push(*item);
+            Ok(())
+        });
+        assert!(result.is_ok());
+        assert!(queue.is_empty());
+        assert_eq!(sent, vec![1, 2, 3]);
+    }
+    #[test]
+    fn exhausted_frame_budget_still_makes_one_fifo_step() {
+        let mut queue = vec![1, 2, 3];
+        let (accepted, result) = enqueue_prefix(&mut queue, Duration::ZERO, |_| Ok(()));
+        assert!(result.is_ok());
+        assert_eq!(accepted, 1);
+        assert_eq!(queue, vec![2, 3]);
     }
     #[test]
     fn reliable_fanout_shares_bytes_and_preserves_per_peer_order() {

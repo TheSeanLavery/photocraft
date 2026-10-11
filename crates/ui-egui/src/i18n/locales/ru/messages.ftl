@@ -4696,3 +4696,17 @@ ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Определение т�
 ui-theme-id-2057ac72399d5a4d = ID темы
 
 ui-windows-98-se-theme-9ff7794c19a7307e = Тема Windows 98 SE
+
+ui-return-to-original-49ddd457800418b3 = Вернуться к оригиналу
+
+ui-branch-7a07940a2b62f185 = Ветка
+
+ui-retry-storage-2e07dc65352aa868 = Повторить сохранение
+
+ui-unlimited-history-d3654847d93db9b8 = Неограниченная история
+
+ui-use-available-disk-space-44211d74d7260f1a = Использовать свободное место на диске
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Место для отмены растёт по необходимости. Неограниченная история хранится до заполнения диска. Пути применяются со следующего сеанса кэша.
+
+ui-change-opacity-c419e848020b25f4 = Изменить непрозрачность

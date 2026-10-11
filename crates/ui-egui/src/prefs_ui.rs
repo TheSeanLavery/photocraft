@@ -184,6 +184,8 @@ pub fn load(app: &mut PhotocraftApp) {
             if let Some(view) = context.view.filter(|v| v.zoom.is_finite() && v.zoom > 0.0 && v.zoom <= 64.0 && v.center.iter().all(|n| n.is_finite())) {
                 restored_views.push((index, view));
             }
+            let performance = &app.session.prefs().performance;
+            let state_limit = if performance.unlimited_history { 0 } else { performance.history_states.max(1) as usize };
             if let Some(st) = app.session.active_mut() {
                 st.saved_revision = 0;
                 st.coalesce = None;
@@ -197,6 +199,9 @@ pub fn load(app: &mut PhotocraftApp) {
                 st.layer_anchor = context.layer_anchor.filter(|id| st.doc.layer(*id).is_some()).or(st.active_layer);
                 if let Some(mut history) = history {
                     history.remap_document_id(st.doc.id);
+                    // Restore every state first; current retention policy governs future edits.
+                    history.max_states = state_limit;
+                    history.max_bytes = 0;
                     st.history = history;
                 }
                 app.prefs_rt.recovery_keys.insert(st.doc.id, recovered.key);
@@ -940,6 +945,9 @@ pub fn body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Valu
 }
 
 fn humanize(key: &str) -> String {
+    if key == "useAvailableSpace" {
+        return "Use available disk space".into();
+    }
     // These controls appear only for WebP, so reuse the existing translated labels.
     if key == "webpLossless" {
         return "Lossless".into();
@@ -1152,7 +1160,9 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
     }
     if section == "scratchDisks" {
         #[cfg(not(target_arch = "wasm32"))]
-        ui.label(tl!("Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session."));
+        ui.label(tl!(
+            "Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session."
+        ));
         #[cfg(target_arch = "wasm32")]
         ui.label(tl!("This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app."));
     }
@@ -1163,7 +1173,9 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
             let path = format!("{section}.{k}");
             // Settings nothing reads yet stay out of the dialog (issue #204); their stored values
             // pass through untouched.
-            if path == "interface.themeId"
+            if (path == "performance.historyStates" && obj.get("unlimitedHistory").and_then(Value::as_bool) == Some(true))
+                || (path == "scratchDisks.budgetMb" && obj.get("useAvailableSpace").and_then(Value::as_bool) == Some(true))
+                || path == "interface.themeId"
                 || prefs::is_hidden(&path)
                 || (path == "tools.useTrackpadPressure" && !cfg!(target_os = "macos"))
                 || (section == "performance" && matches!(k.as_str(), "useGpu" | "gpuBackend" | "renderingMode"))
@@ -1175,6 +1187,8 @@ fn section_fields(ui: &mut egui::Ui, section: &str, obj: &mut Map<String, Value>
             let human = match path.as_str() {
                 "performance.memoryUsageMb" => "Memory budget (MiB)".to_string(),
                 "scratchDisks.budgetMb" => "Undo disk budget (MiB)".to_string(),
+                "performance.unlimitedHistory" => "Unlimited history".to_string(),
+                "scratchDisks.useAvailableSpace" => "Use available disk space".to_string(),
                 _ => humanize(&k),
             };
             let label = tl!(&human).to_string();
@@ -2451,5 +2465,41 @@ mod tests {
         assert_eq!(app.ui.dialogs.iter().find(|x| x.id == d).unwrap().fields["width"], 8);
         let d = crate::menus::invoke(&mut app, &ctx, "edit.presets.presetManager", json!({})).unwrap()["dialog"].as_u64().unwrap();
         assert!(crate::dialogs::confirm(&mut app, d).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod unlimited_recovery_tests {
+    use super::*;
+    #[test]
+    fn recovered_legacy_limits_do_not_override_unlimited_session_retention() {
+        let mut source = photocraft_engine::Session::new();
+        source.execute("file.new", json!({"width":8,"height":8})).unwrap();
+        source.execute("edit.fill", json!({"color":"#FF0000"})).unwrap();
+        let active = source.active().unwrap();
+        let mut checkpoint = active.history.checkpoint();
+        checkpoint.max_states = 1;
+        checkpoint.max_bytes = 1;
+        let record =
+            crate::RecoveredDocument { key: "legacy".into(), path: None, document: (*active.doc).clone(), history: Some(checkpoint), context: json!({}) };
+        let mut record = Some(record);
+        let services = crate::Services {
+            recover: Some(Box::new(move || crate::RecoveryBatch { documents: record.take().into_iter().collect(), errors: Vec::new() })),
+            ..Default::default()
+        };
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), services);
+        assert_eq!(app.session.active().unwrap().history.max_states, 0);
+        assert_eq!(app.session.active().unwrap().history.max_bytes, 0);
+        for name in ["Erase", "Move", "Opacity"] {
+            app.session
+                .edit(name, |doc, _| {
+                    doc.name = name.into();
+                    Ok(())
+                })
+                .unwrap();
+        }
+        let original = app.session.active().unwrap().history.state_by_id(app.session.active().unwrap().doc.clone(), 0).unwrap();
+        assert_eq!(original.identity.parent, None);
+        assert_eq!(app.session.active().unwrap().history.timeline().len(), 5);
     }
 }

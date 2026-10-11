@@ -2634,3 +2634,17 @@ cameraRaw	Whites	Brancos
 	Theme Manager	Gerenciador de temas
 	Theme definition exceeds 64 KiB	A definição do tema excede 64 KiB
 	Theme id	ID do tema
+
+	Return to Original	Voltar ao original
+
+	Branch	Ramo
+
+	Retry storage	Tentar armazenamento novamente
+
+	Unlimited history	Histórico ilimitado
+
+	Use available disk space	Usar espaço disponível em disco
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	O espaço para desfazer cresce conforme necessário. O histórico ilimitado mantém estados até o armazenamento ficar cheio. Os caminhos valem para a próxima sessão de cache.
+
+	Change opacity	Alterar opacidade

@@ -2190,3 +2190,19 @@ cameraRaw	Color	カラー
 	Scroll up	上にスクロール
 	Scroll down	下にスクロール
 	Caption font	タイトルのフォント
+
+	Return to Original	元の状態に戻る
+
+	Current	現在
+
+	Branch	分岐
+
+	Retry storage	保存を再試行
+
+	Unlimited history	履歴を無制限に保持
+
+	Use available disk space	空きディスク容量を使用
+
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	取り消し用ディスク容量は必要に応じて増加します。無制限の履歴は容量がいっぱいになるまで保持されます。パスは次のキャッシュセッションに適用されます。
+
+	Change opacity	不透明度を変更
