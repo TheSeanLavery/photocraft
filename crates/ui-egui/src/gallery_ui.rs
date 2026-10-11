@@ -74,9 +74,11 @@ pub struct GalleryDialog {
     pub zoom: f32,
     center: [f32; 2],
     tex: Option<TextureHandle>,
+    float_preview: Option<photocraft_compose::Buffer>,
     shown: Option<(u64, ERect)>,
     thumb_src: Surface,
     thumbs: Vec<Option<TextureHandle>>,
+    float_thumbs: Vec<Option<photocraft_compose::Buffer>>,
     pub preview_ms: f64,
 }
 
@@ -161,6 +163,16 @@ fn render(src: &Surface, params: &Value) -> Surface {
     photocraft_algo::apply_in(src, &FilterParams::FilterGallery { effects }, b, b, None, b)
 }
 
+fn float_buffer(surf: &Surface, w: usize, h: usize) -> Option<photocraft_compose::Buffer> {
+    if surf.format().sample != photocraft_color::SampleType::F32 {
+        return None;
+    }
+    let rect = Rect::from_xywh(0, 0, w as u32, h as u32);
+    let mut px = vec![[0.0; 4]; w * h];
+    surf.read_rgba_into(rect, &mut px);
+    Some(photocraft_compose::Buffer { rect, px })
+}
+
 fn image(surf: &Surface, w: usize, h: usize) -> egui::ColorImage {
     let mut px = vec![[0u8; 4]; w * h];
     for y in 0..h {
@@ -217,9 +229,11 @@ pub fn open(app: &mut PhotocraftApp) -> Result<(), String> {
         zoom: 0.0,
         center: [(canvas.x0 + canvas.x1) as f32 / 2.0, (canvas.y0 + canvas.y1) as f32 / 2.0],
         tex: None,
+        float_preview: None,
         shown: None,
         thumb_src,
         thumbs: vec![None; GalleryFilter::ALL.len()],
+        float_thumbs: vec![None; GalleryFilter::ALL.len()],
         preview_ms: 0.0,
     });
     Ok(())
@@ -315,6 +329,7 @@ fn update_preview(d: &mut GalleryDialog, ctx: &egui::Context, area: ERect) {
     let small = sample(&d.src, vis, k);
     let out = render(&small, &params);
     let (w, hgt) = (vis.width().div_ceil(k) as usize, vis.height().div_ceil(k) as usize);
+    d.float_preview = float_buffer(&out, w, hgt);
     let img = image(&out, w, hgt);
     match &mut d.tex {
         Some(t) => t.set(img, egui::TextureOptions::LINEAR),
@@ -338,6 +353,7 @@ fn update_thumbs(d: &mut GalleryDialog, ctx: &egui::Context, budget: usize) {
         let p = json!({"effects": [{"filter": f.key()}], "foreground": d.foreground, "background": d.background});
         let out = render(&d.thumb_src, &p);
         let b = d.thumb_src.content_bounds();
+        d.float_thumbs[i] = float_buffer(&out, b.x1.max(1) as usize, b.y1.max(1) as usize);
         let img = image(&out, b.x1.max(1) as usize, b.y1.max(1) as usize);
         d.thumbs[i] = Some(ctx.load_texture(format!("gallery-thumb-{}", f.key()), img, egui::TextureOptions::LINEAR));
         done += 1;
@@ -348,6 +364,7 @@ fn update_thumbs(d: &mut GalleryDialog, ctx: &egui::Context, budget: usize) {
 pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
     let t = Tokens::get(ctx);
     let screen = ctx.content_rect();
+    let hdr = crate::hdr_ui::PreviewDisplay { session: &app.session, gpu: app.gpu.as_ref(), sdr: app.ui.sdr_output };
     let mut action: Option<&str> = None;
     egui::Area::new(egui::Id::new("gallery-dialog")).order(egui::Order::Foreground).fixed_pos(screen.min).show(ctx, |ui| {
         let Some(d) = app.distort.gallery.as_mut() else { return };
@@ -372,7 +389,13 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
         let clip = painter.with_clip_rect(area);
         if let (Some(tex), Some((_, r))) = (&d.tex, d.shown) {
             widgets::checker(&clip, r.intersect(area), 8.0);
-            clip.image(tex.id(), r, ERect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+            let painted = d
+                .float_preview
+                .as_ref()
+                .is_some_and(|b| hdr.paint(&clip, r, &b.px, [b.rect.width() as usize, b.rect.height() as usize], d.shown.map_or(0, |s| s.0), "hdr-gallery"));
+            if !painted {
+                clip.image(tex.id(), r, ERect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+            }
             clip.rect_stroke(r, 0.0, Stroke::new(1.0, t.separator), egui::StrokeKind::Outside);
         }
         let resp = ui.interact(area, egui::Id::new("gallery-preview"), Sense::drag());
@@ -425,7 +448,18 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                             let (r, resp) = ui.allocate_exact_size(vec2(THUMB[0] as f32, THUMB[1] as f32), Sense::click());
                             match &d.thumbs[*i] {
                                 Some(tex) => {
-                                    ui.painter().image(tex.id(), r, ERect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+                                    if !d.float_thumbs.get(*i).and_then(Option::as_ref).is_some_and(|b| {
+                                        hdr.paint(
+                                            ui.painter(),
+                                            r,
+                                            &b.px,
+                                            [b.rect.width() as usize, b.rect.height() as usize],
+                                            egui::Id::new(f.key()).value(),
+                                            &format!("hdr-gallery-thumb-{}", f.key()),
+                                        )
+                                    }) {
+                                        ui.painter().image(tex.id(), r, ERect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
+                                    }
                                 }
                                 None => {
                                     ui.painter().rect_filled(r, 2.0, t.field);

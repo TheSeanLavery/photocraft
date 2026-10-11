@@ -132,6 +132,8 @@ pub struct LiquifyDialog {
     lasso: Option<(bool, Vec<[f64; 2]>)>,
     proxy: ProxyImage,
     out: Vec<[u8; 4]>,
+    float_out: Option<Vec<[f32; 4]>>,
+    float_revision: u64,
     tex: Option<TextureHandle>,
     /// Proxy pixels to re-render and upload (x0, y0, x1, y1).
     dirty: Option<[usize; 4]>,
@@ -299,6 +301,10 @@ impl LiquifyDialog {
     fn render_dirty(&mut self) {
         if let Some(r) = self.dirty {
             self.proxy.render(&self.field, r, &mut self.out);
+            if let Some(out) = &mut self.float_out {
+                let _ = self.proxy.render_f32(&self.field, r, out);
+                self.float_revision = self.float_revision.wrapping_add(1);
+            }
         }
     }
 
@@ -307,6 +313,10 @@ impl LiquifyDialog {
         match (&mut self.tex, self.dirty.take()) {
             (None, _) => {
                 self.proxy.render(&self.field, [0, 0, w, h], &mut self.out);
+                if let Some(out) = &mut self.float_out {
+                    let _ = self.proxy.render_f32(&self.field, [0, 0, w, h], out);
+                    self.float_revision = self.float_revision.wrapping_add(1);
+                }
                 let img = egui::ColorImage::new([w, h], self.out.iter().map(|p| Color32::from_rgba_premultiplied(p[0], p[1], p[2], p[3])).collect());
                 self.tex = Some(ctx.load_texture("liquify-proxy", img, egui::TextureOptions::LINEAR));
             }
@@ -346,6 +356,7 @@ pub fn open(app: &mut PhotocraftApp, ctx: &egui::Context) -> Result<(), String> 
     let cell = auto_cell(canvas);
     let proxy = ProxyImage::new(&surf, canvas, PROXY_SIDE);
     let out = vec![[0u8; 4]; proxy.w * proxy.h];
+    let float_out = (surf.format().sample == photocraft_color::SampleType::F32).then(|| vec![[0.0; 4]; proxy.w * proxy.h]);
     let center = [f64::from(canvas.x0 + canvas.x1) / 2.0, f64::from(canvas.y0 + canvas.y1) / 2.0];
     let mut d = LiquifyDialog {
         layer,
@@ -359,6 +370,8 @@ pub fn open(app: &mut PhotocraftApp, ctx: &egui::Context) -> Result<(), String> 
         lasso: None,
         proxy,
         out,
+        float_out,
+        float_revision: 0,
         tex: None,
         dirty: None,
         backdrop: None,
@@ -577,6 +590,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
             d.backdrop = tex;
         }
     }
+    let hdr = crate::hdr_ui::PreviewDisplay { session: &app.session, gpu: app.gpu.as_ref(), sdr: app.ui.sdr_output };
     let mut action: Option<&str> = None;
     let mut events: Vec<ToolEvent> = Vec::new();
     let mut mods = egui::Modifiers::NONE;
@@ -722,7 +736,9 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
         // The proxy covers whole proxy pixels, a little past the canvas edge.
         let pr =
             ERect::from_min_max(img.min, img.min + vec2(d.proxy.w as f32 * d.proxy.scale as f32 * d.zoom, d.proxy.h as f32 * d.proxy.scale as f32 * d.zoom));
-        if let Some(tex) = &d.tex {
+        if let Some(tex) = &d.tex
+            && !d.float_out.as_ref().is_some_and(|p| hdr.paint(&clip, pr, p, [d.proxy.w, d.proxy.h], d.float_revision ^ d.layer.0, "hdr-liquify"))
+        {
             clip.image(tex.id(), pr, uv, Color32::WHITE);
         }
         if d.opts.show_mask
@@ -883,6 +899,23 @@ mod tests {
             .unwrap();
         app.sync_views();
         app
+    }
+
+    #[test]
+    fn hdr_dialog_has_pixels_before_the_first_stroke() {
+        let ctx = egui::Context::default();
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.session.execute("file.new", json!({"width":8,"height":8,"depth":32})).unwrap();
+        app.session
+            .edit("HDR fill", |doc, active| {
+                doc.layer_mut(active.unwrap()).unwrap().surface_mut().unwrap().fill_rect(Rect::new(0, 0, 8, 8), &[2.0, 4.0, 8.0, 0.5]);
+                Ok(())
+            })
+            .unwrap();
+        open(&mut app, &ctx).unwrap();
+        let dialog = app.distort.liquify.as_ref().unwrap();
+        assert!(dialog.float_out.as_ref().unwrap().iter().all(|p| *p == [2.0, 4.0, 8.0, 0.5]));
+        assert!(dialog.float_revision > 0);
     }
 
     /// #418: the brush settings survive Cancel, OK and Esc, and come back the next time Liquify

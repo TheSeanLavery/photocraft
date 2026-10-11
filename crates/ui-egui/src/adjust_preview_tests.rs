@@ -333,3 +333,44 @@ fn proxy_preview_has_its_own_ids() {
     }
     assert!(proxy_with_settings(&proxy, "levels", &json!({"gamma": "x"})).is_err());
 }
+
+#[test]
+fn hdr_previews_match_apply_for_every_adjustment_and_proxy_filter() {
+    let mut doc = Document::new("HDR ramp", Size::new(40, 32), ColorMode::Rgb, SampleType::F32);
+    let mut layer = Layer::raster("HDR target", doc.pixel_format());
+    for (i, v) in [0.125, 0.5, 1.0, 2.0, 8.0].into_iter().enumerate() {
+        layer.surface_mut().unwrap().fill_rect(Rect::from_xywh(i as i32 * 8, 0, 8, 32), &[v, v * 0.5, v * 0.25, 0.75]);
+    }
+    let target = layer.id;
+    doc.layers.push(layer);
+    for selected in [false, true] {
+        doc.selection = selected.then(|| {
+            let mut sel = photocraft_raster::Surface::new(PixelFormat::new(ColorMode::Grayscale, SampleType::F32, false));
+            sel.fill_rect(Rect::new(10, 0, 30, 32), &[0.5]);
+            sel
+        });
+        for kind in KINDS {
+            for params in [json!({}), sample(kind)] {
+                let shown = preview_document(&doc, target, kind, &params).unwrap();
+                let applied = destructive(&doc, target, kind, &params).unwrap();
+                assert!(max_diff(&shown, &applied) < 0.0041, "{kind} {params} selection={selected}");
+                assert!(photocraft_compose::flatten(&shown).px.iter().flatten().all(|v| v.is_finite()), "{kind}: nonfinite HDR preview");
+                // Neutral Levels must not turn all the HDR steps into the same white.
+                if kind == "levels" && params == json!({}) {
+                    assert!(max_diff(&shown, &doc) < 1e-5);
+                }
+            }
+        }
+        for cmd in ["filter.blur.gaussianBlur", "filter.blur.boxBlur", "filter.sharpen.unsharpMask"] {
+            let params = if cmd.ends_with("unsharpMask") { json!({"radius":2.0,"amount":50.0,"threshold":0}) } else { json!({"radius":2.0}) };
+            let mut session = photocraft_engine::Session::new();
+            session.add_document(doc.clone(), None);
+            session.select_layer(target).unwrap();
+            session.execute(cmd, params.clone()).unwrap();
+            let applied = &session.active().unwrap().doc;
+            let shown = crate::filter_dialog::preview_document(&doc, Some(target), cmd, &params, 1).unwrap();
+            assert!(max_diff(&shown, applied) < 1e-5, "{cmd}");
+            assert!(photocraft_compose::flatten(&shown).px.iter().any(|p| p[0] > 1.0), "{cmd}: clipped HDR radiance");
+        }
+    }
+}

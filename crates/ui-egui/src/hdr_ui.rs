@@ -209,9 +209,153 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
     app.ui.hdr_workbench_open = open;
 }
 
+/// Shared display for float filter-dialog images. Pixel upload is cached by revision;
+/// exposure, ICC handling and tone mapping match the canvas, including its CPU fallback.
+pub(crate) struct PreviewDisplay<'a> {
+    pub session: &'a photocraft_engine::Session,
+    pub gpu: Option<&'a crate::gpu_canvas::GpuCanvas>,
+    pub sdr: bool,
+}
+pub(crate) const FILTER_PREVIEW_KEYS: [&str; 5] = ["hdr-camera-before", "hdr-camera-after", "hdr-camera-detail", "hdr-gallery", "hdr-liquify"];
+impl PreviewDisplay<'_> {
+    pub fn paint(&self, painter: &egui::Painter, rect: Rect, pixels: &[[f32; 4]], size: [usize; 2], stamp: u64, name: &str) -> bool {
+        let Some(st) = self.session.active().filter(|s| s.doc.depth == photocraft_color::SampleType::F32) else { return false };
+        let [w, h] = size;
+        if w == 0 || h == 0 || w.checked_mul(h) != Some(pixels.len()) {
+            return false;
+        }
+        let Ok(w32) = u32::try_from(w) else { return false };
+        let Ok(h32) = u32::try_from(h) else { return false };
+        let Ok(display) = self.session.color.canvas_display(&st.doc) else { return false };
+        let key = egui::Id::new(name).value();
+        let signature = egui::Id::new((st.doc.id.0, st.revision, stamp, size, self.session.color.display_signature(&st.doc))).value();
+        let settings = (!self.session.color.proof(st.doc.id).enabled).then(|| photocraft_engine::hdr_cmds::settings(self.session, &st.doc));
+        let legacy = self.session.color.hdr_preview(&st.doc);
+        let buffer = || photocraft_compose::Buffer { rect: photocraft_geom::Rect::from_xywh(0, 0, w32, h32), px: pixels.to_vec() };
+        if let Some(g) = self.gpu.filter(|g| g.format_for(st.doc.depth, [w32, h32]) == eframe::wgpu::TextureFormat::Rgba16Float) {
+            let mode = if let Some((_, mode)) = g.display_lut_signature(key, 0).filter(|(s, _)| *s == signature && g.has(key, [w32, h32])) {
+                mode
+            } else {
+                g.upload_buffer_full(key, &display.texture_buffer(&buffer()), st.doc.depth);
+                let mode = match self.session.color.gpu_canvas_lut(&st.doc, 33) {
+                    Ok(Some(lut)) => {
+                        g.set_display_lut(key, 0, 33, Some(&lut));
+                        if self.session.color.proof(st.doc.id).gamut_warning { 2 } else { 1 }
+                    }
+                    _ => {
+                        g.set_display_lut(key, 0, 33, None);
+                        0
+                    }
+                };
+                g.cache_display_lut_signature(key, 0, signature, mode);
+                mode
+            };
+            crate::gpu_canvas::GpuCanvas::paint(
+                painter,
+                rect,
+                crate::gpu_canvas::ViewParams {
+                    doc: key,
+                    output: 0,
+                    doc_size: [w32, h32],
+                    zoom: (rect.width() / w as f32).min(rect.height() / h as f32),
+                    center: [w as f32 / 2.0, h as f32 / 2.0],
+                    shadow: false,
+                    pixel_grid: false,
+                    view_key: key,
+                    display: mode,
+                    hdr: legacy.map(|h| [h.exposure, h.gamma]),
+                    workbench: settings,
+                    output_headroom: if !g.hdr_surface() {
+                        0.0
+                    } else if self.sdr || settings.is_none() {
+                        1.0
+                    } else {
+                        g.output_headroom()
+                    },
+                },
+            );
+        } else {
+            let settings_key = egui::Id::new(format!("{settings:?}{legacy:?}")).value();
+            let id = egui::Id::new((name, "cpu"));
+            let cached = painter.ctx().data(|d| d.get_temp::<(u64, egui::TextureHandle)>(id)).filter(|(s, _)| *s == signature ^ settings_key);
+            let texture = if let Some((_, tex)) = cached {
+                tex
+            } else {
+                let mut b = buffer();
+                if let Some(settings) = settings {
+                    if let Ok(shown) = photocraft_engine::hdr_cmds::preview_buffer(&st.doc, &b, settings, legacy) {
+                        b = shown;
+                    }
+                    let _ = photocraft_engine::hdr_cmds::to_monitor(&mut b, Some(&display));
+                    let image = b.to_rgba8();
+                    painter.ctx().load_texture(name, egui::ColorImage::from_rgba_unmultiplied(size, &image.pixels), egui::TextureOptions::LINEAR)
+                } else {
+                    let image = display.to_rgba8(&b);
+                    painter.ctx().load_texture(name, egui::ColorImage::from_rgba_unmultiplied(size, &image.pixels), egui::TextureOptions::LINEAR)
+                }
+            };
+            painter.ctx().data_mut(|d| d.insert_temp(id, (signature ^ settings_key, texture.clone())));
+            painter.image(texture.id(), rect, Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)), egui::Color32::WHITE);
+        }
+        true
+    }
+}
+
 /// Bounded swatch resources; unused keys allocate nothing.
 pub(crate) fn gpu_keys() -> impl Iterator<Item = u64> {
     [egui::Id::new("hdr-picker-new").value(), egui::Id::new("hdr-picker-old").value()]
         .into_iter()
         .chain((0..32usize).map(|i| egui::Id::new(("hdr-saved-swatch", i)).value()))
+        .chain(FILTER_PREVIEW_KEYS.into_iter().map(|s| egui::Id::new(s).value()))
+        .chain(photocraft_algo::GalleryFilter::ALL.iter().map(|f| egui::Id::new(format!("hdr-gallery-thumb-{}", f.key())).value()))
+}
+
+#[cfg(test)]
+mod preview_tests {
+    use super::*;
+    #[test]
+    fn float_filter_cpu_fallback_tone_maps_before_quantization_and_caches() {
+        let ctx = egui::Context::default();
+        let mut session = photocraft_engine::Session::new();
+        session.add_document(
+            photocraft_doc::Document::new("HDR", photocraft_doc::Size::new(1, 1), photocraft_color::ColorMode::Rgb, photocraft_color::SampleType::F32),
+            None,
+        );
+        let draw = |session: &photocraft_engine::Session| {
+            ctx.run_ui(Default::default(), |ui| {
+                let display = PreviewDisplay { session, gpu: None, sdr: true };
+                assert!(display.paint(
+                    ui.painter(),
+                    Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(16.0, 16.0)),
+                    &[[2.0, 4.0, 8.0, 1.0]],
+                    [1, 1],
+                    1,
+                    "hdr-gallery"
+                ));
+            })
+        };
+        let mut out = draw(&session);
+        let id = egui::Id::new(("hdr-gallery", "cpu"));
+        let (_, tex) = ctx.data(|d| d.get_temp::<(u64, egui::TextureHandle)>(id)).unwrap();
+        let delta = out.textures_delta.set.get(&tex.id()).unwrap().first().unwrap();
+        let egui::ImageData::Color(image) = &delta.image;
+        let color = image.pixels[0];
+        assert!(color.r() < color.g() && color.g() < color.b(), "HDR must retain chromaticity instead of turning white: {color:?}");
+        out.textures_delta.clear();
+        let mut unchanged = draw(&session);
+        assert!(!unchanged.textures_delta.set.contains_key(&tex.id()));
+        unchanged.textures_delta.clear();
+        session.execute("view.hdrWorkbench", json!({"exposure":-2.0})).unwrap();
+        let mut changed = draw(&session);
+        changed.textures_delta.clear();
+        let (_, next) = ctx.data(|d| d.get_temp::<(u64, egui::TextureHandle)>(id)).unwrap();
+        assert_ne!(next.id(), tex.id(), "changed HDR controls must invalidate the CPU display texture");
+        drop(tex);
+        drop(next);
+        ctx.data_mut(|d| {
+            d.remove::<(u64, egui::TextureHandle)>(id);
+        });
+        let mut cleanup = ctx.run_ui(Default::default(), |_| {});
+        cleanup.textures_delta.clear();
+    }
 }

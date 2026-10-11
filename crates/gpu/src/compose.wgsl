@@ -443,6 +443,10 @@ fn selective_color(c: vec3<f32>, relative: bool) -> vec3<f32> {
 // Exposure on one channel (p = exposure scale, offset, gamma, transfer gamma). Per channel, not a
 // loop over `c[i]`: FXC aborts on that inside `adjust`'s switch.
 fn exposure(v: f32, p: vec4<f32>) -> f32 {
+    if (op.p3.w > 0.5) {
+        let value = v * p.x + p.y;
+        return sign(value) * pow(abs(value), 1.0 / p.z);
+    }
     let lin = pow(max(t_decode(v, p.w) * p.x + p.y, 0.0), 1.0 / p.z);
     return clamp(t_encode(lin, p.w), 0.0, 1.0);
 }
@@ -472,7 +476,7 @@ fn mcontrast(v: f32, ct: f32) -> f32 {
     return 1.0 - h;
 }
 
-fn adjust(c: vec3<f32>) -> vec3<f32> {
+fn adjust_domain(c: vec3<f32>) -> vec3<f32> {
     let p0 = op.p0;
     let p1 = op.p1;
     let p2 = op.p2;
@@ -483,13 +487,22 @@ fn adjust(c: vec3<f32>) -> vec3<f32> {
             return vec3(select(0.0, 1.0, round_half_up(gray(c) * 255.0) >= p0.x));
         }
         case 3: { return vec3(posterize(c.r, p0.x), posterize(c.g, p0.x), posterize(c.b, p0.x)); }
-        case 4: { return clamp((c - 0.5) * p0.y + 0.5 + p0.x, vec3(0.0), vec3(1.0)); }   // B/C legacy
+        case 4: { return adjustment_limit((c - 0.5) * p0.y + 0.5 + p0.x); }   // B/C legacy
         case 5: {                                                              // B/C modern
             let b = p0.x; let ct = p0.y;
-            return vec3(mcontrast(mbright(c.r, b), ct), mcontrast(mbright(c.g, b), ct), mcontrast(mbright(c.b, b), ct));
+            var out = vec3(mcontrast(mbright(c.r, b), ct), mcontrast(mbright(c.g, b), ct), mcontrast(mbright(c.b, b), ct));
+            if (p3.w > 0.5) {
+                let end = mcontrast(mbright(1.0, b), ct);
+                let slope = (end - mcontrast(mbright(1.0 - 1.0 / 4095.0, b), ct)) * 4095.0;
+                out = select(out, vec3(end) + (c - 1.0) * slope, c > vec3(1.0));
+            }
+            return adjustment_limit(out);
         }
         case 6: { return vec3(exposure(c.r, p0), exposure(c.g, p0), exposure(c.b, p0)); }  // Exposure
-        case 7: { return vec3(lut(0, c.r), lut(1, c.g), lut(2, c.b)); }        // Levels / Curves
+        case 7: {
+            if (p3.w > 0.5) { return vec3(extended_tone(0, c.r), extended_tone(1, c.g), extended_tone(2, c.b)); }
+            return vec3(lut(0, c.r), lut(1, c.g), lut(2, c.b));
+        }        // Levels / Curves
         case 8: {                                                              // Hue/Saturation
             let hsl = rgb_to_hsl(c);
             var hh: f32;
@@ -528,9 +541,9 @@ fn adjust(c: vec3<f32>) -> vec3<f32> {
             return hsl_to_rgb(hsl.x, ns, hsl.z);
         }
         case 10: {                                                             // Channel mixer
-            let r = clamp(dot(p0.xyz, c) + p0.w, 0.0, 1.0);
-            if (p3.x > 0.5) { return vec3(r); }
-            return vec3(r, clamp(dot(p1.xyz, c) + p1.w, 0.0, 1.0), clamp(dot(p2.xyz, c) + p2.w, 0.0, 1.0));
+            let out = adjustment_limit(vec3(dot(p0.xyz, c) + p0.w, dot(p1.xyz, c) + p1.w, dot(p2.xyz, c) + p2.w));
+            if (p3.x > 0.5) { return vec3(out.r); }
+            return out;
         }
         case 11: {                                                             // Photo filter
             // compose::adjust::photo_filter_matrix (rows p0..p2) in linear light, then SetLum.
@@ -538,7 +551,7 @@ fn adjust(c: vec3<f32>) -> vec3<f32> {
             let lin = vec3(t_decode(c.r, g), t_decode(c.g, g), t_decode(c.b, g));
             var f = vec3(t_encode(dot(p0.xyz, lin), g), t_encode(dot(p1.xyz, lin), g), t_encode(dot(p2.xyz, lin), g));
             if (p3.x > 0.5) { f = set_lum(f, lum(c)); }
-            return clamp(f, vec3(0.0), vec3(1.0));
+            return adjustment_limit(f);
         }
         case 12: {                                                             // Black & White
             // compose::adjust::black_white_gray: grey + secondary + primary parts, weighted.
@@ -568,10 +581,10 @@ fn adjust(c: vec3<f32>) -> vec3<f32> {
             let ws = clamp(1.0 - l * 2.0, 0.0, 1.0);
             let wh = clamp(l * 2.0 - 1.0, 0.0, 1.0);
             let wm = 1.0 - ws - wh;
-            let o = clamp(c + (p0.rgb * ws + p1.rgb * wm + p2.rgb * wh) / 100.0 * 0.5, vec3(0.0), vec3(1.0));
+            let o = adjustment_limit(c + (p0.rgb * ws + p1.rgb * wm + p2.rgb * wh) / 100.0 * 0.5);
             if (p3.x > 0.5) {
                 let l1 = max(gray(o), 1e-6);
-                return clamp(o * l / l1, vec3(0.0), vec3(1.0));
+                return adjustment_limit(o * l / l1);
             }
             return o;
         }
@@ -581,8 +594,47 @@ fn adjust(c: vec3<f32>) -> vec3<f32> {
             if (p0.z > 0.5) { o = clamp(o + bayer4(adj_px) / 255.0, vec3(0.0), vec3(1.0)); }
             return o;
         }
+        case 17: { return vec3(float_levels(float_levels(c.r, p0, 0), p1, 1), float_levels(float_levels(c.g, p0, 0), p2, 2), float_levels(float_levels(c.b, p0, 0), p3, 3)); }
         default: { return c; }
     }
+}
+
+fn adjust(c: vec3<f32>) -> vec3<f32> {
+    // Color-only operators work on bounded chromaticity, then restore HDR radiance.
+    // Threshold, posterize and gradient mapping intentionally keep their bounded output.
+    if (op.p3.w > 0.5 && (op.kind == 8 || op.kind == 9 || op.kind == 12 || op.kind == 15 || op.kind == 16)) {
+        let scale = max(1.0, max(c.r, max(c.g, c.b)));
+        return adjust_domain(c / scale) * scale;
+    }
+    return adjust_domain(c);
+}
+
+// Float tone curves retain values outside SDR white. Output endpoints for Levels are
+// stored in the first eight LUT texels (master followed by RGB); p3.w selects float math.
+fn float_levels(v: f32, ch: vec4<f32>, row: i32) -> f32 {
+    let t = (v - ch.x) / max(ch.y - ch.x, 1e-6);
+    let black = textureLoad(lut_tex, vec2(row * 2, 0), 0).r;
+    let white = textureLoad(lut_tex, vec2(row * 2 + 1, 0), 0).r;
+    var curved = t;
+    if (ch.z != 1.0) { curved = sign(t) * pow(abs(t), 1.0 / max(ch.z, 0.01)); }
+    return black + curved * (white - black);
+}
+fn extended_tone(row: i32, v: f32) -> f32 {
+    if (v > 1.0) {
+        let last = textureLoad(lut_tex, vec2(4095, row), 0).r;
+        let prev = textureLoad(lut_tex, vec2(4094, row), 0).r;
+        return last + (v - 1.0) * (last - prev) * 4095.0;
+    }
+    if (v < 0.0) {
+        let first = textureLoad(lut_tex, vec2(0, row), 0).r;
+        let next = textureLoad(lut_tex, vec2(1, row), 0).r;
+        return first + v * (next - first) * 4095.0;
+    }
+    return lut(row, v);
+}
+fn adjustment_limit(v: vec3<f32>) -> vec3<f32> {
+    if (op.p3.w > 0.5) { return max(v, vec3(0.0)); }
+    return clamp(v, vec3(0.0), vec3(1.0));
 }
 
 // ---- fills ----------------------------------------------------------------------------------
