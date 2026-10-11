@@ -54,7 +54,9 @@ fn png(img: &Rgba8Image) -> Result<Vec<u8>> {
 // Sources
 // ---------------------------------------------------------------------------
 
-pub(crate) trait Source {
+pub(crate) use ByteSource as Source;
+
+pub trait ByteSource {
     fn get(&self, path: &str, max: usize) -> Result<Vec<u8>>;
 }
 
@@ -68,7 +70,7 @@ impl<'a> ZipSource<'a> {
     }
 }
 
-impl Source for ZipSource<'_> {
+impl ByteSource for ZipSource<'_> {
     fn get(&self, path: &str, max: usize) -> Result<Vec<u8>> {
         self.zip.read_by_name(path, max)
     }
@@ -78,15 +80,29 @@ pub(crate) struct DirSource {
     pub root: PathBuf,
 }
 
-impl Source for DirSource {
+impl ByteSource for DirSource {
     fn get(&self, path: &str, max: usize) -> Result<Vec<u8>> {
         let p = self.root.join(path);
-        let len = std::fs::metadata(&p).map_err(|_| FormatError::corrupt(format!("missing `{path}`")))?.len();
-        if len > max as u64 {
-            return Err(FormatError::LimitExceeded(format!("`{path}` is {len} bytes (max {max})")));
+        let metadata = std::fs::metadata(&p).map_err(|_| FormatError::corrupt(format!("missing `{path}`")))?;
+        if !metadata.is_file() {
+            return Err(FormatError::corrupt(format!("`{path}` is not a regular file")));
         }
-        Ok(std::fs::read(p)?)
+        let mut file = std::fs::File::open(&p).map_err(|_| FormatError::corrupt(format!("missing `{path}`")))?;
+        read_entry(&mut file, metadata.len(), max, path)
     }
+}
+
+/// Read one opened bundle entry under its `max` budget. The stat `len` is a buffer hint only
+/// (files can change while open, and a FIFO reports 0), so the bound is enforced on the read
+/// itself, never on the hint.
+pub fn read_entry(file: &mut impl std::io::Read, len: u64, max: usize, path: &str) -> Result<Vec<u8>> {
+    let mut limited = file.take((max as u64).saturating_add(1));
+    let hint = len.min((max as u64).saturating_add(1));
+    let bytes = crate::read::read_all(&mut limited, hint)?;
+    if bytes.len() > max {
+        return Err(FormatError::LimitExceeded(format!("`{path}` exceeds {max} bytes")));
+    }
+    Ok(bytes)
 }
 
 // ---------------------------------------------------------------------------
@@ -127,7 +143,7 @@ fn check_manifest_depth(json: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn read_manifest(src: &dyn Source, opts: &LoadOptions) -> Result<Manifest> {
+pub(crate) fn read_manifest(src: &dyn ByteSource, opts: &LoadOptions) -> Result<Manifest> {
     let raw = src.get(MANIFEST, opts.max_manifest_bytes)?;
     // serde_json stops at 128 levels (about 40 nested groups); the bounded check replaces that limit.
     check_manifest_depth(&raw)?;
@@ -172,7 +188,7 @@ fn take_array(v: &mut serde_json::Value, pointer: &str) -> Vec<serde_json::Value
 }
 
 struct LoadFetch<'a> {
-    src: &'a dyn Source,
+    src: &'a dyn ByteSource,
     opts: LoadOptions,
     total: u64,
     blobs: HashMap<String, Arc<Vec<u8>>>,
@@ -267,14 +283,14 @@ pub(crate) fn load_cached(
 ) -> Result<Document> {
     let m = read_manifest(src, opts)?;
     let mut fetch = LoadFetch { src, opts: *opts, total: 0, blobs: HashMap::new(), tile_cache, blob_cache };
-    let mut loader = Loader { fetch: &mut fetch, preserve_ids: opts.preserve_ids, max_id: 0, id_map: HashMap::new() };
-    let doc = loader.document(&m.document)?;
-    if opts.preserve_ids && !convert::reserve_ids_through(loader.max_id) {
-        // Ids far beyond our counter: remap instead of risking collisions.
-        let fresh = LoadOptions { preserve_ids: false, ..*opts };
-        return load(src, &fresh);
-    }
-    Ok(doc)
+    let mut loader = Loader {
+        fetch: &mut fetch,
+        preserve_ids: opts.preserve_ids,
+        id_map: HashMap::new(),
+        contents_id_map: HashMap::new(),
+        legacy_linked_contents: HashMap::new(),
+    };
+    loader.document(&m.document)
 }
 
 // ---------------------------------------------------------------------------
@@ -556,6 +572,12 @@ impl PcraftWriter {
             thumbnail: opts.thumbnail.as_ref().map(|_| THUMB.to_owned()),
             composite: opts.composite.as_ref().map(|_| COMPOSITE.to_owned()),
         };
+        // serde_json writes NaN and the infinities as `null`, which the manifest's float fields
+        // refuse on load (issue #1101): refuse the save instead, naming the value.
+        crate::finite::check(&manifest).map_err(|e| match e {
+            crate::finite::Problem::NonFinite { path } => FormatError::NonFinite { path },
+            crate::finite::Problem::Other(m) => FormatError::Unsupported(format!("manifest: {m}")),
+        })?;
         let manifest = serde_json::to_vec_pretty(&manifest)?;
         check_manifest_depth(&manifest)?;
         let stats = SaveStats { tiles_total: c.tiles.len(), blobs_total: c.blobs.len(), manifest_bytes: manifest.len(), ..Default::default() };

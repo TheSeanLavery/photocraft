@@ -21,6 +21,9 @@ impl PhotocraftApp {
         then: impl FnOnce(&mut Self, String) -> Result<Value, String> + 'static,
     ) -> Result<Value, String> {
         if !self.services.choose_save_format {
+            if self.services.file_dialog.is_some() {
+                return self.pick_save(suggested, then);
+            }
             let path = self.services.pick_save.as_mut().and_then(|f| f(suggested)).ok_or("cancelled")?;
             return then(self, path);
         }
@@ -37,7 +40,7 @@ impl PhotocraftApp {
 
     pub(crate) fn save_as_choice(&mut self, path: Option<String>) -> Result<Value, String> {
         if path.is_some() || !self.services.choose_save_format || self.session.is_enabled("layer.smartObjects.saveContents") {
-            return self.save_as(path).map(|(path, warnings)| json!({"path":path, "warnings":warnings}));
+            return self.save_as(path);
         }
         let st = self.session.active().ok_or("no document")?;
         let id = st.doc.id;
@@ -51,7 +54,7 @@ impl PhotocraftApp {
             let prior = app.session.active().map(|st| st.doc.id);
             let index = app.session.documents().iter().position(|st| st.doc.id == id).ok_or("document was closed")?;
             app.session.set_active(index);
-            let result = app.save_as(Some(path)).map(|(path, warnings)| json!({"path":path,"warnings":warnings}));
+            let result = app.save_as(Some(path));
             if let Some(index) = prior.and_then(|id| app.session.documents().iter().position(|st| st.doc.id == id)) {
                 app.session.set_active(index);
             }

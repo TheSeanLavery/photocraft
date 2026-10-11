@@ -16,3 +16,7 @@ toml = "1"
 syn = { version = "2", features = ["full", "visit"] }
 fluent-syntax = "0.12"
 proc-macro2 = { version = "1", features = ["span-locations"] }
+
+# Integrity and content hashes for generated WASM static assets.
+sha2 = "0.10"
+base64 = "0.22"

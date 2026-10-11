@@ -1,4 +1,6 @@
 //! Direct, fallible history navigation. Only the selected state is hydrated.
+use crate::commands::int;
+use crate::image_cmds::reidentify_copied_layers;
 use crate::{CommandSpec, EngineError, Result, Session};
 use serde_json::{Value, json};
 
@@ -10,8 +12,129 @@ fn enabled(s: &Session) -> std::result::Result<(), String> {
     Ok(())
 }
 
+fn bad(cmd: &str, msg: impl Into<String>) -> EngineError {
+    EngineError::BadParams { cmd: cmd.into(), msg: msg.into() }
+}
+
+/// The `state` param as an index into the active document's history entries, defaulting to the
+/// current state.
+fn state_index(s: &Session, cmd: &str, p: &Value) -> Result<(usize, usize)> {
+    let st = s.active().ok_or(EngineError::NoDocument)?;
+    let current = st.history.past_len();
+    let i = match p.get("state") {
+        None | Some(Value::Null) => current,
+        Some(_) => {
+            let v = int(p, "state").ok_or_else(|| bad(cmd, "`state` must be a number"))?;
+            usize::try_from(v).ok().filter(|i| *i <= current).ok_or_else(|| bad(cmd, format!("`state` = {v} is not a state (0..={current})")))?
+        }
+    };
+    Ok((i, current))
+}
+
+/// History panel › Delete: drop the state and every state after it, as Photoshop does in linear
+/// history. The document returns to the state before it, and the deleted steps can't be redone.
+/// The oldest state (the document as opened) can't be deleted.
+fn delete_state(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "history.deleteState";
+    let (i, _current) = state_index(s, CMD, p)?;
+    if i == 0 {
+        return Err(bad(CMD, "the oldest state can't be deleted"));
+    }
+    let st = s.active().ok_or(EngineError::NoDocument)?;
+    let checkpoint = st.history.checkpoint();
+    let deleted = checkpoint.undo.get(i).map(|state| state.identity.id).unwrap_or_else(|| st.history.current_id());
+    let destination = checkpoint.undo.get(i - 1).cloned().ok_or_else(|| bad(CMD, "the previous state is unavailable"))?;
+    let destination_id = destination.identity.id;
+    crate::jobs::run(
+        s,
+        "Loading history state",
+        true,
+        move |ctx| {
+            ctx.check()?;
+            let document = destination.load_document().map_err(EngineError::Other)?;
+            ctx.check()?;
+            Ok(document)
+        },
+        move |session, document| {
+            session.apply_history_destination(destination_id, document, None)?;
+            let st = session.active_mut().ok_or(EngineError::NoDocument)?;
+            st.history.prune_descendants(deleted);
+            let entries = st.history.entries();
+            Ok(json!({ "states": entries.len(), "current": entries.last() }))
+        },
+    )
+}
+
+/// History panel › New Document: a new untitled document holding the document as it was at a
+/// state (the current one by default), named after that state, with a history of its own.
+fn new_document(s: &mut Session, p: &Value) -> Result<Value> {
+    const CMD: &str = "history.newDocument";
+    let (i, current) = state_index(s, CMD, p)?;
+    let st = s.active().ok_or(EngineError::NoDocument)?;
+    let source = if i == current {
+        photocraft_ops::HistoryState::from_document(st.history.entries().get(i).cloned().unwrap_or_default(), st.doc.clone())
+    } else {
+        st.history.checkpoint().undo.get(i).cloned().ok_or_else(|| bad(CMD, format!("state {i} is not held")))?
+    };
+    let label = st.history.entries().get(i).cloned().unwrap_or_default();
+    let requested_name = p.get("name").and_then(Value::as_str).map(str::to_owned);
+    crate::jobs::run(
+        s,
+        "Loading history state",
+        true,
+        move |ctx| {
+            ctx.check()?;
+            let document = source.load_document().map_err(EngineError::Other)?;
+            ctx.check()?;
+            Ok(document)
+        },
+        move |session, source| {
+            let mut doc = (*source).clone();
+            doc.id = photocraft_doc::DocId::fresh();
+            doc.name = match requested_name.as_deref() {
+                Some(name) if !name.trim().is_empty() => name.to_owned(),
+                _ if !label.trim().is_empty() => label,
+                _ => format!("{} copy", doc.name),
+            };
+            reidentify_copied_layers(&mut doc);
+            let name = doc.name.clone();
+            let index = session.add_document(doc, None);
+            Ok(json!({ "document": index, "name": name }))
+        },
+    )
+}
+
+fn can_delete(s: &Session) -> std::result::Result<(), String> {
+    enabled(s)?;
+    s.active().filter(|d| d.history.can_undo()).map(|_| ()).ok_or_else(|| "the oldest state can't be deleted".into())
+}
+
+fn has_doc(s: &Session) -> std::result::Result<(), String> {
+    s.active().map(|_| ()).ok_or_else(|| "no document open".into())
+}
+
 pub fn specs() -> Vec<CommandSpec> {
     vec![
+        CommandSpec {
+            id: "history.deleteState",
+            label: "Delete State",
+            menu: &[],
+            shortcut: None,
+            params: r##"{"state":index?} (History entry, 0 = oldest; default the current state) → {states,current}: removes the state and every later one"##,
+            enabled: can_delete,
+            run: delete_state,
+            journal: true,
+        },
+        CommandSpec {
+            id: "history.newDocument",
+            label: "New Document from State",
+            menu: &[],
+            shortcut: None,
+            params: r##"{"state":index?,"name":str?} (History entry, 0 = oldest; default the current state) → {document,name}"##,
+            enabled: has_doc,
+            run: new_document,
+            journal: true,
+        },
         CommandSpec {
             id: "history.jump",
             label: "Jump to History State",
@@ -224,5 +347,147 @@ mod path_tests {
             }
             assert_eq!(s.active().unwrap().doc.name, if cancel { "Painted" } else { "Original" });
         }
+    }
+}
+
+#[cfg(test)]
+mod upstream_tests {
+    use super::*;
+
+    /// A document with three steps after Open: entries Open, New Layer, Fill, Fill.
+    fn session() -> Session {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width": 20, "height": 10})).unwrap();
+        s.execute("layer.new.layer", json!({})).unwrap();
+        s.execute("edit.fill", json!({"color": "#ff0000"})).unwrap();
+        s.execute("edit.fill", json!({"color": "#00ff00"})).unwrap();
+        s
+    }
+
+    fn entries(s: &Session) -> Vec<String> {
+        s.active().unwrap().history.entries()
+    }
+
+    #[test]
+    fn delete_current_state_steps_back_and_drops_it() {
+        let mut s = session();
+        let before = entries(&s);
+        let prev_doc = s.active().unwrap().history.state(before.len() - 2).unwrap();
+        let r = s.execute("history.deleteState", json!({})).unwrap();
+        assert_eq!(r["states"], json!(before.len() - 1));
+        assert_eq!(entries(&s), before[..before.len() - 1].to_vec());
+        assert!(std::sync::Arc::ptr_eq(&s.active().unwrap().doc, &prev_doc), "the document is the state before");
+        assert!(!s.active().unwrap().history.can_redo(), "the deleted state can't be redone");
+        assert!(s.execute("edit.redo", json!({})).is_err());
+    }
+
+    #[test]
+    fn delete_an_earlier_state_drops_it_and_every_later_one() {
+        let mut s = session();
+        let first = s.active().unwrap().history.state(0).unwrap();
+        s.execute("history.deleteState", json!({"state": 1})).unwrap();
+        assert_eq!(entries(&s), vec!["Open".to_string()]);
+        assert!(std::sync::Arc::ptr_eq(&s.active().unwrap().doc, &first));
+        assert!(!s.active().unwrap().history.can_redo());
+        // Redo states after an undo go too.
+        let mut s = session();
+        s.execute("edit.undo", json!({})).unwrap();
+        s.execute("history.deleteState", json!({})).unwrap();
+        assert_eq!(entries(&s).len(), 2);
+        assert!(!s.active().unwrap().history.can_redo());
+    }
+
+    #[test]
+    fn delete_state_refuses_the_oldest_state_and_bad_params() {
+        let mut s = Session::new();
+        assert!(s.execute("history.deleteState", json!({})).is_err(), "no document");
+        s.execute("file.new", json!({"width": 8, "height": 8})).unwrap();
+        assert!(!s.is_enabled("history.deleteState"), "only the opening state");
+        assert!(s.execute("history.deleteState", json!({})).is_err());
+        let mut s = session();
+        let before = entries(&s);
+        for p in [json!({"state": 0}), json!({"state": -1}), json!({"state": 99}), json!({"state": "x"}), json!({"state": f64::MAX}), json!({"state": [1]})] {
+            assert!(s.execute("history.deleteState", p.clone()).is_err(), "{p}");
+            assert_eq!(entries(&s), before, "{p} changed nothing");
+        }
+    }
+
+    #[test]
+    fn new_document_from_a_state_copies_it_into_a_fresh_document() {
+        let mut s = session();
+        let src = s.active().unwrap().doc.clone();
+        let label = entries(&s).last().cloned().unwrap();
+        let r = s.execute("history.newDocument", json!({})).unwrap();
+        assert_eq!(s.documents().len(), 2);
+        assert_eq!(r["document"], json!(1));
+        assert_eq!(r["name"], json!(label), "named after the state");
+        let new = s.active().unwrap();
+        assert_eq!(new.doc.size, src.size);
+        assert_eq!(new.doc.layers.len(), src.layers.len());
+        assert_ne!(new.doc.id, src.id);
+        assert_eq!(new.history.entries().len(), 1, "a fresh history");
+        // An earlier state, with a chosen name; the source document is untouched.
+        s.set_active(0);
+        let before = entries(&s);
+        let open = s.active().unwrap().history.state(0).unwrap();
+        s.execute("history.newDocument", json!({"state": 0, "name": "Start"})).unwrap();
+        let new = s.active().unwrap();
+        assert_eq!(new.doc.name, "Start");
+        assert_eq!(new.doc.layers.len(), open.layers.len());
+        s.set_active(0);
+        assert_eq!(entries(&s), before);
+    }
+
+    #[test]
+    fn new_document_refuses_bad_params() {
+        let mut s = Session::new();
+        assert!(s.execute("history.newDocument", json!({})).is_err(), "no document");
+        let mut s = session();
+        for p in [json!({"state": -1}), json!({"state": 99}), json!({"state": "x"}), json!({"state": f64::NAN.to_string()})] {
+            assert!(s.execute("history.newDocument", p.clone()).is_err(), "{p}");
+        }
+        assert_eq!(s.documents().len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod integration_tests {
+    use super::*;
+    use std::sync::Arc;
+    #[derive(Debug)]
+    struct Broken;
+    impl photocraft_ops::ArchivedDocument for Broken {
+        fn load(&self) -> std::result::Result<Arc<photocraft_doc::Document>, String> {
+            Err("corrupt history".into())
+        }
+    }
+    #[test]
+    fn delete_branch_preserves_unrelated_alternative_and_cold_failures_are_atomic() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width":8,"height":8})).unwrap();
+        s.execute("layer.new.layer", json!({"name":"A"})).unwrap();
+        s.execute("layer.new.layer", json!({"name":"B"})).unwrap();
+        let branch_b = s.active().unwrap().history.current_id();
+        s.undo();
+        s.execute("layer.new.layer", json!({"name":"C"})).unwrap();
+        let branch_c = s.active().unwrap().history.current_id();
+        s.execute("history.deleteState", json!({})).unwrap();
+        let st = s.active().unwrap();
+        assert!(st.history.state_by_id(st.doc.clone(), branch_b).is_some());
+        assert!(st.history.state_by_id(st.doc.clone(), branch_c).is_none());
+        assert_eq!(st.history.adjacent_id(true), Some(branch_b), "an unrelated preserved branch remains redoable");
+        s.redo();
+        assert_eq!(s.active().unwrap().history.current_id(), branch_b);
+        s.undo();
+        s.execute("layer.new.layer", json!({"name":"D"})).unwrap();
+        let original = s.active().unwrap().history.try_state(0).unwrap().unwrap();
+        s.active_mut().unwrap().history.replace_resident(&original, Arc::new(Broken));
+        let doc = s.active().unwrap().doc.clone();
+        let stamp = s.active().unwrap().history.timeline_stamp();
+        assert!(s.execute("history.deleteState", json!({"state":1})).is_err());
+        assert!(s.execute("history.newDocument", json!({"state":0})).is_err());
+        assert!(Arc::ptr_eq(&doc, &s.active().unwrap().doc));
+        assert_eq!(s.active().unwrap().history.timeline_stamp(), stamp);
+        assert_eq!(s.documents().len(), 1);
     }
 }

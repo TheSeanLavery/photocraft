@@ -5498,3 +5498,893 @@ ui-use-available-disk-space-44211d74d7260f1a = 사용 가능한 디스크 공간
 ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = 실행 취소 공간은 필요에 따라 늘어납니다. 무제한 기록은 저장 공간이 가득 찰 때까지 유지됩니다. 경로는 다음 캐시 세션에 적용됩니다.
 
 ui-change-opacity-c419e848020b25f4 = 불투명도 변경
+
+ui-0-turns-this-threshold-off-svg-groups-ne-8107dd87e635679d = 0이면 이 임계값을 끕니다. 100단계보다 깊이 중첩된 SVG 그룹은 항상 래스터화됩니다.
+
+ui-101-by-101-average-f0636a75b4938275 = 101 × 101 평균
+
+ui-11-by-11-average-538d383a16a69bb7 = 11 × 11 평균
+
+ui-12-columns-b949e2085ce68503 = 12열
+
+ui-24-bits-pixel-1efd69221601fa68 = 24비트/픽셀
+
+ui-3-by-3-average-400d4f87bb7a72ef = 3 × 3 평균
+
+ui-31-by-31-average-f49ec39b911d80e3 = 31 × 31 평균
+
+ui-32-bits-pixel-33b63adb24722469 = 32비트/픽셀
+
+ui-5-by-5-average-393c80f9d8845bab = 5 × 5 평균
+
+ui-5-columns-3-rows-8ebf23bc0edaefdb = 5열, 3행
+
+ui-50-gray-da82e26ee3dda904 = 50% 회색
+
+ui-51-by-51-average-f8031ef2f1c3a59f = 51 × 51 평균
+
+ui-8-columns-7960156dbbf9d0ba = 8열
+
+ui-80-9314897fc598cede = 80%
+
+ui-85-9303957fc58a700f = 85%
+
+ui-90-89fe507fc0546e79 = 90%
+
+ui-95-8a0f4c7fc062dae0 = 95%
+
+ui-a-save-to-name-is-still-running-try-agai-05cc493545eb159a = { $name }에 저장하는 작업이 아직 진행 중입니다. 완료된 후 다시 시도하세요
+
+ui-activate-panel-2d26ff9c85f372cc = 패널 활성화
+
+ui-active-9a4fc0866deff4e1 = 활성
+
+ui-add-anchor-point-tool-47f6a2d216ab0095 = 기준점 추가 도구
+
+ui-add-beauty-precomp-from-the-aovs-4d9efefbd4ef0542 = AOV에서 뷰티 프리컴포지션 추가
+
+ui-add-new-artboard-a9daaf925d16a4c3 = 새 아트보드 추가
+
+ui-add-pair-0c629fff04fb2b1e = 쌍 추가
+
+ui-add-to-favorites-0541c1994e6ae85e = 즐겨찾기에 추가
+
+ui-add-to-swatches-3781607eddbada31 = 색상 견본에 추가
+
+ui-adds-the-current-gradient-to-the-gradien-a1f9968192c4ba50 = 현재 그라디언트를 그라디언트 패널에 추가합니다
+
+ui-adwaita-cd477fc88437525a = Adwaita
+
+ui-adwaita-dark-50de267958d3f412 = Adwaita 어둡게
+
+ui-adwaita-dark-theme-05d4bf4c97aa218f = Adwaita 어두운 테마
+
+ui-adwaita-light-theme-03c426048b1e340f = Adwaita 밝은 테마
+
+ui-alignment-40ae160a9e770aa8 = 정렬
+
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = 모든 레이어(조정 제외)
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = 모든 단축키를 PhotoCraft 기본값으로 초기화했습니다.
+
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Alt 클릭이 데스크톱으로 전달되었습니다. 데스크톱이 Alt 드래그로 창을 이동합니다. 창 이동 키를 Super로 바꾸거나 창 › 보조 키에서 Alt를 고정하세요.
+
+ui-always-show-overlay-b6be473be8ad3beb = 오버레이 항상 표시
+
+ui-and-n-more-6e37845d39302347 = …외 { $n }개
+
+ui-anti-aliased-c391708a54da1e67 = 앤티 앨리어스
+
+ui-appearance-mode-c6e76c01b1038388 = 화면 모드
+
+ui-appearance-settings-b5f1d7603a447b52 = 화면 설정…
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = 캔버스 경계에 효과 적용
+
+ui-artboard-tool-80bd830389a6711e = 아트보드 도구
+
+ui-auto-adjust-opacity-28ceac7a28ddd13a = 자동으로 불투명도 조정
+
+ui-auto-center-preview-225b4704be74d581 = 미리 보기 자동 가운데 맞춤
+
+ui-auto-erase-8a68e4bc3af7d82e = 자동 지우기
+
+ui-auto-hide-notifications-5e48a1ec5b48ddc0 = 알림 자동 숨기기
+
+ui-auto-show-overlay-59ff23a3b368166d = 오버레이 자동 표시
+
+ui-automatic-04cc1a2793006d9a = 자동
+
+ui-background-from-layer-95241da9efd58afc = 레이어에서 배경 만들기
+
+ui-background-from-layer-e7dca704d0b2e2dc = 레이어에서 배경 만들기
+
+ui-best-6563d4b235991f01 = 최적
+
+ui-bevel-b65a0ed0fa933479 = 베벨
+
+ui-bicubic-sharper-reduction-8526007a04be289f = 쌍입방 더 선명하게(축소)
+
+ui-bicubic-smoother-enlargement-f1b8e48b0f7a4a58 = 쌍입방 더 부드럽게(확대)
+
+ui-black-87de58185ee7e143 = 아주 굵게
+
+ui-black-matte-7c051e0b8e0c064b = 검정 배경
+
+ui-blend-if-47ff5afa1385a85d = 혼합 조건:
+
+ui-block-c4d0291e851daf50 = 블록
+
+ui-bold-98d37886cf62c4a3 = 굵게
+
+ui-bottom-d0f114b5fd71868e = 아래:
+
+ui-breeze-dark-e66fe26550bb0528 = Breeze 어두움
+
+ui-breeze-dark-theme-a680c93f1fa1524d = Breeze 어두운 테마
+
+ui-breeze-light-0148f2375063bb68 = Breeze 밝게
+
+ui-breeze-light-theme-ed04a9643b4b988d = Breeze 밝은 테마
+
+ui-browser-storage-is-unavailable-brushes-a-7917bc257e6f900e = 브라우저 저장소를 사용할 수 없어 브러시는 이 세션에서만 유지됩니다. 유지하려면 이 탭을 열어 두세요.
+
+ui-brush-name-ed530497d97024a4 = 브러시 이름
+
+ui-brush-preset-changes-are-not-saved-error-5f27ebc7fd81a7c9 = 브러시 사전 설정 변경 내용이 저장되지 않았습니다: { $error }
+
+ui-brush-preset-options-ae5d75337b0c67ae = 브러시 사전 설정 옵션
+
+ui-brush-stroke-e15a877d2a400187 = 브러시 획
+
+ui-brush-tip-47495e0f40c5a930 = 브러시 끝
+
+ui-budget-mb-af9a1600ca07b419 = 한도 (MiB)
+
+ui-butt-flat-c72fa8c80b7c206a = 평평한 끝
+
+ui-camera-data-90b2af05c38e73b8 = 카메라 데이터
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw ({ $name })
+
+ui-caps-4e22f5ac70d59b9a = 끝 모양
+
+ui-center-columns-eca652a77591890d = 열 가운데 정렬
+
+ui-change-panel-group-c875bb8728a6f2da = 패널 그룹 변경
+
+ui-change-panel-layout-e2e9f02cb1355649 = 패널 레이아웃 변경
+
+ui-channels-67ef32de1bae7097 = 채널:
+
+ui-clear-brush-strokes-12a3c251da9d3d0d = 브러시 획 지우기
+
+ui-clear-existing-guides-67c8180ae4647d7a = 기존 안내선 지우기
+
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = 빨간 동공을 클릭하여 보정합니다
+
+ui-click-a-segment-to-add-an-anchor-point-a-0c07d54f4028e4af = 세그먼트를 클릭하여 기준점 추가 · { $alt }-클릭: 기준점 삭제
+
+ui-click-an-anchor-point-to-delete-it-alt-c-06d19be357a2d4d7 = 기준점을 클릭하여 삭제 · { $alt }-클릭: 세그먼트에 기준점 추가
+
+ui-click-corner-drag-smooth-alt-drag-break-h-8598a28b712a87d6 = 클릭: 모서리 · 드래그: 곡선 · { $alt }+드래그: 핸들 분리 · 첫 점 클릭 또는 드래그: 닫기 · { $key }: 완료 · Esc: 취소
+
+ui-click-smooth-point-double-click-corner-d-7ea166abf0ee7560 = 클릭: 매끄러운 점 · 더블 클릭: 모서리 · 점 드래그: 이동 · 첫 점 클릭: 닫기 · { $key }: 완료
+
+ui-click-the-first-point-or-press-key-to-cl-901ea1b540ae3fc7 = 첫 점을 클릭하거나 { $key }를 눌러 닫기 · { $del }로 점 제거 · Esc로 취소
+
+ui-click-then-move-along-an-edge-click-to-f-4f0fd576defa2100 = 클릭한 다음 가장자리를 따라 이동 · 클릭하여 고정점 추가 · { $alt }-클릭으로 직선 구간 · 두 번 클릭하여 닫기
+
+ui-click-to-add-a-point-right-click-to-remo-19feda9c95fbcf54 = 클릭하여 점 추가, 마우스 오른쪽 클릭으로 제거
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = 클릭하여 열 수 변경, 제목 표시줄을 끌어 이동
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = 클릭하여 열 수 변경, 끌어서 도구 분리
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = 클릭하여 선택 · Esc로 취소
+
+ui-click-to-place-alt-click-or-drag-off-can-0ced5c63027a6ce6 = 클릭하여 배치 · Alt-클릭 또는 캔버스 밖으로 드래그하여 제거
+
+ui-close-panel-194028906d61d387 = 패널 닫기
+
+ui-color-a13d112d0512855e = 색상…
+
+ui-color-adaptation-f7d5eb50532ba5ff = 색상 적응
+
+ui-color-burn-paint-net-6bce7a866ee8fd93 = 색상 번 (Paint.NET)
+
+ui-color-dodge-paint-net-6a1a7e45c5da25a9 = 색상 닷지 (Paint.NET)
+
+ui-color-picker-crop-shield-color-f0f21c4248e058e3 = 색상 선택기 (자르기 방패 색상)
+
+ui-color-picker-fill-color-cf989f4d01ca0b61 = 색상 선택기 (채우기 색상)
+
+ui-color-picker-layer-style-color-fbf90c85b504683a = 색상 피커 (레이어 스타일 색상)
+
+ui-color-picker-name-6336833802dc6c44 = 색상 선택기 ({ $name })
+
+ui-color-picker-solid-color-11504899368a43d3 = 색상 피커 (단색)
+
+ui-color-picker-stroke-color-aac3b03188866056 = 색상 선택기 (획 색상)
+
+ui-color-picker-text-color-6873936c7cbaceb3 = 색상 선택기 (텍스트 색상)
+
+ui-color-replacement-1fd9c85a92dd0166 = 색상 대체
+
+ui-color-replacement-tool-e0f757ad548a409c = 색상 대체 도구
+
+ui-color-to-alpha-5a172092ca34c10d = 색상을 알파로…
+
+ui-columns-3da979c5c05c263a = 열
+
+ui-cone-inverted-07c75939642bd114 = 원뿔(반전)
+
+ui-cone-inverted-4f8ec26e3423aa10 = 원뿔 - 반전
+
+ui-contents-b5e5b9d3f6d35ec1 = 내용:
+
+ui-continue-f031dd957d5c1b56 = 계속
+
+ui-contour-39d36135f075d52b = 윤곽선
+
+ui-contour-editor-999a1019725e56a4 = 윤곽선 편집기
+
+ui-convert-point-tool-ebb1dfd0f79acf3a = 기준점 변환 도구
+
+ui-corner-c1f5008d5d2ff536 = 모퉁이
+
+ui-could-not-complete-the-free-transform-co-bfdbe92f0a214b00 = 레이어가 잠겨 있어 자유 변형 명령을 완료할 수 없습니다.
+
+ui-could-not-open-05042bf852b9a743 = 열 수 없음
+
+ui-could-not-use-the-move-tool-because-the-l-34336f06c7d717d6 = 레이어가 잠겨 있어 이동 도구를 사용할 수 없습니다.
+
+ui-cove-deep-f3413d717747416f = 후미 - 깊게
+
+ui-cove-shallow-a816ea81e32dc623 = 후미 - 얕게
+
+ui-create-a-new-elliptical-frame-d31989faf7fc5d30 = 새 타원형 프레임 만들기
+
+ui-create-a-new-rectangular-frame-29813cef7128625f = 새 사각형 프레임 만들기
+
+ui-create-ellipse-f707994617445531 = 타원 만들기
+
+ui-create-new-swatch-df52baa4652be53b = 새 색상 견본 만들기
+
+ui-create-polygon-0312408e42727249 = 다각형 만들기
+
+ui-create-rectangle-446a2149ba949cae = 사각형 만들기
+
+ui-create-triangle-70461e67c3bc8665 = 삼각형 만들기
+
+ui-crop-shield-color-fcab973d194f6a5d = 자르기 방패 색상
+
+ui-current-a6280b8d8bb7d590 = 현재
+
+ui-current-below-no-adjustments-ad3ef5ddcba453be = 현재 및 이하(조정 제외)
+
+ui-curvature-pen-tool-f2c504abaa665e43 = 곡률 펜 도구
+
+ui-curve-fit-4b92a705570d7f79 = 곡선 맞춤:
+
+ui-custom-pattern-b1725fbbdb358844 = 사용자 정의 패턴:
+
+ui-cycle-orientation-d47100e364dd1ce9 = 방향 순환
+
+ui-cycle-overlay-cd2523de1e12bc5b = 오버레이 순환
+
+ui-dark-theme-6d2ab4707cffde72 = 어두운 테마
+
+ui-darken-amount-4ff87ddb9162ea14 = 어둡게 하기 정도
+
+ui-dash-1f756ca06449aeb3 = 선
+
+ui-dash-gap-lengths-stroke-width-d58b32d0afc2986d = 선 / 간격 길이 × 획 너비
+
+ui-dash-offset-e2b5660c676021d6 = 파선 오프셋
+
+ui-dashed-6a8ccf30c380ff72 = 파선
+
+ui-dashed-line-9de7b4d520d5eb5c = 파선
+
+ui-date-taken-d246ca6065cd50fd = 촬영 날짜
+
+ui-default-photocraft-size-42e29dd35050952b = PhotoCraft 기본 크기
+
+ui-delete-anchor-point-tool-32015b0a036fc947 = 기준점 삭제 도구
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = 선택 영역 삭제 및 채우기
+
+ui-delete-count-layers-names-6bbff039943d0326 = 레이어 { $count }개를 삭제하시겠습니까? { $names }
+
+ui-delete-crop-preset-e34aa95ed101e033 = 자르기 사전 설정 삭제…
+
+ui-delete-layer-58301f0b5ef0e41a = 레이어를 삭제하시겠습니까?
+
+ui-delete-layer-name-9407eadca584de9c = 레이어 ‘{ $name }’을(를) 삭제하시겠습니까?
+
+ui-developing-name-3ca6c158e9e9f235 = { $name } 현상 중
+
+ui-diagonal-6308486872486528 = 대각선
+
+ui-diagonal-descending-b3d2c399a327a7d9 = 대각선(내림)
+
+ui-dock-panel-0cd117664b0f3f4e = 패널 도킹
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = 도구를 왼쪽에 도킹
+
+ui-domed-6b80f3fc40f5c94c = 돔
+
+ui-domed-inverted-3a1408397cf5ea60 = 돔(반전)
+
+ui-don-t-import-8a153d1cf3e9bcec = 가져오지 않음
+
+ui-dotted-c6817b61ff95adbb = 점선
+
+ui-drag-a-box-or-click-four-corners-drag-th-df3a1ca51159d17a = 상자를 드래그하거나 네 모서리를 클릭 · 모서리를 기울어진 모양의 가장자리로 드래그 · { $commit } 적용 · Esc 취소
+
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = 드래그하여 자르기 상자 만들기 · 안쪽을 드래그하여 이동 · 가장자리로 크기 조절({ $ratio } 비율, { $centre } 중심) · 그리는 중 Space로 이동 · 화살표로 미세 이동 · X로 방향 전환 · { $commit } 적용 · Esc 취소
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = 중심 주위를 드래그해 보기를 회전합니다  ·  Shift는 15°로 제한
+
+ui-drag-draw-freehand-release-on-the-start-p-ea613d199529d708 = 드래그: 자유롭게 그리기 · 시작점에서 놓기: 닫기
+
+ui-dual-axis-1c45b5825da6a58e = 이중 축
+
+ui-edit-keyboard-shortcuts-reset-all-to-def-1c2e80c5385a9432 = 편집 › 키보드 단축키 › 모두 기본값으로 재설정으로 가져오기를 되돌릴 수 있습니다.
+
+ui-edit-paste-3f6b4ca340b0bccc = 편집 › 붙여넣기
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = 레이어의 혼합 모드, 불투명도, 표시 여부처럼 문서 전체를 바꾸는 편집은 문서 전체를 다시 그립니다.
+
+ui-enable-crop-shield-f3578921d3d300ef = 자르기 방패 사용
+
+ui-enter-a-name-for-the-crop-preset-a58a2551cfe13f3e = 자르기 사전 설정의 이름을 입력하십시오
+
+ui-expand-detection-area-dceaf291bd07056d = 감지 영역 확장
+
+ui-export-sdr-preview-a2e7aebcb62b91d6 = SDR 미리보기 내보내기…
+
+ui-export-swatches-429d4e913cd22171 = 색상 견본 내보내기…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = 교환용 색상 견본 내보내기…
+
+ui-exposure-d40fa037a6d0e233 = 노출 시간
+
+ui-extrabold-fd6396c3deb95c21 = 더 굵게
+
+ui-extralight-0704360f6be0647a = 더 가늘게
+
+ui-eyedroppers-9220889b81a1f1b5 = 스포이드:
+
+ui-f-cycles-the-views-hold-x-to-see-the-ima-f78f72e02c811b5f = F로 보기 전환, X를 누르고 있으면 이미지 표시
+
+ui-f-stop-950ea3f6954631c3 = 조리개 값
+
+ui-fill-color-61734769aae23385 = 채우기 색상
+
+ui-fill-screen-610513f68e54eeee = 화면 채우기
+
+ui-float-panel-b52119e145970061 = 패널 띄우기
+
+ui-focal-length-35-mm-48b7586512d355f4 = 초점 거리(35mm 환산)
+
+ui-focal-length-aa1997545c858259 = 초점 거리
+
+ui-follows-only-edges-this-close-to-the-poi-10b48929e48da16b = 포인터에서 이 거리 안의 가장자리만 따라감([ 및 ]로 변경)
+
+ui-foreground-color-c4236e6fb45a0975 = 전경색
+
+ui-frame-tool-3869ecc880418af6 = 프레임 도구
+
+ui-freeform-pen-tool-6f6679338fdf5312 = 자유 형태 펜 도구
+
+ui-from-center-0d8a0ee0ef65cec8 = 중앙에서
+
+ui-front-image-80d86d74a4acfac7 = 전면 이미지
+
+ui-fuchsia-8d83defd7f0120fc = 자홍색
+
+ui-gap-e5bb2f7e411d4221 = 간격
+
+ui-gloss-contour-5491d206d1cdb411 = 광택 윤곽선
+
+ui-glow-4eaf4c888be6ecaa = 광선
+
+ui-golden-ratio-ff69929862f02a2d = 황금 비율
+
+ui-golden-spiral-5757498b8af1d487 = 황금 나선
+
+ui-good-6801d8889a0e968e = 좋음
+
+ui-gradient-editor-bb6e0a95fb5ef2ac = 그라디언트 편집기
+
+ui-gradient-picker-54dd1fd154401b2b = 그라디언트 선택기
+
+ui-gradient-stops-f06ae21e1135f30e = 그라디언트 스톱
+
+ui-group-with-94fcb352464d9a1e = 다음과 그룹화
+
+ui-h-08324007b4eaf595 = 높이
+
+ui-half-round-62b12796617538fe = 반원
+
+ui-hdr-output-474159eb0db7fb90 = HDR 출력
+
+ui-hdr-workbench-847f1f37e6c4ef5a = HDR 작업 공간
+
+ui-higher-values-follow-only-edges-that-con-339978148cf9c078 = 값이 높을수록 주변과 대비가 강한 가장자리만 따라감
+
+ui-horizontal-type-mask-tool-0114c5e36a28d713 = 수평 문자 마스크 도구
+
+ui-how-often-fastening-points-are-placed-by-498d32d10d244c21 = 고정점이 자동으로 놓이는 빈도
+
+ui-import-93f9356ee0cef73e = 가져오기…
+
+ui-import-brushes-abr-bc61ea3383f9a612 = 브러시 가져오기(.abr)
+
+ui-import-keyboard-shortcuts-9a7acd5b01140835 = 키보드 단축키를 가져올까요?
+
+ui-import-shortcuts-ca60eb051696939b = 단축키 가져오기…
+
+ui-import-swatches-d6432c51430e3eba = 색상 견본 가져오기…
+
+ui-imported-n-shortcuts-from-file-click-ok-t-5da9bf038f58bce4 = { $file }에서 단축키 { $n }개를 가져왔습니다. 유지하려면 확인을 클릭하세요.
+
+ui-impressionist-838b2d95b3fe039e = 인상파
+
+ui-include-in-playback-68b371aa09a42a7d = 재생에 포함
+
+ui-indigo-5c3d440918ff0f31 = 남색
+
+ui-invalid-delete-command-535e24127ed414d4 = 잘못된 삭제 명령입니다
+
+ui-invalid-guide-layout-a7becc4715dd0ef0 = 잘못된 안내선 레이아웃
+
+ui-iso-speed-57950bb275b569a4 = ISO 감도
+
+ui-italic-affc1f243d43a170 = 기울임
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = 레이어가 GPU 메모리 예산에 맞지 않습니다. 환경 설정 › 성능에서 메모리 사용량을 늘리면 이 컴퓨터 메모리의 4분의 1까지 예산이 늘어납니다.
+
+ui-keep-this-tab-open-to-retain-your-brushe-a5f6fe26fae0d562 = 브러시를 유지하려면 이 탭을 열어 두세요.
+
+ui-keyboard-shortcuts-imported-fee2c7c74ed2a6bf = 키보드 단축키를 가져왔습니다
+
+ui-knockout-114fcb275f7f7673 = 녹아웃
+
+ui-label-is-writing-the-file-and-can-no-lon-33df6081c771e2b9 = { $label }: 파일을 쓰는 중이므로 더 이상 취소할 수 없습니다
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = 큰 문서: CPU에서 다시 그리는 중
+
+ui-layer-deleted-but-confirmation-preferenc-f2ce35477ff1e4fa = 레이어가 삭제되었지만 확인 설정을 저장할 수 없습니다: { $error }
+
+ui-leave-empty-for-automatic-size-2f6af7cbd1f8cd38 = 자동 크기를 사용하려면 비워 두세요
+
+ui-left-cdcd976a8ae9a624 = 왼쪽:
+
+ui-lens-f9af7c851d6f6256 = 렌즈
+
+ui-light-b8b902e993554a24 = 가늘게
+
+ui-light-theme-58b947c570ab5ee4 = 밝은 테마
+
+ui-link-radii-cf0a1c73be90d1a2 = 반경 연결
+
+ui-linux-display-server-e35271f31f95faac = Linux 디스플레이 서버
+
+ui-load-a-keyboard-shortcut-set-saved-as-ky-08aaf9f9e85e9925 = .kys로 저장된 키보드 단축키 세트 불러오기
+
+ui-location-297949d1a95f2298 = 위치
+
+ui-location-d83b1142cca7d946 = 위치:
+
+ui-low-resolution-previews-250ad01d7da7418c = 저해상도 미리 보기
+
+ui-make-10ce4e8ae215e940 = 제조사
+
+ui-make-landscape-29de2da2acf3e4ec = 가로 방향으로
+
+ui-make-portrait-48262a543a70ad70 = 세로 방향으로
+
+ui-marching-ants-81b580a962b06f44 = 점선 윤곽
+
+ui-match-canvas-e96f08cd86b7fed4 = 캔버스와 일치
+
+ui-medium-9ccd01b2e5f752af = 중간
+
+ui-missing-delete-command-a4f922e5ac863be5 = 삭제 명령이 없습니다
+
+ui-miter-f77adc9d7250d2f8 = 마이터
+
+ui-miter-limit-26f9b3d9afbcfa5b = 마이터 한도
+
+ui-mode-color-bits-bit-91d967615006031b = { $mode } 색상 · { $bits }비트
+
+ui-model-4383b12efc2485a7 = 모델
+
+ui-more-documents-702166de66a88b90 = 추가 문서
+
+ui-move-panel-3a47e11ada54b960 = 패널 이동
+
+ui-n-commands-are-not-in-photocraft-8d9da53e6d113da9 = 명령 { $n }개는 PhotoCraft에 없습니다.
+
+ui-n-of-max-sample-points-23c59085c2f1cfcb = { $max }개 중 { $n }개의 샘플 지점
+
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Wayland에서는 아직 파일 드래그 앤 드롭을 지원하지 않습니다. 파일 › 열기를 사용하거나, 파일 관리자에서 이미지를 복사한 뒤 { $paste }(으)로 붙여넣으세요.
+
+ui-negation-4fc106b159214b14 = 부정
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm은 이미지의 비트 심도와 채널에 따라 하위 형식을 선택합니다.
+
+ui-never-show-overlay-62e4d50ec1f95088 = 오버레이 표시 안 함
+
+ui-new-brush-preset-9a813a7c947ca0f2 = 새 브러시 사전 설정…
+
+ui-new-crop-preset-a06657144aecc436 = 새 자르기 사전 설정…
+
+ui-new-document-with-mask-829ecf76a05eef44 = 새 문서(마스크 포함)
+
+ui-new-layer-with-mask-a27e3dedb04b398a = 새 레이어(마스크 포함)
+
+ui-new-swatch-35500735beac1287 = 새 색상 견본…
+
+ui-new-swatch-group-d508820c8747faca = 새 색상 견본 그룹…
+
+ui-next-appearance-mode-1ad9397736c7ee33 = 다음 화면 모드
+
+ui-next-document-6e3c850115c17527 = 다음 문서
+
+ui-no-document-open-3e622d7f3eb6fe8b = 열린 문서 없음
+
+ui-no-matching-settings-ee7ac3cb953063dc = 일치하는 설정 없음
+
+ui-no-saved-presets-yet-70f97356610163a1 = 저장된 사전 설정이 없습니다.
+
+ui-no-subject-found-try-a-rectangle-around-t-305b2a5462b07838 = 피사체를 찾을 수 없습니다 — 개체 주위에 사각형을 그려 보세요
+
+ui-no-subject-found-try-object-selection-or-631a2c6cfea1b5bc = 피사체를 찾을 수 없습니다 — 개체 선택 또는 올가미를 사용해 보세요
+
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = 웹 색상이 아님: 클릭하면 가장 가까운 웹 색상으로 바뀝니다
+
+ui-notification-duration-seconds-d8febd6df942f984 = 알림 지속 시간(초)
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = 이제 선택 영역을 다른 영역으로 드래그하세요
+
+ui-number-64f8e212c5ac06de = 개수
+
+ui-object-selection-found-nothing-there-try-ca465edbd222510f = 개체 선택으로 해당 위치에서 아무것도 찾지 못했습니다 — 더 좁은 사각형을 사용해 보세요
+
+ui-on-black-e728be796304fcb9 = 검정 배경
+
+ui-on-layers-c8e8d79373a527f0 = 레이어 위
+
+ui-on-white-6215953b11747b1b = 흰색 배경
+
+ui-onion-skin-b8980fb3c2df588d = 어니언 스킨
+
+ui-opacity-threshold-3dbc5455a6a96857 = 불투명도 한계값
+
+ui-open-exr-parts-fd9bfecaa27e1e30 = EXR 파트 열기…
+
+ui-open-in-camera-raw-c438bf24dab93647 = Camera Raw에서 열기
+
+ui-open-paths-use-centered-strokes-3add57d4a0335f7d = 열린 패스는 가운데 획을 사용합니다
+
+ui-open-source-65fefae8d3d63fa4 = 오픈 소스
+
+ui-opened-name-21b0dd7c898f99fb = { $name } 열림
+
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = 또는 환경 설정 › 성능 › Linux 디스플레이 서버를 X11로 설정하면 PhotoCraft가 항상 XWayland에서 시작됩니다.
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = 인쇄 색역 밖: 클릭하면 가장 가까운 인쇄 가능한 색상으로 바뀝니다
+
+ui-paint-over-hair-or-fur-on-the-image-alt-p-44f8b66674c7cf71 = 이미지의 머리카락이나 털 위를 칠합니다. Alt는 다른 모드로 칠합니다
+
+ui-panel-menu-06b4f84ed48efc1a = 패널 메뉴
+
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }: 경로가 올바른 유니코드가 아닙니다. 파일 이름을 바꾼 뒤 다시 여세요.
+
+ui-pattern-stamp-3def986c64c12dcc = 패턴 스탬프
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = 패턴 스탬프 도구
+
+ui-pencil-8084544d4ac2ea36 = 연필
+
+ui-perspective-crop-tool-9d2500bb26bc190b = 원근 자르기 도구
+
+ui-photocraft-found-your-keyboard-shortcut-s-865cccf0e5aa0eef = PhotoCraft가 이 컴퓨터에서 다른 이미지 편집기의 키보드 단축키 세트 { $set }을(를) 찾았습니다. 단축키 { $n }개가 PhotoCraft와 다릅니다. 가져올까요?
+
+ui-photocraft-screen-color-picker-7b92fa1bcc690048 = PhotoCraft — 화면 색상 선택기
+
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = 화면 픽셀을 선택하거나 Esc를 눌러 취소
+
+ui-pick-screen-color-b1eefd560cdcf751 = 화면 색상 선택
+
+ui-point-sample-10f1da74f87660f7 = 포인트 샘플
+
+ui-preserve-transparency-ec3f87e2963c04bb = 투명도 유지
+
+ui-preset-name-a0b4d9aa9b88ec7b = 사전 설정 이름
+
+ui-pressure-curve-19292bf407107dbf = 필압 곡선
+
+ui-previous-document-eaa84057a6b49afb = 이전 문서
+
+ui-pro-light-5f027dfe73385691 = 프로(밝게)
+
+ui-pro-light-d99268b6a486cfe6 = 프로 밝게
+
+ui-pro-light-gray-b0b886c21e82d0dc = 프로(밝은 회색)
+
+ui-pro-light-gray-bc41ae44cf80a191 = 프로 밝은 회색
+
+ui-pro-light-gray-theme-7ba042d458fbdefc = 프로 밝은 회색 테마
+
+ui-pro-light-theme-e381bc8b2c880e03 = 프로 밝은 테마
+
+ui-pro-medium-3990a13d10e49531 = Pro Medium
+
+ui-pupil-size-a21b8b198e346afe = 동공 크기
+
+ui-quick-selection-found-nothing-there-79e12ccf085cca73 = 빠른 선택으로 해당 위치에서 아무것도 찾지 못했습니다
+
+ui-rasterize-layer-style-c11eb0192450d280 = 레이어 스타일 래스터화
+
+ui-rasterize-layers-ef809f91579ccb22 = 레이어 래스터화
+
+ui-rasterize-svg-groups-deeper-than-2ea169bca636efde = 이 깊이보다 깊은 SVG 그룹 래스터화
+
+ui-red-eye-96b14bb055bf9143 = 적목 현상
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = 적목 현상 도구
+
+ui-refine-9e0be4b61fc803be = 다듬기
+
+ui-refine-edge-brush-r-c2b236a925ebf002 = 가장자리 다듬기 브러시 (R)
+
+ui-reflect-d0229494c0f576bc = 반사
+
+ui-regular-182bf85491dfe61c = 보통
+
+ui-remove-from-favorites-486786afd446c748 = 즐겨찾기에서 제거
+
+ui-remove-from-recent-9d1617d42109ab60 = 최근 항목에서 제거
+
+ui-remove-name-from-recent-10f46ef1688734d3 = 최근 항목에서 { $name } 제거
+
+ui-remove-pair-36d4c6635ffda785 = 쌍 제거
+
+ui-remove-tool-f4e2e17b376f490b = 제거 도구
+
+ui-replace-swatches-22ed7dc765dad82d = 색상 견본 바꾸기…
+
+ui-reset-28450354f52cb7ae = 재설정
+
+ui-reset-all-tools-376ceb5881d91e9a = 모든 도구 초기화
+
+ui-reset-all-tools-to-their-default-setting-051b717b3b6a210c = 모든 도구를 기본 설정으로 초기화하시겠습니까?
+
+ui-reset-swatches-99689ab8ada5eb9a = 색상 견본 재설정
+
+ui-reset-tool-09e396a78e8ad944 = 도구 초기화
+
+ui-reset-view-c0bdf39ad3792a63 = 보기 재설정
+
+ui-resize-panel-window-2882cbd9cf0bb38f = 패널 창 크기 조절
+
+ui-resize-panels-63366d26e7bff572 = 패널 크기 조절
+
+ui-restore-original-edge-1f47567587324e0f = 원래 가장자리 복원
+
+ui-retry-saving-presets-46dc9ac2d6616d53 = 사전 설정 저장 다시 시도
+
+ui-right-cbe095148fc36d83 = 오른쪽:
+
+ui-ring-double-46bac415b3bcb0d3 = 링 - 이중
+
+ui-rolling-slope-descending-905375a37c64ed52 = 구르는 경사 - 내림차순
+
+ui-rotate-view-db81b0d3c1a858dd = 보기 회전
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = 보기 회전 도구
+
+ui-round-dbce8f85403bd2bd = 원형
+
+ui-rounded-steps-7f4362f1e501c0f7 = 둥근 계단
+
+ui-rows-edb0eb2f630a8e3a = 행
+
+ui-rule-of-thirds-a9efcd425580c820 = 삼등분 법칙
+
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = 화면의 아무 픽셀에서 색상 추출
+
+ui-sample-size-84705069550bbf3c = 샘플 크기:
+
+ui-save-as-preset-fcb3834698c2503d = 프리셋으로 저장
+
+ui-save-preset-2328ef2728084c33 = 사전 설정 저장…
+
+ui-saved-5eaa631947aa180a = 저장됨
+
+ui-saved-name-ec890ad7eb9202d3 = { $name } 저장됨
+
+ui-saving-brush-presets-keep-this-tab-open-u-0387001733cba4f2 = 브러시 사전 설정 저장 중… 저장이 끝날 때까지 이 탭을 열어 두세요.
+
+ui-saving-name-2363a755794e1f66 = { $name } 저장 중
+
+ui-sawtooth-1-8eeceb1522eaf619 = 톱니 1
+
+ui-scale-3aee47f8880725bf = 비율:
+
+ui-scope-8765632a779d5bdd = 범위
+
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = 스크롤하여 확대/축소
+
+ui-scrubby-zoom-be94ebd193e23a8a = 스크러비 확대/축소
+
+ui-seafoam-ebe537921cc90f2b = 바다 거품색
+
+ui-search-settings-a7fc4883f6918f9c = 설정 검색…
+
+ui-select-the-crop-presets-to-delete-719febcbd9ce2506 = 삭제할 자르기 사전 설정을 선택하십시오
+
+ui-select-the-crop-presets-to-delete-e0e2e763194944f4 = 삭제할 자르기 사전 설정을 선택하십시오:
+
+ui-selected-3ee82e06f8c5ee8e = 선택됨
+
+ui-selected-artboards-b150baa5bc687b52 = 선택한 아트보드
+
+ui-selection-preview-a4f0a0102c940143 = 선택 영역 미리 보기:
+
+ui-semibold-f43621cc0429d1c1 = 반굵게
+
+ui-set-additional-crop-options-437370a0bbc94342 = 추가 자르기 옵션 설정
+
+ui-set-black-point-3a2fd412fb7bf324 = 검은점 설정
+
+ui-set-neutral-gray-point-80347a56d69ad333 = 중성 회색점 설정
+
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = 자르기 도구의 오버레이 옵션 설정
+
+ui-set-white-point-526c42ac4bcf95ae = 흰점 설정
+
+ui-show-canvas-dots-6d94c3d743b8de22 = 캔버스 점 표시
+
+ui-show-cropped-area-53b623311de34a66 = 잘린 영역 표시
+
+ui-show-edge-0e6f6ff17e21f8ef = 가장자리 표시
+
+ui-show-grid-fae930dfc8ee4b2e = 격자 표시
+
+ui-show-hide-all-panels-240e4d824315700b = 모든 패널 표시/숨기기
+
+ui-show-hide-panels-f43db26049aad092 = 패널 표시/숨기기
+
+ui-show-highlight-on-rollover-69405ef2139701f4 = 롤오버 시 강조 표시
+
+ui-show-in-explorer-2f94447b91dbe64c = 파일 탐색기에서 보기
+
+ui-show-in-folder-e0edb8f0cae13d5f = 폴더에서 보기
+
+ui-show-original-9f96d5b03071c5ed = 원본 표시
+
+ui-show-rulers-15364a8b811babcf = 눈금자 표시
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = 샘플링 링 표시
+
+ui-single-column-marquee-tool-1dac583cc51f40e3 = 단일 열 선택 윤곽 도구
+
+ui-single-row-marquee-tool-220700fd1e13590f = 단일 행 선택 윤곽 도구
+
+ui-size-was-old-41f38564856f8aff = { $size } (이전 { $old })
+
+ui-slant-8684e6366a796841 = 기울기
+
+ui-snap-to-origin-2f5c18a1a31eaab6 = 원점에 스냅
+
+ui-solarized-dark-b3d33c9539e10efa = Solarized 어두움
+
+ui-solarized-dark-theme-592f33cc33819357 = Solarized 어두운 테마
+
+ui-solid-9b8a594e6937f34a = 실선
+
+ui-some-brush-presets-could-not-be-loaded-85dba33dc441678d = 일부 브러시 사전 설정을 불러오지 못했습니다
+
+ui-star-ratio-24437e279a76229e = 별 비율:
+
+ui-straighten-the-image-by-drawing-a-line-o-e0da8c009ed35534 = 이미지에 선을 그려 수평 맞추기
+
+ui-stroke-color-705a1554bb23c6c0 = 획 색상
+
+ui-stroke-options-157cb1b9e34287dd = 획 옵션
+
+ui-studio-light-c59588e3a608ca09 = Studio Light
+
+ui-symmetry-off-f51a8e00f2b6ab64 = 대칭 끔
+
+ui-sync-with-system-a2794e085c62fd61 = 시스템과 동기화
+
+ui-system-title-bar-b81774202f7af861 = 시스템 제목 표시줄
+
+ui-targa-options-6616b16a7d3445cc = Targa 옵션
+
+ui-target-3ebe946eefdad3c8 = 대상:
+
+ui-the-document-is-closed-8ec5c55a26b25b8f = 문서가 닫혔습니다
+
+ui-the-document-or-selected-layers-changed-p-9972332ed404c2e8 = 문서 또는 선택한 레이어가 변경되었습니다. 삭제를 다시 요청하세요.
+
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = GPU 합성기를 사용하지 않았습니다: { $reason }
+
+ui-the-gradient-the-gradient-tool-paints-wi-93518332f123931c = 그라디언트 도구가 칠하는 그라디언트입니다
+
+ui-the-keyboard-shortcut-set-was-not-import-03551b2b8d5b9f3d = 키보드 단축키 세트를 가져오지 못했습니다: { $error }
+
+ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = 메모리 예산은 문서 픽셀, 포함된 데이터 및 실행 취소 기록이 공유합니다. 필요에 따라 증가하며 앱의 다른 메모리 사용량은 별도입니다.
+
+ui-there-is-no-crop-size-or-ratio-to-save-10795b0c2723f449 = 저장할 자르기 크기나 비율이 없습니다
+
+ui-thin-24348b0f6db9a923 = 아주 가늘게
+
+ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = 이 브라우저 버전은 실행 취소 기록을 메모리에 보관합니다. 스크래치 디스크 설정은 데스크톱 앱에 적용됩니다.
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = 이 형식은 병합된 이미지를 저장합니다. 편집 가능한 문서를 유지하려면 사본 저장을 사용하세요.
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = 이번 다시 그리기는 CPU에서 { $seconds }초 걸렸습니다.
+
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = 파일을 끌어다 놓으려면 XWayland에서 PhotoCraft를 실행하세요: `{ $command }`
+
+ui-top-ec7ca21db87f9dcc = 위:
+
+ui-transform-symmetry-308ef5a329d1f431 = 대칭 변형
+
+ui-transparency-threshold-d681456c819197c6 = 투명도 한계값
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = 이 색상 모드에서는 사용할 수 없음
+
+ui-undo-disk-space-grows-only-when-needed-u-86946daf63c3a558 = 실행 취소 디스크 공간은 필요할 때만 이 한도까지 증가합니다. 0은 디스크 캐시를 비활성화합니다. 스크래치 경로는 다음 캐시 세션부터 적용됩니다.
+
+ui-update-the-current-brush-with-these-sett-a7e6365f7455aaec = 이 설정으로 현재 브러시 업데이트
+
+ui-use-classic-mode-ef70cbf7d572eaf9 = 클래식 모드 사용
+
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = 파일 › 열기를 사용하거나, 복사한 이미지를 { $paste }(으)로 붙여넣으세요.
+
+ui-use-finite-lengths-and-a-positive-patter-45d1303fb60dbb99 = 유한한 길이와 양수 패턴 합계를 사용하세요
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = 트랙패드 압력 사용
+
+ui-vertical-type-mask-tool-35f5821cb3112aa1 = 세로 문자 마스크 도구
+
+ui-w-08323107b4eadc18 = 폭
+
+ui-w-unit-x-h-unit-ppi-ppi-1cc3519842d6fe39 = { $w } { $unit } x { $h } { $unit } ({ $ppi } ppi)
+
+ui-w-x-h-x-resolution-3b06634d489d6fe2 = 폭 x 높이 x 해상도
+
+ui-white-matte-93f44761248dcc3d = 흰색 배경
+
+ui-x11-52a9397deddd2397 = X11
+
+ui-xor-521a5a7ded63a364 = XOR
+
+ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = 키보드 단축키 세트 { $set }을(를) 여기서 사용합니다. 단축키 { $n }개가 기본값과 다릅니다. 편집 › 키보드 단축키에서 확인할 수 있고, 모두 기본값으로 재설정으로 되돌릴 수 있습니다.
+
+ui-decontaminate-1f0aa396647233f3 = 오염 제거
+
+ui-emulsion-down-04563fb4794ff91f = 감광면 아래로
+
+ui-functions-16dce49f49de2be4 = 기능
+
+ui-output-2555373b75aa89b2 = 출력
+
+ui-print-resolution-ce140e05758a8376 = 인쇄 해상도:
+
+ui-refine-edge-394e57164384edb3 = 가장자리 다듬기
+
+ui-refine-strokes-0b1c46698a8ef47f = 다듬기 획
+
+ui-shift-edge-4fadcbcd31772f0a = 가장자리 이동
+
+ui-smart-radius-2179959cee59e956 = 고급 반경

@@ -136,7 +136,7 @@ pub(crate) fn eyedropper(ctx: &Context, pos: egui::Pos2) -> egui::CursorIcon {
         });
         if let Some(image) = image {
             ctx.set_cursor_image(Some(image));
-            return egui::CursorIcon::Crosshair; // visible fallback for non-winit integrations
+            return egui::CursorIcon::None; // CursorLifecycle supplies the visible backend fallback
         }
     }
     crate::icons::cursor(ctx, "pipette", pos, egui::vec2(2.0, 22.0) / 24.0, 20.0);

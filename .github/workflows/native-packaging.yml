@@ -74,7 +74,14 @@ jobs:
         with:
           key: native-packaging-windows-${{ matrix.arch }}
       - name: Install WiX
-        run: dotnet tool install --global wix --version 5.0.2
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'WiX tool installation failed' }
+          wix extension add -g WixToolset.UI.wixext/5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'WiX UI extension installation failed' }
+          wix extension add -g WixToolset.Util.wixext/5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'WiX Util extension installation failed' }
       - name: Build and package
         shell: pwsh
         run: ./packaging/windows/package.ps1 -Arch ${{ matrix.arch }}

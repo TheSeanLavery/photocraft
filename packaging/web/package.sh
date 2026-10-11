@@ -27,18 +27,16 @@ fi
 # Size gate (issue #198): Cloudflare Pages/Workers reject any single file over 25 MiB, and other
 # hosts and CDNs have similar caps. Enforce the host cap during packaging so releases remain
 # uploadable. Override with PHOTOCRAFT_WASM_MAX_BYTES only to investigate.
-MAX_WASM_BYTES="${PHOTOCRAFT_WASM_MAX_BYTES:-26214400}" # 25 MiB
+MAX_WASM_BYTES="${PHOTOCRAFT_WASM_MAX_BYTES:-25165824}" # 24 MiB, leaving headroom below the host cap
 WASM_COUNT=0
-for wasm in "$SITE"/*.wasm; do
-  [ -f "$wasm" ] || continue
-  WASM_COUNT=$((WASM_COUNT + 1))
-  size=$(wc -c <"$wasm" | tr -d ' ')
-  echo "$(basename "$wasm"): $size bytes ($((size / 1048576)) MiB; limit $MAX_WASM_BYTES)"
+while IFS= read -r -d '' asset; do
+  size=$(wc -c <"$asset" | tr -d ' ')
+  case "$asset" in *.wasm) WASM_COUNT=$((WASM_COUNT + 1)); echo "$(basename "$asset"): $size bytes ($((size / 1048576)) MiB; limit $MAX_WASM_BYTES)" ;; esac
   if [ "$size" -gt "$MAX_WASM_BYTES" ]; then
-    echo "error: $(basename "$wasm") is $size bytes, over the $MAX_WASM_BYTES-byte limit (Cloudflare's per-file cap is 25 MiB)" >&2
+    echo "error: ${asset#"$SITE/"} is $size bytes, over the $MAX_WASM_BYTES-byte runtime asset limit (Cloudflare's per-file cap is 25 MiB)" >&2
     exit 1
   fi
-done
+done < <(find "$SITE" -type f -print0)
 [ "$WASM_COUNT" -gt 0 ] || { echo "error: no .wasm in $SITE" >&2; exit 1; }
 
 NAME="photocraft-web-$VERSION"
@@ -50,6 +48,33 @@ cp -R "$SITE/." "$WORK/$NAME/"
 cp "$HERE/_headers" "$HERE/.htaccess" "$WORK/$NAME/"
 cp "$HERE/README.md" "$WORK/$NAME/HOSTING.md"
 copy_docs "$WORK/$NAME"
+# Optional served fonts (README.md › Fonts): PHOTOCRAFT_WEB_FONTS_DIR=<a craft-fonts checkout, or any
+# folder with a fonts/manifest.txt in its format> copies the manifest, every font and licence file
+# it lists into the site, at the same paths. The wasm is unchanged; the app fetches fonts on demand.
+if [ -n "${PHOTOCRAFT_WEB_FONTS_DIR:-}" ]; then
+  FONTS_MANIFEST="$PHOTOCRAFT_WEB_FONTS_DIR/fonts/manifest.txt"
+  [ -f "$FONTS_MANIFEST" ] || { echo "error: $FONTS_MANIFEST missing (PHOTOCRAFT_WEB_FONTS_DIR)" >&2; exit 1; }
+  mkdir -p "$WORK/$NAME/fonts"
+  cp "$FONTS_MANIFEST" "$WORK/$NAME/fonts/manifest.txt"
+  # Field 3 is the font file, field 6 (if any) its licence file; both relative to the folder.
+  awk -F' [|] ' '!/^[[:space:]]*(#|$)/ { print $3; if ($6 != "") print $6 }' "$FONTS_MANIFEST" | sort -u | while IFS= read -r f; do
+    case "$f" in
+      "" | /* | *..* | *\\* | *://*) echo "error: $FONTS_MANIFEST: '$f' is not a relative path inside the folder" >&2; exit 1 ;;
+    esac
+    mkdir -p "$WORK/$NAME/$(dirname "$f")"
+    cp "$PHOTOCRAFT_WEB_FONTS_DIR/$f" "$WORK/$NAME/$f"
+  done
+  echo "served fonts: $(grep -cvE '^[[:space:]]*(#|$)' "$FONTS_MANIFEST") manifest lines from $PHOTOCRAFT_WEB_FONTS_DIR"
+fi
+# Served fonts and copied documentation are added after the Trunk output check. Enforce the
+# same host cap on the final site too, so an optional font cannot silently make it unuploadable.
+while IFS= read -r -d '' asset; do
+  size=$(wc -c <"$asset" | tr -d ' ')
+  if [ "$size" -gt "$MAX_WASM_BYTES" ]; then
+    echo "error: ${asset#"$WORK/$NAME/"} is $size bytes, over the $MAX_WASM_BYTES-byte runtime asset limit" >&2
+    exit 1
+  fi
+done < <(find "$WORK/$NAME" -type f -print0)
 rm -f "$DIST/$NAME.zip"
 (cd "$WORK" && zip -qr9 "$DIST/$NAME.zip" "$NAME")
 echo "wrote $DIST/$NAME.zip"

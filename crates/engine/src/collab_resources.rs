@@ -113,7 +113,8 @@ pub fn command_mode(id: &str, params: &Value) -> CommandMode {
         || id.starts_with("plugin.")
         || matches!(
             id,
-            "paint.cloneStamp"
+            "layer.copyToDocument"
+                | "paint.cloneStamp"
                 | "paint.healingBrush"
                 | "paint.patternStamp"
                 | "image.applyDataSet"
@@ -196,8 +197,12 @@ pub fn capture_context(s: &Session) -> Result<Value> {
         context_doc.quick_mask = None;
         bundle = photocraft_format::save_to_bytes(&context_doc, &Default::default()).map_err(other)?;
     }
+    let symmetry = state.symmetry.as_ref().map(|symmetry| match symmetry {
+        crate::symmetry_cmds::PaintingSymmetry::Path(axis) => json!({"mode":"path", "source":axis.source, "segments":axis.segments}),
+        crate::symmetry_cmds::PaintingSymmetry::Preset(_) => symmetry.inspect(),
+    });
     Ok(
-        json!({"bundle":bundle,"localSelectionResources":local_selection_resources,"activeLayer":state.active_layer,"selectedLayers":state.selected_layers,"layerVisibility":state.doc.walk().into_iter().map(|(_,_,layer)|(layer.id,layer.visible)).collect::<std::collections::BTreeMap<_,_>>(),
+        json!({"symmetry":symmetry,"maskTargeted":s.tools.mask_targeted,"otherColors":s.tools.other_colors,"bundle":bundle,"localSelectionResources":local_selection_resources,"activeLayer":state.active_layer,"selectedLayers":state.selected_layers,"layerVisibility":state.doc.walk().into_iter().map(|(_,_,layer)|(layer.id,layer.visible)).collect::<std::collections::BTreeMap<_,_>>(),
         "foreground":s.tools.foreground,"background":s.tools.background,"brush":s.tools.brush,"mixer":s.tools.mixer,
         "brushPresets":Vec::<photocraft_paint::BrushPreset>::new(),"gradient":s.presets.gradient,"gradients":Vec::<Value>::new(),
         "styles":Vec::<Value>::new(),"shapes":Vec::<Value>::new(),"pattern":s.presets.pattern,
@@ -225,6 +230,10 @@ fn isolated(doc: &Document, context: &Value) -> Result<Session> {
     doc.quick_mask = context_doc.quick_mask;
     let mut s = Session::new();
     s.add_document(doc, None);
+    s.tools.mask_targeted = context.get("maskTargeted").and_then(Value::as_bool).unwrap_or(false);
+    if context.get("otherColors").is_some() {
+        s.tools.other_colors = decode(context, "otherColors")?;
+    }
     s.tools.foreground = decode(context, "foreground")?;
     s.tools.background = decode(context, "background")?;
     s.tools.brush = decode(context, "brush")?;
@@ -257,8 +266,24 @@ fn isolated(doc: &Document, context: &Value) -> Result<Session> {
                 target.get("index").and_then(Value::as_u64).and_then(|v| usize::try_from(v).ok()).ok_or_else(|| other("invalid alpha channel"))?,
             ),
             Some("composite") => crate::channel_cmds::ChannelTarget::Composite,
+            Some("layerMask") => crate::channel_cmds::ChannelTarget::LayerMask,
+            Some("vectorMask") => crate::channel_cmds::ChannelTarget::VectorMask,
             _ => return Err(other("invalid artist channel target")),
         };
+    }
+    if let Some(symmetry) = context.get("symmetry").filter(|value| !value.is_null()) {
+        if symmetry.get("mode").and_then(Value::as_str) == Some("path") {
+            let segments: Vec<[[f64; 2]; 2]> = decode(symmetry, "segments")?;
+            if segments.is_empty() || segments.len() > 1024 || !segments.iter().flatten().flatten().all(|value| value.is_finite() && value.abs() <= 1_000_000.0)
+            {
+                return Err(other("invalid artist symmetry path"));
+            }
+            let source = symmetry.get("source").and_then(Value::as_str).unwrap_or("Artist path").to_owned();
+            s.active_mut().ok_or(EngineError::NoDocument)?.symmetry =
+                Some(crate::symmetry_cmds::PaintingSymmetry::Path(crate::symmetry_cmds::SymmetryAxis { source, segments }));
+        } else {
+            s.execute("paint.setSymmetry", symmetry.clone())?;
+        }
     }
     Ok(s)
 }
@@ -291,9 +316,24 @@ pub fn prepare_command(s: &Session, id: &str, params: &Value) -> Result<CommandE
             dependencies: vec![link.layer],
         });
     }
-    let doc = &s.active().ok_or(EngineError::NoDocument)?.doc;
-    let context = capture_context(s)?;
-    let dependencies = s.active().map(|st| st.selected_layers()).unwrap_or_default();
+    let target = if id == "layer.copyToDocument" {
+        params
+            .get("document")
+            .and_then(Value::as_u64)
+            .and_then(|index| usize::try_from(index).ok())
+            .and_then(|index| s.documents().get(index))
+            .ok_or_else(|| other("invalid copy destination"))?
+    } else {
+        s.active().ok_or(EngineError::NoDocument)?
+    };
+    let doc = &target.doc;
+    let mut context = capture_context(s)?;
+    if id == "layer.copyToDocument" {
+        context["targetDocument"] = json!(doc.id);
+        context["activeLayer"] = json!(target.active_layer);
+        context["selectedLayers"] = json!(target.selected_layers);
+    }
+    let dependencies = target.selected_layers();
     let mut edit = CommandEdit {
         key: String::new(),
         id: id.into(),
@@ -306,6 +346,18 @@ pub fn prepare_command(s: &Session, id: &str, params: &Value) -> Result<CommandE
     let mut scratch = isolated(doc, &edit.context)?;
     // Client-only state resolves before any network request; it is never loaded from peer paths.
     scratch.tools = s.tools.clone();
+    // Upstream libraries keep sampled tips and textures on disk until first use. Only the
+    // initiating artist may load those resources: the isolated session has no file store.
+    // Hydrate the selected brush when available, without making unrelated commands fail for
+    // a missing brush. A named painting preset must resolve before local evaluation.
+    let _ = s.load_brush_tips(&mut scratch.tools.brush);
+    edit.context["brush"] = json!(scratch.tools.brush);
+    if id.starts_with("paint.")
+        && let Some(name) = params.get("preset").and_then(Value::as_str)
+        && let Some(preset) = scratch.tools.presets.iter_mut().find(|preset| preset.name.eq_ignore_ascii_case(name))
+    {
+        s.load_brush_tips(&mut preset.brush).map_err(other)?;
+    }
     scratch.actions = s.actions.clone();
     scratch.authorize = s.authorize;
     scratch.presets = s.presets.clone();
@@ -356,6 +408,15 @@ pub fn prepare_command(s: &Session, id: &str, params: &Value) -> Result<CommandE
 
 /// Update only private initiating-artist state after accepting their prepared operation.
 pub fn apply_artist_effects(s: &mut Session, edit: &CommandEdit, before: &Document) -> Result<()> {
+    if edit.id == "layer.copyToDocument" {
+        let destination: photocraft_doc::DocId = decode(&edit.context, "targetDocument")?;
+        if let Some(index) = s.documents().iter().position(|state| state.doc.id == destination) {
+            s.set_active(index);
+            if let Some(layer) = edit.context.get("resolvedResult").and_then(|result| result.get("layer")).and_then(Value::as_u64) {
+                s.select_layer(LayerId(layer))?;
+            }
+        }
+    }
     if matches!(edit.id.as_str(), "paint.cloneStamp" | "paint.healingBrush") {
         s.presets.clone = decode(&edit.context, "cloneAfter")?;
     }
@@ -433,7 +494,7 @@ mod tests {
     fn captured_context_replays_private_selection_and_color_at_every_depth() {
         for depth in [8, 16, 32] {
             let mut artist = Session::new();
-            artist.execute("file.new", json!({"width":16,"height":16,"depth":depth,"fill":"transparent"})).unwrap();
+            artist.execute("file.new", json!({"width":16,"height":16,"depth":depth,"background":"transparent"})).unwrap();
             artist.execute("tools.setColors", json!({"foreground":"#ff0000"})).unwrap();
             artist.execute("select.rect", json!({"x":0,"y":0,"width":8,"height":16})).unwrap();
             let params = json!({"points":[[4,8,0.8],[12,8,0.8]],"size":6,"hardness":1,"smoothing":0});
@@ -446,6 +507,38 @@ mod tests {
             assert_eq!(photocraft_compose::render(expected, rect).px, photocraft_compose::render(&received, rect).px);
         }
     }
+    #[test]
+    fn stored_preset_after_restart_resolves_on_artist_and_replays_without_store() {
+        use crate::preset_store::{MemBackend, open};
+        use photocraft_paint::{BrushPreset, BrushSettings, GrayTile, Pattern, TipShape};
+        let backend = MemBackend::default();
+        let tile = GrayTile::from_fn(256, 256, |x, y| if (x + y) % 7 == 0 { 1.0 } else { 0.25 });
+        let mut setup = Session::new();
+        setup.attach_preset_store(open(Box::new(backend.clone())));
+        let mut brush = BrushSettings { size: 12.0, tip: TipShape::Sampled(tile.clone()), ..Default::default() };
+        brush.texture.pattern = Pattern::Tile(tile);
+        brush.texture.enabled = true;
+        setup.tools.presets.push(BrushPreset { name: "Stored collaboration".into(), group: "Room tests".into(), folder: vec![], builtin: false, brush });
+        setup.brush_presets_changed();
+        setup.sync_preset_store();
+        drop(setup);
+
+        let mut artist = Session::new();
+        assert!(artist.attach_preset_store(open(Box::new(backend))).is_empty());
+        let preset = artist.tools.presets.iter().find(|preset| preset.name == "Stored collaboration").unwrap();
+        assert!(matches!(&preset.brush.tip, TipShape::Stored(resource) if resource.full.is_none()));
+        assert!(matches!(&preset.brush.texture.pattern, Pattern::Stored(resource) if resource.full.is_none()));
+        artist.execute("file.new", json!({"width":32,"height":32,"background":"transparent"})).unwrap();
+        let before = (*artist.active().unwrap().doc).clone();
+        let params = json!({"preset":"Stored collaboration","points":[[8,8],[24,24]],"size":12});
+        let edit = prepare_command(&artist, "paint.stroke", &params).unwrap();
+        assert!(edit.outcome.is_some(), "private stored resources publish an authored delta");
+        let (received, _) = execute_resolved(&before, &edit).unwrap();
+        artist.execute("paint.stroke", params).unwrap();
+        let rect = photocraft_geom::Rect::new(0, 0, 32, 32);
+        assert_eq!(photocraft_compose::render(&received, rect).px, photocraft_compose::render(&artist.active().unwrap().doc, rect).px);
+    }
+
     #[test]
     fn a_peer_cannot_turn_a_resource_command_into_host_filesystem_access() {
         let mut s = Session::new();
@@ -512,5 +605,62 @@ mod tests {
         assert_ne!(command_mode("pattern.presets.apply", &Value::Null), CommandMode::Local);
         assert_ne!(command_mode("file.placeEmbedded", &json!({"path":"image.png"})), CommandMode::Local);
         assert_eq!(command_mode("select.rect", &Value::Null), CommandMode::Local);
+    }
+}
+
+#[cfg(test)]
+mod integration_context_tests {
+    use super::*;
+    #[test]
+    fn symmetry_and_private_mask_context_survive_author_resolution() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width":16,"height":16})).unwrap();
+        s.execute("layer.layerMask.revealAll", json!({})).unwrap();
+        s.active_mut().unwrap().channel_view.target = crate::channel_cmds::ChannelTarget::LayerMask;
+        s.sync_tools_mask_target();
+        s.tools.other_colors = [[0.25, 0.5, 0.75, 1.0], [0.75, 0.5, 0.25, 1.0]];
+        s.execute("paint.setSymmetry", json!({"mode":"vertical", "center":[8.0,8.0], "rotation":0.0})).unwrap();
+        let context = capture_context(&s).unwrap();
+        let restored = isolated(&s.active().unwrap().doc, &context).unwrap();
+        assert_eq!(restored.tools.mask_targeted, s.tools.mask_targeted);
+        assert_eq!(restored.tools.other_colors, s.tools.other_colors);
+        assert_eq!(restored.active().unwrap().symmetry, s.active().unwrap().symmetry);
+        assert_eq!(restored.active().unwrap().channel_view.target, crate::channel_cmds::ChannelTarget::LayerMask);
+    }
+}
+
+#[cfg(test)]
+mod cross_document_room_tests {
+    use super::*;
+    #[test]
+    fn copies_into_room_use_destination_delta_and_copies_out_keep_room_unchanged() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width":16,"height":16})).unwrap();
+        let room_id = s.active().unwrap().doc.id;
+        s.execute("collab.room.create", json!({"code":"COPYROOM", "peer":"host"})).unwrap();
+        s.execute("file.new", json!({"width":16,"height":16})).unwrap();
+        s.execute("edit.fill", json!({"color":"#ff0000"})).unwrap();
+        let private = s.active().unwrap().doc.clone();
+        let initial_layers = s.documents()[0].doc.layers.len();
+        s.execute("layer.copyToDocument", json!({"document":0})).unwrap();
+        assert_eq!(s.active().unwrap().doc.id, room_id);
+        assert_eq!(s.documents()[0].doc.layers.len(), initial_layers + 1);
+        assert_eq!(s.collaboration.own_history().len(), 1);
+        assert_eq!(s.documents()[1].doc.id, private.id);
+        assert_eq!(photocraft_compose::flatten(&s.documents()[1].doc).px, photocraft_compose::flatten(&private).px);
+        let checkpoint = s.collaboration_checkpoint().unwrap();
+        let room = s.documents()[0].doc.clone();
+        s.execute("layer.copyToDocument", json!({"document":1})).unwrap();
+        assert_eq!(s.active().unwrap().doc.id, private.id);
+        assert_eq!(s.documents()[0].doc.layers.len(), room.layers.len());
+        assert_eq!(s.collaboration.own_history().len(), 1, "a private destination is not a shared edit");
+        let mut restored = Session::new();
+        restored.add_document((*room).clone(), None);
+        restored.collaboration_install_checkpoint(checkpoint).unwrap();
+        assert_eq!(photocraft_compose::flatten(&restored.active().unwrap().doc).px, photocraft_compose::flatten(&room).px);
+        s.set_active(0);
+        s.undo();
+        assert_eq!(s.documents()[0].doc.layers.len(), initial_layers);
+        assert_eq!(s.documents()[1].doc.layers.len(), private.layers.len() + 1);
     }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and package PhotoCraft for Linux (<arch> is x86_64 or aarch64):
+# Build and package PhotoCraft for Linux (<arch> is x86_64, aarch64 or riscv64):
 #
 #   $DIST/photocraft-<version>-linux-<arch>.AppImage  any distro with glibc >= the build host's
 #   $DIST/photocraft-<version>-linux-<arch>.AppImage.zsync  delta updates (needs zsyncmake)
@@ -14,6 +14,10 @@
 # (downloaded into $CARGO_TARGET_DIR if missing). Build on an old distro (CI: Ubuntu 22.04,
 # glibc 2.35) so the binaries run on newer ones. Optional: desktop-file-validate, appstreamcli,
 # zsyncmake (the zsync package) for the AppImage's .zsync.
+#
+# Cross builds (CI: riscv64, tar.gz only): set CROSS_ARCH (riscv64), CROSS_TARGET (the Rust
+# triple), CROSS_COMPILE (binutils prefix, for strip) and optionally EMULATOR (e.g. qemu-riscv64)
+# to smoke-test the CLI.
 set -euo pipefail
 # shellcheck source=../env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/../env.sh"
@@ -26,17 +30,19 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --skip-build) SKIP_BUILD=1; shift ;;
     --formats) FORMATS="$2"; shift 2 ;;
-    -h | --help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,19p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 
-ARCH="$(uname -m)"
+ARCH="${CROSS_ARCH:-$(uname -m)}"
 case "$ARCH" in
+  riscv64) DEB_ARCH=riscv64; TARGET=riscv64gc-unknown-linux-gnu ;;
   x86_64) DEB_ARCH=amd64; TARGET=x86_64-unknown-linux-gnu ;;
   aarch64 | arm64) ARCH=aarch64; DEB_ARCH=arm64; TARGET=aarch64-unknown-linux-gnu ;;
   *) echo "unsupported architecture $ARCH" >&2; exit 2 ;;
 esac
+TARGET="${CROSS_TARGET:-$TARGET}"
 export PHOTOCRAFT_MAINTAINER="${PHOTOCRAFT_MAINTAINER:-PhotoCraft maintainers <photocraft@storyteller.ai>}"
 BASENAME="photocraft-$VERSION-linux-$ARCH"
 CLI_BASENAME="photocraft-cli-$VERSION-linux-$ARCH"
@@ -61,9 +67,9 @@ mkdir -p "$SYMBOLS"
 for binary in photocraft photocraft-cli; do
   # Fail closed: missing objcopy, missing debug info extraction or strip failure must not
   # silently ship an unexpectedly large binary or lose diagnostics. Keep the ELF build ID.
-  objcopy --only-keep-debug "$BIN/$binary" "$SYMBOLS/$binary.debug"
+  "${CROSS_COMPILE:-}objcopy" --only-keep-debug "$BIN/$binary" "$SYMBOLS/$binary.debug"
 done
-strip --strip-unneeded "$STAGE/usr/bin/photocraft" "$CLI_STAGE/bin/photocraft-cli"
+"${CROSS_COMPILE:-}strip" --strip-unneeded "$STAGE/usr/bin/photocraft" "$CLI_STAGE/bin/photocraft-cli"
 mkdir -p "$CLI_STAGE/share/doc/photocraft-cli"
 copy_docs "$CLI_STAGE/share/doc/photocraft-cli"
 # The CLI is always a separate download, including when only installers are requested.
@@ -161,7 +167,11 @@ if has appimage; then
   fi
 fi
 
+if [ -z "${CROSS_TARGET:-}" ]; then
 "$CLI_STAGE/bin/photocraft-cli" --version
 "$STAGE/usr/bin/photocraft" --version
+elif [ -n "${EMULATOR:-}" ]; then
+  "$EMULATOR" "$CLI_STAGE/bin/photocraft-cli" --version
+fi
 echo "==> done"
 ls -lh "$DIST"

@@ -5177,3 +5177,865 @@ ui-use-available-disk-space-44211d74d7260f1a = Utiliser l’espace disque dispon
 ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Le stockage d’annulation grandit selon les besoins. L’historique illimité conserve les états jusqu’à saturation. Les chemins s’appliquent à la prochaine session du cache.
 
 ui-change-opacity-c419e848020b25f4 = Modifier l’opacité
+
+ui-0-turns-this-threshold-off-svg-groups-ne-8107dd87e635679d = 0 désactive ce seuil ; les groupes SVG imbriqués sur plus de 100 niveaux sont toujours pixellisés.
+
+ui-101-by-101-average-f0636a75b4938275 = Moyenne 101 × 101
+
+ui-11-by-11-average-538d383a16a69bb7 = Moyenne 11 × 11
+
+ui-12-columns-b949e2085ce68503 = 12 colonnes
+
+ui-24-bits-pixel-1efd69221601fa68 = 24 bits/pixel
+
+ui-3-by-3-average-400d4f87bb7a72ef = Moyenne 3 × 3
+
+ui-31-by-31-average-f49ec39b911d80e3 = Moyenne 31 × 31
+
+ui-32-bits-pixel-33b63adb24722469 = 32 bits/pixel
+
+ui-5-by-5-average-393c80f9d8845bab = Moyenne 5 × 5
+
+ui-5-columns-3-rows-8ebf23bc0edaefdb = 5 colonnes, 3 lignes
+
+ui-50-gray-da82e26ee3dda904 = Gris 50 %
+
+ui-51-by-51-average-f8031ef2f1c3a59f = Moyenne 51 × 51
+
+ui-8-columns-7960156dbbf9d0ba = 8 colonnes
+
+ui-80-9314897fc598cede = 80 %
+
+ui-85-9303957fc58a700f = 85 %
+
+ui-90-89fe507fc0546e79 = 90 %
+
+ui-95-8a0f4c7fc062dae0 = 95 %
+
+ui-a-save-to-name-is-still-running-try-agai-05cc493545eb159a = Un enregistrement de { $name } est encore en cours ; réessayez lorsqu’il sera terminé
+
+ui-activate-panel-2d26ff9c85f372cc = Activer le panneau
+
+ui-active-9a4fc0866deff4e1 = Actif
+
+ui-add-anchor-point-tool-47f6a2d216ab0095 = Outil Ajout de point d'ancrage
+
+ui-add-beauty-precomp-from-the-aovs-4d9efefbd4ef0542 = Ajouter la précomposition de la beauté depuis les AOV
+
+ui-add-new-artboard-a9daaf925d16a4c3 = Ajouter un plan de travail
+
+ui-add-pair-0c629fff04fb2b1e = Ajouter une paire
+
+ui-add-to-favorites-0541c1994e6ae85e = Ajouter aux favoris
+
+ui-add-to-swatches-3781607eddbada31 = Ajouter au nuancier
+
+ui-adds-the-current-gradient-to-the-gradien-a1f9968192c4ba50 = Ajoute le dégradé actuel au panneau Dégradés
+
+ui-adwaita-cd477fc88437525a = Adwaita
+
+ui-adwaita-dark-50de267958d3f412 = Adwaita sombre
+
+ui-adwaita-dark-theme-05d4bf4c97aa218f = Thème Adwaita sombre
+
+ui-adwaita-light-theme-03c426048b1e340f = Thème Adwaita clair
+
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = Tous les calques sans ajustements
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Tous les raccourcis ont été réinitialisés aux valeurs par défaut de PhotoCraft.
+
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = L’Alt-clic a été intercepté par le bureau, qui déplace les fenêtres avec Alt-glisser. Réglez sa touche de déplacement des fenêtres sur Super, ou verrouillez Alt dans Fenêtre › Touches de modification.
+
+ui-always-show-overlay-b6be473be8ad3beb = Toujours afficher la superposition
+
+ui-and-n-more-6e37845d39302347 = …et { $n } de plus
+
+ui-anti-aliased-c391708a54da1e67 = Lissé
+
+ui-appearance-mode-c6e76c01b1038388 = Mode d’apparence
+
+ui-appearance-settings-b5f1d7603a447b52 = Réglages d’apparence…
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = Appliquer l’effet aux limites de la zone de travail
+
+ui-artboard-tool-80bd830389a6711e = Outil Plan de travail
+
+ui-auto-adjust-opacity-28ceac7a28ddd13a = Réglage automatique de l’opacité
+
+ui-auto-center-preview-225b4704be74d581 = Centrer automatiquement l'aperçu
+
+ui-auto-hide-notifications-5e48a1ec5b48ddc0 = Masquer automatiquement les notifications
+
+ui-auto-show-overlay-59ff23a3b368166d = Afficher automatiquement la superposition
+
+ui-automatic-04cc1a2793006d9a = Automatique
+
+ui-background-from-layer-95241da9efd58afc = Arrière-plan d'après le calque
+
+ui-bevel-b65a0ed0fa933479 = Biseau
+
+ui-bicubic-sharper-reduction-8526007a04be289f = Bicubique plus net (réduction)
+
+ui-bicubic-smoother-enlargement-f1b8e48b0f7a4a58 = Bicubique plus lisse (agrandissement)
+
+ui-black-87de58185ee7e143 = Noir
+
+ui-black-matte-7c051e0b8e0c064b = Fond noir
+
+ui-blend-if-47ff5afa1385a85d = Fusion si :
+
+ui-block-c4d0291e851daf50 = Carré
+
+ui-bold-98d37886cf62c4a3 = Gras
+
+ui-bottom-d0f114b5fd71868e = Bas :
+
+ui-bottom-left-a4a6bc5593eb6541 = En bas à gauche
+
+ui-bottom-right-2acd3cb673e6fda2 = En bas à droite
+
+ui-breeze-dark-e66fe26550bb0528 = Breeze sombre
+
+ui-breeze-dark-theme-a680c93f1fa1524d = Thème Breeze sombre
+
+ui-breeze-light-0148f2375063bb68 = Breeze clair
+
+ui-breeze-light-theme-ed04a9643b4b988d = Thème Breeze clair
+
+ui-browser-storage-is-unavailable-brushes-a-7917bc257e6f900e = Le stockage du navigateur n'est pas disponible ; les formes ne durent que le temps de la session. Gardez cet onglet ouvert pour les conserver.
+
+ui-brush-name-ed530497d97024a4 = Nom du pinceau
+
+ui-brush-preset-changes-are-not-saved-error-5f27ebc7fd81a7c9 = Les modifications des paramètres prédéfinis de forme ne sont pas enregistrées : { $error }
+
+ui-brush-preset-options-ae5d75337b0c67ae = Options des préréglages de pinceau
+
+ui-brush-stroke-e15a877d2a400187 = Trace de pinceau
+
+ui-budget-mb-af9a1600ca07b419 = Limite (Mio)
+
+ui-butt-flat-c72fa8c80b7c206a = Plat
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw ({ $name })
+
+ui-caps-4e22f5ac70d59b9a = Extrémités
+
+ui-center-columns-eca652a77591890d = Centrer les colonnes
+
+ui-change-panel-group-c875bb8728a6f2da = Modifier le groupe de panneaux
+
+ui-change-panel-layout-e2e9f02cb1355649 = Modifier la disposition des panneaux
+
+ui-channels-67ef32de1bae7097 = Couches :
+
+ui-clear-brush-strokes-12a3c251da9d3d0d = Effacer les traits de pinceau
+
+ui-clear-existing-guides-67c8180ae4647d7a = Effacer les repères existants
+
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = Cliquez sur une pupille rouge pour la corriger
+
+ui-click-a-segment-to-add-an-anchor-point-a-0c07d54f4028e4af = Cliquez sur un segment pour ajouter un point d'ancrage · { $alt }-clic sur un point d'ancrage pour le supprimer
+
+ui-click-an-anchor-point-to-delete-it-alt-c-06d19be357a2d4d7 = Cliquez sur un point d'ancrage pour le supprimer · { $alt }-clic sur un segment pour en ajouter un
+
+ui-click-corner-drag-smooth-alt-drag-break-h-8598a28b712a87d6 = Clic : angle · Glisser : lisse · { $alt }+glisser : briser la poignée · Clic ou glisser sur le premier point : fermer · { $key } : terminer · Échap : annuler
+
+ui-click-smooth-point-double-click-corner-d-7ea166abf0ee7560 = Clic : point lisse · Double-clic : angle · Glisser un point : déplacer · Clic sur le premier point : fermer · { $key } : terminer
+
+ui-click-the-first-point-or-press-key-to-cl-901ea1b540ae3fc7 = Cliquez sur le premier point ou appuyez sur { $key } pour fermer · { $del } supprime un point · Échap annule
+
+ui-click-then-move-along-an-edge-click-to-f-4f0fd576defa2100 = Cliquez, puis suivez un contour · cliquez pour fixer un point · { $alt }-clic pour un segment droit · double-cliquez pour fermer
+
+ui-click-to-add-a-point-right-click-to-remo-19feda9c95fbcf54 = Cliquez pour ajouter un point, clic droit pour le supprimer
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Cliquer pour changer le nombre de colonnes ; faire glisser la barre de titre pour déplacer
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Cliquer pour changer le nombre de colonnes ; faire glisser pour détacher les outils
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = Cliquer pour choisir · Échap pour annuler
+
+ui-click-to-place-alt-click-or-drag-off-can-0ced5c63027a6ce6 = Cliquez pour placer · Alt-clic ou glisser hors du canevas pour supprimer
+
+ui-close-panel-194028906d61d387 = Fermer le panneau
+
+ui-color-a13d112d0512855e = Couleur…
+
+ui-color-burn-paint-net-6bce7a866ee8fd93 = Densité couleur + (Paint.NET)
+
+ui-color-dodge-paint-net-6a1a7e45c5da25a9 = Densité couleur − (Paint.NET)
+
+ui-color-picker-crop-shield-color-f0f21c4248e058e3 = Sélecteur de couleurs (Couleur du masque de recadrage)
+
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Sélecteur de couleurs (Couleur de remplissage)
+
+ui-color-picker-layer-style-color-fbf90c85b504683a = Sélecteur de couleurs (couleur du style de calque)
+
+ui-color-picker-name-6336833802dc6c44 = Sélecteur de couleurs ({ $name })
+
+ui-color-picker-solid-color-11504899368a43d3 = Sélecteur de couleurs (couleur unie)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Sélecteur de couleurs (Couleur du contour)
+
+ui-color-picker-text-color-6873936c7cbaceb3 = Sélecteur de couleurs (Couleur du texte)
+
+ui-color-replacement-tool-e0f757ad548a409c = Outil Remplacement de couleur
+
+ui-color-to-alpha-5a172092ca34c10d = Couleur vers alpha…
+
+ui-cone-83c7f5ac8fb13c68 = Cône
+
+ui-cone-inverted-07c75939642bd114 = Cône (inversé)
+
+ui-cone-inverted-4f8ec26e3423aa10 = Cône - inversé
+
+ui-contents-b5e5b9d3f6d35ec1 = Contenu :
+
+ui-continue-f031dd957d5c1b56 = Continuer
+
+ui-contour-39d36135f075d52b = Contour
+
+ui-contour-editor-999a1019725e56a4 = Éditeur de contour
+
+ui-convert-point-tool-ebb1dfd0f79acf3a = Outil Conversion de point
+
+ui-corner-c1f5008d5d2ff536 = Angle
+
+ui-corners-c3453535587dc43f = Angles
+
+ui-could-not-complete-the-free-transform-co-bfdbe92f0a214b00 = Impossible d'exécuter la commande Transformation libre, car le calque est verrouillé.
+
+ui-could-not-open-05042bf852b9a743 = Impossible d’ouvrir
+
+ui-could-not-use-the-move-tool-because-the-l-34336f06c7d717d6 = Impossible d'utiliser l'outil Déplacement, car le calque est verrouillé.
+
+ui-cove-deep-f3413d717747416f = Crique - profonde
+
+ui-cove-shallow-a816ea81e32dc623 = Crique - peu profonde
+
+ui-create-a-new-elliptical-frame-d31989faf7fc5d30 = Créer un cadre elliptique
+
+ui-create-a-new-rectangular-frame-29813cef7128625f = Créer un cadre rectangulaire
+
+ui-create-ellipse-f707994617445531 = Créer une ellipse
+
+ui-create-new-swatch-df52baa4652be53b = Créer une nouvelle nuance
+
+ui-create-polygon-0312408e42727249 = Créer un polygone
+
+ui-create-rectangle-446a2149ba949cae = Créer un rectangle
+
+ui-create-triangle-70461e67c3bc8665 = Créer un triangle
+
+ui-crop-shield-color-fcab973d194f6a5d = Couleur du masque de recadrage
+
+ui-current-below-no-adjustments-ad3ef5ddcba453be = Actif et inférieurs sans ajustements
+
+ui-curvature-pen-tool-f2c504abaa665e43 = Outil Plume de courbure
+
+ui-curve-fit-4b92a705570d7f79 = Ajustement de courbe :
+
+ui-custom-pattern-b1725fbbdb358844 = Motif personnalisé :
+
+ui-cycle-orientation-d47100e364dd1ce9 = Changer d’orientation
+
+ui-cycle-overlay-cd2523de1e12bc5b = Changer de superposition
+
+ui-dark-theme-6d2ab4707cffde72 = Thème sombre
+
+ui-darken-amount-4ff87ddb9162ea14 = Quantité d'assombrissement
+
+ui-dash-1f756ca06449aeb3 = Tiret
+
+ui-dash-gap-lengths-stroke-width-d58b32d0afc2986d = Longueurs des tirets / espaces × largeur du contour
+
+ui-dash-offset-e2b5660c676021d6 = Décalage des tirets
+
+ui-dashed-6a8ccf30c380ff72 = Tirets
+
+ui-dashed-line-9de7b4d520d5eb5c = Ligne en tirets
+
+ui-date-taken-d246ca6065cd50fd = Date de prise de vue
+
+ui-default-photocraft-size-42e29dd35050952b = Taille PhotoCraft par défaut
+
+ui-delete-anchor-point-tool-32015b0a036fc947 = Outil Suppression de point d'ancrage
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = Supprimer et remplir la sélection
+
+ui-delete-count-layers-names-6bbff039943d0326 = Supprimer { $count } calques ? { $names }
+
+ui-delete-crop-preset-e34aa95ed101e033 = Supprimer le paramètre prédéfini de recadrage…
+
+ui-delete-layer-58301f0b5ef0e41a = Supprimer le calque ?
+
+ui-delete-layer-name-9407eadca584de9c = Supprimer le calque « { $name } » ?
+
+ui-developing-name-3ca6c158e9e9f235 = Développement de { $name }
+
+ui-diagonal-6308486872486528 = Diagonale
+
+ui-diagonal-descending-b3d2c399a327a7d9 = Diagonale (descendante)
+
+ui-dock-panel-0cd117664b0f3f4e = Ancrer le panneau
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Ancrer les outils à gauche
+
+ui-domed-6b80f3fc40f5c94c = Bombé
+
+ui-domed-inverted-3a1408397cf5ea60 = Bombé (inversé)
+
+ui-don-t-import-8a153d1cf3e9bcec = Ne pas importer
+
+ui-dotted-c6817b61ff95adbb = Pointillé
+
+ui-drag-a-box-or-click-four-corners-drag-th-df3a1ca51159d17a = Tracez un cadre ou cliquez sur quatre coins · faites glisser les coins sur les bords d'une forme inclinée · { $commit } valide · Échap annule
+
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = Tracez un cadre de recadrage · faites glisser à l'intérieur pour le déplacer · les bords le redimensionnent ({ $ratio } proportions, { $centre } centre) · Espace le déplace pendant le tracé · flèches le décalent · X permute l'orientation · { $commit } valide · Échap annule
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = Faites glisser autour du centre pour tourner la vue  ·  Maj contraint à 15°
+
+ui-drag-draw-freehand-release-on-the-start-p-ea613d199529d708 = Glisser : dessin à main levée · Relâcher sur le point de départ : fermer
+
+ui-dual-axis-1c45b5825da6a58e = Deux axes
+
+ui-edit-keyboard-shortcuts-reset-all-to-def-1c2e80c5385a9432 = Édition › Raccourcis clavier › Tout rétablir par défaut annule un import.
+
+ui-edit-paste-3f6b4ca340b0bccc = Édition › Coller
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = Les modifications qui touchent tout le document, comme le mode de fusion, l'opacité ou la visibilité d'un calque, le redessinent entièrement.
+
+ui-enable-crop-shield-f3578921d3d300ef = Activer le masque de recadrage
+
+ui-enter-a-name-for-the-crop-preset-a58a2551cfe13f3e = Saisissez un nom pour le paramètre prédéfini de recadrage
+
+ui-expand-detection-area-dceaf291bd07056d = Étendre la zone de détection
+
+ui-export-sdr-preview-a2e7aebcb62b91d6 = Exporter un aperçu SDR…
+
+ui-export-swatches-429d4e913cd22171 = Exporter les nuances…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = Exporter les nuances pour l'échange…
+
+ui-exposure-d40fa037a6d0e233 = Temps de pose
+
+ui-extrabold-fd6396c3deb95c21 = Extra-gras
+
+ui-extralight-0704360f6be0647a = Extrafin
+
+ui-eyedroppers-9220889b81a1f1b5 = Pipettes :
+
+ui-f-cycles-the-views-hold-x-to-see-the-ima-f78f72e02c811b5f = F fait défiler les vues ; maintenez X pour voir l'image
+
+ui-f-stop-950ea3f6954631c3 = Ouverture
+
+ui-fill-color-61734769aae23385 = Couleur de remplissage
+
+ui-fill-screen-610513f68e54eeee = Remplir l’écran
+
+ui-float-panel-b52119e145970061 = Panneau flottant
+
+ui-focal-length-35-mm-48b7586512d355f4 = Focale (35 mm)
+
+ui-focal-length-aa1997545c858259 = Focale
+
+ui-follows-only-edges-this-close-to-the-poi-10b48929e48da16b = Ne suit que les contours aussi proches du pointeur ([ et ] le modifient)
+
+ui-foreground-color-c4236e6fb45a0975 = Couleur de premier plan
+
+ui-frame-tool-3869ecc880418af6 = Outil Cadre
+
+ui-freeform-pen-tool-6f6679338fdf5312 = Outil Plume libre
+
+ui-from-center-0d8a0ee0ef65cec8 = À partir du centre
+
+ui-front-image-80d86d74a4acfac7 = Image de premier plan
+
+ui-fuchsia-8d83defd7f0120fc = Fuchsia
+
+ui-gap-e5bb2f7e411d4221 = Espace
+
+ui-gaussian-bba39d25ae40ed28 = Gaussienne
+
+ui-gloss-contour-5491d206d1cdb411 = Contour brillant
+
+ui-glow-4eaf4c888be6ecaa = Lueur
+
+ui-golden-ratio-ff69929862f02a2d = Nombre d’or
+
+ui-golden-spiral-5757498b8af1d487 = Spirale d’or
+
+ui-gradient-editor-bb6e0a95fb5ef2ac = Éditeur de dégradé
+
+ui-gradient-picker-54dd1fd154401b2b = Sélecteur de dégradé
+
+ui-gradient-stops-f06ae21e1135f30e = Arrêts de dégradé
+
+ui-group-with-94fcb352464d9a1e = Grouper avec
+
+ui-half-round-62b12796617538fe = Demi-arrondi
+
+ui-hdr-output-474159eb0db7fb90 = Sortie HDR
+
+ui-hdr-workbench-847f1f37e6c4ef5a = Espace de travail HDR
+
+ui-higher-values-follow-only-edges-that-con-339978148cf9c078 = Plus la valeur est élevée, plus seuls les contours très contrastés sont suivis
+
+ui-horizontal-type-mask-tool-0114c5e36a28d713 = Outil Masque de texte horizontal
+
+ui-how-often-fastening-points-are-placed-by-498d32d10d244c21 = Fréquence de pose automatique des points d’ancrage
+
+ui-import-brushes-abr-bc61ea3383f9a612 = Importer des pinceaux (.abr)
+
+ui-import-keyboard-shortcuts-9a7acd5b01140835 = Importer les raccourcis clavier ?
+
+ui-import-shortcuts-ca60eb051696939b = Importer des raccourcis…
+
+ui-import-swatches-d6432c51430e3eba = Importer des nuances…
+
+ui-imported-n-shortcuts-from-file-click-ok-t-5da9bf038f58bce4 = { $n } raccourcis importés depuis { $file }. Cliquez sur OK pour les conserver.
+
+ui-impressionist-838b2d95b3fe039e = Impressionniste
+
+ui-include-in-playback-68b371aa09a42a7d = Inclure dans la lecture
+
+ui-indigo-5c3d440918ff0f31 = Indigo
+
+ui-invalid-delete-command-535e24127ed414d4 = Commande de suppression non valide
+
+ui-invalid-guide-layout-a7becc4715dd0ef0 = Disposition des repères non valide
+
+ui-iso-speed-57950bb275b569a4 = Sensibilité ISO
+
+ui-italic-affc1f243d43a170 = Italique
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = Les calques dépassent le budget de mémoire GPU. Augmenter Utilisation de la mémoire dans Préférences › Performances relève ce budget, jusqu'au quart de la mémoire de cet ordinateur.
+
+ui-keep-this-tab-open-to-retain-your-brushe-a5f6fe26fae0d562 = Gardez cet onglet ouvert pour conserver vos formes.
+
+ui-keyboard-shortcuts-imported-fee2c7c74ed2a6bf = Raccourcis clavier importés
+
+ui-knockout-114fcb275f7f7673 = Masquage
+
+ui-label-is-writing-the-file-and-can-no-lon-33df6081c771e2b9 = { $label } écrit le fichier et ne peut plus être annulé
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = Document volumineux : redessin sur le CPU
+
+ui-layer-deleted-but-confirmation-preferenc-f2ce35477ff1e4fa = Le calque a été supprimé, mais la préférence de confirmation n’a pas pu être enregistrée : { $error }
+
+ui-leave-empty-for-automatic-size-2f6af7cbd1f8cd38 = Laisser vide pour une taille automatique
+
+ui-left-cdcd976a8ae9a624 = Gauche :
+
+ui-lens-f9af7c851d6f6256 = Objectif
+
+ui-light-b8b902e993554a24 = Maigre
+
+ui-light-theme-58b947c570ab5ee4 = Thème clair
+
+ui-link-radii-cf0a1c73be90d1a2 = Lier les rayons
+
+ui-linux-display-server-e35271f31f95faac = Serveur d'affichage Linux
+
+ui-load-a-keyboard-shortcut-set-saved-as-ky-08aaf9f9e85e9925 = Charger un jeu de raccourcis clavier enregistré en .kys
+
+ui-location-d83b1142cca7d946 = Emplacement :
+
+ui-low-resolution-previews-250ad01d7da7418c = Aperçus en basse résolution
+
+ui-make-10ce4e8ae215e940 = Marque
+
+ui-make-landscape-29de2da2acf3e4ec = Format paysage
+
+ui-make-portrait-48262a543a70ad70 = Format portrait
+
+ui-marching-ants-81b580a962b06f44 = Fourmis en marche
+
+ui-margin-27f17d733e6bbd89 = Marge
+
+ui-match-canvas-e96f08cd86b7fed4 = Identique à la zone de travail
+
+ui-medium-9ccd01b2e5f752af = Moyen
+
+ui-missing-delete-command-a4f922e5ac863be5 = Commande de suppression manquante
+
+ui-miter-f77adc9d7250d2f8 = Pointe
+
+ui-miter-limit-26f9b3d9afbcfa5b = Limite de pointe
+
+ui-model-4383b12efc2485a7 = Modèle
+
+ui-more-documents-702166de66a88b90 = Autres documents
+
+ui-move-panel-3a47e11ada54b960 = Déplacer le panneau
+
+ui-n-commands-are-not-in-photocraft-8d9da53e6d113da9 = { $n } commandes n'existent pas dans PhotoCraft.
+
+ui-n-of-max-sample-points-23c59085c2f1cfcb = { $n } sur { $max } points d'échantillonnage
+
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Le glisser-déposer natif de fichiers n'est pas encore pris en charge sous Wayland. Utilisez Fichier › Ouvrir, ou copiez l'image dans votre gestionnaire de fichiers et collez-la avec { $paste }.
+
+ui-negation-4fc106b159214b14 = Négation
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm choisit le sous-type selon la profondeur de couleur et les canaux de l’image.
+
+ui-never-show-overlay-62e4d50ec1f95088 = Ne jamais afficher la superposition
+
+ui-new-brush-preset-9a813a7c947ca0f2 = Nouveau préréglage de pinceau…
+
+ui-new-crop-preset-a06657144aecc436 = Nouveau paramètre prédéfini de recadrage…
+
+ui-new-document-with-mask-829ecf76a05eef44 = Nouveau document avec masque
+
+ui-new-layer-with-mask-a27e3dedb04b398a = Nouveau calque avec masque
+
+ui-new-swatch-35500735beac1287 = Nouvelle nuance…
+
+ui-new-swatch-group-d508820c8747faca = Nouveau groupe de nuances…
+
+ui-next-appearance-mode-1ad9397736c7ee33 = Mode d’apparence suivant
+
+ui-next-document-6e3c850115c17527 = Document suivant
+
+ui-no-document-open-3e622d7f3eb6fe8b = Aucun document ouvert
+
+ui-no-matching-settings-ee7ac3cb953063dc = Aucun réglage correspondant
+
+ui-no-saved-presets-yet-70f97356610163a1 = Aucun préréglage enregistré pour le moment.
+
+ui-no-subject-found-try-a-rectangle-around-t-305b2a5462b07838 = Aucun sujet trouvé — essayez un rectangle autour de l'objet
+
+ui-no-subject-found-try-object-selection-or-631a2c6cfea1b5bc = Aucun sujet trouvé — essayez la Sélection d'objet ou le Lasso
+
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = Pas une couleur web : cliquez pour la couleur web la plus proche
+
+ui-notification-duration-seconds-d8febd6df942f984 = Durée de la notification (secondes)
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = Faites maintenant glisser la sélection vers une autre zone
+
+ui-number-64f8e212c5ac06de = Nombre
+
+ui-object-selection-found-nothing-there-try-ca465edbd222510f = La Sélection d'objet n'a rien trouvé à cet endroit — essayez un rectangle plus serré
+
+ui-on-black-e728be796304fcb9 = Sur fond noir
+
+ui-on-layers-c8e8d79373a527f0 = Sur les calques
+
+ui-on-white-6215953b11747b1b = Sur fond blanc
+
+ui-onion-skin-b8980fb3c2df588d = Pelure d'oignon
+
+ui-opacity-threshold-3dbc5455a6a96857 = Seuil d'opacité
+
+ui-open-exr-parts-fd9bfecaa27e1e30 = Ouvrir les parties EXR…
+
+ui-open-in-camera-raw-c438bf24dab93647 = Ouvrir dans Camera Raw
+
+ui-open-paths-use-centered-strokes-3add57d4a0335f7d = Les tracés ouverts utilisent des contours centrés
+
+ui-open-source-65fefae8d3d63fa4 = code source ouvert
+
+ui-opened-name-21b0dd7c898f99fb = Ouvert : { $name }
+
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = Ou réglez Préférences › Performances › Serveur d'affichage Linux sur X11 : PhotoCraft démarre alors toujours sous XWayland.
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = Hors de la gamme d’impression : cliquez pour la couleur imprimable la plus proche
+
+ui-paint-over-hair-or-fur-on-the-image-alt-p-44f8b66674c7cf71 = Peignez sur les cheveux ou la fourrure dans l'image ; Alt peint dans l'autre mode
+
+ui-panel-menu-06b4f84ed48efc1a = Menu du panneau
+
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path } : le chemin n’est pas un Unicode valide ; renommez le fichier puis rouvrez-le.
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = Outil Tampon de motif
+
+ui-perspective-crop-tool-9d2500bb26bc190b = Outil Recadrage perspective
+
+ui-photocraft-found-your-keyboard-shortcut-s-865cccf0e5aa0eef = PhotoCraft a trouvé sur cet ordinateur votre jeu de raccourcis clavier { $set } provenant d'un autre éditeur d'images : { $n } de ses raccourcis diffèrent de ceux de PhotoCraft. L'importer ?
+
+ui-photocraft-screen-color-picker-7b92fa1bcc690048 = PhotoCraft — Sélecteur de couleur d'écran
+
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = Choisissez un pixel à l’écran ou appuyez sur Échap pour annuler
+
+ui-pick-screen-color-b1eefd560cdcf751 = Choisir une couleur à l’écran
+
+ui-point-sample-10f1da74f87660f7 = Échantillon ponctuel
+
+ui-preset-name-a0b4d9aa9b88ec7b = Nom du préréglage
+
+ui-pressure-curve-19292bf407107dbf = Courbe de pression
+
+ui-previous-document-eaa84057a6b49afb = Document précédent
+
+ui-pro-light-5f027dfe73385691 = Pro (clair)
+
+ui-pro-light-d99268b6a486cfe6 = Pro clair
+
+ui-pro-light-gray-b0b886c21e82d0dc = Pro (gris clair)
+
+ui-pro-light-gray-bc41ae44cf80a191 = Pro gris clair
+
+ui-pro-light-gray-theme-7ba042d458fbdefc = Thème Pro gris clair
+
+ui-pro-light-theme-e381bc8b2c880e03 = Thème Pro clair
+
+ui-pro-medium-3990a13d10e49531 = Pro Medium
+
+ui-pupil-size-a21b8b198e346afe = Taille de la pupille
+
+ui-quick-selection-found-nothing-there-79e12ccf085cca73 = La Sélection rapide n'a rien trouvé à cet endroit
+
+ui-rasterize-layer-style-c11eb0192450d280 = Rastériser le style de calque
+
+ui-rasterize-layers-ef809f91579ccb22 = Rastériser les calques
+
+ui-rasterize-svg-groups-deeper-than-2ea169bca636efde = Pixelliser les groupes SVG au-delà de cette profondeur
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = Outil Yeux rouges
+
+ui-refine-9e0be4b61fc803be = Affiner
+
+ui-refine-edge-brush-r-c2b236a925ebf002 = Pinceau d'amélioration du contour (R)
+
+ui-reflect-d0229494c0f576bc = Réflexion
+
+ui-regular-182bf85491dfe61c = Normal
+
+ui-remove-from-favorites-486786afd446c748 = Retirer des favoris
+
+ui-remove-from-recent-9d1617d42109ab60 = Retirer des fichiers récents
+
+ui-remove-name-from-recent-10f46ef1688734d3 = Retirer { $name } des fichiers récents
+
+ui-remove-pair-36d4c6635ffda785 = Retirer une paire
+
+ui-remove-tool-f4e2e17b376f490b = Outil Retirer
+
+ui-replace-swatches-22ed7dc765dad82d = Remplacer les nuances…
+
+ui-reset-all-tools-376ceb5881d91e9a = Réinitialiser tous les outils
+
+ui-reset-all-tools-to-their-default-setting-051b717b3b6a210c = Réinitialiser tous les outils à leurs paramètres par défaut ?
+
+ui-reset-swatches-99689ab8ada5eb9a = Réinitialiser les nuances
+
+ui-reset-tool-09e396a78e8ad944 = Réinitialiser l'outil
+
+ui-reset-view-c0bdf39ad3792a63 = Réinitialiser la vue
+
+ui-resize-panel-window-2882cbd9cf0bb38f = Redimensionner la fenêtre du panneau
+
+ui-resize-panels-63366d26e7bff572 = Redimensionner les panneaux
+
+ui-restore-original-edge-1f47567587324e0f = Restaurer le contour d'origine
+
+ui-retry-saving-presets-46dc9ac2d6616d53 = Réessayer d'enregistrer les paramètres prédéfinis
+
+ui-right-cbe095148fc36d83 = Droite :
+
+ui-ring-23d3ed2f82517781 = Anneau
+
+ui-ring-double-46bac415b3bcb0d3 = Anneau - double
+
+ui-rolling-slope-descending-905375a37c64ed52 = Pente ondulée - descendante
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = Outil Rotation de la vue
+
+ui-round-dbce8f85403bd2bd = Arrondi
+
+ui-rounded-steps-7f4362f1e501c0f7 = Paliers arrondis
+
+ui-rows-edb0eb2f630a8e3a = Lignes
+
+ui-rule-of-thirds-a9efcd425580c820 = Règle des tiers
+
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = Prélever un pixel n’importe où sur l’écran
+
+ui-sample-size-84705069550bbf3c = Taille de l'échantillon :
+
+ui-save-as-preset-fcb3834698c2503d = Enregistrer comme préreglage
+
+ui-saved-name-ec890ad7eb9202d3 = Enregistré : { $name }
+
+ui-saving-brush-presets-keep-this-tab-open-u-0387001733cba4f2 = Enregistrement des paramètres prédéfinis de forme… Gardez cet onglet ouvert jusqu'à la fin de l'enregistrement.
+
+ui-saving-name-2363a755794e1f66 = Enregistrement de { $name }
+
+ui-sawtooth-1-8eeceb1522eaf619 = Dents de scie 1
+
+ui-scale-3aee47f8880725bf = Échelle :
+
+ui-scope-8765632a779d5bdd = Portée
+
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = Défiler pour zoomer
+
+ui-seafoam-ebe537921cc90f2b = Écume de mer
+
+ui-search-settings-a7fc4883f6918f9c = Rechercher des réglages…
+
+ui-select-the-crop-presets-to-delete-719febcbd9ce2506 = Sélectionnez les paramètres prédéfinis de recadrage à supprimer
+
+ui-select-the-crop-presets-to-delete-e0e2e763194944f4 = Sélectionnez les paramètres prédéfinis de recadrage à supprimer :
+
+ui-selected-3ee82e06f8c5ee8e = Sélectionnés
+
+ui-selected-artboards-b150baa5bc687b52 = Plans de travail sélectionnés
+
+ui-selection-preview-a4f0a0102c940143 = Aperçu de la sélection :
+
+ui-semibold-f43621cc0429d1c1 = Demi-gras
+
+ui-set-additional-crop-options-437370a0bbc94342 = Définir d’autres options de recadrage
+
+ui-set-black-point-3a2fd412fb7bf324 = Définir le point noir
+
+ui-set-neutral-gray-point-80347a56d69ad333 = Définir le point gris neutre
+
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = Définir les options de superposition de l’outil Recadrage
+
+ui-set-white-point-526c42ac4bcf95ae = Définir le point blanc
+
+ui-show-canvas-dots-6d94c3d743b8de22 = Afficher les points du canevas
+
+ui-show-cropped-area-53b623311de34a66 = Afficher la zone recadrée
+
+ui-show-edge-0e6f6ff17e21f8ef = Afficher le bord
+
+ui-show-grid-fae930dfc8ee4b2e = Afficher la grille
+
+ui-show-hide-all-panels-240e4d824315700b = Afficher/masquer tous les panneaux
+
+ui-show-hide-panels-f43db26049aad092 = Afficher/masquer les panneaux
+
+ui-show-highlight-on-rollover-69405ef2139701f4 = Afficher la mise en surbrillance au survol
+
+ui-show-in-explorer-2f94447b91dbe64c = Afficher dans l'Explorateur
+
+ui-show-in-folder-e0edb8f0cae13d5f = Afficher dans le dossier
+
+ui-show-original-9f96d5b03071c5ed = Afficher l'original
+
+ui-show-rulers-15364a8b811babcf = Afficher les règles
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = Afficher l'anneau d'échantillonnage
+
+ui-single-column-marquee-tool-1dac583cc51f40e3 = Outil Sélection de colonne unique
+
+ui-single-row-marquee-tool-220700fd1e13590f = Outil Sélection de ligne unique
+
+ui-size-was-old-41f38564856f8aff = { $size } (auparavant { $old })
+
+ui-slant-8684e6366a796841 = Inclinaison
+
+ui-snap-to-origin-2f5c18a1a31eaab6 = Aligner sur l'origine
+
+ui-solarized-dark-b3d33c9539e10efa = Solarized sombre
+
+ui-solarized-dark-theme-592f33cc33819357 = Thème Solarized sombre
+
+ui-solid-9b8a594e6937f34a = Continu
+
+ui-some-brush-presets-could-not-be-loaded-85dba33dc441678d = Certains paramètres prédéfinis de forme n'ont pas pu être chargés
+
+ui-star-ratio-24437e279a76229e = Proportion de l'étoile :
+
+ui-straighten-the-image-by-drawing-a-line-o-e0da8c009ed35534 = Redresser l’image en traçant une ligne dessus
+
+ui-stroke-color-705a1554bb23c6c0 = Couleur du contour
+
+ui-stroke-options-157cb1b9e34287dd = Options du contour
+
+ui-studio-light-c59588e3a608ca09 = Studio Light
+
+ui-symmetry-off-f51a8e00f2b6ab64 = Symétrie désactivée
+
+ui-sync-with-system-a2794e085c62fd61 = Synchroniser avec le système
+
+ui-system-title-bar-b81774202f7af861 = Barre de titre du système
+
+ui-targa-options-6616b16a7d3445cc = Options Targa
+
+ui-target-3ebe946eefdad3c8 = Cible :
+
+ui-the-document-is-closed-8ec5c55a26b25b8f = Le document est fermé
+
+ui-the-document-or-selected-layers-changed-p-9972332ed404c2e8 = Le document ou les calques sélectionnés ont changé. Demandez à nouveau la suppression.
+
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = Le compositeur GPU n'a pas été utilisé : { $reason }
+
+ui-the-gradient-the-gradient-tool-paints-wi-93518332f123931c = Le dégradé que l'outil Dégradé applique
+
+ui-the-keyboard-shortcut-set-was-not-import-03551b2b8d5b9f3d = Le jeu de raccourcis clavier n'a pas été importé : { $error }
+
+ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = Le budget mémoire est partagé entre les pixels du document, les données intégrées et l’historique d’annulation. Il augmente selon les besoins ; les autres usages mémoire de l’application s’y ajoutent.
+
+ui-there-is-no-crop-size-or-ratio-to-save-10795b0c2723f449 = Aucune taille ni proportion de recadrage à enregistrer
+
+ui-thin-24348b0f6db9a923 = Ultrafin
+
+ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = Cette version pour navigateur conserve l’historique d’annulation en mémoire. Les réglages du disque de travail s’appliquent à l’application de bureau.
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = Ce format enregistre une image aplatie. Utilisez Enregistrer une copie pour conserver votre document modifiable.
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = Ce redessin sur le CPU a pris { $seconds } s.
+
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = Pour déposer des fichiers, lancez PhotoCraft sous XWayland : `{ $command }`
+
+ui-top-ec7ca21db87f9dcc = Haut :
+
+ui-top-left-35db253aba562917 = En haut à gauche
+
+ui-top-right-9a12cffd0398f888 = En haut à droite
+
+ui-transform-symmetry-308ef5a329d1f431 = Transformer la symétrie
+
+ui-transparency-threshold-d681456c819197c6 = Seuil de transparence
+
+ui-triangle-2af10d61da454203 = Triangle
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = Indisponible dans ce mode colorimétrique
+
+ui-undo-disk-space-grows-only-when-needed-u-86946daf63c3a558 = L’espace disque pour l’annulation augmente uniquement si nécessaire, jusqu’à cette limite. Zéro désactive le cache disque. Les chemins de travail s’appliquent à la prochaine session de cache.
+
+ui-update-the-current-brush-with-these-sett-a7e6365f7455aaec = Mettre à jour le pinceau actuel avec ces paramètres
+
+ui-use-classic-mode-ef70cbf7d572eaf9 = Utiliser le mode classique
+
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = Utilisez Fichier › Ouvrir, ou collez une image copiée avec { $paste }.
+
+ui-use-finite-lengths-and-a-positive-patter-45d1303fb60dbb99 = Utiliser des longueurs finies et un total de motif positif
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Utiliser la pression du pavé tactile
+
+ui-vertical-type-mask-tool-35f5821cb3112aa1 = Outil Masque de texte vertical
+
+ui-violet-2882bc397b2e28dc = Violet
+
+ui-w-unit-x-h-unit-ppi-ppi-1cc3519842d6fe39 = { $w } { $unit } × { $h } { $unit } ({ $ppi } ppp)
+
+ui-w-x-h-x-resolution-3b06634d489d6fe2 = L x H x Résolution
+
+ui-white-matte-93f44761248dcc3d = Fond blanc
+
+ui-x11-52a9397deddd2397 = X11
+
+ui-xor-521a5a7ded63a364 = XOR
+
+ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Votre jeu de raccourcis clavier { $set } est utilisé ici : { $n } raccourcis diffèrent des valeurs par défaut. Édition › Raccourcis clavier les affiche ; Tout rétablir par défaut annule l'import.
+
+ui-decontaminate-1f0aa396647233f3 = Décontaminer
+
+ui-emulsion-down-04563fb4794ff91f = Émulsion verso
+
+ui-functions-16dce49f49de2be4 = Fonctions
+
+ui-output-2555373b75aa89b2 = Sortie
+
+ui-print-resolution-ce140e05758a8376 = Résolution d’impression :
+
+ui-refine-edge-394e57164384edb3 = Améliorer le contour
+
+ui-refine-strokes-0b1c46698a8ef47f = Traits d'affinement
+
+ui-shift-edge-4fadcbcd31772f0a = Décaler le contour
+
+ui-smart-radius-2179959cee59e956 = Rayon dynamique

@@ -1,5 +1,5 @@
 //! Release-build, offscreen live-file acceptance. Uses only its caller-owned evidence directory.
-use egui_kittest::Harness;
+use egui_kittest::{Harness, kittest::Queryable};
 use photocraft_ui_egui::{
     PhotocraftApp, Services,
     theme::{LayoutTokens, ThemeKind, Tokens},
@@ -64,6 +64,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::thread::sleep(Duration::from_millis(15));
         }
         h.run_steps(4);
+        // Exercise the real Fit control after each theme reflows the available canvas.
+        h.get_by_label("Fit").click();
+        h.run_steps(4);
+        if h.state().ui.views.first().is_none_or(|view| view.fit_pending) {
+            return Err(format!("{slug}: Fit did not complete").into());
+        }
         if gpu && !h.state().perf.gpu {
             return Err("document did not render through GPU canvas".into());
         }
@@ -73,15 +79,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let app = h.state();
             let view = app.ui.views.first().ok_or("missing document view")?;
             let doc = app.session.active().ok_or("missing document")?;
-            let xf = photocraft_ui_egui::canvas::ViewXform { rect: app.last_canvas_rect, zoom: view.zoom, center: view.center, flip: false };
+            let xf = photocraft_ui_egui::canvas::ViewXform {
+                rect: app.last_canvas_rect,
+                zoom: view.zoom / h.ctx.pixels_per_point(),
+                center: view.center,
+                flip: false,
+                aspect: 1.0,
+                rotation: 0.0,
+            };
             let document = xf.doc_rect(doc.doc.bounds());
-            // A modern blurred shadow darkens this white pasteboard strip.
-            for offset in [5.0, 10.0, 18.0] {
-                let x = (document.center().x * scale).round() as u32;
-                let y = ((document.bottom() + offset) * scale).round() as u32;
-                if x >= image.width() || y >= image.height() {
-                    return Err("shadow sample outside image".into());
-                }
+            // A modern blurred shadow darkens the pasteboard next to a document edge.
+            // Select a fully visible strip in the actual fitted canvas, then require every
+            // sample to remain white. Logical canvas coordinates scale exactly once to pixels.
+            let strips = [
+                [5.0, 10.0, 18.0].map(|offset| egui::pos2(document.center().x, document.bottom() + offset)),
+                [5.0, 10.0, 18.0].map(|offset| egui::pos2(document.right() + offset, document.center().y)),
+                [5.0, 10.0, 18.0].map(|offset| egui::pos2(document.center().x, document.top() - offset)),
+                [5.0, 10.0, 18.0].map(|offset| egui::pos2(document.left() - offset, document.center().y)),
+            ];
+            let ppp = h.ctx.pixels_per_point();
+            let strip = strips
+                .into_iter()
+                .find(|points| {
+                    points.iter().all(|point| {
+                        xf.rect.contains(*point)
+                            && !document.contains(*point)
+                            && point.x >= 0.0
+                            && point.y >= 0.0
+                            && (point.x * ppp).round() < image.width() as f32
+                            && (point.y * ppp).round() < image.height() as f32
+                    })
+                })
+                .ok_or("fitted System 6 document has no visible pasteboard strip")?;
+            for point in strip {
+                let (x, y) = ((point.x * ppp).round() as u32, (point.y * ppp).round() as u32);
                 if image.get_pixel(x, y).0 != [255, 255, 255, 255] {
                     return Err("System 6 pasteboard contains a soft document shadow".into());
                 }

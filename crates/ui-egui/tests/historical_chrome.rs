@@ -214,6 +214,8 @@ fn historical_floating_properties_fit_and_visibility_controls_still_dispatch() {
                 let mut app = PhotocraftApp::new(Session::new(), Services::default());
                 app.run("file.new", json!({"width":640,"height":480})).unwrap();
                 app.run("layer.newAdjustmentLayer.brightnessContrast", json!({})).unwrap();
+                // New upstream adjustment layers target their masks; inspect the adjustment content.
+                app.ui.mask_target = false;
                 app.ui.panels.properties = true;
                 app
             });
@@ -254,6 +256,8 @@ fn every_historical_adjustment_properties_card_stays_inside_the_viewport() {
                     let mut app = PhotocraftApp::new(Session::new(), Services::default());
                     app.run("file.new", json!({"width":64,"height":48})).unwrap();
                     app.run(command, json!({})).unwrap();
+                    // New upstream adjustment layers target their masks; inspect the adjustment content.
+                    app.ui.mask_target = false;
                     app.ui.panels.properties = true;
                     app
                 });
@@ -282,6 +286,7 @@ fn long_gradient_properties_scroll_to_reset_without_leaving_the_viewport() {
             app.run("file.new", json!({"width":64,"height":48})).unwrap();
             let stops: Vec<_> = (0..64).map(|i| json!([f64::from(i) / 63.0, if i % 2 == 0 { "#000000" } else { "#FFFFFF" }])).collect();
             app.run("layer.newAdjustmentLayer.gradientMap", json!({"stops":stops})).unwrap();
+            app.ui.mask_target = false;
             app.ui.panels.properties = true;
             app
         });
@@ -320,6 +325,7 @@ fn historical_slider_keyboard_edits_dispatch_to_the_adjustment_layer() {
         let mut app = PhotocraftApp::new(Session::new(), Services::default());
         app.run("file.new", json!({"width":64,"height":48})).unwrap();
         app.run("layer.newAdjustmentLayer.brightnessContrast", json!({})).unwrap();
+        app.ui.mask_target = false;
         app.ui.panels.properties = true;
         app
     });

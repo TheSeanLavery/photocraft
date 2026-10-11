@@ -954,7 +954,7 @@ mod tests {
         a.ui.collaboration.name = "Host".into();
         b.ui.collaboration.name = "Guest".into();
         for app in [&mut a, &mut b] {
-            app.run("file.new", json!({"width":64,"height":64,"fill":"transparent"})).unwrap();
+            app.run("file.new", json!({"width":64,"height":64,"background":"transparent"})).unwrap();
         }
         a.run("collab.room.create", json!({"signalingUrl":server,"password":"test-password"})).unwrap();
         let (mut host, mut guest) = (bridge(), bridge());
@@ -981,7 +981,7 @@ mod tests {
         });
         let mut late_app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
         late_app.ui.collaboration.name = "Late guest".into();
-        late_app.run("file.new", json!({"width":64,"height":64,"fill":"transparent"})).unwrap();
+        late_app.run("file.new", json!({"width":64,"height":64,"background":"transparent"})).unwrap();
         late_app.run("collab.room.join", json!({"signalingUrl":server,"code":a.ui.collaboration.code,"password":"test-password"})).unwrap();
         let mut late = bridge();
         pump(&mut host, &mut a, &mut late, &mut late_app, |_, late| late.ui.collaboration.transport_status.starts_with("Connected"));

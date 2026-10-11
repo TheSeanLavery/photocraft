@@ -552,17 +552,16 @@ pub(crate) fn flatten(deep: &DeepImage) -> Result<Image, CodecError> {
         let base = p * nc;
         // Written by layout: RGB(A), gray(+A) — a fixed RGBA quadruple would put a luminance
         // copy into a GrayA image's alpha slot.
-        let vals: Vec<f32> = if rgb {
-            let c = [straight(cacc[0]), straight(cacc[1]), straight(cacc[2])];
-            if nc == 4 { c.into_iter().chain([a_clamped]).collect() } else { c.to_vec() }
-        } else if nc == 2 {
-            vec![straight(cacc[0]), a_clamped]
-        } else {
-            vec![straight(cacc[0])]
+        // A fixed array plus a length: this runs once per pixel, so no allocation.
+        let (vals, len) = match (rgb, nc) {
+            (true, 4) => ([straight(cacc[0]), straight(cacc[1]), straight(cacc[2]), a_clamped], 4),
+            (true, _) => ([straight(cacc[0]), straight(cacc[1]), straight(cacc[2]), 0.0], 3),
+            (false, 2) => ([straight(cacc[0]), a_clamped, 0.0, 0.0], 2),
+            (false, _) => ([straight(cacc[0]), 0.0, 0.0, 0.0], 1),
         };
-        for (k, v) in vals.iter().enumerate() {
+        for (k, v) in vals.into_iter().take(len).enumerate() {
             if let Some(slot) = out.get_mut(base + k) {
-                *slot = *v;
+                *slot = v;
             }
         }
     }

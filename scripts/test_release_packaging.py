@@ -5,6 +5,7 @@ Run: python3 scripts/test_release_packaging.py
 """
 from pathlib import Path
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,6 +14,37 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class WindowsToolchainTests(unittest.TestCase):
+    def test_every_wix_packager_installs_matching_extensions_and_stops_on_failure(self):
+        # A valid MSI authoring file and successful Rust build cannot compensate for missing
+        # extension cache entries. Check the requirements consumed by package.ps1 against
+        # every workflow that invokes it, including the signed release lane.
+        package = (ROOT / "packaging/windows/package.ps1").read_text()
+        required = set(re.findall(r"-ext\s+(WixToolset\.\w+\.wixext)", package))
+        self.assertTrue(required, "Windows packager declares no WiX extensions")
+        workflows = [path for path in (ROOT / ".github/workflows").glob("*.yml")
+                     if "./packaging/windows/package.ps1" in path.read_text()]
+        self.assertTrue(workflows, "No Windows packaging workflow was checked")
+        for path in workflows:
+            with self.subTest(workflow=path.name):
+                source = path.read_text()
+                step = re.search(r"^      - name: Install WiX\n(.*?)(?=^      -|\Z)",
+                                 source, re.MULTILINE | re.DOTALL)
+                self.assertIsNotNone(step, "Missing WiX setup step")
+                body = step.group(1)
+                self.assertIn("shell: pwsh", body)
+                version = re.search(r"dotnet tool install --global wix --version (\d+\.\d+\.\d+)", body)
+                self.assertIsNotNone(version, "WiX tool must have an exact version")
+                installed = dict(re.findall(r"wix extension add -g (WixToolset\.\w+\.wixext)/(\d+\.\d+\.\d+)", body))
+                self.assertEqual(set(installed), required, "WiX extension cache must satisfy the packager")
+                self.assertEqual(set(installed.values()), {version.group(1)})
+                lines = [line.strip() for line in body.splitlines()]
+                for index, line in enumerate(lines):
+                    if line.startswith(("dotnet tool install ", "wix extension add ")):
+                        self.assertRegex(lines[index + 1], r"^if \(\$LASTEXITCODE -ne 0\) \{ throw ",
+                                         "A failed setup command must stop before packaging")
 
 
 class ReleasePackagingTests(unittest.TestCase):

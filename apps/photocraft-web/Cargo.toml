@@ -44,4 +44,9 @@ serde-wasm-bindgen = "0.6"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
-web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "Location", "History", "CssStyleDeclaration", "Storage", "Event", "EventTarget", "MouseEvent", "PointerEvent", "Request", "RequestInit", "Headers", "Response", "RtcPeerConnection", "RtcConfiguration", "RtcDataChannel", "RtcDataChannelInit", "RtcDataChannelEvent", "RtcDataChannelState", "RtcDataChannelType", "RtcSessionDescriptionInit", "RtcSessionDescription", "RtcSdpType", "RtcIceGatheringState", "MessageEvent", "AbortController", "AbortSignal", "Performance", "ReadableStream", "ReadableStreamDefaultReader", "MessageChannel", "MessagePort", "Worker", "DedicatedWorkerGlobalScope", "WorkerGlobalScope"] }
+web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "HtmlCanvasElement", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "Location", "History", "CssStyleDeclaration", "Storage", "Event", "EventTarget", "MouseEvent", "PointerEvent", "Request", "RequestInit", "Headers", "Response", "RtcPeerConnection", "RtcConfiguration", "RtcDataChannel", "RtcDataChannelInit", "RtcDataChannelEvent", "RtcDataChannelState", "RtcDataChannelType", "RtcSessionDescriptionInit", "RtcSessionDescription", "RtcSdpType", "RtcIceGatheringState", "MessageEvent", "AbortController", "AbortSignal", "Performance", "ReadableStream", "ReadableStreamDefaultReader", "MessageChannel", "MessagePort", "Worker", "DedicatedWorkerGlobalScope", "WorkerGlobalScope", "BeforeUnloadEvent", "DomException", "IdbFactory", "IdbOpenDbRequest", "IdbDatabase", "IdbRequest", "IdbTransaction", "IdbTransactionMode", "IdbObjectStore", "IdbCursor", "IdbCursorWithValue", "Navigator"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+photocraft-paint = { workspace = true }
+photocraft-psd = { workspace = true }

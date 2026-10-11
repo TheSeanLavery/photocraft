@@ -1,5 +1,9 @@
-//! One lasso outline can alternate between freehand strokes and Alt-held straight segments.
-//! Selection intent is latched at the first press; Alt pressed later changes drawing mode.
+//! One lasso outline can alternate between freehand strokes and Alt-held straight segments:
+//! with Alt held, each click adds a straight segment and a drag draws freehand. Releasing Alt
+//! while the button is up closes the outline and makes the selection.
+//! Selection intent is latched at the first press: Alt held then subtracts from an existing
+//! selection; with no selection there is nothing to subtract, so it starts straight segments.
+//! Alt pressed later changes drawing mode.
 
 use crate::{
     PhotocraftApp,
@@ -49,6 +53,13 @@ fn moving_selection(app: &PhotocraftApp) -> bool {
     app.drag.as_ref().is_some_and(|d| d.tool == Tool::Lasso && d.sel_move.is_some())
 }
 
+/// A drag the canvas handles rather than this module, which only feeds it the events: moving the
+/// selection, a guide that ⌘ took (`canvas::command_guide_at`, #2690), or the layer that ⌘ moves
+/// (`canvas::command_moves_layer`, refused on a locked layer: `move_blocked`, #2725).
+fn handed_over(app: &PhotocraftApp) -> bool {
+    moving_selection(app) || app.guide_drag.is_some_and(|d| d.index.is_some()) || app.drag.as_ref().is_some_and(|d| d.tool == Tool::Move) || app.move_blocked
+}
+
 pub fn cancel_stale(app: &mut PhotocraftApp) {
     if app
         .drag
@@ -71,14 +82,17 @@ fn modifiers(app: &mut PhotocraftApp, mods: Modifiers) {
     d.track(mods);
     // Alt held before the initial press still means subtract, until released and pressed again.
     let polygonal = mods.alt && (!d.modifiers.alt || d.released.alt);
-    if let Some(lasso) = &d.lasso {
-        let anchor = (lasso.polygonal && !polygonal && lasso.down).then_some(lasso.cursor);
-        if let Some(p) = anchor {
-            append(d, p);
-        }
+    // Alt released between straight segments (button up): the outline is done.
+    let close = d.lasso.as_ref().is_some_and(|l| l.polygonal && !polygonal && !l.down);
+    let anchor = d.lasso.as_ref().and_then(|l| (l.polygonal && !polygonal && l.down).then_some(l.cursor));
+    if let Some(p) = anchor {
+        append(d, p);
     }
     if let Some(lasso) = &mut d.lasso {
         lasso.polygonal = polygonal;
+    }
+    if close {
+        commit(app);
     }
 }
 
@@ -93,17 +107,18 @@ pub fn commit(app: &mut PhotocraftApp) {
 
 pub fn pointer(app: &mut PhotocraftApp, ev: ToolEvent, mods: Modifiers) -> bool {
     cancel_stale(app);
-    if app.ui.tool != Tool::Lasso || moving_selection(app) {
+    if app.ui.tool != Tool::Lasso || handed_over(app) {
         return false;
     }
     let p = match ev {
         ToolEvent::Down { x, y, .. } | ToolEvent::Move { x, y, .. } | ToolEvent::Up { x, y } => [x, y],
     };
-    // A press inside the selection (no outline in progress) drags the selection instead.
+    // A press inside the selection (no outline in progress) drags the selection instead; a ⌘
+    // press outside it moves the layer, as the Move tool (#2725).
     if matches!(ev, ToolEvent::Down { .. })
         && !active(app)
         && p.iter().all(|n| n.is_finite())
-        && crate::canvas::selection_drag_kind(app, Tool::Lasso, p, mods).is_some()
+        && (crate::canvas::selection_drag_kind(app, Tool::Lasso, p, mods).is_some() || crate::canvas::command_moves_layer(app, Tool::Lasso, p, mods))
     {
         return false;
     }
@@ -114,10 +129,10 @@ pub fn pointer(app: &mut PhotocraftApp, ev: ToolEvent, mods: Modifiers) -> bool 
     match ev {
         ToolEvent::Down { .. } => {
             if active(app) {
-                let close = app
-                    .drag
-                    .as_ref()
-                    .is_some_and(|d| d.points.len() >= 3 && (d.start[0] - p[0]).hypot(d.start[1] - p[1]) < 8.0 / app.current_zoom().max(0.01) as f64);
+                // A click on the first point, or on the last one again, closes the outline.
+                let reach = 8.0 / app.point_zoom().max(0.01) as f64;
+                let near = |q: [f64; 2]| (q[0] - p[0]).hypot(q[1] - p[1]) < reach;
+                let close = app.drag.as_ref().is_some_and(|d| d.points.len() >= 3 && (near(d.start) || d.points.last().is_some_and(|l| near([l[0], l[1]]))));
                 if close {
                     commit(app);
                     return true;
@@ -130,8 +145,13 @@ pub fn pointer(app: &mut PhotocraftApp, ev: ToolEvent, mods: Modifiers) -> bool 
                     }
                 }
             } else {
-                let mut d = Drag::new(Tool::Lasso, p, vec![[p[0], p[1], 1.0]], mods, false);
-                d.lasso = Some(Lasso { cursor: p, down: true, polygonal: false, document: app.session.active().map(|st| st.doc.id) });
+                // Alt with no selection has nothing to subtract from: the outline starts with
+                // straight segments, as a new selection.
+                let nothing_selected = app.session.active().is_none_or(|st| st.doc.selection.is_none());
+                let polygonal = mods.alt && nothing_selected;
+                let intent = if polygonal { Modifiers { alt: false, ..mods } } else { mods };
+                let mut d = Drag::new(Tool::Lasso, p, vec![[p[0], p[1], 1.0]], intent, false);
+                d.lasso = Some(Lasso { cursor: p, down: true, polygonal, document: app.session.active().map(|st| st.doc.id) });
                 app.drag = Some(d);
             }
         }
@@ -144,7 +164,9 @@ pub fn pointer(app: &mut PhotocraftApp, ev: ToolEvent, mods: Modifiers) -> bool 
                 // Move relative to the rubber-band endpoint, not the last fixed vertex.
                 let last = d.points.last().map_or(d.start, |p| [p[0], p[1]]);
                 d.shift_to([last[0] + p[0] - previous[0], last[1] + p[1] - previous[1]]);
-            } else if down && (!polygonal || up) {
+            } else if down {
+                // While the button is down the outline follows the pointer (freehand), Alt or
+                // not; between Alt clicks only the rubber band moves.
                 append(d, p);
             }
             if let Some(lasso) = &mut d.lasso {
@@ -178,13 +200,13 @@ pub fn canvas_input(app: &mut PhotocraftApp, ctx: &egui::Context, xf: &ViewXform
                 let p = xf.to_doc(pos);
                 if pressed && response.contains_pointer() && response.rect.contains(pos) {
                     Some(ToolEvent::Down { x: p[0], y: p[1], pressure: 1.0 })
-                } else if !pressed && (active(app) || moving_selection(app)) {
+                } else if !pressed && (active(app) || handed_over(app)) {
                     Some(ToolEvent::Up { x: p[0], y: p[1] })
                 } else {
                     None
                 }
             }
-            Event::PointerMoved(pos) if active(app) || moving_selection(app) => {
+            Event::PointerMoved(pos) if active(app) || handed_over(app) => {
                 let p = xf.to_doc(pos);
                 Some(ToolEvent::Move { x: p[0], y: p[1], pressure: 1.0 })
             }

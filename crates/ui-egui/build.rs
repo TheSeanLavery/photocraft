@@ -7,12 +7,18 @@
 //!   JSON says the entry was verified (`people_entry`).
 //!
 //! A missing or malformed file gives empty tables (or no names) and a warning.
+//!
+//! Also deflates the translation catalogs (`src/i18n/*.tsv`) into `OUT_DIR/i18n/<code>.tsv.deflate`
+//! for `i18n::LANGUAGES`: stored compressed they take ~0.65 MB of the binary instead of ~1.9 MB,
+//! which keeps the web build under its 24 MiB size gate (packaging/web/package.sh). A catalog is
+//! inflated the first time its language is used.
 
 use std::fmt::Write as _;
 
 use serde_json::Value;
 
 fn main() {
+    println!("cargo::rerun-if-changed=build.rs");
     embed_theme_fonts();
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../contributors");
     let json = read(&dir.join("contributors.json"), "the About window shows no contributors", |t| serde_json::from_str::<Value>(t).map_err(|e| e.to_string()))
@@ -22,6 +28,71 @@ fn main() {
     let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("credits.rs");
     if let Err(e) = std::fs::write(&out, generate(&json, &people)) {
         println!("cargo::warning=writing {}: {e}", out.display());
+    }
+    deflate_catalogs();
+    deflate_fluent_catalogs();
+}
+
+/// Deflate every `src/i18n/*.tsv` into `OUT_DIR/i18n/`. A catalog that can't be written is a
+/// build error (`include_bytes!` would fail on it anyway, with a less helpful message).
+fn deflate_catalogs() {
+    use std::io::Write as _;
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/i18n");
+    let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("i18n");
+    println!("cargo::rerun-if-changed={}", src.display());
+    let result = (|| -> std::io::Result<()> {
+        std::fs::create_dir_all(&out)?;
+        for entry in std::fs::read_dir(&src)? {
+            let path = entry?.path();
+            let Some(name) = path.file_name().and_then(|n| n.to_str()).filter(|n| n.ends_with(".tsv")) else { continue };
+            println!("cargo::rerun-if-changed={}", path.display());
+            let mut z = flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::best());
+            z.write_all(&std::fs::read(&path)?)?;
+            std::fs::write(out.join(format!("{name}.deflate")), z.finish()?)?;
+        }
+        Ok(())
+    })();
+    if let Err(e) = result {
+        println!("cargo::error=deflating the translation catalogs in {}: {e}", src.display());
+    }
+}
+
+/// Generate lossless Fluent payloads. Native uses authored text directly; WASM embeds these
+/// compressed copies and inflates only the selected locale. Also generated on native for tests.
+fn deflate_fluent_catalogs() {
+    use std::io::{Read as _, Write as _};
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/i18n");
+    let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_default()).join("i18n");
+    let result = (|| -> std::io::Result<()> {
+        std::fs::create_dir_all(&out)?;
+        let mut files = vec![(src.join("keys.tsv"), String::from("fluent-keys.tsv.deflate"))];
+        for entry in std::fs::read_dir(src.join("locales"))? {
+            let path = entry?.path().join("messages.ftl");
+            if path.is_file() {
+                let locale = path.parent().and_then(|p| p.file_name()).and_then(|n| n.to_str()).unwrap_or_default();
+                files.push((path.clone(), format!("fluent-{locale}.ftl.deflate")));
+            }
+        }
+        for (path, name) in files {
+            println!("cargo::rerun-if-changed={}", path.display());
+            let bytes = std::fs::read(&path)?;
+            if bytes.len() > 16 << 20 {
+                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Fluent catalog exceeds runtime inflate limit"));
+            }
+            let mut encoder = flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::best());
+            encoder.write_all(&bytes)?;
+            let compressed = encoder.finish()?;
+            let mut recovered = Vec::new();
+            flate2::read::DeflateDecoder::new(compressed.as_slice()).take((16 << 20) + 1).read_to_end(&mut recovered)?;
+            if recovered != bytes {
+                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Fluent catalog compression changed its contents"));
+            }
+            std::fs::write(out.join(name), compressed)?;
+        }
+        Ok(())
+    })();
+    if let Err(e) = result {
+        println!("cargo::error=deflating Fluent catalogs in {}: {e}", src.display());
     }
 }
 

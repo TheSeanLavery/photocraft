@@ -134,7 +134,7 @@ pub(super) async fn standalone(args: &[String]) -> TransportResult<()> {
     let pace = number(args, "--step-ms", 1, 5000)? as u64;
     let start = Instant::now();
     let mut host = Session::new();
-    host.execute("file.new", serde_json::json!({"width":width,"height":height,"fill":"transparent"}))?;
+    host.execute("file.new", serde_json::json!({"width":width,"height":height,"background":"transparent"}))?;
     let base = (*host.active().ok_or("host missing")?.doc).clone();
     let layer = host.active().and_then(|s| s.active_layer).ok_or("layer missing")?;
     host.collaboration.document_id = Some(base.id);

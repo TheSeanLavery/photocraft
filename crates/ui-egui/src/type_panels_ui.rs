@@ -209,6 +209,8 @@ pub fn windows(app: &mut PhotocraftApp, ctx: &egui::Context) {
     }
 }
 
+pub(crate) mod color_picker;
+
 // ------------------------------------------------------------------ styles
 
 pub fn styles_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool) {
@@ -346,6 +348,7 @@ fn options_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool, s
     let resolved_p = s["resolved"]["paragraph"].clone();
     let mut set: Option<Value> = None;
     let mut clear: Vec<&str> = Vec::new();
+    let mut open_color = false;
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         ui.label(RichText::new(tl!("Style Options")).color(t.text).size(11.5).strong());
@@ -369,6 +372,11 @@ fn options_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool, s
         }
     });
     let defined = |attrs: &Value, k: &str| attrs.get(k).is_some();
+    // Preferences ▸ Type ▸ Font Preview Size sizes the family picker's samples.
+    let preview = app.session.prefs().type_.font_preview;
+    // Preferences ▸ Units & Rulers ▸ Type: the model stores points; the fields may show pixels
+    // (by the document's resolution) or millimetres.
+    let (type_unit, unit_label) = crate::type_tool::type_unit(app);
     egui::Grid::new(("style-opts", paragraph, id)).num_columns(3).spacing([6.0, 3.0]).show(ui, |ui| {
         // (label, model key, panel key, kind)
         let rows: &[(&str, &str, &str, &str)] = &[
@@ -392,7 +400,7 @@ fn options_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool, s
             ui.add_enabled_ui(on, |ui| match kind {
                 "font" => {
                     let mut f = v.as_str().unwrap_or("").to_string();
-                    if family_picker(ui, &format!("style-font-{paragraph}-{id}"), &mut f) {
+                    if family_picker(ui, &format!("style-font-{paragraph}-{id}"), &mut f, preview) {
                         set = Some(json!({ panel: f }));
                     }
                 }
@@ -409,12 +417,8 @@ fn options_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool, s
                 }
                 "color" => {
                     let c = serde_json::from_value::<photocraft_doc::Color>(v.clone()).map(|c| c.to_rgb()).unwrap_or([0.0; 3]);
-                    // Style colours are stored encoded (like the Color panel's hex), not linear.
-                    let h = |f: f32| (f.clamp(0.0, 1.0) * 255.0).round() as u8;
-                    let mut rgb = c.map(h);
-                    if ui.color_edit_button_srgb(&mut rgb).changed() {
-                        set = Some(json!({ "color": format!("#{:02x}{:02x}{:02x}", rgb[0], rgb[1], rgb[2]) }));
-                    }
+                    let [r, g, b] = c.map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8);
+                    open_color = crate::widgets::color_swatch(ui, Color32::from_rgb(r, g, b)).on_hover_text(tl!("Color Picker (Text Color)")).clicked();
                 }
                 _ => {
                     let mut b = v.as_bool().unwrap_or(false);
@@ -459,9 +463,9 @@ fn options_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool, s
                         }
                     }
                     "pt" => {
-                        let mut x = v.as_f64().unwrap_or(0.0) as f32;
-                        if crate::widgets::value_field(ui, &mut x, -1296.0..=1296.0, " pt", 70.0).changed() {
-                            set = Some(json!({ key: x }));
+                        let mut x = v.as_f64().unwrap_or(0.0) as f32 * type_unit;
+                        if crate::widgets::value_field(ui, &mut x, -1296.0 * type_unit..=1296.0 * type_unit, &format!(" {unit_label}"), 70.0).changed() {
+                            set = Some(json!({ key: x / type_unit }));
                         }
                     }
                     _ => {
@@ -492,29 +496,25 @@ fn options_editor(app: &mut PhotocraftApp, ui: &mut egui::Ui, paragraph: bool, s
         }
         let _ = run(app, &format!("{prefix}.set"), json!({ "id": id, "clear": c }));
     }
+    if open_color {
+        let kind = if paragraph { color_picker::Kind::Paragraph } else { color_picker::Kind::Character };
+        match u32::try_from(id).map_err(|_| "invalid text style id".to_string()).and_then(|id| color_picker::open(app, kind, id)) {
+            Ok(_) => {}
+            Err(error) => {
+                app.ui.status = error;
+                app.ui.status_error = true;
+            }
+        }
+    }
 }
 
 /// Searchable family combo box.
-fn family_picker(ui: &mut egui::Ui, salt: &str, current: &mut String) -> bool {
-    let mut changed = false;
-    let search_id = egui::Id::new(("family-search", salt));
-    let shown = if current.is_empty() { photocraft_text::fonts::DEFAULT_FAMILY.to_string() } else { current.clone() };
-    egui::ComboBox::from_id_salt(salt).selected_text(shown.clone()).width(140.0).height(360.0).icon(crate::widgets::chevron_icon).show_ui(ui, |ui| {
-        let mut q: String = ui.data(|d| d.get_temp(search_id)).unwrap_or_default();
-        let r = ui.add(egui::TextEdit::singleline(&mut q).hint_text(tl!("Search fonts")).desired_width(180.0));
-        if !r.has_focus() && q.is_empty() {
-            r.request_focus();
-        }
-        ui.data_mut(|d| d.insert_temp(search_id, q.clone()));
-        let ql = q.to_lowercase();
-        for f in crate::type_tool::families().iter().filter(|f| ql.is_empty() || f.to_lowercase().contains(&ql)) {
-            if ui.selectable_label(*f == shown, f).clicked() {
-                *current = f.clone();
-                changed = true;
-                ui.data_mut(|d| d.remove::<String>(search_id));
-            }
-        }
-    });
+fn family_picker(ui: &mut egui::Ui, salt: &str, current: &mut String, preview: photocraft_engine::prefs::FontPreview) -> bool {
+    let mut shown = if current.is_empty() { photocraft_text::fonts::DEFAULT_FAMILY.to_string() } else { current.clone() };
+    let changed = crate::type_tool::family_picker_in(ui, salt, &mut shown, 140.0, &crate::type_tool::families(), preview);
+    if changed {
+        *current = shown;
+    }
     changed
 }
 
@@ -533,8 +533,7 @@ fn glyph_font(app: &PhotocraftApp) -> (String, String) {
         && let Some(r) = tl.char_runs().first()
     {
         let fam = if r.style.font_family.is_empty() { photocraft_text::fonts::DEFAULT_FAMILY.to_string() } else { r.style.font_family.clone() };
-        let style =
-            if r.style.font_style.is_empty() { if r.style.italic { tl!("Italic").into() } else { tl!("Regular").into() } } else { r.style.font_style.clone() };
+        let style = crate::type_tool::selected_style(&r.style);
         return (fam, style);
     }
     (photocraft_text::fonts::DEFAULT_FAMILY.into(), tl!("Regular").into())
@@ -569,7 +568,7 @@ fn charmap(ctx: &egui::Context, family: &str, style: &str) -> std::sync::Arc<Vec
         return v;
     }
     let st = char_style_for(family, style);
-    let v = std::sync::Arc::new(photocraft_text::shared().lock().unwrap_or_else(|e| e.into_inner()).fonts.charmap(family, st.weight, st.italic));
+    let v = std::sync::Arc::new(photocraft_text::shared().lock().unwrap_or_else(|e| e.into_inner()).fonts.charmap_for_style(&st));
     ctx.data_mut(|d| d.insert_temp(id, v.clone()));
     v
 }
@@ -602,7 +601,7 @@ pub fn glyphs_panel(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     // Font family + style.
     ui.horizontal(|ui| {
         let mut f = family.clone();
-        if family_picker(ui, "glyph-family", &mut f) {
+        if family_picker(ui, "glyph-family", &mut f, app.session.prefs().type_.font_preview) {
             app.ui.type_panels.glyph_family = f;
             app.ui.type_panels.glyph_style = tl!("Regular").into();
         }

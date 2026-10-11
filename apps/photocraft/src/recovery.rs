@@ -9,7 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use photocraft_doc::Document;
 use photocraft_format::Autosaver;
 use photocraft_ops::HistoryCheckpoint;
-use photocraft_ui_egui::{AutosaveCompletion, RecoveredDocument, RecoveryBatch};
+use photocraft_ui_egui::{AutosaveCompletion, Recoverable, RecoveredDocument, RecoveryBatch};
 
 static NEXT_SESSION: AtomicU64 = AtomicU64::new(1);
 
@@ -54,6 +54,33 @@ impl RecoveryManager {
             }
         }
         batch
+    }
+
+    /// List metadata and claim snapshots without decoding pixels or history on the UI thread.
+    pub(crate) fn deferred_recover(&mut self) -> Vec<Recoverable> {
+        let Some(dir) = self.dir.clone() else { return Vec::new() };
+        let (entries, errors) = photocraft_format::list_recovery_checked(&dir);
+        let mut pending: Vec<Recoverable> = errors
+            .into_iter()
+            .map(|error| Recoverable { key: String::new(), name: "Recovery snapshot".into(), path: None, load: Box::new(move || Err(error)) })
+            .collect();
+        for entry in entries {
+            let key = entry.info.key.clone();
+            let name = entry.info.document_name.clone();
+            let path = entry.info.original_path.clone();
+            let claim = self.lock_key(&key);
+            pending.push(Recoverable {
+                key,
+                name,
+                path,
+                load: Box::new(move || {
+                    claim?;
+                    let (document, history, context) = photocraft_format::recover_checkpoint_with_context(&entry).map_err(|e| e.to_string())?;
+                    Ok(RecoveredDocument { key: entry.info.key, path: entry.info.original_path, document, history: Some(history), context })
+                }),
+            });
+        }
+        pending
     }
 
     /// OS locks disappear on crash; a second running app cannot overwrite this checkpoint.

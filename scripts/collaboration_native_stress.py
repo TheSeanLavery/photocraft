@@ -232,7 +232,8 @@ def run(args):
                 if count!=expected:errors.append(f'artist{i} history count{count}, expected{expected}')
             try:
                 c.call('app.save',{'path':f'final-{i}.png'})
-                if not args.no_window_screenshots:c.call('ui.screenshot',{'path':f'final-window-{i}.png','focus':False})
+                # Test-owned windows must be raised: macOS skips rendering occluded guests.
+                if not args.no_window_screenshots:c.call('ui.screenshot',{'path':f'final-window-{i}.png','focus':True})
                 c.close()
                 h,has_ink=decoded_png(out/f'final-{i}.png');hashes.append(h);ink.append(has_ink)
             except Exception as error:errors.append(f'export artist{i}: {error}')

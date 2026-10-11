@@ -4710,3 +4710,1019 @@ ui-use-available-disk-space-44211d74d7260f1a = Использовать своб
 ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Место для отмены растёт по необходимости. Неограниченная история хранится до заполнения диска. Пути применяются со следующего сеанса кэша.
 
 ui-change-opacity-c419e848020b25f4 = Изменить непрозрачность
+
+ui-0-turns-this-threshold-off-svg-groups-ne-8107dd87e635679d = 0 отключает этот порог; группы SVG с вложенностью более 100 уровней всегда растрируются.
+
+ui-101-by-101-average-f0636a75b4938275 = Среднее 101 × 101
+
+ui-11-by-11-average-538d383a16a69bb7 = Среднее 11 × 11
+
+ui-12-columns-b949e2085ce68503 = 12 столбцов
+
+ui-24-bits-pixel-1efd69221601fa68 = 24 бит/пиксел
+
+ui-3-by-3-average-400d4f87bb7a72ef = Среднее 3 × 3
+
+ui-31-by-31-average-f49ec39b911d80e3 = Среднее 31 × 31
+
+ui-32-bits-pixel-33b63adb24722469 = 32 бит/пиксел
+
+ui-5-by-5-average-393c80f9d8845bab = Среднее 5 × 5
+
+ui-5-columns-3-rows-8ebf23bc0edaefdb = 5 столбцов, 3 строки
+
+ui-50-gray-da82e26ee3dda904 = 50% серого
+
+ui-51-by-51-average-f8031ef2f1c3a59f = Среднее 51 × 51
+
+ui-8-columns-7960156dbbf9d0ba = 8 столбцов
+
+ui-80-9314897fc598cede = 80%
+
+ui-85-9303957fc58a700f = 85%
+
+ui-90-89fe507fc0546e79 = 90%
+
+ui-95-8a0f4c7fc062dae0 = 95%
+
+ui-a-save-to-name-is-still-running-try-agai-05cc493545eb159a = Сохранение в { $name } ещё выполняется; повторите попытку после его завершения
+
+ui-activate-panel-2d26ff9c85f372cc = Активировать панель
+
+ui-active-9a4fc0866deff4e1 = Активна
+
+ui-add-a-layer-style-b914a2094abf44cd = Добавить стиль слоя
+
+ui-add-a-mask-from-the-selection-key-invert-3393f29298ab1b62 = Добавить маску  (из выделения; { $key } инвертирует)
+
+ui-add-an-adjustment-61e7fb5dee73eca8 = Добавить коррекцию
+
+ui-add-anchor-point-tool-47f6a2d216ab0095 = Добавить узел
+
+ui-add-beauty-precomp-from-the-aovs-4d9efefbd4ef0542 = Добавить предкомпозит красоты из AOV
+
+ui-add-new-artboard-a9daaf925d16a4c3 = Добавить монтажную область
+
+ui-add-pair-0c629fff04fb2b1e = Добавить пару
+
+ui-add-to-favorites-0541c1994e6ae85e = Добавить в избранное
+
+ui-add-to-selection-key-6677aa2346964f55 = Добавить к выделению  ({ $key })
+
+ui-add-to-swatches-3781607eddbada31 = Добавить в образцы
+
+ui-add-vector-mask-528ac69ac105b1fb = Добавить векторную маску
+
+ui-adds-the-current-gradient-to-the-gradien-a1f9968192c4ba50 = Добавляет текущий градиент на панель «Градиенты»
+
+ui-adjustment-visible-117568739b34362e = Коррекция видима
+
+ui-adwaita-cd477fc88437525a = Adwaita
+
+ui-adwaita-dark-50de267958d3f412 = Тёмная Adwaita
+
+ui-adwaita-dark-theme-05d4bf4c97aa218f = Тёмная тема Adwaita
+
+ui-adwaita-light-theme-03c426048b1e340f = Светлая тема Adwaita
+
+ui-align-and-distribute-2fcd60949c7e135c = Выровнять и распределить
+
+ui-align-horizontal-centers-b59418644d7b5402 = Выровнять центры по горизонтали
+
+ui-align-left-edges-bf8d67cbc0005643 = Выровнять по левому краю
+
+ui-align-right-edges-9115675396aa8fd8 = Выровнять по правому краю
+
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = Все слои без коррекции
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Все комбинации клавиш сброшены к стандартным PhotoCraft.
+
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Alt+щелчок перехватило окружение рабочего стола: оно перемещает окна через Alt+перетаскивание. Назначьте для перемещения окон клавишу Super или зафиксируйте Alt в меню Окно › Клавиши-модификаторы.
+
+ui-always-show-overlay-b6be473be8ad3beb = Всегда показывать перекрытие
+
+ui-always-use-pressure-for-opacity-1e9578afcf0ee902 = Всегда использовать нажим для непрозрачности
+
+ui-always-use-pressure-for-size-d64c186313fb8678 = Всегда использовать нажим для размера
+
+ui-and-n-more-6e37845d39302347 = …и ещё { $n }
+
+ui-angle-gradient-a076cc5dd1828536 = Угловой градиент
+
+ui-anti-aliased-c391708a54da1e67 = Сглаживание
+
+ui-appearance-mode-c6e76c01b1038388 = Режим оформления
+
+ui-appearance-settings-b5f1d7603a447b52 = Настройки оформления…
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = Применить эффект на границах холста
+
+ui-artboard-tool-80bd830389a6711e = Монтажная область (инструмент)
+
+ui-auto-adjust-opacity-28ceac7a28ddd13a = Автоматически настраивать непрозрачность
+
+ui-auto-center-preview-225b4704be74d581 = Автоматически центрировать просмотр
+
+ui-auto-hide-notifications-5e48a1ec5b48ddc0 = Автоскрытие уведомлений
+
+ui-auto-select-cca09c0e4bd20fdb = Автовыбор:
+
+ui-auto-show-overlay-59ff23a3b368166d = Показывать перекрытие автоматически
+
+ui-automatic-04cc1a2793006d9a = Автоматически
+
+ui-background-from-layer-95241da9efd58afc = Фон из слоя
+
+ui-background-from-layer-e7dca704d0b2e2dc = Фон из слоя
+
+ui-bevel-b65a0ed0fa933479 = Скошенные
+
+ui-bevel-emboss-c0eeff11cdb861ee = Тиснение
+
+ui-bicubic-sharper-reduction-8526007a04be289f = Бикубическая, чётче (уменьшение)
+
+ui-bicubic-smoother-enlargement-f1b8e48b0f7a4a58 = Бикубическая, глаже (увеличение)
+
+ui-black-87de58185ee7e143 = Чёрный
+
+ui-black-matte-7c051e0b8e0c064b = На чёрном фоне
+
+ui-blend-if-47ff5afa1385a85d = Изображение если:
+
+ui-block-c4d0291e851daf50 = Квадрат
+
+ui-bold-98d37886cf62c4a3 = Жирный
+
+ui-bottom-d0f114b5fd71868e = Снизу:
+
+ui-bottom-left-a4a6bc5593eb6541 = Нижний левый
+
+ui-bottom-right-2acd3cb673e6fda2 = Нижний правый
+
+ui-breeze-dark-e66fe26550bb0528 = Breeze тёмная
+
+ui-breeze-dark-theme-a680c93f1fa1524d = Тёмная тема Breeze
+
+ui-breeze-light-0148f2375063bb68 = Breeze светлая
+
+ui-breeze-light-theme-ed04a9643b4b988d = Светлая тема Breeze
+
+ui-browser-storage-is-unavailable-brushes-a-7917bc257e6f900e = Хранилище браузера недоступно; кисти действуют только в этом сеансе. Не закрывайте эту вкладку, чтобы сохранить их.
+
+ui-brush-name-ed530497d97024a4 = Имя кисти
+
+ui-brush-preset-changes-are-not-saved-error-5f27ebc7fd81a7c9 = Изменения наборов кистей не сохранены: { $error }
+
+ui-brush-preset-options-ae5d75337b0c67ae = Параметры наборов кистей
+
+ui-brush-preset-picker-6265db6aad998442 = Выбор набора кистей
+
+ui-brush-stroke-e15a877d2a400187 = Мазок кисти
+
+ui-butt-flat-c72fa8c80b7c206a = Плоские
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw ({ $name })
+
+ui-cancel-current-crop-operation-esc-64acb78407270459 = Отменить текущее кадрирование  (Esc)
+
+ui-caps-4e22f5ac70d59b9a = Концы
+
+ui-center-columns-eca652a77591890d = Центрировать столбцы
+
+ui-change-panel-group-c875bb8728a6f2da = Изменить группу панелей
+
+ui-change-panel-layout-e2e9f02cb1355649 = Изменить расположение панелей
+
+ui-channels-67ef32de1bae7097 = Каналы:
+
+ui-clear-brush-strokes-12a3c251da9d3d0d = Очистить мазки кисти
+
+ui-clear-existing-guides-67c8180ae4647d7a = Удалить существующие направляющие
+
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = Щёлкните по красному зрачку, чтобы убрать блик
+
+ui-click-a-segment-to-add-an-anchor-point-a-0c07d54f4028e4af = Щёлкните сегмент, чтобы добавить узел · { $alt }-щелчок по узлу удаляет его
+
+ui-click-an-anchor-point-to-delete-it-alt-c-06d19be357a2d4d7 = Щёлкните узел, чтобы удалить его · { $alt }-щелчок по сегменту добавляет узел
+
+ui-click-corner-drag-smooth-alt-drag-break-h-8598a28b712a87d6 = Клик: угол · перетаскивание: гладкая · { $alt }+перетаскивание: разбить маркер · клик или перетаскивание первой точки: замкнуть · { $key } завершить · Esc отмена
+
+ui-click-smooth-point-double-click-corner-d-7ea166abf0ee7560 = Клик: гладкая точка · двойной клик: угол · перетаскивание точки: переместить · клик по первой точке: замкнуть · { $key } завершить
+
+ui-click-the-first-point-or-press-key-to-cl-901ea1b540ae3fc7 = Щёлкните первую точку или нажмите { $key }, чтобы замкнуть · { $del } удаляет точку · Esc отменяет
+
+ui-click-the-first-point-or-press-key-to-cl-cf1a11db0036adc9 = Щёлкните первую точку или нажмите { $key }, чтобы замкнуть · Esc отменяет
+
+ui-click-then-move-along-an-edge-click-to-f-4f0fd576defa2100 = Щёлкните и ведите вдоль края · щелчок закрепляет точку · { $alt }-щелчок — прямой отрезок · двойной щелчок замыкает
+
+ui-click-to-add-a-point-right-click-to-remo-19feda9c95fbcf54 = Щёлкните, чтобы добавить точку; щелчок правой кнопкой удаляет её
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Нажмите, чтобы изменить число столбцов; перетащите строку заголовка для перемещения
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Нажмите, чтобы изменить число столбцов; перетащите, чтобы открепить инструменты
+
+ui-click-to-edit-the-gradient-14e67844a427ffaf = Щёлкните, чтобы изменить градиент
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = Щелчок — выбрать · Esc — отменить
+
+ui-click-to-place-alt-click-or-drag-off-can-0ced5c63027a6ce6 = Щёлкните, чтобы разместить · Alt-щелчок или перетаскивание за пределы холста для удаления
+
+ui-click-to-sample-the-foreground-colour-ke-96a4f32b747b8180 = Клик — взять основной цвет  ·  { $key }-клик — фоновый цвет
+
+ui-click-to-zoom-in-key-click-to-zoom-out-d-86f98252869cedb8 = Щелчок увеличивает  ·  { $key }-щелчок уменьшает  ·  перетаскивание вправо/влево увеличивает/уменьшает
+
+ui-clip-to-layer-below-65fed993dff9f7da = Обтравить по нижнему слою
+
+ui-close-panel-194028906d61d387 = Закрыть панель
+
+ui-color-a13d112d0512855e = Цвет…
+
+ui-color-burn-paint-net-6bce7a866ee8fd93 = Затемнение основы (Paint.NET)
+
+ui-color-dodge-paint-net-6a1a7e45c5da25a9 = Осветление основы (Paint.NET)
+
+ui-color-overlay-3030d1a2fc13394a = Наложение цвета
+
+ui-color-picker-crop-shield-color-f0f21c4248e058e3 = Палитра цветов (Цвет экрана кадрирования)
+
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Палитра цветов (Цвет заливки)
+
+ui-color-picker-layer-style-color-fbf90c85b504683a = Палитра цветов (цвет стиля слоя)
+
+ui-color-picker-name-6336833802dc6c44 = Палитра цветов ({ $name })
+
+ui-color-picker-solid-color-11504899368a43d3 = Выбор цвета (сплошной цвет)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Палитра цветов (Цвет обводки)
+
+ui-color-picker-text-color-6873936c7cbaceb3 = Палитра цветов (Цвет текста)
+
+ui-color-replacement-tool-e0f757ad548a409c = Инструмент «Замена цвета»
+
+ui-color-swatches-ac06e00181a24994 = Цвет и образцы
+
+ui-color-to-alpha-5a172092ca34c10d = Цвет в альфа-канал…
+
+ui-commit-current-crop-operation-key-26049b5b3b7e0e80 = Принять текущее кадрирование  ({ $key })
+
+ui-cone-83c7f5ac8fb13c68 = Конус
+
+ui-cone-inverted-07c75939642bd114 = Конус (инвертированный)
+
+ui-cone-inverted-4f8ec26e3423aa10 = Конус - инвертированный
+
+ui-contents-b5e5b9d3f6d35ec1 = Содержимое:
+
+ui-continue-f031dd957d5c1b56 = Продолжить
+
+ui-contour-39d36135f075d52b = Контур
+
+ui-contour-editor-999a1019725e56a4 = Редактор контура
+
+ui-convert-point-tool-ebb1dfd0f79acf3a = Преобразование узла
+
+ui-corner-c1f5008d5d2ff536 = Угол
+
+ui-corners-c3453535587dc43f = Углы
+
+ui-could-not-complete-the-free-transform-co-bfdbe92f0a214b00 = Не удалось выполнить команду «Свободное трансформирование», потому что слой заблокирован.
+
+ui-could-not-open-05042bf852b9a743 = Не удалось открыть
+
+ui-could-not-use-the-move-tool-because-the-l-34336f06c7d717d6 = Не удалось использовать инструмент «Перемещение», потому что слой заблокирован.
+
+ui-cove-deep-f3413d717747416f = Бухта - глубокая
+
+ui-cove-shallow-a816ea81e32dc623 = Бухта - мелкая
+
+ui-create-a-new-elliptical-frame-d31989faf7fc5d30 = Создать эллиптическую рамку
+
+ui-create-a-new-group-44b6c47dd5114c99 = Создать новую группу
+
+ui-create-a-new-layer-2d1a31c33f5dd02b = Создать новый слой
+
+ui-create-a-new-rectangular-frame-29813cef7128625f = Создать прямоугольную рамку
+
+ui-create-ellipse-f707994617445531 = Создать эллипс
+
+ui-create-new-document-from-current-state-8dc2fc4035bfc4ea = Создать новый документ из текущего состояния
+
+ui-create-new-fill-or-adjustment-layer-2bc446340f3c6a6b = Создать новый слой-заливку или корректирующий слой
+
+ui-create-new-snapshot-249a9cbbc6a87cc3 = Создать новый снимок
+
+ui-create-new-swatch-df52baa4652be53b = Создать новый образец
+
+ui-create-polygon-0312408e42727249 = Создать многоугольник
+
+ui-create-rectangle-446a2149ba949cae = Создать прямоугольник
+
+ui-create-triangle-70461e67c3bc8665 = Создать треугольник
+
+ui-crop-shield-color-fcab973d194f6a5d = Цвет экрана кадрирования
+
+ui-current-below-no-adjustments-ad3ef5ddcba453be = Текущий и ниже без коррекции
+
+ui-curvature-pen-tool-f2c504abaa665e43 = Перо кривизны
+
+ui-curve-fit-4b92a705570d7f79 = Точность кривой:
+
+ui-custom-pattern-b1725fbbdb358844 = Свой узор:
+
+ui-cycle-orientation-d47100e364dd1ce9 = Сменить ориентацию
+
+ui-cycle-overlay-cd2523de1e12bc5b = Сменить перекрытие
+
+ui-dark-theme-6d2ab4707cffde72 = Тёмная тема
+
+ui-darken-amount-4ff87ddb9162ea14 = Степень затемнения
+
+ui-dash-1f756ca06449aeb3 = Штрих
+
+ui-dash-gap-lengths-stroke-width-d58b32d0afc2986d = Длины штриха / пробела × ширина обводки
+
+ui-dash-offset-e2b5660c676021d6 = Смещение штрихов
+
+ui-dashed-6a8ccf30c380ff72 = Штриховая
+
+ui-dashed-line-9de7b4d520d5eb5c = Штриховая линия
+
+ui-date-taken-d246ca6065cd50fd = Дата съёмки
+
+ui-default-photocraft-size-42e29dd35050952b = Размер PhotoCraft по умолчанию
+
+ui-delete-anchor-point-tool-32015b0a036fc947 = Удалить узел
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = Удалить и заполнить выделение
+
+ui-delete-count-layers-names-6bbff039943d0326 = Удалить слои ({ $count })? { $names }
+
+ui-delete-crop-preset-e34aa95ed101e033 = Удалить набор параметров кадрирования…
+
+ui-delete-cropped-pixels-0d87be0d9eb46134 = Удалить отсечённые пикселы
+
+ui-delete-current-state-c41ce9df8de24134 = Удалить текущее состояние
+
+ui-delete-layer-1a6614f7c97cba41 = Удалить слой
+
+ui-delete-layer-58301f0b5ef0e41a = Удалить слой?
+
+ui-delete-layer-name-9407eadca584de9c = Удалить слой «{ $name }»?
+
+ui-developing-name-3ca6c158e9e9f235 = Обработка { $name }
+
+ui-diagonal-6308486872486528 = Диагональная
+
+ui-diagonal-descending-b3d2c399a327a7d9 = Диагональ (нисходящая)
+
+ui-diamond-gradient-bd1721ae5b6bae3b = Ромбовидный градиент
+
+ui-doc-w-h-px-50fdf406f12771ce = Док: { $w } × { $h } px
+
+ui-dock-panel-0cd117664b0f3f4e = Закрепить панель
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Закрепить инструменты слева
+
+ui-domed-6b80f3fc40f5c94c = Купол
+
+ui-domed-inverted-3a1408397cf5ea60 = Купол (инвертированный)
+
+ui-don-t-import-8a153d1cf3e9bcec = Не импортировать
+
+ui-dotted-c6817b61ff95adbb = Пунктирная
+
+ui-drag-a-box-or-click-four-corners-drag-th-df3a1ca51159d17a = Растяните рамку или щёлкните четыре угла · перетащите углы на края наклонной фигуры · { $commit } применяет · Esc отменяет
+
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = Выделите рамку кадрирования · перетащите внутри для перемещения · края меняют размер ({ $ratio } пропорции, { $centre } центр) · Space двигает при рисовании · стрелки сдвигают · X меняет ориентацию · { $commit } применить · Esc отмена
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = Перетащите вокруг центра, чтобы повернуть вид  ·  Shift фиксирует шаг 15°
+
+ui-drag-draw-freehand-release-on-the-start-p-ea613d199529d708 = Перетаскивание: рисовать от руки · отпустить на начальной точке: замкнуть
+
+ui-drop-shadow-f8503ec97aa9876a = Тень
+
+ui-dual-axis-1c45b5825da6a58e = Две оси
+
+ui-edit-keyboard-shortcuts-reset-all-to-def-1c2e80c5385a9432 = Редактирование › Сочетания клавиш › «Сбросить всё к значениям по умолчанию» отменяет импорт.
+
+ui-edit-paste-3f6b4ca340b0bccc = Редактирование › Вставить
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = Правки, затрагивающие весь документ, например режим наложения, непрозрачность или видимость слоя, перерисовывают его целиком.
+
+ui-enable-airbrush-style-build-up-effects-af53aa74431ae4d4 = Включить эффекты наслоения в стиле аэрографа
+
+ui-enable-crop-shield-f3578921d3d300ef = Включить экран кадрирования
+
+ui-enter-a-name-for-the-crop-preset-a58a2551cfe13f3e = Введите имя набора параметров кадрирования
+
+ui-expand-detection-area-dceaf291bd07056d = Расширить область обнаружения
+
+ui-export-swatches-429d4e913cd22171 = Экспортировать образцы…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = Экспортировать образцы для обмена…
+
+ui-exposure-d40fa037a6d0e233 = Выдержка
+
+ui-extrabold-fd6396c3deb95c21 = Особо жирный
+
+ui-extralight-0704360f6be0647a = Особо светлый
+
+ui-eyedroppers-9220889b81a1f1b5 = Пипетки:
+
+ui-f-cycles-the-views-hold-x-to-see-the-ima-f78f72e02c811b5f = F переключает виды; удерживайте X, чтобы увидеть изображение
+
+ui-f-stop-950ea3f6954631c3 = Диафрагма
+
+ui-fill-color-61734769aae23385 = Цвет заливки
+
+ui-fill-screen-610513f68e54eeee = Заполнить экран
+
+ui-filter-for-adjustment-layers-4986f975eb9c31ed = Фильтр корректирующих слоёв
+
+ui-filter-for-pixel-layers-e62db4f3e0a5953c = Фильтр пиксельных слоёв
+
+ui-filter-for-shape-layers-4717b6e9a54f028f = Фильтр слоёв-фигур
+
+ui-filter-for-smart-objects-0aeb687e8e895953 = Фильтр смарт-объектов
+
+ui-filter-for-type-layers-38bd883fbd07ab10 = Фильтр текстовых слоёв
+
+ui-fixed-ratio-336b1393c344f288 = Заданные пропорции
+
+ui-fixed-size-5659f2e446e849d0 = Заданный размер
+
+ui-float-panel-b52119e145970061 = Сделать панель плавающей
+
+ui-focal-length-35-mm-48b7586512d355f4 = Фокусное расстояние (35 мм)
+
+ui-focal-length-aa1997545c858259 = Фокусное расстояние
+
+ui-follows-only-edges-this-close-to-the-poi-10b48929e48da16b = Следует только за краями на таком расстоянии от указателя ([ и ] меняют его)
+
+ui-foreground-color-c4236e6fb45a0975 = Основной цвет
+
+ui-frame-tool-3869ecc880418af6 = Рамка
+
+ui-freeform-pen-tool-6f6679338fdf5312 = Свободное перо
+
+ui-from-center-0d8a0ee0ef65cec8 = От центра
+
+ui-front-image-80d86d74a4acfac7 = Изображение переднего плана
+
+ui-fuchsia-8d83defd7f0120fc = Фуксия
+
+ui-gap-e5bb2f7e411d4221 = Пробел
+
+ui-gaussian-bba39d25ae40ed28 = Гауссова
+
+ui-gloss-contour-5491d206d1cdb411 = Контур глянца
+
+ui-glow-4eaf4c888be6ecaa = Свечение
+
+ui-golden-ratio-ff69929862f02a2d = Золотое сечение
+
+ui-golden-spiral-5757498b8af1d487 = Золотая спираль
+
+ui-gradient-editor-bb6e0a95fb5ef2ac = Редактор градиентов
+
+ui-gradient-overlay-10c4fdd38395644f = Наложение градиента
+
+ui-gradient-picker-54dd1fd154401b2b = Выбор градиента
+
+ui-gradient-stops-f06ae21e1135f30e = Точки градиента
+
+ui-group-with-94fcb352464d9a1e = Сгруппировать с
+
+ui-half-round-62b12796617538fe = Полукруг
+
+ui-hard-1e36e282b91288ca = Жёсткая
+
+ui-hide-properties-4fa61e83445a32b4 = Скрыть свойства
+
+ui-higher-values-follow-only-edges-that-con-339978148cf9c078 = Чем выше значение, тем только более контрастные края учитываются
+
+ui-horizontal-type-mask-tool-0114c5e36a28d713 = Горизонтальный текст-маска
+
+ui-how-often-fastening-points-are-placed-by-498d32d10d244c21 = Как часто точки привязки ставятся автоматически
+
+ui-hue-saturation-4c48b2cfc6116e48 = Цветовой тон/Насыщенность
+
+ui-import-brushes-4b123336676f918a = Импортировать кисти…
+
+ui-import-brushes-abr-bc61ea3383f9a612 = Импортировать кисти (.abr)
+
+ui-import-keyboard-shortcuts-9a7acd5b01140835 = Импортировать сочетания клавиш?
+
+ui-import-shortcuts-ca60eb051696939b = Импортировать сочетания клавиш…
+
+ui-import-swatches-d6432c51430e3eba = Импортировать образцы…
+
+ui-imported-n-shortcuts-from-file-click-ok-t-5da9bf038f58bce4 = Импортировано сочетаний: { $n } из { $file }. Нажмите OK, чтобы сохранить их.
+
+ui-impressionist-838b2d95b3fe039e = Импрессионист
+
+ui-include-in-playback-68b371aa09a42a7d = Включить в воспроизведение
+
+ui-indigo-5c3d440918ff0f31 = Индиго
+
+ui-inner-glow-162db07d91381606 = Внутреннее свечение
+
+ui-inner-shadow-fd8ec97c702282fb = Внутренняя тень
+
+ui-inside-ac11c2c8cf66242f = Внутри
+
+ui-intersect-with-selection-key-cb5703bbe888ccf8 = Пересечь с выделением  ({ $key })
+
+ui-invalid-delete-command-535e24127ed414d4 = Недопустимая команда удаления
+
+ui-invalid-guide-layout-a7becc4715dd0ef0 = Недопустимый макет направляющих
+
+ui-iso-speed-57950bb275b569a4 = Светочувствительность ISO
+
+ui-italic-affc1f243d43a170 = Курсив
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = Слои не помещаются в бюджет памяти GPU. Увеличение параметра «Память» в разделе Настройки › Производительность повышает бюджет, но не больше четверти памяти этого компьютера.
+
+ui-keep-this-tab-open-to-retain-your-brushe-a5f6fe26fae0d562 = Не закрывайте эту вкладку, чтобы сохранить кисти.
+
+ui-keyboard-shortcuts-imported-fee2c7c74ed2a6bf = Сочетания клавиш импортированы
+
+ui-kind-8a583c65ea499095 = Вид
+
+ui-knockout-114fcb275f7f7673 = Просвечивание
+
+ui-label-is-writing-the-file-and-can-no-lon-33df6081c771e2b9 = { $label }: идёт запись файла, отменить уже нельзя
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = Большой документ: перерисовка на CPU
+
+ui-layer-deleted-but-confirmation-preferenc-f2ce35477ff1e4fa = Слой удалён, но не удалось сохранить настройку подтверждения: { $error }
+
+ui-leave-empty-for-automatic-size-2f6af7cbd1f8cd38 = Оставьте пустым для автоматического размера
+
+ui-left-cdcd976a8ae9a624 = Слева:
+
+ui-lens-f9af7c851d6f6256 = Объектив
+
+ui-light-b8b902e993554a24 = Светлый
+
+ui-light-theme-58b947c570ab5ee4 = Светлая тема
+
+ui-linear-ca47517bdefa4232 = Линейный
+
+ui-linear-gradient-338cbad54132fd92 = Линейный градиент
+
+ui-link-layers-b3ca5a7fc8a1cb73 = Связать слои
+
+ui-link-radii-cf0a1c73be90d1a2 = Связать радиусы
+
+ui-link-with-layer-ad56115c85c3cd48 = Связать со слоем
+
+ui-linux-display-server-e35271f31f95faac = Дисплейный сервер Linux
+
+ui-load-a-keyboard-shortcut-set-saved-as-ky-08aaf9f9e85e9925 = Загрузить набор сочетаний клавиш, сохранённый как .kys
+
+ui-location-d83b1142cca7d946 = Расположение:
+
+ui-lock-3868ab5ee29314b8 = Закрепить
+
+ui-lock-all-8a9d3c40141f890b = Закрепить все
+
+ui-lock-image-pixels-553d71a83d7ce972 = Сохранить цвета пикселов
+
+ui-lock-layer-89d5bfae04caa8bd = Закрепить слой
+
+ui-lock-position-d46fbf94de0db11b = Закрепить положение
+
+ui-lock-transparent-pixels-3711c22c2e7610cb = Сохранить прозрачность пикселов
+
+ui-low-resolution-previews-250ad01d7da7418c = Превью в низком разрешении
+
+ui-make-10ce4e8ae215e940 = Производитель
+
+ui-make-landscape-29de2da2acf3e4ec = Сделать альбомной
+
+ui-make-portrait-48262a543a70ad70 = Сделать книжной
+
+ui-marching-ants-81b580a962b06f44 = Бегущие муравьи
+
+ui-margin-27f17d733e6bbd89 = Поля
+
+ui-match-canvas-e96f08cd86b7fed4 = Как у холста
+
+ui-medium-9ccd01b2e5f752af = Средний
+
+ui-missing-delete-command-a4f922e5ac863be5 = Отсутствует команда удаления
+
+ui-miter-f77adc9d7250d2f8 = Острые
+
+ui-miter-limit-26f9b3d9afbcfa5b = Предел острого угла
+
+ui-model-4383b12efc2485a7 = Модель
+
+ui-more-documents-702166de66a88b90 = Ещё документы
+
+ui-move-panel-3a47e11ada54b960 = Переместить панель
+
+ui-n-commands-are-not-in-photocraft-8d9da53e6d113da9 = Команд, которых нет в PhotoCraft: { $n }.
+
+ui-n-of-max-sample-points-23c59085c2f1cfcb = { $n } из { $max } точек замера
+
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Нативное перетаскивание файлов в Wayland пока не поддерживается. Откройте файл через Файл › Открыть или скопируйте изображение в файловом менеджере и вставьте его с помощью { $paste }.
+
+ui-negation-4fc106b159214b14 = Отрицание
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm выбирает подтип по глубине цвета и каналам изображения.
+
+ui-never-show-overlay-62e4d50ec1f95088 = Никогда не показывать перекрытие
+
+ui-new-brush-preset-9a813a7c947ca0f2 = Новый набор параметров кисти…
+
+ui-new-crop-preset-a06657144aecc436 = Новый набор параметров кадрирования…
+
+ui-new-document-with-mask-829ecf76a05eef44 = Новый документ с маской
+
+ui-new-layer-with-mask-a27e3dedb04b398a = Новый слой с маской
+
+ui-new-selection-c4b0a8bde20282ed = Новое выделение
+
+ui-new-swatch-35500735beac1287 = Новый образец…
+
+ui-new-swatch-group-d508820c8747faca = Новая группа образцов…
+
+ui-next-appearance-mode-1ad9397736c7ee33 = Следующий режим оформления
+
+ui-next-document-6e3c850115c17527 = Следующий документ
+
+ui-no-document-open-3e622d7f3eb6fe8b = Документ не открыт
+
+ui-no-matching-settings-ee7ac3cb953063dc = Нет подходящих настроек
+
+ui-no-properties-5e9fb4da28181271 = Нет свойств
+
+ui-no-saved-presets-yet-70f97356610163a1 = Сохранённых наборов пока нет.
+
+ui-no-subject-found-try-a-rectangle-around-t-305b2a5462b07838 = Объект не найден — попробуйте прямоугольник вокруг объекта
+
+ui-no-subject-found-try-object-selection-or-631a2c6cfea1b5bc = Объект не найден — попробуйте «Выделение объектов» или «Лассо»
+
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = Не веб-цвет: щёлкните, чтобы выбрать ближайший веб-цвет
+
+ui-notification-duration-seconds-d8febd6df942f984 = Длительность уведомления (секунды)
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = Теперь перетащите выделение на другую область
+
+ui-number-64f8e212c5ac06de = Количество
+
+ui-object-selection-found-nothing-there-try-ca465edbd222510f = Выделение объектов ничего здесь не нашло — попробуйте более узкий прямоугольник
+
+ui-on-black-e728be796304fcb9 = На черном
+
+ui-on-layers-c8e8d79373a527f0 = На слоях
+
+ui-on-white-6215953b11747b1b = На белом
+
+ui-onion-skin-b8980fb3c2df588d = Калька
+
+ui-opacity-threshold-3dbc5455a6a96857 = Порог непрозрачности
+
+ui-open-exr-parts-fd9bfecaa27e1e30 = Открыть части EXR…
+
+ui-open-in-camera-raw-c438bf24dab93647 = Открывать в Camera Raw
+
+ui-open-paths-use-centered-strokes-3add57d4a0335f7d = Открытые контуры используют обводку по центру
+
+ui-open-source-65fefae8d3d63fa4 = открытый исходный код
+
+ui-opened-name-21b0dd7c898f99fb = Открыто: { $name }
+
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = Или выберите в Настройки › Производительность › Дисплейный сервер Linux значение X11: PhotoCraft будет всегда запускаться в XWayland.
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = Вне цветового охвата печати: щёлкните, чтобы выбрать ближайший печатаемый цвет
+
+ui-outer-glow-a8452afa4b57b81b = Внешнее свечение
+
+ui-outside-243f1d0f3f04be7a = Снаружи
+
+ui-paint-over-hair-or-fur-on-the-image-alt-p-44f8b66674c7cf71 = Рисуйте по волосам или шерсти на изображении; Alt рисует в другом режиме
+
+ui-panel-menu-06b4f84ed48efc1a = Меню панели
+
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }: путь не является допустимым Unicode; переименуйте файл и откройте его снова.
+
+ui-pattern-overlay-2c00f373e33ea06b = Наложение узора
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = Инструмент узорный штамп
+
+ui-perspective-crop-tool-9d2500bb26bc190b = Кадрирование перспективы
+
+ui-photocraft-found-your-keyboard-shortcut-s-865cccf0e5aa0eef = PhotoCraft нашёл на этом компьютере ваш набор сочетаний клавиш { $set } из другого графического редактора: сочетаний, отличных от PhotoCraft: { $n }. Импортировать его?
+
+ui-photocraft-screen-color-picker-7b92fa1bcc690048 = PhotoCraft — Пипетка цвета экрана
+
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = Выберите пиксель на экране или нажмите Esc для отмены
+
+ui-pick-screen-color-b1eefd560cdcf751 = Выбрать цвет на экране
+
+ui-point-sample-10f1da74f87660f7 = Точечная выборка
+
+ui-preset-name-a0b4d9aa9b88ec7b = Имя набора
+
+ui-pressure-curve-19292bf407107dbf = Кривая нажима
+
+ui-pressure-for-opacity-1419a5a294af5dca = Нажим для непрозрачности
+
+ui-pressure-for-size-dc0ad4062f620320 = Нажим для размера
+
+ui-prevent-auto-nesting-in-and-out-of-artbo-6e413012244001b3 = Запретить автоматическое вложение в монтажные области и кадры и извлечение из них
+
+ui-previous-document-eaa84057a6b49afb = Предыдущий документ
+
+ui-pro-light-d99268b6a486cfe6 = Светлая Pro
+
+ui-pro-light-gray-bc41ae44cf80a191 = Светло-серая Pro
+
+ui-pro-light-gray-theme-7ba042d458fbdefc = Светло-серая тема Pro
+
+ui-pro-light-theme-e381bc8b2c880e03 = Светлая тема Pro
+
+ui-pro-medium-3990a13d10e49531 = Pro Medium
+
+ui-pupil-size-a21b8b198e346afe = Размер зрачка
+
+ui-quick-mask-2a6a6afe4743fad6 = Быстрая маска
+
+ui-quick-selection-found-nothing-there-79e12ccf085cca73 = Быстрое выделение ничего здесь не нашло
+
+ui-radial-gradient-7567608180aa2bb4 = Радиальный градиент
+
+ui-rasterize-layer-c7ea4ae8cb3c6325 = Растрировать слой
+
+ui-rasterize-layer-style-c11eb0192450d280 = Растрировать стиль слоя
+
+ui-rasterize-layers-ef809f91579ccb22 = Растрировать слои
+
+ui-rasterize-svg-groups-deeper-than-2ea169bca636efde = Растеризовать группы SVG глубже этого уровня
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = Инструмент «Красные глаза»
+
+ui-refine-9e0be4b61fc803be = Уточнение
+
+ui-refine-edge-brush-r-c2b236a925ebf002 = Кисть уточнения края (R)
+
+ui-reflect-d0229494c0f576bc = Отражение
+
+ui-reflected-gradient-6c5e3c479dbe643b = Зеркальный градиент
+
+ui-regular-182bf85491dfe61c = Обычный
+
+ui-remove-from-favorites-486786afd446c748 = Удалить из избранного
+
+ui-remove-from-recent-9d1617d42109ab60 = Удалить из недавних
+
+ui-remove-name-from-recent-10f46ef1688734d3 = Удалить { $name } из недавних
+
+ui-remove-pair-36d4c6635ffda785 = Удалить пару
+
+ui-remove-tool-f4e2e17b376f490b = Инструмент «Удаление»
+
+ui-replace-swatches-22ed7dc765dad82d = Заменить образцы…
+
+ui-reset-all-tools-376ceb5881d91e9a = Сбросить все инструменты
+
+ui-reset-all-tools-to-their-default-setting-051b717b3b6a210c = Сбросить все инструменты к настройкам по умолчанию?
+
+ui-reset-swatches-99689ab8ada5eb9a = Восстановить образцы
+
+ui-reset-to-defaults-122368e92de6e29f = Сбросить к значениям по умолчанию
+
+ui-reset-tool-09e396a78e8ad944 = Сбросить инструмент
+
+ui-reset-view-c0bdf39ad3792a63 = Сбросить вид
+
+ui-resize-panel-window-2882cbd9cf0bb38f = Изменить размер окна панели
+
+ui-resize-panels-63366d26e7bff572 = Изменить размер панелей
+
+ui-restore-original-edge-1f47567587324e0f = Восстановить исходный край
+
+ui-retry-saving-presets-46dc9ac2d6616d53 = Повторить сохранение наборов
+
+ui-right-cbe095148fc36d83 = Справа:
+
+ui-ring-23d3ed2f82517781 = Кольцо
+
+ui-ring-double-46bac415b3bcb0d3 = Кольцо - двойное
+
+ui-rolling-slope-descending-905375a37c64ed52 = Волнистый склон - нисходящий
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = Инструмент поворота вида
+
+ui-round-dbce8f85403bd2bd = Круглые
+
+ui-rounded-steps-7f4362f1e501c0f7 = Скруглённые ступени
+
+ui-rows-edb0eb2f630a8e3a = Строки
+
+ui-rule-of-thirds-a9efcd425580c820 = Правило третей
+
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = Выберите пиксель в любом месте экрана
+
+ui-sample-size-84705069550bbf3c = Размер выборки:
+
+ui-satin-70e4ab19523eced2 = Глянец
+
+ui-save-as-preset-fcb3834698c2503d = Сохранить как набор
+
+ui-saved-name-ec890ad7eb9202d3 = Сохранено: { $name }
+
+ui-saving-brush-presets-keep-this-tab-open-u-0387001733cba4f2 = Сохранение наборов кистей… Не закрывайте эту вкладку, пока сохранение не завершится.
+
+ui-saving-name-2363a755794e1f66 = Сохранение { $name }
+
+ui-sawtooth-1-8eeceb1522eaf619 = Пила 1
+
+ui-scale-3aee47f8880725bf = Масштаб:
+
+ui-scope-8765632a779d5bdd = Область
+
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = Колесо — изменить масштаб
+
+ui-seafoam-ebe537921cc90f2b = Морская пена
+
+ui-search-settings-a7fc4883f6918f9c = Поиск настроек…
+
+ui-select-the-crop-presets-to-delete-719febcbd9ce2506 = Выберите наборы параметров кадрирования для удаления
+
+ui-select-the-crop-presets-to-delete-e0e2e763194944f4 = Выберите наборы параметров кадрирования для удаления:
+
+ui-selected-3ee82e06f8c5ee8e = Выбранные
+
+ui-selected-artboards-b150baa5bc687b52 = Выбранные монтажные области
+
+ui-selection-preview-a4f0a0102c940143 = Просмотр выделения:
+
+ui-semibold-f43621cc0429d1c1 = Полужирный
+
+ui-set-additional-crop-options-437370a0bbc94342 = Задать дополнительные параметры кадрирования
+
+ui-set-additional-smoothing-options-99f0aaea54a2e922 = Дополнительные параметры сглаживания
+
+ui-set-black-point-3a2fd412fb7bf324 = Задать точку чёрного
+
+ui-set-neutral-gray-point-80347a56d69ad333 = Задать нейтральную серую точку
+
+ui-set-painting-symmetry-options-8e98ad5d74801895 = Настроить параметры симметричного рисования
+
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = Задать параметры перекрытия для инструмента «Рамка»
+
+ui-set-white-point-526c42ac4bcf95ae = Задать точку белого
+
+ui-show-canvas-dots-6d94c3d743b8de22 = Показывать точки холста
+
+ui-show-cropped-area-53b623311de34a66 = Показать отсекаемую область
+
+ui-show-edge-0e6f6ff17e21f8ef = Показать край
+
+ui-show-grid-fae930dfc8ee4b2e = Показать сетку
+
+ui-show-hide-all-panels-240e4d824315700b = Показать/скрыть все панели
+
+ui-show-hide-panels-f43db26049aad092 = Показать/скрыть панели
+
+ui-show-highlight-on-rollover-69405ef2139701f4 = Показывать подсветку при наведении
+
+ui-show-in-explorer-2f94447b91dbe64c = Показать в Проводнике
+
+ui-show-in-folder-e0edb8f0cae13d5f = Показать в папке
+
+ui-show-original-9f96d5b03071c5ed = Показать исходное
+
+ui-show-rulers-15364a8b811babcf = Показать линейки
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = Показать кольцо выборки
+
+ui-show-transform-controls-82d860e45090ae14 = Показать управляющие элементы трансформации
+
+ui-single-column-marquee-tool-1dac583cc51f40e3 = Область (вертикальная строка)
+
+ui-single-row-marquee-tool-220700fd1e13590f = Область (горизонтальная строка)
+
+ui-size-was-old-41f38564856f8aff = { $size } (было { $old })
+
+ui-slant-8684e6366a796841 = Наклон
+
+ui-snap-to-origin-2f5c18a1a31eaab6 = Привязать к началу координат
+
+ui-soft-040bb6237d859c93 = Мягкая
+
+ui-solarized-dark-b3d33c9539e10efa = Solarized тёмная
+
+ui-solarized-dark-theme-592f33cc33819357 = Тёмная тема Solarized
+
+ui-solid-9b8a594e6937f34a = Сплошная
+
+ui-some-brush-presets-could-not-be-loaded-85dba33dc441678d = Не удалось загрузить некоторые наборы кистей
+
+ui-star-ratio-24437e279a76229e = Коэффициент звезды:
+
+ui-straighten-the-image-by-drawing-a-line-o-e0da8c009ed35534 = Выровнять изображение, нарисовав на нем линию
+
+ui-stroke-color-705a1554bb23c6c0 = Цвет обводки
+
+ui-stroke-options-157cb1b9e34287dd = Параметры обводки
+
+ui-studio-light-c59588e3a608ca09 = Studio Light
+
+ui-subtract-from-selection-key-6bf04a559d0b091f = Вычесть из выделения  ({ $key })
+
+ui-swaps-height-and-width-1311adeefea08931 = Меняет местами высоту и ширину
+
+ui-symmetry-off-f51a8e00f2b6ab64 = Без симметрии
+
+ui-sync-with-system-a2794e085c62fd61 = Синхронизировать с системой
+
+ui-system-title-bar-b81774202f7af861 = Системная строка заголовка
+
+ui-targa-options-6616b16a7d3445cc = Параметры Targa
+
+ui-target-3ebe946eefdad3c8 = Цель:
+
+ui-the-document-is-closed-8ec5c55a26b25b8f = Документ закрыт
+
+ui-the-document-or-selected-layers-changed-p-9972332ed404c2e8 = Документ или выбранные слои изменились. Повторите запрос на удаление.
+
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = Компоновщик GPU не использовался: { $reason }
+
+ui-the-gradient-the-gradient-tool-paints-wi-93518332f123931c = Градиент, которым рисует инструмент «Градиент»
+
+ui-the-keyboard-shortcut-set-was-not-import-03551b2b8d5b9f3d = Набор сочетаний клавиш не импортирован: { $error }
+
+ui-there-is-no-crop-size-or-ratio-to-save-10795b0c2723f449 = Нет размера или соотношения сторон кадрирования для сохранения
+
+ui-thin-24348b0f6db9a923 = Тонкий
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = Этот формат сохраняет сведённое изображение. Используйте «Сохранить копию», чтобы сохранить редактируемый документ.
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = Эта перерисовка на CPU заняла { $seconds } с.
+
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = Чтобы перетаскивать файлы, запустите PhotoCraft в XWayland: `{ $command }`
+
+ui-tolerance-618678642eb8bb3e = Допуск
+
+ui-top-ec7ca21db87f9dcc = Сверху:
+
+ui-top-left-35db253aba562917 = Верхний левый
+
+ui-top-right-9a12cffd0398f888 = Верхний правый
+
+ui-transform-symmetry-308ef5a329d1f431 = Трансформировать симметрию
+
+ui-transparency-threshold-d681456c819197c6 = Порог прозрачности
+
+ui-triangle-2af10d61da454203 = Треугольник
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = Недоступно в этом цветовом режиме
+
+ui-update-the-current-brush-with-these-sett-a7e6365f7455aaec = Обновить текущую кисть этими параметрами
+
+ui-use-classic-mode-ef70cbf7d572eaf9 = Использовать классический режим
+
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = Выберите Файл › Открыть или вставьте скопированное изображение с помощью { $paste }.
+
+ui-use-finite-lengths-and-a-positive-patter-45d1303fb60dbb99 = Используйте конечные длины и положительную сумму шаблона
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Использовать давление на трекпаде
+
+ui-vertical-type-mask-tool-35f5821cb3112aa1 = Вертикальный текст-маска
+
+ui-violet-2882bc397b2e28dc = Фиолетовый
+
+ui-w-unit-x-h-unit-ppi-ppi-1cc3519842d6fe39 = { $w } { $unit } × { $h } { $unit } ({ $ppi } ppi)
+
+ui-w-x-h-x-resolution-3b06634d489d6fe2 = Ш x В x Разрешение
+
+ui-white-matte-93f44761248dcc3d = На белом фоне
+
+ui-x11-52a9397deddd2397 = X11
+
+ui-xor-521a5a7ded63a364 = XOR
+
+ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Здесь используется ваш набор сочетаний клавиш { $set }: сочетаний, отличных от стандартных: { $n }. Их показывает Редактирование › Сочетания клавиш; «Сбросить всё к значениям по умолчанию» отменяет импорт.
+
+ui-decontaminate-1f0aa396647233f3 = Очистить
+
+ui-emulsion-down-04563fb4794ff91f = Эмульсией вниз
+
+ui-functions-16dce49f49de2be4 = Функции
+
+ui-output-2555373b75aa89b2 = Вывод
+
+ui-print-resolution-ce140e05758a8376 = Разрешение печати:
+
+ui-refine-edge-394e57164384edb3 = Уточнить край
+
+ui-refine-strokes-0b1c46698a8ef47f = Штрихи уточнения
+
+ui-shift-edge-4fadcbcd31772f0a = Сместить край
+
+ui-smart-radius-2179959cee59e956 = Умный радиус

@@ -132,7 +132,7 @@ async fn main() -> TransportResult<()> {
     std::fs::create_dir_all(&output)?;
     let started = Instant::now();
     let mut host = Session::new();
-    host.execute("file.new", serde_json::json!({"width":WIDTH,"height":HEIGHT,"fill":"transparent"}))?;
+    host.execute("file.new", serde_json::json!({"width":WIDTH,"height":HEIGHT,"background":"transparent"}))?;
     let base = (*host.active().ok_or("missing document")?.doc).clone();
     let layer = host.active().and_then(|d| d.active_layer).ok_or("missing layer")?;
     host.collaboration.document_id = host.active().map(|s| s.doc.id);

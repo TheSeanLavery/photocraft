@@ -61,6 +61,8 @@ fn render_profile(
                     doc_size: [160, 32],
                     zoom: 1.0,
                     center: [80.0, 16.0],
+                    rotation: 0.0,
+                    offset: [0.0; 2],
                     shadow: false,
                     pixel_grid: false,
                     view_key: 1,

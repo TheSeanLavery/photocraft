@@ -4368,3 +4368,897 @@ ui-use-available-disk-space-44211d74d7260f1a = 使用可用磁盘空间
 ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = 撤销存储空间按需增长。无限历史记录保留状态，直到存储空间已满。暂存路径适用于下次缓存会话。
 
 ui-change-opacity-c419e848020b25f4 = 更改不透明度
+
+ui-0-turns-this-threshold-off-svg-groups-ne-8107dd87e635679d = 设为 0 可关闭此阈值；嵌套超过 100 层的 SVG 组始终会被栅格化。
+
+ui-101-by-101-average-f0636a75b4938275 = 101 × 101 平均
+
+ui-11-by-11-average-538d383a16a69bb7 = 11 × 11 平均
+
+ui-12-columns-b949e2085ce68503 = 12列
+
+ui-24-bits-pixel-1efd69221601fa68 = 24 位/像素
+
+ui-3-by-3-average-400d4f87bb7a72ef = 3 × 3 平均
+
+ui-31-by-31-average-f49ec39b911d80e3 = 31 × 31 平均
+
+ui-32-bits-pixel-33b63adb24722469 = 32 位/像素
+
+ui-5-by-5-average-393c80f9d8845bab = 5 × 5 平均
+
+ui-5-columns-3-rows-8ebf23bc0edaefdb = 5列，3行
+
+ui-50-gray-da82e26ee3dda904 = 50% 灰色
+
+ui-51-by-51-average-f8031ef2f1c3a59f = 51 × 51 平均
+
+ui-8-columns-7960156dbbf9d0ba = 8列
+
+ui-80-9314897fc598cede = 80%
+
+ui-85-9303957fc58a700f = 85%
+
+ui-90-89fe507fc0546e79 = 90%
+
+ui-95-8a0f4c7fc062dae0 = 95%
+
+ui-a-save-to-name-is-still-running-try-agai-05cc493545eb159a = 仍在保存到 { $name }；请在完成后重试
+
+ui-activate-panel-2d26ff9c85f372cc = 激活面板
+
+ui-active-9a4fc0866deff4e1 = 当前使用
+
+ui-add-anchor-point-tool-47f6a2d216ab0095 = 添加锚点工具
+
+ui-add-beauty-precomp-from-the-aovs-4d9efefbd4ef0542 = 从 AOV 预合成美丽通道
+
+ui-add-new-artboard-a9daaf925d16a4c3 = 添加新画板
+
+ui-add-pair-0c629fff04fb2b1e = 添加一对
+
+ui-add-to-favorites-0541c1994e6ae85e = 添加到收藏
+
+ui-add-to-swatches-3781607eddbada31 = 添加到色板
+
+ui-adds-the-current-gradient-to-the-gradien-a1f9968192c4ba50 = 将当前渐变添加到“渐变”面板
+
+ui-adwaita-cd477fc88437525a = Adwaita
+
+ui-adwaita-dark-50de267958d3f412 = Adwaita（深色）
+
+ui-adwaita-dark-theme-05d4bf4c97aa218f = Adwaita 深色主题
+
+ui-adwaita-light-theme-03c426048b1e340f = Adwaita 浅色主题
+
+ui-alignment-40ae160a9e770aa8 = 对齐
+
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = 所有图层（不含调整）
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = 所有快捷键已重置为 PhotoCraft 默认值。
+
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Alt 单击被桌面环境截获了，它用 Alt 拖动来移动窗口。请把桌面的窗口移动键改为 Super，或在 窗口 › 修饰键 中锁定 Alt。
+
+ui-always-show-overlay-b6be473be8ad3beb = 总是显示叠加
+
+ui-and-n-more-6e37845d39302347 = …以及另外 { $n } 项
+
+ui-anti-aliased-c391708a54da1e67 = 消除锯齿
+
+ui-appearance-mode-c6e76c01b1038388 = 外观模式
+
+ui-appearance-settings-b5f1d7603a447b52 = 外观设置…
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = 应用画布边界的效果
+
+ui-artboard-tool-80bd830389a6711e = 画板工具
+
+ui-auto-adjust-opacity-28ceac7a28ddd13a = 自动调整不透明度
+
+ui-auto-center-preview-225b4704be74d581 = 自动居中预览
+
+ui-auto-erase-8a68e4bc3af7d82e = 自动抹除
+
+ui-auto-hide-notifications-5e48a1ec5b48ddc0 = 自动隐藏通知
+
+ui-auto-show-overlay-59ff23a3b368166d = 自动显示叠加
+
+ui-automatic-04cc1a2793006d9a = 自动
+
+ui-background-from-layer-95241da9efd58afc = 从图层创建背景
+
+ui-bevel-b65a0ed0fa933479 = 斜角
+
+ui-bicubic-sharper-reduction-8526007a04be289f = 双三次（较锐利）（缩减）
+
+ui-bicubic-smoother-enlargement-f1b8e48b0f7a4a58 = 双三次（较平滑）（扩大）
+
+ui-black-87de58185ee7e143 = 黑体
+
+ui-black-matte-7c051e0b8e0c064b = 黑色背景
+
+ui-blend-if-47ff5afa1385a85d = 混合颜色带:
+
+ui-block-c4d0291e851daf50 = 块
+
+ui-bold-98d37886cf62c4a3 = 粗体
+
+ui-bottom-d0f114b5fd71868e = 下:
+
+ui-bottom-left-a4a6bc5593eb6541 = 左下
+
+ui-bottom-right-2acd3cb673e6fda2 = 右下
+
+ui-breeze-dark-e66fe26550bb0528 = Breeze 深色
+
+ui-breeze-dark-theme-a680c93f1fa1524d = Breeze 深色主题
+
+ui-breeze-light-0148f2375063bb68 = Breeze 浅色
+
+ui-breeze-light-theme-ed04a9643b4b988d = Breeze 浅色主题
+
+ui-browser-storage-is-unavailable-brushes-a-7917bc257e6f900e = 浏览器存储不可用；画笔仅在本次会话中有效。请保持此标签页打开以保留它们。
+
+ui-brush-name-ed530497d97024a4 = 画笔名称
+
+ui-brush-preset-changes-are-not-saved-error-5f27ebc7fd81a7c9 = 画笔预设的更改未保存：{ $error }
+
+ui-brush-preset-options-ae5d75337b0c67ae = 画笔预设选项
+
+ui-brush-stroke-e15a877d2a400187 = 画笔描边
+
+ui-brush-tip-47495e0f40c5a930 = 画笔笔尖
+
+ui-butt-flat-c72fa8c80b7c206a = 平头
+
+ui-camera-data-90b2af05c38e73b8 = 相机数据
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw（{ $name }）
+
+ui-caps-4e22f5ac70d59b9a = 端点
+
+ui-center-columns-eca652a77591890d = 列居中
+
+ui-change-panel-group-c875bb8728a6f2da = 更改面板组
+
+ui-change-panel-layout-e2e9f02cb1355649 = 更改面板布局
+
+ui-channels-67ef32de1bae7097 = 通道:
+
+ui-clear-brush-strokes-12a3c251da9d3d0d = 清除画笔描边
+
+ui-clear-existing-guides-67c8180ae4647d7a = 清除现有参考线
+
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = 单击红色瞳孔以消除反光
+
+ui-click-a-segment-to-add-an-anchor-point-a-0c07d54f4028e4af = 单击线段以添加锚点 · { $alt }-单击锚点：删除锚点
+
+ui-click-an-anchor-point-to-delete-it-alt-c-06d19be357a2d4d7 = 单击锚点将其删除 · { $alt }-单击线段：添加锚点
+
+ui-click-corner-drag-smooth-alt-drag-break-h-8598a28b712a87d6 = 单击：角点 · 拖动：平滑点 · { $alt }+拖动：断开手柄 · 单击或拖动起点：闭合 · { $key } 完成 · Esc 取消
+
+ui-click-smooth-point-double-click-corner-d-7ea166abf0ee7560 = 单击：平滑点 · 双击：角点 · 拖动点：移动 · 单击起点：闭合 · { $key } 完成
+
+ui-click-the-first-point-or-press-key-to-cl-901ea1b540ae3fc7 = 点按第一个点或按 { $key } 闭合 · { $del } 删除一个点 · Esc 取消
+
+ui-click-then-move-along-an-edge-click-to-f-4f0fd576defa2100 = 点按，然后沿边缘移动 · 点按固定一个点 · { $alt }-点按画直线段 · 双击闭合
+
+ui-click-to-add-a-point-right-click-to-remo-19feda9c95fbcf54 = 单击添加点，右键单击删除点
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = 点击更改列数；拖动标题栏移动
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = 点击更改列数；拖动以分离工具栏
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = 单击选取 · Esc 取消
+
+ui-click-to-place-alt-click-or-drag-off-can-0ced5c63027a6ce6 = 单击以放置 · Alt 单击或拖到画布外以移除
+
+ui-close-panel-194028906d61d387 = 关闭面板
+
+ui-color-a13d112d0512855e = 颜色…
+
+ui-color-adaptation-f7d5eb50532ba5ff = 颜色自适应
+
+ui-color-burn-paint-net-6bce7a866ee8fd93 = 颜色加深 (Paint.NET)
+
+ui-color-dodge-paint-net-6a1a7e45c5da25a9 = 颜色减淡 (Paint.NET)
+
+ui-color-picker-crop-shield-color-f0f21c4248e058e3 = 拾色器（裁剪屏蔽颜色）
+
+ui-color-picker-fill-color-cf989f4d01ca0b61 = 拾色器（填充颜色）
+
+ui-color-picker-layer-style-color-fbf90c85b504683a = 拾色器（图层样式颜色）
+
+ui-color-picker-name-6336833802dc6c44 = 拾色器（{ $name }）
+
+ui-color-picker-solid-color-11504899368a43d3 = 拾色器（纯色）
+
+ui-color-picker-stroke-color-aac3b03188866056 = 拾色器（描边颜色）
+
+ui-color-picker-text-color-6873936c7cbaceb3 = 拾色器（文字颜色）
+
+ui-color-replacement-1fd9c85a92dd0166 = 颜色替换
+
+ui-color-replacement-tool-e0f757ad548a409c = 颜色替换工具
+
+ui-color-to-alpha-5a172092ca34c10d = 颜色转为 Alpha…
+
+ui-columns-3da979c5c05c263a = 列
+
+ui-cone-83c7f5ac8fb13c68 = 锥形
+
+ui-cone-inverted-07c75939642bd114 = 锥形（反转）
+
+ui-cone-inverted-4f8ec26e3423aa10 = 锥形 - 反转
+
+ui-contents-b5e5b9d3f6d35ec1 = 内容：
+
+ui-continue-f031dd957d5c1b56 = 继续
+
+ui-contour-39d36135f075d52b = 等高线
+
+ui-contour-editor-999a1019725e56a4 = 等高线编辑器
+
+ui-convert-point-tool-ebb1dfd0f79acf3a = 转换点工具
+
+ui-corner-c1f5008d5d2ff536 = 角点
+
+ui-corners-c3453535587dc43f = 拐角
+
+ui-could-not-complete-the-free-transform-co-bfdbe92f0a214b00 = 无法完成“自由变换”命令，因为图层已锁定。
+
+ui-could-not-open-05042bf852b9a743 = 无法打开
+
+ui-could-not-use-the-move-tool-because-the-l-34336f06c7d717d6 = 无法使用移动工具，因为图层已锁定。
+
+ui-cove-deep-f3413d717747416f = 凹槽 - 深
+
+ui-cove-shallow-a816ea81e32dc623 = 凹槽 - 浅
+
+ui-create-a-new-elliptical-frame-d31989faf7fc5d30 = 新建椭圆图框
+
+ui-create-a-new-rectangular-frame-29813cef7128625f = 新建矩形图框
+
+ui-create-ellipse-f707994617445531 = 创建椭圆
+
+ui-create-new-swatch-df52baa4652be53b = 创建新色板
+
+ui-create-polygon-0312408e42727249 = 创建多边形
+
+ui-create-rectangle-446a2149ba949cae = 创建矩形
+
+ui-create-triangle-70461e67c3bc8665 = 创建三角形
+
+ui-crop-shield-color-fcab973d194f6a5d = 裁剪屏蔽颜色
+
+ui-current-a6280b8d8bb7d590 = 当前
+
+ui-current-below-no-adjustments-ad3ef5ddcba453be = 当前及下方图层（不含调整）
+
+ui-curvature-pen-tool-f2c504abaa665e43 = 弯度钢笔工具
+
+ui-curve-fit-4b92a705570d7f79 = 曲线拟合：
+
+ui-custom-pattern-b1725fbbdb358844 = 自定义图案：
+
+ui-cycle-orientation-d47100e364dd1ce9 = 循环切换取向
+
+ui-cycle-overlay-cd2523de1e12bc5b = 循环切换叠加
+
+ui-dark-theme-6d2ab4707cffde72 = 深色主题
+
+ui-darken-amount-4ff87ddb9162ea14 = 变暗程度
+
+ui-dash-1f756ca06449aeb3 = 线段
+
+ui-dash-gap-lengths-stroke-width-d58b32d0afc2986d = 线段 / 间隔长度 × 描边宽度
+
+ui-dash-offset-e2b5660c676021d6 = 虚线偏移
+
+ui-dashed-6a8ccf30c380ff72 = 虚线
+
+ui-dashed-line-9de7b4d520d5eb5c = 虚线
+
+ui-date-taken-d246ca6065cd50fd = 拍摄日期
+
+ui-default-photocraft-size-42e29dd35050952b = 默认 PhotoCraft 大小
+
+ui-delete-anchor-point-tool-32015b0a036fc947 = 删除锚点工具
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = 删除并填充选区
+
+ui-delete-count-layers-names-6bbff039943d0326 = 删除 { $count } 个图层？{ $names }
+
+ui-delete-crop-preset-e34aa95ed101e033 = 删除裁剪预设…
+
+ui-delete-layer-58301f0b5ef0e41a = 删除图层？
+
+ui-delete-layer-name-9407eadca584de9c = 删除图层“{ $name }”？
+
+ui-developing-name-3ca6c158e9e9f235 = 正在处理 { $name }
+
+ui-diagonal-6308486872486528 = 对角线
+
+ui-diagonal-descending-b3d2c399a327a7d9 = 对角线（下降）
+
+ui-dock-panel-0cd117664b0f3f4e = 停靠面板
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = 将工具栏停靠在左侧
+
+ui-domed-6b80f3fc40f5c94c = 圆顶
+
+ui-domed-inverted-3a1408397cf5ea60 = 圆顶（反转）
+
+ui-don-t-import-8a153d1cf3e9bcec = 不导入
+
+ui-dotted-c6817b61ff95adbb = 点线
+
+ui-drag-a-box-or-click-four-corners-drag-th-df3a1ca51159d17a = 拖动方框或单击四个角 · 将角拖到倾斜形状的边缘 · { $commit } 确认 · Esc 取消
+
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = 拖移绘制裁剪框 · 在框内拖移以移动 · 拖移边缘调整大小（{ $ratio } 比例，{ $centre } 中心）· 绘制时按 Space 移动 · 方向键微移 · X 切换方向 · { $commit } 确认 · Esc 取消
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = 绕中心拖动以旋转视图  ·  Shift 限制为 15°
+
+ui-drag-draw-freehand-release-on-the-start-p-ea613d199529d708 = 拖动：自由绘制 · 在起点松开：闭合
+
+ui-dual-axis-1c45b5825da6a58e = 双轴
+
+ui-duplicate-f94b553491159a80 = 复制
+
+ui-edit-keyboard-shortcuts-reset-all-to-def-1c2e80c5385a9432 = “编辑 › 键盘快捷键 › 全部重置为默认值”可撤销导入。
+
+ui-edit-paste-3f6b4ca340b0bccc = “编辑 › 粘贴”
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = 更改整个文档的编辑（如图层的混合模式、不透明度或可见性）会重绘整个文档。
+
+ui-enable-crop-shield-f3578921d3d300ef = 启用裁剪屏蔽
+
+ui-enter-a-name-for-the-crop-preset-a58a2551cfe13f3e = 输入裁剪预设的名称
+
+ui-expand-detection-area-dceaf291bd07056d = 扩展检测区域
+
+ui-export-swatches-429d4e913cd22171 = 导出色板…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = 导出色板以供交换…
+
+ui-exposure-d40fa037a6d0e233 = 曝光时间
+
+ui-extrabold-fd6396c3deb95c21 = 特粗
+
+ui-extralight-0704360f6be0647a = 特细
+
+ui-eyedroppers-9220889b81a1f1b5 = 吸管：
+
+ui-f-cycles-the-views-hold-x-to-see-the-ima-f78f72e02c811b5f = 按 F 切换视图；按住 X 查看图像
+
+ui-f-stop-950ea3f6954631c3 = 光圈值
+
+ui-fill-color-61734769aae23385 = 填充颜色
+
+ui-fill-screen-610513f68e54eeee = 填充屏幕
+
+ui-float-panel-b52119e145970061 = 浮动面板
+
+ui-focal-length-35-mm-48b7586512d355f4 = 焦距（35 毫米等效）
+
+ui-focal-length-aa1997545c858259 = 焦距
+
+ui-follows-only-edges-this-close-to-the-poi-10b48929e48da16b = 只跟随离指针这么近的边缘（用 [ 和 ] 调整）
+
+ui-foreground-color-c4236e6fb45a0975 = 前景色
+
+ui-frame-tool-3869ecc880418af6 = 图框工具
+
+ui-freeform-pen-tool-6f6679338fdf5312 = 自由钢笔工具
+
+ui-from-center-0d8a0ee0ef65cec8 = 从中心
+
+ui-front-image-80d86d74a4acfac7 = 前面的图像
+
+ui-fuchsia-8d83defd7f0120fc = 紫红色
+
+ui-gap-e5bb2f7e411d4221 = 间隔
+
+ui-gaussian-bba39d25ae40ed28 = 高斯
+
+ui-gloss-contour-5491d206d1cdb411 = 光泽等高线
+
+ui-glow-4eaf4c888be6ecaa = 发光
+
+ui-golden-ratio-ff69929862f02a2d = 黄金比例
+
+ui-golden-spiral-5757498b8af1d487 = 金色螺线
+
+ui-gradient-editor-bb6e0a95fb5ef2ac = 渐变编辑器
+
+ui-gradient-picker-54dd1fd154401b2b = 渐变拾色器
+
+ui-gradient-stops-f06ae21e1135f30e = 渐变色标
+
+ui-group-with-94fcb352464d9a1e = 与此面板分组
+
+ui-h-08324007b4eaf595 = 高
+
+ui-half-round-62b12796617538fe = 半圆
+
+ui-higher-values-follow-only-edges-that-con-339978148cf9c078 = 数值越高，只跟随与周围对比强烈的边缘
+
+ui-horizontal-type-mask-tool-0114c5e36a28d713 = 横排文字蒙版工具
+
+ui-how-often-fastening-points-are-placed-by-498d32d10d244c21 = 自动放置紧固点的频率
+
+ui-import-93f9356ee0cef73e = 导入…
+
+ui-import-brushes-abr-bc61ea3383f9a612 = 导入画笔（.abr）
+
+ui-import-keyboard-shortcuts-9a7acd5b01140835 = 导入键盘快捷键？
+
+ui-import-shortcuts-ca60eb051696939b = 导入快捷键…
+
+ui-import-swatches-d6432c51430e3eba = 导入色板…
+
+ui-imported-n-shortcuts-from-file-click-ok-t-5da9bf038f58bce4 = 已从 { $file } 导入 { $n } 个快捷键。点击“确定”保留。
+
+ui-impressionist-838b2d95b3fe039e = 印象派
+
+ui-include-in-playback-68b371aa09a42a7d = 包含在播放中
+
+ui-indigo-5c3d440918ff0f31 = 靛蓝色
+
+ui-invalid-delete-command-535e24127ed414d4 = 无效的删除命令
+
+ui-invalid-guide-layout-a7becc4715dd0ef0 = 参考线布局无效
+
+ui-iso-speed-57950bb275b569a4 = ISO 感光度
+
+ui-italic-affc1f243d43a170 = 斜体
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = 图层超出 GPU 内存预算。在 首选项 › 性能 中提高内存使用量可增加预算，最多为本机内存的四分之一。
+
+ui-keep-this-tab-open-to-retain-your-brushe-a5f6fe26fae0d562 = 请保持此标签页打开以保留您的画笔。
+
+ui-keyboard-shortcuts-imported-fee2c7c74ed2a6bf = 已导入键盘快捷键
+
+ui-knockout-114fcb275f7f7673 = 挖空
+
+ui-label-is-writing-the-file-and-can-no-lon-33df6081c771e2b9 = { $label } 正在写入文件，已无法取消
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = 大型文档：正在用 CPU 重绘
+
+ui-layer-deleted-but-confirmation-preferenc-f2ce35477ff1e4fa = 图层已删除，但无法保存确认设置：{ $error }
+
+ui-leave-empty-for-automatic-size-2f6af7cbd1f8cd38 = 留空以自动设置大小
+
+ui-left-cdcd976a8ae9a624 = 左:
+
+ui-lens-f9af7c851d6f6256 = 镜头
+
+ui-light-b8b902e993554a24 = 细体
+
+ui-light-theme-58b947c570ab5ee4 = 浅色主题
+
+ui-link-radii-cf0a1c73be90d1a2 = 链接半径
+
+ui-linux-display-server-e35271f31f95faac = Linux 显示服务器
+
+ui-load-a-keyboard-shortcut-set-saved-as-ky-08aaf9f9e85e9925 = 载入保存为 .kys 的键盘快捷键集
+
+ui-location-297949d1a95f2298 = 位置
+
+ui-location-d83b1142cca7d946 = 位置：
+
+ui-low-resolution-previews-250ad01d7da7418c = 低分辨率预览
+
+ui-make-10ce4e8ae215e940 = 制造商
+
+ui-make-landscape-29de2da2acf3e4ec = 设为横向
+
+ui-make-portrait-48262a543a70ad70 = 设为纵向
+
+ui-marching-ants-81b580a962b06f44 = 蚂蚁线
+
+ui-margin-27f17d733e6bbd89 = 边距
+
+ui-match-canvas-e96f08cd86b7fed4 = 匹配画布
+
+ui-medium-9ccd01b2e5f752af = 中等
+
+ui-missing-delete-command-a4f922e5ac863be5 = 缺少删除命令
+
+ui-miter-f77adc9d7250d2f8 = 斜接
+
+ui-miter-limit-26f9b3d9afbcfa5b = 斜接限制
+
+ui-mode-color-bits-bit-91d967615006031b = { $mode } 颜色 · { $bits } 位
+
+ui-model-4383b12efc2485a7 = 型号
+
+ui-more-documents-702166de66a88b90 = 更多文档
+
+ui-move-panel-3a47e11ada54b960 = 移动面板
+
+ui-n-commands-are-not-in-photocraft-8d9da53e6d113da9 = { $n } 个命令在 PhotoCraft 中不存在。
+
+ui-n-of-max-sample-points-23c59085c2f1cfcb = { $max } 个取样点中的 { $n } 个
+
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Wayland 尚不支持原生文件拖放。请使用“文件 › 打开”，或在文件管理器中复制图像后使用 { $paste } 粘贴。
+
+ui-negation-4fc106b159214b14 = 否定
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm 根据图像位深度和通道选择子类型。
+
+ui-never-show-overlay-62e4d50ec1f95088 = 从不显示叠加
+
+ui-new-brush-preset-9a813a7c947ca0f2 = 新建画笔预设…
+
+ui-new-crop-preset-a06657144aecc436 = 新建裁剪预设…
+
+ui-new-document-with-mask-829ecf76a05eef44 = 带蒙版的新建文档
+
+ui-new-layer-with-mask-a27e3dedb04b398a = 带蒙版的新建图层
+
+ui-new-swatch-35500735beac1287 = 新建色板…
+
+ui-new-swatch-group-d508820c8747faca = 新建色板组…
+
+ui-next-appearance-mode-1ad9397736c7ee33 = 下一个外观模式
+
+ui-next-document-6e3c850115c17527 = 下一个文档
+
+ui-no-document-open-3e622d7f3eb6fe8b = 未打开任何文档
+
+ui-no-matching-settings-ee7ac3cb953063dc = 没有匹配的设置
+
+ui-no-saved-presets-yet-70f97356610163a1 = 尚无已保存的预设。
+
+ui-no-subject-found-try-a-rectangle-around-t-305b2a5462b07838 = 未找到主体 — 请尝试在对象周围绘制矩形
+
+ui-no-subject-found-try-object-selection-or-631a2c6cfea1b5bc = 未找到主体 — 请尝试对象选择工具或套索工具
+
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = 不是 Web 颜色：单击使用最接近的 Web 颜色
+
+ui-notification-duration-seconds-d8febd6df942f984 = 通知持续时间（秒）
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = 现在将选区拖动到另一个区域
+
+ui-number-64f8e212c5ac06de = 数量
+
+ui-object-selection-found-nothing-there-try-ca465edbd222510f = 对象选择在该处未找到任何内容 — 请尝试更紧凑的矩形
+
+ui-on-black-e728be796304fcb9 = 黑底
+
+ui-on-layers-c8e8d79373a527f0 = 图层上
+
+ui-on-white-6215953b11747b1b = 白底
+
+ui-onion-skin-b8980fb3c2df588d = 洋葱皮
+
+ui-opacity-threshold-3dbc5455a6a96857 = 不透明度阈值
+
+ui-open-exr-parts-fd9bfecaa27e1e30 = 打开 EXR 分段…
+
+ui-open-in-camera-raw-c438bf24dab93647 = 在 Camera Raw 中打开
+
+ui-open-paths-use-centered-strokes-3add57d4a0335f7d = 开放路径使用居中描边
+
+ui-open-source-65fefae8d3d63fa4 = 开源
+
+ui-opened-name-21b0dd7c898f99fb = 已打开 { $name }
+
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = 或将 首选项 › 性能 › Linux 显示服务器 设为 X11：PhotoCraft 将始终在 XWayland 下启动。
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = 超出打印色域：单击使用最接近的可打印颜色
+
+ui-paint-over-hair-or-fur-on-the-image-alt-p-44f8b66674c7cf71 = 在图像中的头发或毛发上涂抹；按住 Alt 以另一种模式涂抹
+
+ui-panel-menu-06b4f84ed48efc1a = 面板菜单
+
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }：路径不是有效的 Unicode；请重命名文件后再打开。
+
+ui-pattern-stamp-3def986c64c12dcc = 图案图章
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = 图案图章工具
+
+ui-pencil-8084544d4ac2ea36 = 铅笔
+
+ui-perspective-crop-tool-9d2500bb26bc190b = 透视裁剪工具
+
+ui-photocraft-found-your-keyboard-shortcut-s-865cccf0e5aa0eef = PhotoCraft 在这台电脑上找到了你在其他图像编辑器中的键盘快捷键集 { $set }：其中 { $n } 个快捷键与 PhotoCraft 不同。要导入吗？
+
+ui-photocraft-screen-color-picker-7b92fa1bcc690048 = PhotoCraft — 屏幕取色器
+
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = 选取屏幕像素或按 Esc 取消
+
+ui-pick-screen-color-b1eefd560cdcf751 = 选取屏幕颜色
+
+ui-point-sample-10f1da74f87660f7 = 采样点
+
+ui-preserve-transparency-ec3f87e2963c04bb = 保留透明区域
+
+ui-preset-name-a0b4d9aa9b88ec7b = 预设名称
+
+ui-pressure-curve-19292bf407107dbf = 压感曲线
+
+ui-previous-document-eaa84057a6b49afb = 上一个文档
+
+ui-pro-light-5f027dfe73385691 = 专业（浅色）
+
+ui-pro-light-d99268b6a486cfe6 = 专业（浅色）
+
+ui-pro-light-gray-b0b886c21e82d0dc = 专业（浅灰色）
+
+ui-pro-light-gray-bc41ae44cf80a191 = 专业（浅灰色）
+
+ui-pro-light-gray-theme-7ba042d458fbdefc = 专业浅灰主题
+
+ui-pro-light-theme-e381bc8b2c880e03 = 专业浅色主题
+
+ui-pro-medium-3990a13d10e49531 = Pro Medium
+
+ui-pupil-size-a21b8b198e346afe = 瞳孔大小
+
+ui-quick-selection-found-nothing-there-79e12ccf085cca73 = 快速选择在该处未找到任何内容
+
+ui-rasterize-layer-style-c11eb0192450d280 = 栅格化图层样式
+
+ui-rasterize-layers-ef809f91579ccb22 = 栅格化图层
+
+ui-rasterize-svg-groups-deeper-than-2ea169bca636efde = 栅格化超过此深度的 SVG 组
+
+ui-red-eye-96b14bb055bf9143 = 红眼
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = 红眼工具
+
+ui-refine-9e0be4b61fc803be = 调整
+
+ui-refine-edge-brush-r-c2b236a925ebf002 = 调整边缘画笔 (R)
+
+ui-reflect-d0229494c0f576bc = 反射
+
+ui-regular-182bf85491dfe61c = 常规
+
+ui-remove-from-favorites-486786afd446c748 = 从收藏中移除
+
+ui-remove-from-recent-9d1617d42109ab60 = 从最近文件中移除
+
+ui-remove-name-from-recent-10f46ef1688734d3 = 从最近文件中移除 { $name }
+
+ui-remove-pair-36d4c6635ffda785 = 移除一对
+
+ui-remove-tool-f4e2e17b376f490b = 移除工具
+
+ui-replace-swatches-22ed7dc765dad82d = 替换色板…
+
+ui-reset-28450354f52cb7ae = 复位
+
+ui-reset-all-tools-376ceb5881d91e9a = 重置所有工具
+
+ui-reset-all-tools-to-their-default-setting-051b717b3b6a210c = 要将所有工具重置为默认设置吗？
+
+ui-reset-swatches-99689ab8ada5eb9a = 复位色板
+
+ui-reset-tool-09e396a78e8ad944 = 重置工具
+
+ui-reset-view-c0bdf39ad3792a63 = 重置视图
+
+ui-resize-panel-window-2882cbd9cf0bb38f = 调整面板窗口大小
+
+ui-resize-panels-63366d26e7bff572 = 调整面板大小
+
+ui-restore-original-edge-1f47567587324e0f = 恢复原始边缘
+
+ui-retry-saving-presets-46dc9ac2d6616d53 = 重试保存预设
+
+ui-right-cbe095148fc36d83 = 右:
+
+ui-ring-23d3ed2f82517781 = 环形
+
+ui-ring-double-46bac415b3bcb0d3 = 环形 - 双
+
+ui-rolling-slope-descending-905375a37c64ed52 = 滚动斜坡 - 递减
+
+ui-rotate-view-db81b0d3c1a858dd = 旋转视图
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = 旋转视图工具
+
+ui-round-dbce8f85403bd2bd = 圆角
+
+ui-rounded-steps-7f4362f1e501c0f7 = 圆角梯形
+
+ui-rows-edb0eb2f630a8e3a = 行
+
+ui-rule-of-thirds-a9efcd425580c820 = 三等分
+
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = 在屏幕任意位置采样像素
+
+ui-sample-size-84705069550bbf3c = 采样大小：
+
+ui-save-as-preset-fcb3834698c2503d = 存储为预设
+
+ui-save-preset-2328ef2728084c33 = 保存预设…
+
+ui-saved-5eaa631947aa180a = 已保存
+
+ui-saved-name-ec890ad7eb9202d3 = 已保存 { $name }
+
+ui-saving-brush-presets-keep-this-tab-open-u-0387001733cba4f2 = 正在保存画笔预设… 请保持此标签页打开，直到保存完成。
+
+ui-saving-name-2363a755794e1f66 = 正在保存 { $name }
+
+ui-sawtooth-1-8eeceb1522eaf619 = 锯齿 1
+
+ui-scale-3aee47f8880725bf = 缩放：
+
+ui-scope-8765632a779d5bdd = 范围
+
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = 滚动以缩放
+
+ui-scrubby-zoom-be94ebd193e23a8a = 细微缩放
+
+ui-seafoam-ebe537921cc90f2b = 海沫色
+
+ui-search-settings-a7fc4883f6918f9c = 搜索设置…
+
+ui-select-the-crop-presets-to-delete-719febcbd9ce2506 = 选择要删除的裁剪预设
+
+ui-select-the-crop-presets-to-delete-e0e2e763194944f4 = 选择要删除的裁剪预设：
+
+ui-selected-3ee82e06f8c5ee8e = 已选
+
+ui-selected-artboards-b150baa5bc687b52 = 所选画板
+
+ui-selection-preview-a4f0a0102c940143 = 选区预览：
+
+ui-semibold-f43621cc0429d1c1 = 半粗
+
+ui-set-additional-crop-options-437370a0bbc94342 = 设置其他裁剪选项
+
+ui-set-black-point-3a2fd412fb7bf324 = 设置黑场
+
+ui-set-neutral-gray-point-80347a56d69ad333 = 设置中性灰场
+
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = 设置裁剪工具的叠加选项
+
+ui-set-white-point-526c42ac4bcf95ae = 设置白场
+
+ui-show-canvas-dots-6d94c3d743b8de22 = 显示画布圆点
+
+ui-show-cropped-area-53b623311de34a66 = 显示裁剪区域
+
+ui-show-edge-0e6f6ff17e21f8ef = 显示边缘
+
+ui-show-grid-fae930dfc8ee4b2e = 显示网格
+
+ui-show-hide-all-panels-240e4d824315700b = 显示/隐藏所有面板
+
+ui-show-hide-panels-f43db26049aad092 = 显示/隐藏面板
+
+ui-show-highlight-on-rollover-69405ef2139701f4 = 鼠标悬停时显示高亮
+
+ui-show-in-explorer-2f94447b91dbe64c = 在文件资源管理器中显示
+
+ui-show-in-folder-e0edb8f0cae13d5f = 在文件夹中显示
+
+ui-show-original-9f96d5b03071c5ed = 显示原始
+
+ui-show-rulers-15364a8b811babcf = 显示标尺
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = 显示采样环
+
+ui-single-column-marquee-tool-1dac583cc51f40e3 = 单列选框工具
+
+ui-single-row-marquee-tool-220700fd1e13590f = 单行选框工具
+
+ui-size-was-old-41f38564856f8aff = { $size }（原为 { $old }）
+
+ui-slant-8684e6366a796841 = 倾斜
+
+ui-snap-to-origin-2f5c18a1a31eaab6 = 贴紧原点
+
+ui-solarized-dark-b3d33c9539e10efa = Solarized 深色
+
+ui-solarized-dark-theme-592f33cc33819357 = Solarized 深色主题
+
+ui-solid-9b8a594e6937f34a = 实线
+
+ui-some-brush-presets-could-not-be-loaded-85dba33dc441678d = 部分画笔预设无法加载
+
+ui-star-ratio-24437e279a76229e = 星形比例：
+
+ui-straighten-the-image-by-drawing-a-line-o-e0da8c009ed35534 = 通过在图像上画一条线来拉直图像
+
+ui-stroke-color-705a1554bb23c6c0 = 描边颜色
+
+ui-stroke-options-157cb1b9e34287dd = 描边选项
+
+ui-studio-light-c59588e3a608ca09 = Studio Light
+
+ui-symmetry-off-f51a8e00f2b6ab64 = 关闭对称
+
+ui-sync-with-system-a2794e085c62fd61 = 与系统同步
+
+ui-system-title-bar-b81774202f7af861 = 系统标题栏
+
+ui-targa-options-6616b16a7d3445cc = Targa 选项
+
+ui-target-3ebe946eefdad3c8 = 目标:
+
+ui-the-document-is-closed-8ec5c55a26b25b8f = 文档已关闭
+
+ui-the-document-or-selected-layers-changed-p-9972332ed404c2e8 = 文档或所选图层已更改。请重新请求删除。
+
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = 未使用 GPU 合成器：{ $reason }
+
+ui-the-gradient-the-gradient-tool-paints-wi-93518332f123931c = 渐变工具所使用的渐变
+
+ui-the-keyboard-shortcut-set-was-not-import-03551b2b8d5b9f3d = 未导入键盘快捷键集：{ $error }
+
+ui-there-is-no-crop-size-or-ratio-to-save-10795b0c2723f449 = 没有可保存的裁剪大小或比例
+
+ui-thin-24348b0f6db9a923 = 极细
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = 此格式会保存拼合后的图像。要保留可编辑的文档，请使用“保存副本”。
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = 此次 CPU 重绘耗时 { $seconds } 秒。
+
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = 要拖放文件，请在 XWayland 下启动 PhotoCraft：`{ $command }`
+
+ui-top-ec7ca21db87f9dcc = 上:
+
+ui-top-left-35db253aba562917 = 左上
+
+ui-top-right-9a12cffd0398f888 = 右上
+
+ui-transform-symmetry-308ef5a329d1f431 = 变换对称轴
+
+ui-transparency-threshold-d681456c819197c6 = 透明度阈值
+
+ui-triangle-2af10d61da454203 = 三角形
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = 此颜色模式下不可用
+
+ui-update-the-current-brush-with-these-sett-a7e6365f7455aaec = 用这些设置更新当前画笔
+
+ui-use-classic-mode-ef70cbf7d572eaf9 = 使用经典模式
+
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = 请使用“文件 › 打开”，或使用 { $paste } 粘贴复制的图像。
+
+ui-use-finite-lengths-and-a-positive-patter-45d1303fb60dbb99 = 请使用有限长度和正数图案总长度
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = 使用触控板压力
+
+ui-vertical-type-mask-tool-35f5821cb3112aa1 = 直排文字蒙版工具
+
+ui-violet-2882bc397b2e28dc = 紫罗兰色
+
+ui-w-08323107b4eadc18 = 宽
+
+ui-w-unit-x-h-unit-ppi-ppi-1cc3519842d6fe39 = { $w } { $unit } x { $h } { $unit } ({ $ppi } ppi)
+
+ui-w-x-h-x-resolution-3b06634d489d6fe2 = 宽 x 高 x 分辨率
+
+ui-white-matte-93f44761248dcc3d = 白色背景
+
+ui-x11-52a9397deddd2397 = X11
+
+ui-xor-521a5a7ded63a364 = XOR
+
+ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = 此处正在使用你的键盘快捷键集 { $set }：{ $n } 个快捷键与默认值不同。可在“编辑 › 键盘快捷键”中查看；“全部重置为默认值”可撤销。
+
+ui-decontaminate-1f0aa396647233f3 = 净化
+
+ui-emulsion-down-04563fb4794ff91f = 药膜朝下
+
+ui-functions-16dce49f49de2be4 = 功能
+
+ui-output-2555373b75aa89b2 = 输出
+
+ui-print-resolution-ce140e05758a8376 = 打印分辨率：
+
+ui-refine-edge-394e57164384edb3 = 调整边缘
+
+ui-refine-strokes-0b1c46698a8ef47f = 调整描边
+
+ui-shift-edge-4fadcbcd31772f0a = 移动边缘
+
+ui-smart-radius-2179959cee59e956 = 智能半径

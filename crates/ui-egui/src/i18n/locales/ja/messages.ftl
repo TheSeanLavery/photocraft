@@ -4290,3 +4290,2915 @@ ui-use-available-disk-space-44211d74d7260f1a = 空きディスク容量を使用
 ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = 取り消し用ディスク容量は必要に応じて増加します。無制限の履歴は容量がいっぱいになるまで保持されます。パスは次のキャッシュセッションに適用されます。
 
 ui-change-opacity-c419e848020b25f4 = 不透明度を変更
+
+cmd-select-all = すべてを選択
+
+ui-0-turns-this-threshold-off-svg-groups-ne-8107dd87e635679d = 0 でこのしきい値は無効になります。100 階層を超えて入れ子になった SVG グループは常にラスタライズされます。
+
+ui-10-fps-ec754e5fee173c1d = 10 fps
+
+ui-101-by-101-average-f0636a75b4938275 = 101 × 101 平均
+
+ui-11-by-11-average-538d383a16a69bb7 = 11 × 11 平均
+
+ui-12-columns-b949e2085ce68503 = 12列
+
+ui-15-fps-90234431c3f336ee = 15 fps
+
+ui-24-bits-pixel-1efd69221601fa68 = 24 ビット/ピクセル
+
+ui-24-fps-f05a784679b0a792 = 24 fps
+
+ui-25-fps-b881f50533244195 = 25 fps
+
+ui-3-by-3-average-400d4f87bb7a72ef = 3 × 3 平均
+
+ui-30-fps-0e87e2ada40fc6d3 = 30 fps
+
+ui-31-by-31-average-f49ec39b911d80e3 = 31 × 31 平均
+
+ui-32-bit-preview-options-3e7b85635bb14c4a = 32 ビットプレビューオプション
+
+ui-32-bits-pixel-33b63adb24722469 = 32 ビット/ピクセル
+
+ui-3d-a1395013b29c3bbc = 3D…
+
+ui-3d-d9797c186c351ec0 = 3D
+
+ui-5-by-5-average-393c80f9d8845bab = 5 × 5 平均
+
+ui-5-columns-3-rows-8ebf23bc0edaefdb = 5列、3行
+
+ui-50-gray-da82e26ee3dda904 = 50% グレー
+
+ui-51-by-51-average-f8031ef2f1c3a59f = 51 × 51 平均
+
+ui-8-columns-7960156dbbf9d0ba = 8列
+
+ui-80-9314897fc598cede = 80%
+
+ui-85-9303957fc58a700f = 85%
+
+ui-90-89fe507fc0546e79 = 90%
+
+ui-95-8a0f4c7fc062dae0 = 95%
+
+ui-a-save-to-name-is-still-running-try-agai-05cc493545eb159a = { $name } への保存がまだ実行中です。完了してからもう一度お試しください
+
+ui-accented-edges-f878088da14c01a6 = 輪郭の強調
+
+ui-accurate-e115127d973fc78d = 高精度
+
+ui-aces-123ec7ba01eeb4ab = ACES
+
+ui-activate-panel-2d26ff9c85f372cc = パネルをアクティブにする
+
+ui-active-9a4fc0866deff4e1 = 適用中
+
+ui-actual-color-c58799e26b36f35e = 実際のカラー
+
+ui-adaptive-wide-angle-c747abce58bf5c37 = 広角補正
+
+ui-add-a-mask-from-the-selection-inverts-b4c2c4b807d5f830 = マスクを追加  (選択範囲から。⌥ で反転)
+
+ui-add-anchor-point-tool-47f6a2d216ab0095 = アンカーポイントの追加ツール
+
+ui-add-beauty-precomp-from-the-aovs-4d9efefbd4ef0542 = AOVからビューティーをプリコンポーズして追加
+
+ui-add-new-artboard-a9daaf925d16a4c3 = 新規アートボードを追加
+
+ui-add-noise-52b2fc1ed7b156c8 = ノイズを加える
+
+ui-add-pair-0c629fff04fb2b1e = 組を追加
+
+ui-add-pins-f25f520adfc9d2a2 = ピンを追加
+
+ui-add-to-521f6de1aa57d7f3 = 追加
+
+ui-add-to-favorites-0541c1994e6ae85e = お気に入りに追加
+
+ui-add-to-selection-36b933f5432559b8 = 選択範囲に追加  (⇧)
+
+ui-add-to-swatches-3781607eddbada31 = スウォッチに追加
+
+ui-adds-grain-to-the-soft-edges-of-the-brus-011f33951d6e686b = ブラシ先端の柔らかい縁に粒子を加えます。
+
+ui-adds-the-current-gradient-to-the-gradien-a1f9968192c4ba50 = 現在のグラデーションをグラデーション パネルに追加します
+
+ui-adjust-interval-for-loops-80bf71c835f17bb1 = ループ用に間隔を調整
+
+ui-adjustment-2ad6aa1f697d9564 = 色調補正
+
+ui-adjustment-layer-834a12e7c6f16e69 = 色調補正レイヤー
+
+ui-adjustment-properties-baf0f8ea28fd4291 = 色調補正のプロパティ
+
+ui-adobe-every-line-composer-7e612f64c1113c28 = Adobe 全行コンポーザー
+
+ui-adobe-pdf-presets-7996d15a05421a50 = Adobe PDF プリセット…
+
+ui-adobe-rgb-1998-093b5ad27993ab35 = Adobe RGB (1998)
+
+ui-adobe-single-line-composer-254fd5690bfa27a3 = Adobe 1 行コンポーザー
+
+ui-advanced-blending-d716397c3b2ed0de = 高度な合成
+
+ui-advanced-controls-80464d3462bdd445 = 詳細コントロール
+
+ui-adwaita-cd477fc88437525a = Adwaita
+
+ui-adwaita-dark-50de267958d3f412 = Adwaita(ダーク)
+
+ui-adwaita-dark-theme-05d4bf4c97aa218f = Adwaita(ダーク)テーマ
+
+ui-adwaita-light-theme-03c426048b1e340f = Adwaita(ライト)テーマ
+
+ui-after-x-f271ba813b713b4c = 後 (X)
+
+ui-ai-integrations-bb6561e56a08d238 = AI 連携
+
+ui-airbrush-keeps-painting-while-the-pointe-8fc490651d920ad3 = エアブラシ: ポインターを止めている間も描き続けます。
+
+ui-alignment-40ae160a9e770aa8 = 整列
+
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = すべてのレイヤー（色調補正なし）
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = すべてのショートカットを初期状態に戻しました。
+
+ui-alpha-6dfd7ced24231d81 = アルファ
+
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Alt+クリックはデスクトップに取られました（Alt+ドラッグでウィンドウを移動する設定です）。デスクトップのウィンドウ移動キーを Super に変更するか、ウィンドウ › 修飾キーで Alt を固定してください。
+
+ui-alternates-for-current-selection-5ffc93c126db3608 = 現在の選択範囲の代替字形
+
+ui-alternative-5e22bc17c1d448fa = 代替
+
+ui-always-show-overlay-b6be473be8ad3beb = オーバーレイを常に表示
+
+ui-ambience-7a823d44b023b7fb = アンビエンス
+
+ui-ambient-4b59fce9cb706019 = 環境光
+
+ui-amplitude-max-2dbd6ac284b7c856 = 振幅 (最大)
+
+ui-amplitude-min-2da27cc284a11f34 = 振幅 (最小)
+
+ui-and-n-more-6e37845d39302347 = …ほか { $n } 件
+
+ui-angled-strokes-772d2b5781656a37 = 斜めストローク
+
+ui-anisotropic-7427d2a9bf10cd40 = 異方性
+
+ui-anti-aliased-c391708a54da1e67 = アンチエイリアス
+
+ui-aperture-7cddbf632652c88b = 絞り
+
+ui-appearance-mode-c6e76c01b1038388 = 外観モード
+
+ui-appearance-settings-b5f1d7603a447b52 = 外観設定…
+
+ui-apple-rgb-b93c342181c17bc6 = Apple RGB
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = カンバスの境界に効果を適用
+
+ui-apply-data-set-7a3d56641b4db937 = データセットを適用
+
+ui-apply-image-5b416a0787a80a98 = 画像を適用
+
+ui-apply-layer-comp-6aef8fe2a37a397b = レイヤーカンプを適用
+
+ui-arbitrary-c370aa4b1e393adf = 任意
+
+ui-arc-189a327e5d9dea81 = 円弧
+
+ui-arch-6beeb5b9135629eb = アーチ
+
+ui-area-6bf4b8b9135a9ab2 = 面積
+
+ui-around-center-55f13986b359ed73 = 中心の周囲
+
+ui-arrangement-9ad7a8674a07a175 = 配置
+
+ui-art-history-brush-e952e985ff84aee4 = アートヒストリーブラシ
+
+ui-artboard-from-group-34eb7289a7ccd317 = グループからアートボード
+
+ui-artboard-from-layers-9f206b55094d7b06 = レイヤーからアートボード
+
+ui-artboard-tool-80bd830389a6711e = アートボードツール
+
+ui-artboards-to-files-a521eb190ee89849 = アートボードをファイルへ
+
+ui-artboards-to-pdf-6fbf6edad6a24b9c = アートボードを PDF へ
+
+ui-artist-db6afff8cbb64a68 = アーティスト
+
+ui-artistic-848db5e7d7d2ee70 = 芸術風
+
+ui-ask-before-saving-saved-embedded-8247206155b5612e = 保存済みの埋め込みを保存する前に確認
+
+ui-ask-when-pasting-2ad4c16bef1c9384 = ペースト時に確認
+
+ui-assign-profile-e317f304f2c2c65f = プロファイルを割り当て
+
+ui-at-d86fc0186b52caca = 位置
+
+ui-audio-5e1ee8b2642f9f1b = オーディオ
+
+ui-author-4ee0c69c163afe30 = 作成者
+
+ui-auto-adjust-opacity-28ceac7a28ddd13a = 不透明度を自動調整
+
+ui-auto-align-layers-8788d00770d2a34a = レイヤーを自動整列
+
+ui-auto-blend-layers-eee46383508a60c8 = レイヤーを自動合成
+
+ui-auto-center-preview-225b4704be74d581 = プレビューを自動的に中央に配置
+
+ui-auto-clean-brush-b9bd276e275519b5 = ブラシを自動的にクリーニング
+
+ui-auto-erase-8a68e4bc3af7d82e = 自動消去
+
+ui-auto-hide-5e83d809ac4f1243 = 自動的に隠す
+
+ui-auto-hide-notifications-5e48a1ec5b48ddc0 = 通知を自動的に隠す
+
+ui-auto-leading-4cf311c55ab1efd3 = 自動行送り
+
+ui-auto-leading-a1bdd5af972974c4 = 自動行送り %
+
+ui-auto-scale-6eb74cbf8f9b35de = 自動スケール
+
+ui-auto-show-overlay-59ff23a3b368166d = オーバーレイを自動表示
+
+ui-automatic-04cc1a2793006d9a = 自動
+
+ui-automatically-create-first-snapshot-613a2404994e2d62 = 最初のスナップショットを自動的に作成
+
+ui-automatically-create-new-snapshot-when-s-1244c734037079e0 = 保存時に新規スナップショットを自動的に作成
+
+ui-avoid-widows-orphans-be516b31016e31f3 = ウィドウ/オーファンを回避
+
+ui-background-from-layer-95241da9efd58afc = レイヤーから背景
+
+ui-background-from-layer-e7dca704d0b2e2dc = レイヤーから背景
+
+ui-background-level-4d1c76736046b301 = 背景レベル
+
+ui-bamboo-0f865305582a44fb = 竹
+
+ui-bas-relief-4cee20a7f3989c84 = 浅浮き彫り
+
+ui-base-tree-type-42eb53dd8efa7c5e = 基本の樹木タイプ
+
+ui-baseline-shift-337e40e4e34543b4 = ベースラインシフト
+
+ui-batch-caaa5cf459f6d411 = バッチ処理
+
+ui-berries-1c9ac8b0d8a243e5 = ベリー
+
+ui-best-6563d4b235991f01 = 最高
+
+ui-bevel-b65a0ed0fa933479 = ベベル
+
+ui-bicubic-sharper-reduction-8526007a04be289f = バイキュービック法 - シャープ(縮小)
+
+ui-bicubic-smoother-enlargement-f1b8e48b0f7a4a58 = バイキュービック法 - 滑らか(拡大)
+
+ui-black-87de58185ee7e143 = 極太
+
+ui-black-clip-6f3569208e8e8d04 = 黒のクリップ
+
+ui-black-intensity-2c1f93d4c2b93623 = 黒の強さ
+
+ui-black-matte-7c051e0b8e0c064b = 黒の背景
+
+ui-blade-curvature-a42ae7a7d71df6ae = 葉の湾曲
+
+ui-blast-49aee61e3ed83f97 = ブラスト
+
+ui-bleach-bypass-7d74910a1d2921a4 = 銀残し
+
+ui-blend-6e128c1e53f35f56 = 合成
+
+ui-blend-if-47ff5afa1385a85d = 条件付き合成:
+
+ui-blend-rgb-colors-using-gamma-1-0-cf1ba612b5d349ab = ガンマ 1.0 で RGB カラーを合成
+
+ui-block-c4d0291e851daf50 = ブロック
+
+ui-blocks-8b6501dc31709879 = ブロック
+
+ui-blue-yellow-a7cd13e0d5a1c43d = 青と黄
+
+ui-blur-angle-8b3f8451820473f5 = ぼかしの角度
+
+ui-bold-98d37886cf62c4a3 = 太字
+
+ui-bold-italic-ab996b432667b548 = 太字斜体
+
+ui-border-f00feb373c30ed99 = 境界
+
+ui-border-thickness-5e85397d4dd9ee03 = 枠の太さ
+
+ui-bottom-d0f114b5fd71868e = 下:
+
+ui-bottom-left-a4a6bc5593eb6541 = 左下
+
+ui-bottom-right-2acd3cb673e6fda2 = 右下
+
+ui-box-blur-81d18b901fdaaab9 = ぼかし(ボックス)
+
+ui-branches-color-f0d8db0d130f7a08 = 枝の色
+
+ui-branches-height-9f1ad4ea523f5ad2 = 枝の高さ
+
+ui-branches-thickness-84e0e4867d1fe825 = 枝の太さ
+
+ui-breeze-dark-e66fe26550bb0528 = Breeze ダーク
+
+ui-breeze-dark-theme-a680c93f1fa1524d = Breeze ダークテーマ
+
+ui-breeze-light-0148f2375063bb68 = Breeze ライト
+
+ui-breeze-light-theme-ed04a9643b4b988d = Breeze ライトテーマ
+
+ui-brick-4456df7175d4d778 = レンガ
+
+ui-bristle-detail-23e6a09512c0461f = 毛のディテール
+
+ui-browse-2e93d29ae2ee2cb5 = 参照
+
+ui-browser-storage-is-unavailable-brushes-a-7917bc257e6f900e = ブラウザーのストレージを利用できないため、ブラシはこのセッション中のみ有効です。保持するには、このタブを開いたままにしてください。
+
+ui-brush-detail-48415380d8e875c6 = ブラシのディテール
+
+ui-brush-name-ed530497d97024a4 = ブラシ名
+
+ui-brush-preset-changes-are-not-saved-error-5f27ebc7fd81a7c9 = ブラシプリセットの変更は保存されていません：{ $error }
+
+ui-brush-preset-options-ae5d75337b0c67ae = ブラシプリセットのオプション
+
+ui-brush-size-6fd384f2373894fe = ブラシサイズ
+
+ui-brush-stroke-e15a877d2a400187 = ブラシストローク
+
+ui-brush-strokes-2cd62daecac3519c = ブラシストローク
+
+ui-brush-tip-47495e0f40c5a930 = ブラシ先端
+
+ui-brush-type-740b98eb602c9fbf = ブラシの種類
+
+ui-bulge-56b2405505aaa3ea = 膨らみ
+
+ui-burlap-d26818bfd9cea6d9 = 麻布
+
+ui-burn-eeb148b282fff846 = 焼き込み
+
+ui-butt-flat-c72fa8c80b7c206a = 平端
+
+ui-byline-e19ab948673e8978 = バイライン
+
+ui-byline-title-5523c76157239ece = バイラインの肩書き
+
+ui-calculations-77d42a68422a861d = 演算
+
+ui-camera-calibration-05bc84d7edceb424 = カメラキャリブレーション
+
+ui-camera-data-90b2af05c38e73b8 = カメラデータ
+
+ui-camera-make-47c9cb51fa207e7a = カメラのメーカー
+
+ui-camera-model-6ca5e55ddcd82f7d = カメラのモデル
+
+ui-camera-raw-e168ad1c814b5df6 = Camera Raw
+
+ui-camera-raw-filter-ea495221cff8e53c = Camera Raw フィルター
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw ({ $name })
+
+ui-candle-light-03254f78376b10d2 = キャンドルの光
+
+ui-canvas-rotation-f20552b22f125f53 = カンバスの回転
+
+ui-canvas-size-e9888b7c126c8360 = カンバスサイズ
+
+ui-caps-4e22f5ac70d59b9a = 線端
+
+ui-caption-3e0fd4291b37d3ef = キャプション
+
+ui-caption-credits-1e7cb39d478a2d0d = キャプションのクレジット
+
+ui-capture-comp-2836ead1686dd5da = カンプを取り込み
+
+ui-category-71f87b7b5851b653 = カテゴリー
+
+ui-cell-size-9a9286641ce19748 = セルサイズ
+
+ui-center-columns-eca652a77591890d = 列を中央に配置
+
+ui-center-x-8f2c903c87969d0a = 中心 X
+
+ui-center-y-8f2c913c87969ebd = 中心 Y
+
+ui-chalk-area-fb68b41aa4acb407 = チョークの範囲
+
+ui-chalk-charcoal-870a56b8b5ae2cdf = チョーク・木炭
+
+ui-change-panel-group-c875bb8728a6f2da = パネルグループを変更
+
+ui-change-panel-layout-e2e9f02cb1355649 = パネルレイアウトを変更
+
+ui-channel-f3238895531f739e = チャンネル
+
+ui-channel1-44d4c4bc3e71925d = チャンネル 1
+
+ui-channel2-44d4c1bc3e718d44 = チャンネル 2
+
+ui-channel3-44d4c2bc3e718ef7 = チャンネル 3
+
+ui-channel4-44d4bfbc3e7189de = チャンネル 4
+
+ui-channels-67ef32de1bae7097 = チャンネル:
+
+ui-charcoal-3ac73fdeb5d7e68c = 木炭
+
+ui-charcoal-area-96ef16d67d939455 = 木炭の範囲
+
+ui-charcoal-thickness-5dcd960f3a549796 = 木炭の太さ
+
+ui-choose-235111aae73bc47a = 選択…
+
+ui-chrome-4232ba97c6ef7e41 = クローム
+
+ui-cie-rgb-6772b54594aeb6a5 = CIE RGB
+
+ui-circle-ad4c1e82c74c6327 = 円
+
+ui-circularity-ec7fe61fe98e19c2 = 真円度
+
+ui-city-92872bac97504f90 = 市区町村
+
+ui-cleanliness-65c2ea0e74efc2e4 = 清潔さ
+
+ui-clear-amount-d62768625486ddec = クリアの量
+
+ui-clear-brush-strokes-12a3c251da9d3d0d = ブラシストロークを消去
+
+ui-clear-existing-guides-67c8180ae4647d7a = 既存のガイドを削除
+
+ui-clear-history-0de1f75d1bae3ee8 = ヒストリーを消去
+
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = 赤い瞳をクリックして補正します
+
+ui-click-a-segment-to-add-an-anchor-point-a-0c07d54f4028e4af = セグメントをクリックしてアンカーポイントを追加 · { $alt }+クリック: アンカーポイントを削除
+
+ui-click-an-anchor-point-to-delete-it-alt-c-06d19be357a2d4d7 = アンカーポイントをクリックして削除 · { $alt }+クリック: セグメントにアンカーポイントを追加
+
+ui-click-corner-drag-smooth-alt-drag-break-h-8598a28b712a87d6 = クリック: 角 · ドラッグ: 滑らか · { $alt }+ドラッグ: ハンドルを分割 · 最初の点をクリックまたはドラッグ: 閉じる · { $key } 完了 · Esc キャンセル
+
+ui-click-corner-drag-smooth-click-first-poi-8a10e3b6c4b3b5d9 = クリック: 角 · ドラッグ: 滑らか · 最初のポイントをクリック: 閉じる · ↩ 完了 · Esc 取り消し
+
+ui-click-smooth-point-double-click-corner-d-7ea166abf0ee7560 = クリック: スムーズポイント · ダブルクリック: 角 · 点をドラッグ: 移動 · 最初の点をクリック: 閉じる · { $key } 完了
+
+ui-click-the-first-point-or-press-key-to-cl-901ea1b540ae3fc7 = 最初の点をクリックするか { $key } を押して閉じる · { $del } で点を削除 · Esc でキャンセル
+
+ui-click-the-first-point-or-press-to-close-e-e00f3960db7c7af9 = 最初のポイントをクリックするか ↵ で閉じる · Esc で取り消し
+
+ui-click-then-move-along-an-edge-click-to-f-4f0fd576defa2100 = クリックしてエッジに沿って動かす · クリックで固定ポイント · { $alt }-クリックで直線セグメント · ダブルクリックで閉じる
+
+ui-click-to-add-a-point-drag-off-or-ctrl-cl-ec3fdc06129027cd = クリックでポイントを追加 · 外へドラッグ、⌘/Ctrl+クリック、または Delete で削除
+
+ui-click-to-add-a-point-right-click-to-remo-19feda9c95fbcf54 = クリックでポイントを追加、右クリックで削除
+
+ui-click-to-apply-click-to-clear-overrides-d-28117a61e76215ff = クリックで適用、⌥+クリックで上書きを解除、ダブルクリックでスタイルオプション
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = 列数を変更するにはクリックし、タイトルバーをドラッグして移動
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = クリックして列数を変更、ドラッグしてツールを切り離す
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = クリックで選択 · Escでキャンセル
+
+ui-click-to-place-alt-click-or-drag-off-can-0ced5c63027a6ce6 = クリックで配置 · Alt キーを押しながらクリック、またはカンバス外へドラッグで削除
+
+ui-click-to-zoom-in-click-to-zoom-out-6b20ef8acafda9ed = クリックで拡大  ·  ⌥+クリックで縮小
+
+ui-clipping-path-e903dc37276719a0 = クリッピングパス
+
+ui-clone-baa1681b2de7223c = クローン
+
+ui-clone-stamp-ef5a041765c4c833 = コピースタンプ
+
+ui-close-panel-194028906d61d387 = パネルを閉じる
+
+ui-clumped-b905867e4aac35bb = 密集
+
+ui-cmyk-f773041b5a755e37 = CMYK:
+
+ui-coarse-dots-41482b801e5cc826 = 粗いドット
+
+ui-coerce-to-srgb-eccabb69f35e69f1 = sRGB に強制変換
+
+ui-collapse-group-click-all-groups-60433afac8b1f197 = グループを折りたたむ  (⌥+クリック: すべてのグループ)
+
+ui-color-a13d112d0512855e = カラー…
+
+ui-color-adaptation-f7d5eb50532ba5ff = カラー適応
+
+ui-color-burn-paint-net-6bce7a866ee8fd93 = 焼き込みカラー (Paint.NET)
+
+ui-color-decontaminate-1afd00206b8dd080 = カラーの混入を除去
+
+ui-color-dodge-paint-net-6a1a7e45c5da25a9 = 覆い焼きカラー (Paint.NET)
+
+ui-color-halftone-f8f3f1ada87af833 = カラーハーフトーン
+
+ui-color-indicates-0829a583f2dfe472 = カラーの意味
+
+ui-color-lookup-tables-2c4e2d8cc38312b1 = カラールックアップテーブル
+
+ui-color-management-policies-53602ded008d5689 = カラー管理ポリシー
+
+ui-color-noise-reduction-d5279c75f03cc0b5 = カラーノイズの軽減
+
+ui-color-picker-crop-shield-color-f0f21c4248e058e3 = カラーピッカー（切り抜きシールドのカラー）
+
+ui-color-picker-fill-color-cf989f4d01ca0b61 = カラーピッカー（塗りつぶしカラー）
+
+ui-color-picker-layer-style-color-fbf90c85b504683a = カラーピッカー（レイヤースタイルの色）
+
+ui-color-picker-name-6336833802dc6c44 = カラーピッカー（{ $name }）
+
+ui-color-picker-solid-color-11504899368a43d3 = カラーピッカー（べた塗り）
+
+ui-color-picker-stroke-color-aac3b03188866056 = カラーピッカー（線のカラー）
+
+ui-color-picker-text-color-6873936c7cbaceb3 = カラーピッカー（文字色）
+
+ui-color-profile-997217f0823061a7 = カラープロファイル
+
+ui-color-range-50f5b2b6eafe6017 = 色域指定
+
+ui-color-replacement-1fd9c85a92dd0166 = 色の置き換え
+
+ui-color-replacement-tool-e0f757ad548a409c = 色の置き換えツール
+
+ui-color-settings-0f931de5db324f4f = カラー設定
+
+ui-color-table-8c70839dfe8b6d3e = カラーテーブル
+
+ui-color-to-alpha-5a172092ca34c10d = カラーを透明に…
+
+ui-colored-pencil-ddc82f465754014c = 色鉛筆
+
+ui-colormatch-rgb-e79a082695b37f7c = ColorMatch RGB
+
+ui-colorsync-b283752ff4b5488d = ColorSync
+
+ui-columns-3da979c5c05c263a = 列
+
+ui-commit-any-current-edits-9174862ac6edc854 = 現在の編集をすべて確定 (⌘↩)
+
+ui-commit-current-crop-operation-215aa202592dd798 = 現在の切り抜き操作を確定  (↵)
+
+ui-commit-perspective-warp-e21001a059fb15b4 = 遠近法ワープを確定 (↩)
+
+ui-commit-puppet-warp-d7f3e8f327cb019c = パペットワープを確定 (↩)
+
+ui-commit-transform-168a2521fbef1058 = 変形を確定 (↩)
+
+ui-commit-warp-745cb2f0999c4236 = ワープを確定 (↩)
+
+ui-compatibility-fb993b4366b6dae5 = 互換性
+
+ui-compose-000499e63b9865f1 = 構成
+
+ui-condensed-514bf80cab6f5664 = コンデンス
+
+ui-conditional-mode-change-1dd5891bcc7e9a60 = 条件付きカラーモード変更
+
+ui-cone-83c7f5ac8fb13c68 = 円錐
+
+ui-cone-inverted-07c75939642bd114 = 円錐 (反転)
+
+ui-cone-inverted-4f8ec26e3423aa10 = 円錐 - 反転
+
+ui-constraints-2868dc96c3777fa5 = 制約
+
+ui-cont-crayon-5e0b4f02a6ded4fb = コンテ
+
+ui-content-aware-fill-dd462ea55cf09ad0 = コンテンツに応じた塗りつぶし
+
+ui-content-aware-move-953a1d4c41e938cc = コンテンツに応じた移動
+
+ui-contents-b5e5b9d3f6d35ec1 = 内容:
+
+ui-continue-f031dd957d5c1b56 = 続行
+
+ui-contour-39d36135f075d52b = 輪郭
+
+ui-contour-editor-999a1019725e56a4 = 輪郭エディター
+
+ui-contract-35030e552cdb9f79 = 縮小
+
+ui-contrasty-7c87eabb897d47b0 = 高コントラスト
+
+ui-convert-frames-video-layers-639ba523c86fc695 = フレームを変換 > ビデオレイヤー
+
+ui-convert-point-tool-ebb1dfd0f79acf3a = アンカーポイントの変換ツール
+
+ui-convert-to-grayscale-077b911cd42b05d4 = グレースケールに変換
+
+ui-convert-to-linked-1f1b43654dc57ac4 = リンクに変換
+
+ui-convert-to-profile-bf17d3b55383805a = プロファイルを変換
+
+ui-cool-83c3d0ac8fad14b2 = クール
+
+ui-cooling-l-b-b-608c5c71f51f5262 = 寒色フィルター (LBB)
+
+ui-cooling80-e732d53fa4d11316 = 寒色フィルター (80)
+
+ui-cooling82-e732d33fa4d10fb0 = 寒色フィルター (82)
+
+ui-copyright-info-url-75755e32eb105bc1 = 著作権情報の URL
+
+ui-copyright-status-f7ba12adba0168f6 = 著作権の状態
+
+ui-copyrighted-788b061aa2d0b375 = 著作権あり
+
+ui-corner-c1f5008d5d2ff536 = コーナー
+
+ui-corners-c3453535587dc43f = 角
+
+ui-correct-c-a-a7040f8e71b28279 = 色収差を補正
+
+ui-correct-distortion-c1813e718c3c1536 = ゆがみを補正
+
+ui-correct-vignette-fd01ec9398c0f777 = 周辺光量を補正
+
+ui-could-not-complete-the-free-transform-co-bfdbe92f0a214b00 = レイヤーがロックされているため、自由変形コマンドを完了できません。
+
+ui-could-not-open-05042bf852b9a743 = 開けませんでした
+
+ui-could-not-use-the-move-tool-because-the-l-34336f06c7d717d6 = レイヤーがロックされているため、移動ツールを使用できません。
+
+ui-country-9e07eb5ff60fbf3f = 国
+
+ui-cove-deep-f3413d717747416f = 入り江 - 深
+
+ui-cove-shallow-a816ea81e32dc623 = 入り江 - 浅
+
+ui-crack-brightness-6daa318c73a2b8f2 = ひびの明るさ
+
+ui-crack-depth-51be5a1ec3507a02 = ひびの深さ
+
+ui-crack-spacing-08e69bfc034ccd86 = ひびの間隔
+
+ui-craquelure-74e53bb91203dd74 = クラクリュール
+
+ui-create-a-new-elliptical-frame-d31989faf7fc5d30 = 新しい楕円形フレームを作成
+
+ui-create-a-new-layer-n-76fb665da466fd6a = 新規レイヤーを作成  (⇧⌘N)
+
+ui-create-a-new-rectangular-frame-29813cef7128625f = 新しい長方形フレームを作成
+
+ui-create-by-a6fbc5599211a434 = 作成基準
+
+ui-create-date-970138cc61843099 = 作成日
+
+ui-create-ellipse-f707994617445531 = 楕円を作成
+
+ui-create-multiple-picture-packages-333d36bb22741294 = 複数のピクチャパッケージを作成
+
+ui-create-new-count-group-6e92595b2956ebf9 = 新規カウントグループを作成
+
+ui-create-new-layer-fdc628bbf95ac7ac = 新規レイヤーを作成
+
+ui-create-new-set-74546a2a2de5fde1 = 新規セットを作成
+
+ui-create-new-swatch-df52baa4652be53b = 新規スウォッチを作成
+
+ui-create-plane-de99e34027780935 = 平面を作成
+
+ui-create-polygon-0312408e42727249 = 多角形を作成
+
+ui-create-rectangle-446a2149ba949cae = 長方形を作成
+
+ui-create-snapshot-5fac2668f9475f0d = スナップショットを作成
+
+ui-create-triangle-70461e67c3bc8665 = 三角形を作成
+
+ui-credit-89608979906480fe = クレジット
+
+ui-crop-shield-color-fcab973d194f6a5d = 切り抜きシールドのカラー
+
+ui-cross-0f1c8d8694852a3d = 十字
+
+ui-cross-process-748fcc7e73f8aad4 = クロスプロセス
+
+ui-crosshatch-3b7c5f173ea5a1a9 = クロスハッチ
+
+ui-crystallize-9b0155bbfa6c217d = 水晶
+
+ui-current-a6280b8d8bb7d590 = 現在
+
+ui-current-below-no-adjustments-ad3ef5ddcba453be = 現在のレイヤーとその下（色調補正なし）
+
+ui-current-time-7360f73c40643189 = 現在の時間
+
+ui-curvature-pen-tool-f2c504abaa665e43 = 曲線ペンツール
+
+ui-curve-darks-c4ea1a3ae0a3da3f = カーブ (暗部)
+
+ui-curve-fit-4b92a705570d7f79 = カーブフィット:
+
+ui-curve-highlights-48570e7f94605d3f = カーブ (ハイライト)
+
+ui-curve-lights-f42a10446a22fe27 = カーブ (明部)
+
+ui-curve-shadows-177a53e842803863 = カーブ (シャドウ)
+
+ui-curve-splits-ea0844e049d3ec2b = カーブ (分割点)
+
+ui-custom-branch-color-7a60c49169982ceb = カスタムの枝の色
+
+ui-custom-pattern-8e0657d500550b36 = カスタムパターン
+
+ui-custom-pattern-b1725fbbdb358844 = カスタムパターン:
+
+ui-custom-pixel-aspect-ratio-0dbe10db0bbd4fcf = ピクセル縦横比をカスタム
+
+ui-cutout-2326ac18cadc921f = 切り抜き
+
+ui-cycle-orientation-d47100e364dd1ce9 = 方向を切り替え
+
+ui-cycle-overlay-cd2523de1e12bc5b = オーバーレイを切り替え
+
+ui-daisies-aed7b9e0f7276503 = デイジー
+
+ui-dark-intensity-cbb44960dc8f9a6a = 暗部の強さ
+
+ui-dark-rough-00f23c96090eb94e = 暗く粗い
+
+ui-dark-strokes-4b010e5c3c1ae392 = 暗いストローク
+
+ui-dark-theme-6d2ab4707cffde72 = ダークテーマ
+
+ui-darken-amount-4ff87ddb9162ea14 = 暗くする量
+
+ui-darken-only-c08971e44a27b11a = 暗くのみ
+
+ui-darkness-28ee41c0809a4d78 = 暗さ
+
+ui-dash-1f756ca06449aeb3 = 線分
+
+ui-dash-gap-lengths-stroke-width-d58b32d0afc2986d = 線分 / 間隔の長さ × 線幅
+
+ui-dash-offset-e2b5660c676021d6 = 破線のオフセット
+
+ui-dashed-6a8ccf30c380ff72 = 破線
+
+ui-dashed-line-9de7b4d520d5eb5c = 破線
+
+ui-data-1f799ba0644de767 = データ
+
+ui-data-sets-as-files-012346ca644aaf8f = データセットをファイルへ
+
+ui-date-and-time-1e2d8ae73b21ed77 = 日付と時刻
+
+ui-date-created-36f129c9e9b2366f = 作成日
+
+ui-date-taken-d246ca6065cd50fd = 撮影日時
+
+ui-datetime-original-156e819149b2056d = 撮影日時
+
+ui-day-for-night-ea9d433a6a554c72 = デイ・フォー・ナイト
+
+ui-de-interlace-ae7ae324db373ee8 = インターレース解除
+
+ui-deep-blue-33be2202660d9607 = 濃い青
+
+ui-deep-emerald-7bd872466648cea5 = 濃いエメラルド
+
+ui-deep-red-c367968a9486fd92 = 濃い赤
+
+ui-deep-yellow-22602f2ccf879667 = 濃い黄
+
+ui-default-foreground-and-background-colors-01efcca3f666c2ec = 前景色と背景色を既定に戻す
+
+ui-default-leaves-43252a94e18ce14c = 既定の葉
+
+ui-default-photocraft-size-42e29dd35050952b = PhotoCraft 既定サイズ
+
+ui-defaults-restored-1af78db9c43b93f1 = 既定値を復元しました。
+
+ui-define-brush-preset-f8f67df09f13f8e3 = ブラシプリセットを定義
+
+ui-define-custom-shape-e6a1a3f16c7b39ae = カスタムシェイプを定義
+
+ui-define-pattern-de1b8e4b5c22caf6 = パターンを定義
+
+ui-definition-98b0f9b9508523d2 = 鮮明度
+
+ui-defringe-a74bf9c1e258a283 = フリンジ削除
+
+ui-delete-anchor-point-tool-32015b0a036fc947 = アンカーポイントの削除ツール
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = 選択範囲を削除して塗りつぶし
+
+ui-delete-count-layers-names-6bbff039943d0326 = { $count } 個のレイヤーを削除しますか？ { $names }
+
+ui-delete-crop-preset-e34aa95ed101e033 = 切り抜きプリセットを削除…
+
+ui-delete-layer-58301f0b5ef0e41a = レイヤーを削除しますか？
+
+ui-delete-layer-9c44a8871ea98f07 = レイヤーを削除…
+
+ui-delete-layer-name-9407eadca584de9c = レイヤー「{ $name }」を削除しますか？
+
+ui-delete-path-86750fe9fc4b3e43 = パスを削除
+
+ui-delete-pins-4217b0e9d5d66350 = ピンを削除
+
+ui-delete-preset-6575e4428ebb4fa5 = プリセットを削除…
+
+ui-delete-smart-filters-10171a17a74fd566 = スマートフィルターを削除
+
+ui-delete-snapshot-4cf5a2d000ab3820 = スナップショットを削除
+
+ui-depth-map-993e6e2597cfd37e = 深度マップ
+
+ui-depth-mode-bd9b02e0b31ff6bb = 深度モード
+
+ui-desaturate-monitor-colors-by-b535020b6e5b8046 = モニターのカラーの彩度を下げる量
+
+ui-detect-faces-28e65e36e8c3c20e = 顔を検出
+
+ui-developing-name-3ca6c158e9e9f235 = { $name } を現像中
+
+ui-diagonal-6308486872486528 = 斜め
+
+ui-diagonal-descending-b3d2c399a327a7d9 = 斜め (下降)
+
+ui-diffuse-494f81dedf7b6f9f = 拡散
+
+ui-diffuse-glow-fe2a4db4348c1544 = 拡散光
+
+ui-digits-72180221d8a9aa81 = 数字
+
+ui-direction-balance-7ffec7e916a3085c = 方向のバランス
+
+ui-direction-of-stroke-0e65ad01cf66ef03 = ストロークの方向
+
+ui-displace-95379acc2d4b3b60 = 置き換え
+
+ui-distortion-8db44b548e47a398 = ゆがみ
+
+ui-distribution-db07571532ff4909 = 分布
+
+ui-do-you-want-to-save-you-made-to-name-bef-5d145da7c1a07471 = 終了する前に "{ $name }" への変更を保存しますか?
+
+ui-dock-panel-0cd117664b0f3f4e = パネルをドッキング
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = ツールを左側にドッキング
+
+ui-document-size-ec99a3bb860eb85f = ドキュメントサイズ
+
+ui-dodge-a91837fc641e00f6 = 覆い焼き
+
+ui-dodge-burn-430dff5bd3396d92 = 覆い焼き/焼き込み
+
+ui-domed-6b80f3fc40f5c94c = ドーム
+
+ui-domed-inverted-3a1408397cf5ea60 = ドーム (反転)
+
+ui-don-t-import-8a153d1cf3e9bcec = 読み込まない
+
+ui-dot-ff06ac7e4f3eb3da = ドット
+
+ui-dotted-c6817b61ff95adbb = 点線
+
+ui-double-line-bb9027d9365f8e9c = 二重線
+
+ui-draft-9c051825f93952ca = ドラフト
+
+ui-drag-a-box-or-click-four-corners-drag-th-df3a1ca51159d17a = ボックスをドラッグするか 4 つの角をクリック · 角を傾いた形の端までドラッグ · { $commit } で確定 · Esc でキャンセル
+
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = 切り抜きボックスをドラッグ · 内側をドラッグで移動 · 縁でサイズ変更 ({ $ratio } で比率、{ $centre } で中心) · 描画中は Space で移動 · 矢印キーで微調整 · X で縦横を切り替え · { $commit } で確定 · Esc で取り消し
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = 中心の周りをドラッグして表示を回転  ·  Shift で 15° 単位
+
+ui-drag-draw-freehand-release-on-the-start-p-ea613d199529d708 = ドラッグ: フリーハンドで描画 · 始点で離す: 閉じる
+
+ui-drag-lasso-or-click-points-polygonal-add-71afddda665b962c = ドラッグ (投げ縄) またはクリックでポイント指定 (多角形) · { $add } 追加 · { $sub } 除外
+
+ui-drag-to-move-the-layer-25d94387be5f6a0d = ドラッグしてレイヤーを移動
+
+ui-dry-brush-ab01c85f6855ce90 = ドライブラシ
+
+ui-dual-axis-1c45b5825da6a58e = 二軸
+
+ui-duplicate-f94b553491159a80 = 複製
+
+ui-duplicate-layer-a792dd02b8dfc5a5 = レイヤーを複製
+
+ui-duplicate-layer-comp-800448bbc5af9c7c = レイヤーカンプを複製
+
+ui-duplicate-layers-9e5361a0243d2aa2 = レイヤーを複製
+
+ui-duplicate-path-68a3014397e46207 = パスを複製
+
+ui-duplicated-selection-name-1da6988da4316d7d = 複製した選択範囲の名前
+
+ui-duplication-35d9e03cd354836d = 複製
+
+ui-duration-7110eeef2b77963b = 継続時間
+
+ui-dust-scratches-03f31c469badd5ab = ダスト&スクラッチ
+
+ui-dynamics-78fe326d05a35b65 = ダイナミクス
+
+ui-edge-brightness-19b785d5100d02e5 = エッジの明るさ
+
+ui-edge-extension-d617b8c23c585ab7 = エッジの拡張
+
+ui-edge-fidelity-073c48e826d7e320 = エッジの忠実度
+
+ui-edge-intensity-3c3f203a647edcbf = エッジの強さ
+
+ui-edge-only-94d7c2768602b018 = エッジのみ
+
+ui-edge-simplicity-f9a8bf4005cdf27f = エッジの単純さ
+
+ui-edge-thickness-f58c49401683cbe8 = エッジの太さ
+
+ui-edge-width-f6d840ee043d652a = エッジの幅
+
+ui-edit-keyboard-shortcuts-reset-all-to-def-1c2e80c5385a9432 = 編集 › キーボードショートカット › 「すべて既定に戻す」で読み込みを元に戻せます。
+
+ui-edit-paste-3f6b4ca340b0bccc = [編集 › 貼り付け]
+
+ui-edit-plane-49bb7193ccfb0ca9 = 平面を編集
+
+ui-edit-toolbar-2737626f4b7fea94 = ツールバーを編集
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = レイヤーの描画モード、不透明度、表示/非表示など、ドキュメント全体に関わる編集では全体が再描画されます。
+
+ui-elevation-af712358f3a06346 = 仰角
+
+ui-eliminate-13e18e745bc409cd = 除去
+
+ui-email-6ecda634d3fe08ad = メール
+
+ui-embed-profiles-b650860fa7bf761a = プロファイルを埋め込む
+
+ui-enable-crop-shield-f3578921d3d300ef = 切り抜きシールドを有効にする
+
+ui-enable-smart-filters-7dde9c98faad6ed2 = スマートフィルターを有効にする
+
+ui-enable-timeline-quick-config-e3ace95f14b4eea6 = タイムラインのクイック設定を有効にする
+
+ui-end-x-b96b7f1be94082f4 = 終了 X
+
+ui-end-y-b96b801be94084a7 = 終了 Y
+
+ui-enlarged-eca379c1600883b1 = 拡大
+
+ui-enter-a-name-for-the-crop-preset-a58a2551cfe13f3e = 切り抜きプリセットの名前を入力してください
+
+ui-enter-description-fae4b577c04ffd6b = 説明を入力…
+
+ui-error-file-32ff0723f85f2afb = エラーファイル
+
+ui-errors-2923ea7fa70533d4 = エラー
+
+ui-even-fields-6a13b08fb4d98088 = 偶数フィールド
+
+ui-exif-36ce659b4ac21a75 = EXIF
+
+ui-exif-version-f5ef531100f1bcd1 = EXIF バージョン
+
+ui-expand-all-groups-f86177d7bd4342dc = すべてのグループを展開
+
+ui-expand-detection-area-dceaf291bd07056d = 検出領域を拡張
+
+ui-expand-group-click-all-groups-8540310bc6a64eae = グループを展開  (⌥+クリック: すべてのグループ)
+
+ui-export-as-767ceb8b9795bfe3 = 書き出し形式を指定
+
+ui-export-contents-068fe1387c84f5a9 = コンテンツを書き出し
+
+ui-export-import-presets-58db1a146e9bdfb3 = プリセットの書き出し/読み込み
+
+ui-export-preferences-6dd6eab8218dad0b = 書き出しの環境設定
+
+ui-export-swatches-429d4e913cd22171 = スウォッチを書き出し…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = 交換用にスウォッチを書き出し…
+
+ui-exposure-d40fa037a6d0e233 = 露出時間
+
+ui-exposure-program-d19eb0ad9edd275a = 露出プログラム
+
+ui-extensions-3f41c5a887c301e1 = 拡張機能
+
+ui-extra-bold-ec95cafd5498d402 = エクストラボールド
+
+ui-extra-light-9e4f57ea6990fba3 = エクストラライト
+
+ui-extrabold-fd6396c3deb95c21 = 特太
+
+ui-extralight-0704360f6be0647a = 特細
+
+ui-extrude-a372c3fe2b7a104c = 押し出し
+
+ui-eyedroppers-9220889b81a1f1b5 = スポイト:
+
+ui-f-08324207b4eaf8fb = F
+
+ui-f-cycles-the-views-hold-x-to-see-the-ima-f78f72e02c811b5f = F で表示を切り替え、X を押している間は画像を表示
+
+ui-f-stop-950ea3f6954631c3 = 絞り値
+
+ui-faded-film-43ac06f776e336d3 = 色あせたフィルム
+
+ui-fast-de99d08fb71b46e9 = 高速
+
+ui-fiber-length-c08611ff1e4014e9 = 繊維の長さ
+
+ui-fibers-d75622cbb1bbff48 = 繊維
+
+ui-field-blur-1475c369f15d4f7e = フィールドぼかし
+
+ui-file-info-90472903cdd76657 = ファイル情報
+
+ui-file-naming-273185c0a8199c23 = ファイル名の付け方
+
+ui-fill-color-61734769aae23385 = 塗りつぶしカラー
+
+ui-fill-light-7c6733a773777d56 = フィルライト
+
+ui-fill-path-efc74479f9ba4931 = パスを塗りつぶし
+
+ui-fill-screen-610513f68e54eeee = 画面いっぱいに表示
+
+ui-film-grain-37a7b4d0ff2f58ca = フィルムグレイン
+
+ui-filter-gallery-c38f5d3c8b44f527 = フィルターギャラリー
+
+ui-find-and-replace-text-5819c8d5f2656924 = テキストを検索して置換
+
+ui-fine-99fa838f906d4097 = 細かい
+
+ui-fine-dots-d5cabb71132da2b9 = 細かいドット
+
+ui-first-color-readout-5e29d6e7c4691ee4 = 最初のカラー読み取り
+
+ui-first-line-indent-ba6c308158193bcf = 先頭行の字下げ
+
+ui-fish-99baa48f903794b5 = 魚形
+
+ui-fit-image-28552372e46a5037 = 画像を枠に合わせる
+
+ui-flag-c540728fa8edcc81 = 旗
+
+ui-flame-1a2d921c0bf647d2 = 炎
+
+ui-flame-bottom-alignment-3e7c039388ddeaa0 = 炎の下端の揃え
+
+ui-flame-lines-60007b3b92c4419d = 炎の線
+
+ui-flame-shape-9fa54be326a0c573 = 炎の形
+
+ui-flame-style-aeafeb7db98c867b = 炎のスタイル
+
+ui-flame-type-f447e3131a6bc9a6 = 炎の種類
+
+ui-flash-1a26bb1c0bf06ecf = フラッシュ
+
+ui-flat-c5405f8fa8edac38 = フラット
+
+ui-flat-shading-cc7e355756748dc2 = フラットシェーディング
+
+ui-flatten-frames-into-clips-469ac076d2065a74 = フレームをクリップに統合
+
+ui-flatten-frames-into-layers-25329b55f5d4337b = フレームをレイヤーに統合
+
+ui-float-panel-b52119e145970061 = パネルをフロート
+
+ui-flower-color-75fcb8902df1ea1f = 花の色
+
+ui-focal-distance-2ab46d2d1746c5a3 = ピント距離
+
+ui-focal-length-35-mm-48b7586512d355f4 = 焦点距離 (35 mm 換算)
+
+ui-focal-length-aa1997545c858259 = 焦点距離
+
+ui-focal-length35mm-0749b496cfd26d5e = 35mm 換算焦点距離
+
+ui-focus-area-fabb846ee6c4871e = 焦点領域
+
+ui-focus-dd388dff6e7ce301 = フォーカス
+
+ui-follows-only-edges-this-close-to-the-poi-10b48929e48da16b = ポインターからこの距離内のエッジだけをたどる（[ と ] で変更）
+
+ui-foreground-color-c4236e6fb45a0975 = 描画色
+
+ui-foreground-level-2cc5ed60bff107f0 = 前景レベル
+
+ui-frame-040769a4df94a124 = フレーム
+
+ui-frame-duration-3aaf94257bf41e24 = フレームの長さ
+
+ui-frame-sync-0895ca043d86e08f = フレーム同期
+
+ui-frame-tool-3869ecc880418af6 = フレームツール
+
+ui-freeform-pen-tool-6f6679338fdf5312 = フリーフォームペンツール
+
+ui-fresco-f8a5904afbe39905 = フレスコ
+
+ui-from-center-0d8a0ee0ef65cec8 = 中心から
+
+ui-from-left-294209eebb959504 = 左から
+
+ui-from-right-e29b5db50857d851 = 右から
+
+ui-front-image-80d86d74a4acfac7 = 前面の画像
+
+ui-frosted-90b475e04af2f5fa = すりガラス
+
+ui-fuchsia-8d83defd7f0120fc = フクシア
+
+ui-fuzziness-c52cb63a37cb195a = あいまいさ
+
+ui-gamma-dccf2d2f7b9d84a4 = ガンマ
+
+ui-gap-e5bb2f7e411d4221 = 間隔
+
+ui-gaussian-bba39d25ae40ed28 = ガウス
+
+ui-gaussian-blur-6e592af379c46941 = ぼかし(ガウス)
+
+ui-general-blend-1c444e2d1a279106 = 一般的な合成
+
+ui-general-brushes-bc09160b14c1b7f1 = 一般のブラシ
+
+ui-generators-4978729b9e766ccd = ジェネレーター
+
+ui-generic-0a7947d2dade7520 = 汎用
+
+ui-glass-f14f8705ea5d54ed = ガラス
+
+ui-global-light-8f5bb49242d8e7f0 = グローバル光源
+
+ui-gloss-9abded05b95844f7 = 光沢
+
+ui-gloss-contour-5491d206d1cdb411 = 光沢輪郭
+
+ui-glow-4eaf4c888be6ecaa = グロー
+
+ui-glow-amount-4b6ef0e9d8069442 = 光の量
+
+ui-glow-brightness-641f868ba7173335 = 光の明るさ
+
+ui-glow-size-a080d47d1bccd41f = 光の大きさ
+
+ui-glowing-edges-a16c88d52c6bd0d8 = 輪郭の発光
+
+ui-glyph-3638b606114960bf = 字形
+
+ui-glyph-scaling-ea2a94a5497ddb8a = 字形のスケーリング
+
+ui-go-to-layer-98168259e44da003 = レイヤーへ移動
+
+ui-golden-ratio-ff69929862f02a2d = 黄金比
+
+ui-golden-spiral-5757498b8af1d487 = 黄金螺旋
+
+ui-good-6801d8889a0e968e = 良い
+
+ui-gps-e5810c7e40eb8e61 = GPS
+
+ui-grade-balance-04b1bc39420108e2 = グレーディングのバランス
+
+ui-grade-blending-6bb902b939641b23 = グレーディングの合成
+
+ui-grade-global-74df52a1b16f6999 = グレーディング (全体)
+
+ui-grade-highlights-705cdefd02fd6773 = グレーディング (ハイライト)
+
+ui-grade-midtones-8b7f71c86c0dbf6d = グレーディング (中間調)
+
+ui-grade-shadows-64368ccab4e4e8c7 = グレーディング (シャドウ)
+
+ui-gradient-editor-bb6e0a95fb5ef2ac = グラデーションエディター
+
+ui-gradient-picker-54dd1fd154401b2b = グラデーションピッカー
+
+ui-gradient-stops-f06ae21e1135f30e = グラデーション ストップ
+
+ui-grain-amount-a0bd64be7b9e246e = 粒子の量
+
+ui-grain-roughness-ecf7990977f89270 = 粒子の粗さ
+
+ui-grain-size-bb52b466b540e28b = 粒子のサイズ
+
+ui-grain-type-77b13890bd165b92 = 粒子の種類
+
+ui-graininess-ed7e83aba02d0ca2 = 粒状感
+
+ui-grainy-dots-c1893b4bb5289f83 = 粒状ドット
+
+ui-graphic-and-web-8065b7275784c626 = グラフィックと Web
+
+ui-graphic-pen-4b3a1c134e78b3ba = グラフィックペン
+
+ui-gray-dcd762be8e5af9a2 = グレー:
+
+ui-gray-value-maximum-b522217c5697dfb0 = グレー値 (最大)
+
+ui-gray-value-mean-ed13add213b370bf = グレー値 (平均)
+
+ui-gray-value-median-db6677308e3e14e2 = グレー値 (中央値)
+
+ui-gray-value-minimum-c0bd8cb3cac55442 = グレー値 (最小)
+
+ui-grayscale-slider-712e650186f6d0af = グレースケールスライダー
+
+ui-grid-ce24c63d13034785 = グリッド  (⌘')
+
+ui-group-from-layers-cd6698355dc7f874 = レイヤーからグループ
+
+ui-group-with-94fcb352464d9a1e = グループ化するパネル
+
+ui-grout-width-c307a6acfb30ea82 = 目地の幅
+
+ui-h-08324007b4eaf595 = H
+
+ui-half-round-62b12796617538fe = 半円
+
+ui-halftone-pattern-15b6576b2f14f87c = ハーフトーンパターン
+
+ui-hand-1e44f282b91ee156 = 手のひら
+
+ui-hanging-punctuation-d8a4463e4de06e0d = ぶら下がり句読点
+
+ui-hdr-toning-9fdb5adce5c754ce = HDR トーン
+
+ui-hdtv-rec-709-d4a9b97793f8abd2 = HDTV (Rec. 709)
+
+ui-heal-auto-af3efb2a216f9104 = 修復 (自動)
+
+ui-heal-color-7fdbce3a322cb2d6 = 修復 (カラー)
+
+ui-heal-fa113882a42cc35d = 修復
+
+ui-heal-off-7c5c92671daf5d94 = 修復オフ
+
+ui-heal-on-9ea0c89a6cf10ce2 = 修復オン
+
+ui-healing-2694109907060b63 = 修復
+
+ui-hearts-f3faf9d98ccd5bb2 = ハート
+
+ui-heptagon-82c4f39798732a49 = 七角形
+
+ui-hexagon-042b54a85631681d = 六角形
+
+ui-hide-62cb3782dfb6952f = 非表示
+
+ui-hide-the-layer-s-effects-click-all-layer-cf9a99b1adb2c1f7 = レイヤーの効果を非表示  (⌥+クリック: すべてのレイヤー)
+
+ui-high-62d61c82dfc06ed3 = 高
+
+ui-high-pass-9dfcb11e4e9d487c = ハイパス
+
+ui-higher-values-follow-only-edges-that-con-339978148cf9c078 = 値を大きくすると、周囲とのコントラストが強いエッジだけをたどる
+
+ui-highlight-3c57a1e1160620bd = ハイライト
+
+ui-highlight-amount-c5e44fab68e85fc3 = ハイライトの量
+
+ui-highlight-area-e807509f280f7dda = ハイライトの範囲
+
+ui-highlight-radius-b1256611d46176b5 = ハイライトの半径
+
+ui-highlight-strength-74a50b4e37067ed2 = ハイライトの強さ
+
+ui-highlight-tone-6115be0a99e2c023 = ハイライトのトーン
+
+ui-history-brush-55a0220a103e6e51 = ヒストリーブラシ
+
+ui-horizontal-only-a3f2016d044d1e6f = 水平のみ
+
+ui-horizontal-type-mask-tool-0114c5e36a28d713 = 横書き文字マスクツール
+
+ui-hotspot-dd5253ad14a67b8e = ホットスポット
+
+ui-how-often-fastening-points-are-placed-by-498d32d10d244c21 = 固定ポイントが自動で置かれる頻度
+
+ui-hsb-color-578ed20fcd8fae67 = HSB カラー
+
+ui-hsb-de8e027e3d781a10 = HSB
+
+ui-hsl-de8e107e3d7831da = HSL
+
+ui-hsl-grayscale-5444bbfef8f1af96 = HSL/グレースケール
+
+ui-hsl-hue-87739020098716c0 = HSL 色相
+
+ui-hsl-lum-636bf41ff4ba66ac = HSL 輝度
+
+ui-hsl-sat-4df6522079c36e52 = HSL 彩度
+
+ui-humidity-b776c818746f0d9a = 湿度
+
+ui-image-balance-2d9e37c4d1052ef0 = 画像のバランス
+
+ui-image-processor-0bcaf670b0e775c8 = 画像プロセッサー
+
+ui-import-93f9356ee0cef73e = 読み込み…
+
+ui-import-brushes-abr-bc61ea3383f9a612 = ブラシ(.abr)を読み込み
+
+ui-import-brushes-f9762f3f927323ca = ブラシを読み込み
+
+ui-import-keyboard-shortcuts-9a7acd5b01140835 = キーボードショートカットを読み込みますか？
+
+ui-import-shortcuts-ca60eb051696939b = ショートカットを読み込む…
+
+ui-import-swatches-d6432c51430e3eba = スウォッチを読み込み…
+
+ui-imported-n-shortcuts-from-file-click-ok-t-5da9bf038f58bce4 = { $file } から { $n } 個のショートカットを読み込みました。OK をクリックすると保持されます。
+
+ui-impressionist-838b2d95b3fe039e = 印象派
+
+ui-in-black-eb1675c37d0333ef = 入力の黒
+
+ui-in-d854a6186b3bd6e4 = イン
+
+ui-in-white-102aa73c9ae94789 = 入力の白
+
+ui-include-icc-profile-f88ccf26c021eabd = ICC プロファイルを含める
+
+ui-include-in-playback-68b371aa09a42a7d = 再生に含める
+
+ui-indigo-5c3d440918ff0f31 = インディゴ
+
+ui-industry-standard-e68be8fa930df146 = 業界標準
+
+ui-infinite-63d817ca605c317b = 無限
+
+ui-inflate-ba6551601e2bc93a = 膨張
+
+ui-info-options-ba41ac823df638bf = 情報オプション…
+
+ui-initial-direction-of-stroke-5768f85fbf1bcf2b = ストロークの初期の方向
+
+ui-ink-outlines-dce0249aa5d28370 = インクの輪郭線
+
+ui-input-mode-d7f30c670771d930 = 入力モード
+
+ui-install-plug-in-0a1f87807cd49236 = プラグインをインストール
+
+ui-integrated-density-c81a5fdf59325c6a = 積分濃度
+
+ui-intensity-00f93736b72cdbfc = 強さ
+
+ui-interpolation-13e1625cb7207057 = 補間
+
+ui-interpret-footage-cc35492954e892a3 = 素材を解釈
+
+ui-intersect-with-d970e4cba7ff0d74 = 共通部分
+
+ui-intersect-with-selection-6941b539084d91b6 = 選択範囲との共通部分  (⇧⌥)
+
+ui-interval-3d6e45f088cac55e = 間隔
+
+ui-invalid-delete-command-535e24127ed414d4 = 無効な削除コマンドです
+
+ui-invalid-guide-layout-a7becc4715dd0ef0 = ガイドレイアウトが無効です
+
+ui-iris-blur-9a84e63e60133751 = 虹彩絞りぼかし
+
+ui-iso-d42aa67e37189ce4 = ISO
+
+ui-iso-speed-57950bb275b569a4 = ISO 感度
+
+ui-iso-speed-58635577504596c7 = ISO 感度
+
+ui-italic-affc1f243d43a170 = 斜体
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = レイヤーがGPUメモリの予算に収まりません。環境設定 › パフォーマンスのメモリ使用量を増やすと、このコンピューターのメモリの4分の1まで予算が増えます。
+
+ui-ivy-d3c7d87e36c4747f = アイビー
+
+ui-jag-cc91a57e3318a0b7 = ギザギザ
+
+ui-join-the-artcraft-discord-66d23196a3d5da6d = ArtCraft の Discord に参加
+
+ui-justification-332d6ac62d6686b7 = 行揃え
+
+ui-justify-f029cfac86b593d1 = 均等配置
+
+ui-keep-proportions-4e8bfd0bbf6db74d = 縦横比を固定
+
+ui-keep-this-tab-open-to-retain-your-brushe-a5f6fe26fae0d562 = ブラシを保持するには、このタブを開いたままにしてください。
+
+ui-keep-view-in-sync-9a5cc0eea77097fd = ビューを同期
+
+ui-keeps-the-current-texture-when-switching-eebaa01047dcfb90 = プリセットを切り替えても現在のテクスチャを維持します。
+
+ui-kernel-68939e036c342786 = カーネル
+
+ui-keyboard-shortcuts-imported-fee2c7c74ed2a6bf = キーボードショートカットを読み込みました
+
+ui-keywords-077319116ce9acf3 = キーワード
+
+ui-knockout-114fcb275f7f7673 = ノックアウト
+
+ui-label-46d06f480c403747 = ラベル
+
+ui-label-is-writing-the-file-and-can-no-lon-33df6081c771e2b9 = { $label } はファイルを書き込み中のため、キャンセルできません
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = 大きなドキュメント：CPUで再描画しています
+
+ui-last-modified-6f282422da29401a = 最終更新
+
+ui-layer-comp-f3070851149e6d07 = レイヤーカンプ
+
+ui-layer-comps-to-files-06f09c7ee9e3e0be = レイヤーカンプをファイルへ
+
+ui-layer-content-options-8915e6172ffd15cb = レイヤーコンテンツのオプション
+
+ui-layer-deleted-but-confirmation-preferenc-f2ce35477ff1e4fa = レイヤーは削除されましたが、確認設定を保存できませんでした: { $error }
+
+ui-layer-from-background-3e1d01f4189f03e4 = 背景からレイヤーへ
+
+ui-layer-from-background-f13fcd0e2a1402c4 = 背景からレイヤーへ
+
+ui-layer-properties-94452a14e91a9035 = レイヤープロパティ
+
+ui-layers-to-files-cc5dc5d0fbb94ef5 = レイヤーをファイルへ
+
+ui-leaf-color-82915ce3d714f384 = 葉の色
+
+ui-leave-empty-for-automatic-size-2f6af7cbd1f8cd38 = 自動サイズにするには空欄にします
+
+ui-leaves-amount-28c14fd1ddc4bb8d = 葉の量
+
+ui-leaves-color-fbab90d54b3e17c4 = 葉の色
+
+ui-leaves-size-136efb554bf52f30 = 葉の大きさ
+
+ui-left-cdcd976a8ae9a624 = 左:
+
+ui-left-diagonal-485c7c195425c2bd = 左斜め
+
+ui-legacy-a32ba010e7998f38 = 従来
+
+ui-length-0a8baf4c6945400f = 長さ
+
+ui-lens-6ac5c15efea4af77 = レンズ
+
+ui-lens-blur-ef6b26df4badbf48 = ぼかし(レンズ)
+
+ui-lens-correction-cee00c0446743241 = レンズ補正
+
+ui-lens-corrections-fae69d43b7714af6 = レンズ補正
+
+ui-lens-f9af7c851d6f6256 = レンズ
+
+ui-lens-flare-648c0d539dae95c7 = レンズフレア
+
+ui-lens-info-1f083409032cf395 = レンズ情報
+
+ui-letter-spacing-48872da180eac8d2 = 文字間隔
+
+ui-level-based-ad3a1f2f8817668c = レベル基準
+
+ui-libraries-9058911e19b33532 = ライブラリ
+
+ui-ligature-e7c56eefdf86845e = 合字
+
+ui-light-b8b902e993554a24 = 細字
+
+ui-light-dark-balance-57d7671cebd05b87 = 明暗のバランス
+
+ui-light-direction-d89f91c27444a354 = 光の方向
+
+ui-light-intensity-aba953a5c5fa8158 = 光の強さ
+
+ui-light-rough-475995e4bce73154 = 明るく粗い
+
+ui-light-source-651c381dfc815f9e = 光源
+
+ui-light-theme-58b947c570ab5ee4 = ライトテーマ
+
+ui-light-type-bd338b7797c46ec3 = 光源の種類
+
+ui-light-x-eb208e5802ecb379 = 光源 X
+
+ui-light-y-eb208d5802ecb1c6 = 光源 Y
+
+ui-light-z-eb208c5802ecb013 = 光源 Z
+
+ui-lighten-grout-4cdc7348f47e24b1 = 目地を明るく
+
+ui-lighten-only-a2b30e8cc206556c = 明るくのみ
+
+ui-lighting-5182cc8e061d6247 = ライティング
+
+ui-lighting-effects-3f3e48faef00c785 = 照明効果
+
+ui-limit-playback-c180683ddf83fd6b = 再生を制限
+
+ui-link-radii-cf0a1c73be90d1a2 = 半径をリンク
+
+ui-linux-display-server-e35271f31f95faac = Linux ディスプレイサーバー
+
+ui-liquify-c6bf94597d693bc4 = ゆがみ
+
+ui-list-0226d05ec331bd27 = リスト
+
+ui-load-3d-lut-b69e85f1f29b5eff = 3D LUT を読み込み
+
+ui-load-a-keyboard-shortcut-set-saved-as-ky-08aaf9f9e85e9925 = .kys として保存されたキーボードショートカットセットを読み込みます
+
+ui-load-files-into-stack-7fd589d06abf047e = ファイルをスタックに読み込み
+
+ui-load-selection-072d9465bd4fdf85 = 選択範囲を読み込む
+
+ui-localize-color-clusters-03daf070874e4522 = カラークラスターをローカライズ
+
+ui-location-297949d1a95f2298 = 場所
+
+ui-location-d83b1142cca7d946 = 位置:
+
+ui-lock-layers-1874af9e4a21702a = レイヤーをロック
+
+ui-log-errors-to-file-801ca395fbea425b = エラーをファイルに記録
+
+ui-long-lines-67323033e84bc736 = 長い線
+
+ui-long-strokes-ff4a746c60884580 = 長いストローク
+
+ui-loop-3890be5ee2b48715 = ループ
+
+ui-low-ba5e537e2889f79f = 低
+
+ui-low-resolution-previews-250ad01d7da7418c = 低解像度プレビュー
+
+ui-lower-04dc183ac4ef4674 = 下
+
+ui-lum-baa8697e28c8557b = 輝度
+
+ui-luminance-smoothness-c80df353d97843d4 = 輝度の滑らかさ
+
+ui-lut-baa8507e28c82b00 = LUT
+
+ui-mac-crisp-30e90b1e0384a841 = Mac クリスプ
+
+ui-mac-lcd-7e949051ed693d19 = Mac LCD
+
+ui-mac-os-75e4d5ef1f23f668 = Mac OS
+
+ui-mac-sharp-733ef447d8966afe = Mac シャープ
+
+ui-mac-smooth-d3901161744398c0 = Mac スムーズ
+
+ui-mac-strong-93ccbc04d27da6a9 = Mac ストロング
+
+ui-magnetic-lasso-901881eb1304c0ef = マグネット投げ縄
+
+ui-make-0f19a759136050ed = 作成
+
+ui-make-10ce4e8ae215e940 = メーカー
+
+ui-make-landscape-29de2da2acf3e4ec = 横向きにする
+
+ui-make-portrait-48262a543a70ad70 = 縦向きにする
+
+ui-make-selection-e8ebb66c40ab9f93 = 選択範囲を作成
+
+ui-make-work-path-235a14b152f6796d = 作業用パスを作成
+
+ui-map-document-9811c59c3164844c = マップのドキュメント
+
+ui-map-layer-08e625e74ec3888e = マップレイヤー
+
+ui-map-path-42c319632625722e = マップのパス
+
+ui-marching-ants-81b580a962b06f44 = 点線の境界
+
+ui-margin-27f17d733e6bbd89 = 余白
+
+ui-mask-0ec79959131a2efb = マスク
+
+ui-mask-incomplete-blocks-aec0e1a3185a4a55 = 不完全なブロックをマスク
+
+ui-masked-areas-b4d6e3ca89a842e8 = マスクされた領域
+
+ui-match-canvas-e96f08cd86b7fed4 = カンバスに合わせる
+
+ui-match-color-650935ad6f44138f = カラーを一致
+
+ui-max-offset-4d387ae122e0d33a = 最大オフセット
+
+ui-max-radius-1cc500dd16c72303 = 最大半径
+
+ui-measure-fc7c5bb198567ced = 測定
+
+ui-medium-9ccd01b2e5f752af = 中間
+
+ui-medium-dots-afe7254a98d0f43c = 中くらいのドット
+
+ui-medium-lines-908c1eeaba7a173b = 中くらいの線
+
+ui-medium-strokes-d171fda09e95070d = 中くらいのストローク
+
+ui-merge-to-hdr-pro-d66348095513714b = HDR 合成(Pro)
+
+ui-metallic-c069fcaeecc0f176 = メタリック
+
+ui-metering-mode-761302e00c1b6697 = 測光モード
+
+ui-method-6af65cb89c77c496 = 方法
+
+ui-mezzotint-6b1fc76414592a8b = メゾティント
+
+ui-midtone-dee57030f94743e7 = 中間調
+
+ui-minimalistic-7a9c4f42ae94e8f2 = ミニマル
+
+ui-missing-delete-command-a4f922e5ac863be5 = 削除コマンドがありません
+
+ui-missing-profiles-ask-when-opening-5c9b77897ec2e9fc = プロファイルなし: 開くときに確認
+
+ui-miter-f77adc9d7250d2f8 = マイター
+
+ui-miter-limit-26f9b3d9afbcfa5b = マイター制限
+
+ui-mode-color-bits-bit-91d967615006031b = { $mode } カラー · { $bits } ビット
+
+ui-model-4383b12efc2485a7 = モデル
+
+ui-modify-date-8186d827f8e867fb = 更新日
+
+ui-mono-contrast-7a86ab8e82259b42 = モノコントラスト
+
+ui-monochromatic-86e106adbbb8f302 = モノクロ
+
+ui-more-documents-702166de66a88b90 = その他のドキュメント
+
+ui-mosaic-427d72b42ad8ac0f = モザイク
+
+ui-mosaic-tiles-29824189443a91f6 = モザイクタイル
+
+ui-motion-blur-c446599191dff69a = ぼかし(移動)
+
+ui-mouse-controls-eaf2d918ca7194b0 = マウス操作
+
+ui-mouse-coordinates-d5893efae4b83639 = マウス座標
+
+ui-move-layer-ad59c99cf063098f = レイヤーを移動
+
+ui-move-panel-3a47e11ada54b960 = パネルを移動
+
+ui-movie-prime-de8af2bed1656d3a = ムービープライム
+
+ui-multiple-flames-along-path-6652f55784b614eb = パスに沿った複数の炎
+
+ui-multiple-flames-one-direction-963a6765144b8550 = 一方向の複数の炎
+
+ui-multiple-flames-path-directions-7555450e25144fae = パス方向の複数の炎
+
+ui-multiple-flames-various-length-1250ee961eea7388 = 長さの異なる複数の炎
+
+ui-n-commands-are-not-in-photocraft-8d9da53e6d113da9 = { $n } 個のコマンドは PhotoCraft にありません。
+
+ui-n-of-max-sample-points-23c59085c2f1cfcb = { $max } 個中 { $n } 個のサンプルポイント
+
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Wayland ではネイティブのファイルドラッグ＆ドロップはまだ利用できません。[ファイル › 開く] を使うか、ファイルマネージャーで画像をコピーして { $paste } で貼り付けてください。
+
+ui-navigate-run-esc-close-d45363cf151f1d0d = ↑↓ 移動   ↵ 実行   esc 閉じる
+
+ui-negation-4fc106b159214b14 = 否定
+
+ui-neon-glow-b33bf67ecbd2b1d8 = ネオン光彩
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm は画像のビット深度とチャンネルに応じてサブタイプを選択します。
+
+ui-neutralize-b0d3b8c782c47428 = 中和
+
+ui-never-show-overlay-62e4d50ec1f95088 = オーバーレイを表示しない
+
+ui-new-brush-5dee4a87912f9d7b = 新規ブラシ
+
+ui-new-brush-preset-9a813a7c947ca0f2 = 新規ブラシプリセット…
+
+ui-new-channel-b0696786256acc9c = 新規チャンネル
+
+ui-new-channel-only-12fa6e7fc054d04e = 新規チャンネルのみ
+
+ui-new-crop-preset-a06657144aecc436 = 新規切り抜きプリセット…
+
+ui-new-document-6122645e6168a56c = 新規ドキュメント
+
+ui-new-document-n-0f29e6c124ffb6dc = 新規ドキュメント…     ⌘N
+
+ui-new-document-with-mask-829ecf76a05eef44 = 新規ドキュメント（マスク付き）
+
+ui-new-group-9049a6924e738ed4 = 新規グループ
+
+ui-new-guide-9ca4ad8785283c73 = 新規ガイド
+
+ui-new-guide-layout-fa3be28733a45033 = 新規ガイドレイアウト
+
+ui-new-layer-a7839d7af7be371e = 新規レイヤー…
+
+ui-new-layer-comp-a839d8084e1ff239 = 新規レイヤーカンプ
+
+ui-new-layer-from-brush-f04013a5129bfb4a = ブラシから新規レイヤー
+
+ui-new-layer-with-mask-a27e3dedb04b398a = 新規レイヤー（マスク付き）
+
+ui-new-path-4653ce4a29d4fc2e = 新規パス
+
+ui-new-selection-c08152b93e9cb14d = 新規選択範囲
+
+ui-new-snapshot-0fd65c54e36905c5 = 新規スナップショット
+
+ui-new-swatch-35500735beac1287 = 新規スウォッチ…
+
+ui-new-swatch-group-d508820c8747faca = 新規スウォッチグループ…
+
+ui-new-tool-preset-0d8f6b22acc3e2a6 = 新規ツールプリセット
+
+ui-new-video-group-d04a813e88993e5f = 新規ビデオグループ
+
+ui-new-video-layer-742bbca76d53ae89 = 新規ビデオレイヤー
+
+ui-new-video-layer-from-file-3535826ee4c17903 = ファイルから新規ビデオレイヤー
+
+ui-newspaper-e1b0e1e6ca6fa566 = 新聞
+
+ui-next-appearance-mode-1ad9397736c7ee33 = 次の外観モード
+
+ui-next-document-6e3c850115c17527 = 次のドキュメント
+
+ui-no-document-open-3e622d7f3eb6fe8b = ドキュメントが開かれていません
+
+ui-no-layer-comps-fb0df74b655f7f21 = レイヤーカンプなし
+
+ui-no-matching-settings-ee7ac3cb953063dc = 一致する設定はありません
+
+ui-no-saved-presets-yet-70f97356610163a1 = 保存済みのプリセットはありません。
+
+ui-no-subject-found-try-a-rectangle-around-t-305b2a5462b07838 = 被写体が見つかりません — オブジェクトを囲む長方形を試してください
+
+ui-no-subject-found-try-object-selection-or-631a2c6cfea1b5bc = 被写体が見つかりません — オブジェクト選択ツールまたはなげなわツールを試してください
+
+ui-noise-color-744b799f88991314 = ノイズ (カラー)
+
+ui-noise-color-detail-41fe8506098c2aed = ノイズ (カラーのディテール)
+
+ui-noise-luminance-c6d0d79c7eb8c645 = ノイズ (輝度)
+
+ui-noise-luminance-detail-b15c3c98e7b30dde = ノイズ (輝度のディテール)
+
+ui-nonlinear-history-3545dcaaf062bd1f = 非線形ヒストリー
+
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = Web カラーではありません：クリックすると最も近い Web カラーになります
+
+ui-note-paper-545e7d9fd9e62821 = ノート用紙
+
+ui-note-tool-064a4745c0eebf4f = 注釈ツール
+
+ui-notification-duration-seconds-d8febd6df942f984 = 通知の表示時間（秒）
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = 選択範囲を別の場所へドラッグします
+
+ui-ntsc-1953-8f50830135401be8 = NTSC (1953)
+
+ui-number-64f8e212c5ac06de = 数
+
+ui-number-of-levels-3c73fdfa94081c7e = レベル数
+
+ui-object-name-title-a049198654e75c64 = オブジェクト名 / タイトル
+
+ui-object-selection-found-nothing-there-try-ca465edbd222510f = オブジェクト選択ではそこに何も見つかりませんでした — より狭い長方形で試してください
+
+ui-ocean-ripple-cbdf1e096423126b = 海の波紋
+
+ui-octagon-3bda509237e2116a = 八角形
+
+ui-odd-fields-2445c1584a1671e5 = 奇数フィールド
+
+ui-oil-paint-6b4d69e8714a78dd = 油彩画
+
+ui-on-black-e728be796304fcb9 = 黒地
+
+ui-on-layers-c8e8d79373a527f0 = レイヤー上
+
+ui-on-white-6215953b11747b1b = 白地
+
+ui-one-flame-along-path-ecbcd968320159fa = パスに沿った 1 つの炎
+
+ui-onion-skin-b8980fb3c2df588d = オニオンスキン
+
+ui-opacity-mask-31dde80f8ea8f674 = 不透明マスク
+
+ui-opacity-threshold-3dbc5455a6a96857 = 不透明度のしきい値
+
+ui-open-as-8e4269b7af85aae1 = 形式を指定して開く
+
+ui-open-exr-parts-fd9bfecaa27e1e30 = EXRパートを開く…
+
+ui-open-in-camera-raw-c438bf24dab93647 = Camera Raw で開く
+
+ui-open-o-ea000660d895db74 = 開く…     ⌘O
+
+ui-open-paths-use-centered-strokes-3add57d4a0335f7d = 開いたパスの線は中央に配置されます
+
+ui-open-source-65fefae8d3d63fa4 = オープンソース
+
+ui-opened-name-21b0dd7c898f99fb = { $name } を開きました
+
+ui-opening-9f144cb696a47035 = 開く
+
+ui-operation-b8ed9c5e1c28f13c = 操作
+
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = または 環境設定 › パフォーマンス › Linux ディスプレイサーバー を X11 にすると、PhotoCraft は常に XWayland 上で起動します。
+
+ui-out-a11feb7e1a7333f1 = アウト
+
+ui-out-black-eea15b6cb2ba44ea = 出力の黒
+
+ui-out-from-center-74631fafef571e5c = 中心から外へ
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = 印刷の色域外：クリックすると最も近い印刷可能な色になります
+
+ui-out-white-27cef9183f8243ac = 出力の白
+
+ui-oval-43aecd46f57411df = 楕円
+
+ui-overlay-edge-4e6df63e4f3cf7da = エッジをオーバーレイ
+
+ui-override-action-save-commands-81e65588ba62d0a8 = アクションの "保存" コマンドを上書き
+
+ui-package-0f230a7153ef9f95 = パッケージ化
+
+ui-paint-daubs-b88030a529d28154 = 絵の具のなすり付け
+
+ui-paint-over-hair-or-fur-on-the-image-alt-p-44f8b66674c7cf71 = 画像の髪や毛の上をペイントします。Alt で反対のモードでペイント
+
+ui-pal-secam-787a738bfba5a68c = PAL/SECAM
+
+ui-palette-knife-38f7a41dc1e4bdab = パレットナイフ
+
+ui-panel-menu-06b4f84ed48efc1a = パネルメニュー
+
+ui-panel-options-a0c409325a94f11b = パネルオプション…
+
+ui-paper-brightness-5e607e81b0942a36 = 紙の明るさ
+
+ui-parallel-c05d59129478beb8 = 平行
+
+ui-patch-d60a1e8bcbb424c3 = パッチ
+
+ui-patchwork-9b211f05f4a9d43e = パッチワーク
+
+ui-path-blur-000e5c6ff446e0d1 = パスぼかし
+
+ui-path-d61b4e8bcbc2e986 = パス:
+
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }: パスが有効な Unicode ではありません。ファイル名を変更してから開き直してください。
+
+ui-path-to-illustrator-8f33f4b326ccb04c = パスを Illustrator へ…
+
+ui-paths-to-illustrator-d8ac4923c22bfa9b = パスをベクター形式へ
+
+ui-pattern-stamp-3def986c64c12dcc = パターンスタンプ
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = パターンスタンプツール
+
+ui-pattern-type-cf359bd35f1f07a5 = パターンの種類
+
+ui-pdf-presentation-b0967ad8f5e4b0af = PDF プレゼンテーション…
+
+ui-pen-96d7a67e142aa592 = ペン
+
+ui-pencil-8084544d4ac2ea36 = 鉛筆
+
+ui-pencil-tool-45b01c785fc0cc2c = 鉛筆ツール
+
+ui-pencil-width-e0cae5e5def3db5e = 鉛筆の幅
+
+ui-pentagon-1dde53003b36a803 = 五角形
+
+ui-perimeter-b28e26c59be6f762 = 周囲長
+
+ui-perspective-crop-d3307f4681570c23 = 遠近法の切り抜き
+
+ui-perspective-crop-tool-9d2500bb26bc190b = 遠近法の切り抜きツール
+
+ui-phone-766c40504e2bc6bd = 電話
+
+ui-photo-2-3-in-8a63cb48683e95ce = 写真 (2 × 3 in)
+
+ui-photo-4-6-in-13e0d4c59c558b7b = 写真 (4 × 6 in)
+
+ui-photo-5-7-in-5258fe91e822a565 = 写真 (5 × 7 in)
+
+ui-photo-8-10-in-d06f49a9848a1792 = 写真 (8 × 10 in)
+
+ui-photocopy-c2aa73f2f0081450 = コピー
+
+ui-photocraft-found-your-keyboard-shortcut-s-865cccf0e5aa0eef = このコンピューターで、別の画像編集アプリのキーボードショートカットセット { $set } が見つかりました。{ $n } 個のショートカットが PhotoCraft と異なります。読み込みますか？
+
+ui-photocraft-screen-color-picker-7b92fa1bcc690048 = PhotoCraft — スクリーンカラーピッカー
+
+ui-photomerge-5962c035595c2103 = 写真を貼り合わせ
+
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = 画面のピクセルを選択するか、Escでキャンセル
+
+ui-pick-screen-color-b1eefd560cdcf751 = 画面の色を選択
+
+ui-picture-frame-38239402e1bb0a96 = ピクチャフレーム
+
+ui-picture-package-4ff232928cc24ff5 = ピクチャパッケージ…
+
+ui-pinch-ae8334459dc47045 = つまみ
+
+ui-pins-577b2d3c3007ff1f = ピン
+
+ui-pixel-3384f245579d9ba5 = ピクセル
+
+ui-place-embedded-262a39a2010f0ac0 = 埋め込みで配置
+
+ui-place-linked-3c5158f63fd8a7f3 = リンクで配置
+
+ui-place-scale-marker-e6ccb32028af9d5a = スケールマーカーを配置
+
+ui-plane-1a06c22cc52a68e7 = 平面
+
+ui-planes-63e48613070fb37c = 平面
+
+ui-plaster-00931dc04a16519a = 石膏
+
+ui-plastic-wrap-7185f47c6c817543 = ラップ
+
+ui-play-once-8b69f9041acd8292 = 1 回再生
+
+ui-point-906c6338fb03d997 = ポイント
+
+ui-point-curve-blue-ed42cd96d6f58b80 = ポイントカーブ (青)
+
+ui-point-curve-ca341bee970f5944 = ポイントカーブ
+
+ui-point-curve-green-85c4e794b4113ff7 = ポイントカーブ (緑)
+
+ui-point-curve-red-9c8df2670d0df5eb = ポイントカーブ (赤)
+
+ui-point-sample-10f1da74f87660f7 = ポイントサンプル
+
+ui-pointed-1a75e8bc51c3ad56 = とがった
+
+ui-pointillize-42082da8ab4834d4 = ポインティリスト
+
+ui-polar-coordinates-10e259213c026a5e = 極座標
+
+ui-polar-to-rectangular-55f2eb2e29781eaa = 極座標から直交座標へ
+
+ui-pond-ripples-acbaecdb7900c26f = 池の波紋
+
+ui-poster-edges-2bfbce63218063ac = ポスターエッジ
+
+ui-posterization-a2bce33f2bb75562 = ポスタリゼーション
+
+ui-preserve-53effac684c654f3 = 保持
+
+ui-preserve-transparency-ec3f87e2963c04bb = 透明部分を保持
+
+ui-preset-manager-5dddd418494a3c47 = プリセットマネージャー
+
+ui-preset-name-9c3a1de649a97273 = プリセット名:
+
+ui-preset-name-a0b4d9aa9b88ec7b = プリセット名
+
+ui-press-keys-b400c9f113a2a58e = キーを押してください
+
+ui-pressure-curve-19292bf407107dbf = 筆圧カーブ
+
+ui-previous-document-eaa84057a6b49afb = 前のドキュメント
+
+ui-prime105-f2756d4960797afa = プライム 105mm
+
+ui-prime35-fea8d92b21276a32 = プライム 35mm
+
+ui-pro-light-5f027dfe73385691 = プロ(ライト)
+
+ui-pro-light-d99268b6a486cfe6 = プロ(ライト)
+
+ui-pro-light-gray-b0b886c21e82d0dc = プロ(ライトグレー)
+
+ui-pro-light-gray-bc41ae44cf80a191 = プロ(ライトグレー)
+
+ui-pro-light-gray-theme-7ba042d458fbdefc = プロ(ライトグレー)テーマ
+
+ui-pro-light-theme-e381bc8b2c880e03 = プロ(ライト)テーマ
+
+ui-pro-medium-3990a13d10e49531 = Pro Medium
+
+ui-profile-5fb50d41d5777db0 = プロファイル
+
+ui-profile-mismatches-ask-when-opening-77e6e642c7e897d9 = プロファイルの不一致: 開くときに確認
+
+ui-prophoto-411d8bc8552122fe = ProPhoto
+
+ui-prophoto-rgb-3c1d71803bd2217d = ProPhoto RGB
+
+ui-province-state-5243449acb19199b = 都道府県 / 州
+
+ui-public-domain-68d8b21b80abd732 = パブリックドメイン
+
+ui-punctuation-11ef795a1131b25d = 句読点
+
+ui-pupil-size-a21b8b198e346afe = 瞳のサイズ
+
+ui-pyramids-7224dd6858726e0e = ピラミッド
+
+ui-quick-selection-5118c8caf468d640 = クイック選択
+
+ui-quick-selection-found-nothing-there-79e12ccf085cca73 = クイック選択ではそこに何も見つかりませんでした
+
+ui-quick-sync-ae1bef51cb6dc645 = Quick Sync
+
+ui-radial-blur-9f6e31b8fc79ca75 = ぼかし(円形)
+
+ui-radius-x-953c914f74ae538d = 半径 X
+
+ui-radius-y-953c904f74ae51da = 半径 Y
+
+ui-random-df988afe75b5d570 = ランダム
+
+ui-randomize-length-a2347d5eeb8d1512 = 長さをランダム化
+
+ui-randomize-shapes-4c5adca68adedcd0 = 形をランダム化
+
+ui-rasterize-layer-style-c11eb0192450d280 = レイヤースタイルをラスタライズ
+
+ui-rasterize-layers-ef809f91579ccb22 = レイヤーをラスタライズ
+
+ui-rasterize-svg-groups-deeper-than-2ea169bca636efde = この深さを超える SVG グループをラスタライズ
+
+ui-raw-data-6ae0e1ce5accb9bd = Raw データ
+
+ui-raw-defaults-e1737abe89be9cff = RAW の既定値
+
+ui-reading-27f42b4c13b45735 = 読み取り
+
+ui-recent-items-b30bda9a23a456f8 = 最近使用した項目
+
+ui-recovery-7e50a417e2a3f2a4 = リカバリー
+
+ui-rectangle-83c0e98d088e8bec = 長方形
+
+ui-rectangular-selection-9cf76774751915f3 = 矩形選択
+
+ui-rectangular-to-polar-0148b07641ef5a76 = 直交座標から極座標へ
+
+ui-red-cyan-a43c256c9d952659 = 赤とシアン
+
+ui-red-eye-96b14bb055bf9143 = 赤目
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = 赤目ツール
+
+ui-reduce-color-noise-3dc7132322f66840 = カラーノイズを軽減
+
+ui-reduce-noise-2753e5835aa64aff = ノイズを軽減
+
+ui-reference-point-location-d5d0aada333a3e05 = 基準点の位置
+
+ui-refine-9e0be4b61fc803be = 調整
+
+ui-refine-edge-brush-r-c2b236a925ebf002 = 境界線調整ブラシ (R)
+
+ui-reflect-d0229494c0f576bc = 反射
+
+ui-regular-182bf85491dfe61c = 標準
+
+ui-relief-53429e092f64d952 = レリーフ
+
+ui-relink-to-file-5168b53e2ac8e1db = ファイルに再リンク
+
+ui-remove-from-favorites-486786afd446c748 = お気に入りから削除
+
+ui-remove-from-recent-9d1617d42109ab60 = 最近使ったファイルから削除
+
+ui-remove-jpeg-artifact-fe3b204afd2ced23 = JPEG アーティファクトを除去
+
+ui-remove-name-from-recent-10f46ef1688734d3 = { $name } を最近使ったファイルから削除
+
+ui-remove-pair-36d4c6635ffda785 = 組を削除
+
+ui-remove-tool-f4e2e17b376f490b = 削除ツール
+
+ui-rename-brush-42d9dbc47e5e076d = ブラシの名前を変更
+
+ui-rename-group-c92094118c504736 = グループ名を変更
+
+ui-rename-layer-comp-c52bb894c6b6d4d7 = レイヤーカンプの名前を変更
+
+ui-rename-tool-preset-1dd5ebe6e554110c = ツールプリセット名を変更
+
+ui-render-video-f9e6c60f22eb1558 = ビデオを書き出し
+
+ui-reorder-layer-477541d48e15dee7 = レイヤーを並べ替え
+
+ui-repeat-3e38ef62b047cd38 = 繰り返し
+
+ui-replace-color-c422f49c36c5749a = 色を置き換え
+
+ui-replace-contents-3b0bc21f3a5ce2fd = コンテンツを置き換え
+
+ui-replace-footage-68e87c6cce305032 = 素材を置き換え
+
+ui-replace-swatches-22ed7dc765dad82d = スウォッチを置き換え…
+
+ui-report-an-issue-d78b85f67e5bacf3 = 問題を報告
+
+ui-reset-28450354f52cb7ae = 初期化
+
+ui-reset-all-tools-376ceb5881d91e9a = すべてのツールをリセット
+
+ui-reset-all-tools-to-their-default-setting-051b717b3b6a210c = すべてのツールを初期設定に戻しますか？
+
+ui-reset-swatches-99689ab8ada5eb9a = スウォッチを初期化
+
+ui-reset-tool-09e396a78e8ad944 = ツールをリセット
+
+ui-reset-view-c0bdf39ad3792a63 = 表示をリセット
+
+ui-resize-panel-window-2882cbd9cf0bb38f = パネルウィンドウのサイズを変更
+
+ui-resize-panels-63366d26e7bff572 = パネルのサイズを変更
+
+ui-resolve-missing-fonts-d8f83c79410b7c53 = 不足しているフォントを解決
+
+ui-restore-last-viewed-comp-f2cf5460bb42cba2 = 最後に表示したカンプを復元
+
+ui-restore-original-edge-1f47567587324e0f = 元のエッジを復元
+
+ui-result-10c5e35c4da82246 = 結果
+
+ui-reticulation-aea2deae4f7a1238 = 粒状化
+
+ui-retry-saving-presets-46dc9ac2d6616d53 = プリセットの保存を再試行
+
+ui-rgb-879d887e0c22abf6 = RGB
+
+ui-rgb-880a687e0c7f4776 = RGB
+
+ui-rgb-935aba2e9ee9eba4 = RGB:
+
+ui-ridges-bfda9d207b9ab62f = 尾根
+
+ui-right-cbe095148fc36d83 = 右:
+
+ui-right-diagonal-bf7049279bb28c3e = 右斜め
+
+ui-ring-23d3ed2f82517781 = リング
+
+ui-ring-double-46bac415b3bcb0d3 = リング - ダブル
+
+ui-ripple-9bb4e7796233bfd5 = 波紋
+
+ui-ripple-magnitude-84e831c84d53258b = 波紋の振幅
+
+ui-ripple-size-7407a2d81ab6a846 = 波紋のサイズ
+
+ui-rise-23adcf2f8230754a = 上昇
+
+ui-rolling-slope-descending-905375a37c64ed52 = ローリングスロープ - 下降
+
+ui-roman-0b06cb84c9b9947c = ローマン
+
+ui-roman-hanging-punctuation-b7c67ad951476a24 = 欧文ぶら下がり句読点
+
+ui-rope-ed98d52f62f5d6f7 = ロープ
+
+ui-roses-c9a54e8535b59b0d = バラ
+
+ui-rotate-auto-e13ccc6806d977c3 = 回転 (自動)
+
+ui-rotate-fixed-0a90373e325c151e = 回転 (固定)
+
+ui-rotate-view-db81b0d3c1a858dd = 表示を回転
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = 表示回転ツール
+
+ui-rough-pastels-b9048f0347a987aa = 粗いパステル
+
+ui-round-dbce8f85403bd2bd = 丸型
+
+ui-rounded-steps-7f4362f1e501c0f7 = 丸い階段
+
+ui-row-order-553356f01c7251a9 = 行の順序
+
+ui-rows-edb0eb2f630a8e3a = 行
+
+ui-rule-of-thirds-a9efcd425580c820 = 三分割法
+
+ui-ruler-09c12bd133985e69 = 定規
+
+ui-ruler-units-47917b18897be816 = 定規の単位
+
+ui-rulers-r-00fc815d02bc04a1 = 定規  (⌘R)
+
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = 画面上の任意のピクセルから色を取得
+
+ui-sample-size-84705069550bbf3c = サンプルサイズ:
+
+ui-sampler-bd80d8f68741d5cd = サンプラー
+
+ui-sandstone-c870d1c554a30e1a = 砂岩
+
+ui-sat-7cef477e05837131 = 彩度
+
+ui-save-a-copy-b910b46db0e0e306 = コピーを保存
+
+ui-save-as-c5337feb2f4deb1a = 名前を付けて保存
+
+ui-save-as-preset-fcb3834698c2503d = プリセットとして保存
+
+ui-save-for-web-legacy-38511fddcc912113 = Web 用に保存(従来方式)
+
+ui-save-preset-2328ef2728084c33 = プリセットを保存…
+
+ui-save-selection-65137d0b89b4d128 = 選択範囲を保存
+
+ui-saved-5eaa631947aa180a = 保存済み
+
+ui-saved-multichannel-b8a57129424ad016 = 保存済みマルチチャンネル
+
+ui-saved-name-ec890ad7eb9202d3 = { $name } を保存しました
+
+ui-saving-brush-presets-keep-this-tab-open-u-0387001733cba4f2 = ブラシプリセットを保存中… 保存が完了するまでこのタブを開いたままにしてください。
+
+ui-saving-name-2363a755794e1f66 = { $name } を保存しています
+
+ui-sawtooth-1-8eeceb1522eaf619 = のこぎり波 1
+
+ui-scale-3aee47f8880725bf = 比率:
+
+ui-scale-effects-b068302844f133bd = 効果を拡大・縮小
+
+ui-scale-factor-647f2244e0607b3e = 拡大・縮小の倍率
+
+ui-scale-horizontally-82b9de87fb0529ca = 水平方向に拡大・縮小
+
+ui-scale-units-db5d29c1210c3354 = スケール単位
+
+ui-scale-vertically-11fa904a7fa3174c = 垂直方向に拡大・縮小
+
+ui-scaling-4cf3c74f37fe9b28 = 拡大率
+
+ui-scallops-e7bdcdb42ea92900 = スカラップ
+
+ui-scope-8765632a779d5bdd = 範囲
+
+ui-script-events-manager-344af4d54b8d2d8a = スクリプトイベント管理
+
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = スクロールしてズーム
+
+ui-scrubby-zoom-be94ebd193e23a8a = スクラブズーム
+
+ui-seafoam-ebe537921cc90f2b = シーフォーム
+
+ui-search-commands-k-42c42cece76a4de7 = コマンドを検索 (⌘K)
+
+ui-search-commands-tools-and-panels-f88f6070fa240b26 = コマンド、ツール、パネルを検索
+
+ui-search-menus-27cc1bda6a515b73 = メニューを検索
+
+ui-search-settings-a7fc4883f6918f9c = 設定を検索…
+
+ui-second-color-readout-9c7065528e78f8a0 = 2 番目のカラー読み取り
+
+ui-seed-ad630e234c6d95f2 = シード
+
+ui-select-all-layers-1faac7e78f3cab66 = すべてのレイヤーを選択
+
+ui-select-and-mask-99c4cd5e0e742f22 = 選択とマスク
+
+ui-select-folder-0aac0678d7c0f94b = フォルダーを選択…
+
+ui-select-layer-09dd708b172fdb9e = レイヤーを選択
+
+ui-select-plane-ed0724f38a36575d = 平面を選択
+
+ui-select-similar-colors-bc2474afa6c0302a = 近似色を選択
+
+ui-select-the-crop-presets-to-delete-719febcbd9ce2506 = 削除する切り抜きプリセットを選択してください
+
+ui-select-the-crop-presets-to-delete-e0e2e763194944f4 = 削除する切り抜きプリセットを選択してください:
+
+ui-selected-3ee82e06f8c5ee8e = 選択済み
+
+ui-selected-areas-fd185287cecd47f4 = 選択された領域
+
+ui-selected-artboards-b150baa5bc687b52 = 選択したアートボード
+
+ui-selection-preview-a4f0a0102c940143 = 選択範囲のプレビュー:
+
+ui-semi-bold-2ab4997d447a1c4c = セミボールド
+
+ui-semibold-f43621cc0429d1c1 = 中太
+
+ui-sepia-674d89fa80203503 = セピア
+
+ui-set-additional-crop-options-437370a0bbc94342 = 切り抜きの追加オプションを設定
+
+ui-set-black-point-3a2fd412fb7bf324 = 黒点を設定
+
+ui-set-colors-2eea411e536a1007 = カラーを設定
+
+ui-set-measurement-scale-a0017dda51d7a66f = 測定スケールを設定
+
+ui-set-neutral-gray-point-80347a56d69ad333 = 中間調のグレーポイントを設定
+
+ui-set-new-snapshot-as-default-92ca61404557bf22 = 新規スナップショットを既定に設定
+
+ui-set-start-timecode-2564227659cfcddd = 開始タイムコードを設定…
+
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = 切り抜きツールのオーバーレイオプションを設定
+
+ui-set-white-point-526c42ac4bcf95ae = 白色点を設定
+
+ui-settings-24158e92756cfab8 = 設定:
+
+ui-settings-ef8bc95b8e198e52 = 設定
+
+ui-shadow-amount-1a54653e76282409 = シャドウの量
+
+ui-shadow-d55684dc94576327 = シャドウ
+
+ui-shadow-intensity-93a4d155ec13f2ca = シャドウの強さ
+
+ui-shadow-radius-95bf2001c3d36593 = シャドウの半径
+
+ui-shadow-tone-37631f7f92e7b541 = シャドウのトーン
+
+ui-shadows-highlights-0b937af1e3f4f7f0 = シャドウ・ハイライト
+
+ui-shape-blur-9b0e8b0bab2eff21 = ぼかし(シェイプ)
+
+ui-sharpen-amount-17061ccdd52a5262 = シャープの量
+
+ui-sharpen-detail-eb9de6809783a25f = シャープのディテール
+
+ui-sharpen-details-e0f0d88174ac90c4 = ディテールをシャープに
+
+ui-sharpen-masking-3efde0b79260b1a2 = シャープのマスク
+
+ui-sharpen-radius-fe4eb465bce0428c = シャープの半径
+
+ui-sharpness-3c4bf4efd0a270aa = シャープネス
+
+ui-shear-63e4ca540106d22c = シアー
+
+ui-shell-lower-9a5cf3f1252fc476 = シェル (下)
+
+ui-shell-upper-9eca01f8c0d1f003 = シェル (上)
+
+ui-shine-ccbad5543ca9331a = 輝き
+
+ui-short-lines-391876c9aa45d0ec = 短い線
+
+ui-short-strokes-3c6608d26843dd02 = 短いストローク
+
+ui-shortcut-0f64c2be41c459ed = ショートカット
+
+ui-show-canvas-dots-6d94c3d743b8de22 = カンバスのドットを表示
+
+ui-show-cropped-area-53b623311de34a66 = 切り抜かれた領域を表示
+
+ui-show-edge-0e6f6ff17e21f8ef = エッジを表示
+
+ui-show-grid-fae930dfc8ee4b2e = グリッドを表示
+
+ui-show-guides-7faab6fa48e49c0d = ガイドを表示  (⌘;)
+
+ui-show-hide-all-panels-240e4d824315700b = すべてのパネルを表示/非表示
+
+ui-show-hide-panels-f43db26049aad092 = パネルを表示/非表示
+
+ui-show-highlight-on-rollover-69405ef2139701f4 = ロールオーバー時にハイライトを表示
+
+ui-show-in-explorer-2f94447b91dbe64c = エクスプローラーで表示
+
+ui-show-in-folder-e0edb8f0cae13d5f = フォルダーで表示
+
+ui-show-new-snapshot-dialog-by-default-d47b516cf56abf84 = 既定で新規スナップショットのダイアログを表示
+
+ui-show-original-9f96d5b03071c5ed = 元の状態を表示
+
+ui-show-rulers-15364a8b811babcf = 定規を表示
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = サンプリングリングを表示
+
+ui-show-the-layer-s-effects-click-all-layer-b07f5ba1937c9fc8 = レイヤーの効果を表示  (⌥+クリック: すべてのレイヤー)
+
+ui-shutter-speed-22e03ade97f42a9b = シャッタースピード
+
+ui-simple-f637ce5a0306e045 = シンプル
+
+ui-sine-162b2b238803d81a = 正弦波
+
+ui-single-column-marquee-tool-1dac583cc51f40e3 = 一列選択ツール
+
+ui-single-row-marquee-tool-220700fd1e13590f = 一行選択ツール
+
+ui-single-word-justification-04a621a3f9461abf = 単語単位の行揃え
+
+ui-size-was-old-41f38564856f8aff = { $size }(変更前 { $old })
+
+ui-sketch-35a3e72bb6a6a8e7 = スケッチ
+
+ui-slant-8684e6366a796841 = 傾斜
+
+ui-slice-options-25bea913bab0185d = スライスオプション
+
+ui-smart-blur-83664ec0fe10c5e9 = ぼかし(詳細)
+
+ui-smart-sharpen-4c1d50dbbe6b62e7 = スマートシャープ
+
+ui-smoothness-e35254dc2d5c9562 = 滑らかさ
+
+ui-smpte-c-f8071a9ee9fc783b = SMPTE C
+
+ui-smudge-stick-fc5d04949753d42a = スマッジスティック
+
+ui-snap-to-origin-2f5c18a1a31eaab6 = 原点にスナップ
+
+ui-snapshot-1-8c750584b60c9adc = スナップショット 1
+
+ui-snapshots-31fea07601981cdc = スナップショット
+
+ui-snowflakes-72430a2fe4c2796a = 雪の結晶
+
+ui-softness-3db05d94c5e7aa54 = 柔らかさ
+
+ui-software-d44afac479e39cce = ソフトウェア
+
+ui-solarized-dark-b3d33c9539e10efa = Solarized ダーク
+
+ui-solarized-dark-theme-592f33cc33819357 = Solarized ダークテーマ
+
+ui-solid-9b8a594e6937f34a = 実線
+
+ui-solid-color-1d167b2e070dd501 = べた塗り
+
+ui-solid-front-faces-90e03aad8af167a3 = 前面を塗りつぶし
+
+ui-some-brush-presets-could-not-be-loaded-85dba33dc441678d = 一部のブラシプリセットを読み込めませんでした
+
+ui-source-layer-f065b63966b2fa43 = ソースレイヤー
+
+ui-spacing-d50ce42d5c2403c2 = 間隔:
+
+ui-sparkle-aa5b6916546f931f = きらめき
+
+ui-spatter-4f318905085aea1c = 飛沫
+
+ui-speckle-b8a5b5c6c1b87dbe = 斑点
+
+ui-speed-62149896b14e677a = 速度
+
+ui-spherize-0b4d233bb9a74763 = 球面
+
+ui-spin-50222123a816e9f3 = 回転
+
+ui-spin-blur-df3e47644a4873cc = 回転ぼかし
+
+ui-split-at-playhead-4a95a33c1c193c5a = 再生ヘッドで分割
+
+ui-split-toning-cd30d950a18ea864 = スプリットトーニング
+
+ui-sponge-3757a5de651372f9 = スポンジ
+
+ui-spot-2f2f4e9694c8dac7 = スポット:
+
+ui-spot-501b3723a810f0a7 = スポット
+
+ui-spot-channel-236b0b462ce58444 = スポットチャンネル
+
+ui-spot-color-d4a83ff05ef21ad8 = 特色
+
+ui-spot-healing-bcac570ea82d0bbd = スポット修復
+
+ui-spray-radius-6f55de45ea5ece7e = スプレー半径
+
+ui-sprayed-strokes-2abba772dfa69770 = スプレーストローク
+
+ui-sprinkles-6cbe4a99473fb282 = 散らし
+
+ui-square-size-fd2bdb2010e872a9 = 正方形のサイズ
+
+ui-squareness-a9dcac48dbbed1b3 = 四角さ
+
+ui-squeeze-0f5e118c9433ba15 = 絞り込み
+
+ui-srgb-7688602f161704c7 = sRGB
+
+ui-srgb-iec61966-2-1-0659b1eb95253d52 = sRGB IEC61966-2.1
+
+ui-stagger-c60e6832a3054f2a = 互い違い
+
+ui-stained-glass-d058c87dc2184f49 = ステンドグラス
+
+ui-stamp-5b5c5077e1a0cdce = スタンプ
+
+ui-star-2f4a812395ffcca3 = 星
+
+ui-star-ratio-24437e279a76229e = 星の比率:
+
+ui-stars-5b663f77e1a90570 = 星
+
+ui-start-x-7220bf9e31782b95 = 開始 X
+
+ui-start-y-7220be9e317829e2 = 開始 Y
+
+ui-statistics-0b9065781ed64fdc = 統計情報
+
+ui-status-information-22c0a472a9471caf = ステータス情報
+
+ui-step-backward-c0657e07f18988aa = 1 つ戻る
+
+ui-step-forward-b39286cbac324924 = 1 つ進む
+
+ui-stippled-b8c8b613cf63a734 = 点描
+
+ui-stop-2f799723962762c7 = 停止
+
+ui-stop-for-errors-2142497b0ae1525f = エラーで停止
+
+ui-stops-d2fe857824ecb7dc = ストップ
+
+ui-straighten-the-image-by-drawing-a-line-o-e0da8c009ed35534 = 画像上に線を描いて角度を補正
+
+ui-strength-76357e30547a87ea = 強さ
+
+ui-stretch-d2f0819147c55a7c = 引き伸ばし
+
+ui-stroke-color-705a1554bb23c6c0 = 線のカラー
+
+ui-stroke-detail-818184affe3dd2fc = ストロークのディテール
+
+ui-stroke-direction-bc05eab322fc8a62 = ストロークの方向
+
+ui-stroke-length-7650396479b2934d = ストロークの長さ
+
+ui-stroke-options-157cb1b9e34287dd = 線のオプション
+
+ui-stroke-path-928631a432241fae = パスのストローク
+
+ui-stroke-pressure-2bfccd5158f5956a = ストロークの筆圧
+
+ui-stroke-size-7c3c3ab017b739c4 = ストロークのサイズ
+
+ui-stroke-width-541a606432d1e937 = ストロークの幅
+
+ui-strokes-f20629c5c7788ea4 = ストローク
+
+ui-studio-light-c59588e3a608ca09 = Studio Light
+
+ui-stylization-679c026fcc21fe4b = スタイル化
+
+ui-subject-distance-1ca88071e9df0120 = 被写体距離
+
+ui-subscript-62e307c4acd91114 = 下付き
+
+ui-subtract-from-0136b3deafe79ed9 = 除外
+
+ui-subtract-from-selection-d46f1751432c8831 = 選択範囲から除外  (⌥)
+
+ui-sumi-e-658a7a0590ca9c3b = 墨絵
+
+ui-superscript-99a45cb571f46c89 = 上付き
+
+ui-supplemental-categories-7b3f4ffaaa384fa7 = 補足カテゴリー
+
+ui-surface-blur-b94d93e58b9a979f = ぼかし(表面)
+
+ui-switch-foreground-and-background-colors-8867752485d41ed9 = 前景色と背景色を入れ替え
+
+ui-symbols-ce309d4c47a33a6c = 記号
+
+ui-symmetry-off-f51a8e00f2b6ab64 = 対称オフ
+
+ui-sync-with-system-a2794e085c62fd61 = システムと同期
+
+ui-system-title-bar-b81774202f7af861 = システムのタイトルバー
+
+ui-taper-450f040957b51737 = 先細り
+
+ui-targa-options-6616b16a7d3445cc = Targa オプション
+
+ui-target-3ebe946eefdad3c8 = 対象:
+
+ui-target-77436eecd5972922 = ターゲット
+
+ui-target-x-785f14819096135a = ターゲット X
+
+ui-target-y-785f15819096150d = ターゲット Y
+
+ui-teal-orange-53a9f3b19f890069 = ティールとオレンジ
+
+ui-technology-previews-0452406ec4e33146 = テクノロジープレビュー…
+
+ui-technology-previews-3072798703754006 = テクノロジープレビュー
+
+ui-texture-coverage-709eeb89631e2758 = テクスチャの適用範囲
+
+ui-texturizer-7d549b0f1316980f = テクスチャ化
+
+ui-the-document-is-closed-8ec5c55a26b25b8f = ドキュメントは閉じられています
+
+ui-the-document-or-selected-layers-changed-p-9972332ed404c2e8 = ドキュメントまたは選択したレイヤーが変更されました。もう一度削除してください。
+
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = GPUコンポジターは使用されませんでした：{ $reason }
+
+ui-the-gradient-the-gradient-tool-paints-wi-93518332f123931c = グラデーションツールで描画されるグラデーション
+
+ui-the-keyboard-shortcut-set-was-not-import-03551b2b8d5b9f3d = キーボードショートカットセットは読み込まれませんでした: { $error }
+
+ui-there-is-no-crop-size-or-ratio-to-save-10795b0c2723f449 = 保存する切り抜きのサイズまたは比率がありません
+
+ui-thickness-ccf38303c5b053b7 = 太さ
+
+ui-thin-24348b0f6db9a923 = 極細
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = この形式では統合された画像を保存します。編集可能なドキュメントを保持するには「コピーを保存」を使用してください。
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = この再描画はCPUで{ $seconds }秒かかりました。
+
+ui-tile-size-a2f61636cf5dca00 = タイルのサイズ
+
+ui-tiles-294a574fefffcf28 = タイル
+
+ui-tilt-b985ee1d9beae9c8 = チルト
+
+ui-tilt-shift-242ea35ee1df58f5 = チルトシフト
+
+ui-time-b98a031d9beef64e = 時間
+
+ui-timecode-99850edb120ae613 = タイムコード
+
+ui-timing-15e8bbe0b7db5239 = タイミング
+
+ui-tint-color-13cc59ba90bd5799 = 色合い
+
+ui-tiny-lens-4824201c0b9e9653 = 小さなレンズ
+
+ui-to-center-74befd6eba0252c3 = 中心へ
+
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = ファイルをドロップするには、XWayland 上で PhotoCraft を起動してください: `{ $command }`
+
+ui-toggle-reference-point-0cd01c6441e56224 = 基準点を切り替え
+
+ui-tone-curve-3c38614e6901ed10 = トーンカーブ
+
+ui-tool-eca1d21db89f0b99 = ツール
+
+ui-toolbars-cad3e137fe80a95f = ツールバー
+
+ui-top-ec7ca21db87f9dcc = 上:
+
+ui-top-left-35db253aba562917 = 左上
+
+ui-top-right-9a12cffd0398f888 = 右上
+
+ui-torn-edges-0a0957dc6e1d2e44 = 破れたエッジ
+
+ui-total-ink-915d776b2e77e00f = インク総量
+
+ui-trace-contour-ea5b075cde471032 = 輪郭のトレース
+
+ui-transform-symmetry-308ef5a329d1f431 = 対称軸を変形
+
+ui-transition-1c348b96cefee9f0 = 遷移
+
+ui-transmission-reference-61b3f73080d99b56 = 送信リファレンス
+
+ui-transparency-threshold-d681456c819197c6 = 透明のしきい値
+
+ui-trap-01f68d1d337afb08 = トラップ
+
+ui-tree-0203921d33858de3 = 樹木
+
+ui-triangle-2af10d61da454203 = 三角形
+
+ui-trim-01db9a1d33644967 = トリミング
+
+ui-turbulent-59871bb4bf8675a6 = 乱流
+
+ui-twirl-db708ab6723e00df = 渦巻き
+
+ui-twist-db6d94b6723bdc06 = ねじり
+
+ui-ultra-bold-0e750679c9b01556 = ウルトラボールド
+
+ui-ultra-light-5c45c78dc6114def = ウルトラライト
+
+ui-unaltered-30bbf0a22c7057c9 = 変更なし
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = このカラーモードでは使用できません
+
+ui-uncoated-cmyk-560a33ddf6798c06 = 非コート紙 CMYK
+
+ui-undefined-areas-e3076d5f23d66bab = 未定義の領域
+
+ui-underpainting-4b8d6495ae204baf = 下塗り
+
+ui-underwater-67809a0831152b5a = 水中
+
+ui-uniform-eb87fc4e1fd8bb09 = 均一
+
+ui-units-4786604a4c89bd8a = 単位
+
+ui-unix-0e39b5126a1b4ed9 = Unix
+
+ui-unknown-f1645a05af505be7 = 不明
+
+ui-unsharp-mask-9d57f8d5f655443c = アンシャープマスク
+
+ui-update-layer-comp-d936cc84e843270a = レイヤーカンプを更新
+
+ui-update-the-current-brush-with-these-sett-a7e6365f7455aaec = この設定で現在のブラシを更新
+
+ui-upper-1acc7c388948ebf9 = 上
+
+ui-urgency-40f7bbb79c23dcea = 緊急度
+
+ui-urls-ff6c3612f25809d1 = URL
+
+ui-use-classic-mode-ef70cbf7d572eaf9 = クラシックモードを使用
+
+ui-use-custom-color-42773427efcecaca = カスタムカラーを使用
+
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = [ファイル › 開く] を使うか、コピーした画像を { $paste } で貼り付けてください。
+
+ui-use-finite-lengths-and-a-positive-patter-45d1303fb60dbb99 = 有限の長さと正のパターン合計を使用してください
+
+ui-use-selection-in-source-4374d380bbf6f8b4 = ソースの選択範囲を使用
+
+ui-use-selection-in-target-006c21395077427c = ターゲットの選択範囲を使用
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = トラックパッドの筆圧を使用
+
+ui-uses-the-foreground-and-background-color-d753003d59f7112a = 前景色と背景色を使用します。
+
+ui-vanishing-point-5fbcb505c940803e = 消点
+
+ui-variable-data-sets-f530b8cf0b66948e = 変数データセット
+
+ui-vertical-only-78dfc1489605cdcd = 垂直のみ
+
+ui-vertical-type-mask-tool-35f5821cb3112aa1 = 縦書き文字マスクツール
+
+ui-video-frames-to-layers-952b31adab717cd1 = ビデオフレームをレイヤーへ
+
+ui-view-menu-4e213ac9510a7cb1 = 表示メニュー
+
+ui-vignette-amount-d312a0d4dd22f40f = 周辺光量の量
+
+ui-vignette-feather-ef099a28ff585aca = 周辺光量のぼかし
+
+ui-vignette-highlights-27125cd3decb0786 = 周辺光量のハイライト
+
+ui-vignette-midpoint-b9d2524077f88947 = 周辺光量の中心点
+
+ui-vignette-roundness-4913aa82db8c06a6 = 周辺光量の丸み
+
+ui-vignette-style-93a7b039a5a0d39c = 周辺光量のスタイル
+
+ui-vine-color-db3229d922ec0bb8 = つるの色
+
+ui-vine-with-flowers-30dc335e3cd3d39d = 花つきのつる
+
+ui-vine-with-leaves-b8c38dcb15c66b27 = 葉つきのつる
+
+ui-violent-043a81ac4f5e733a = 激しい
+
+ui-violet-2882bc397b2e28dc = 紫
+
+ui-w-08323107b4eadc18 = W
+
+ui-w-unit-x-h-unit-ppi-ppi-1cc3519842d6fe39 = { $w } { $unit } × { $h } { $unit } ({ $ppi } ppi)
+
+ui-w-x-h-x-resolution-3b06634d489d6fe2 = 幅 x 高さ x 解像度
+
+ui-wand-cff52c05b5d3f211 = 自動選択
+
+ui-warm-cfcc2305b5b0ddb2 = ウォーム
+
+ui-warming-l-b-a-63043612548d3baf = 暖色フィルター (LBA)
+
+ui-warming81-e77026c6f081cfc9 = 暖色フィルター (81)
+
+ui-warming85-e7702ac6f081d695 = 暖色フィルター (85)
+
+ui-warmth-a279a367a985812e = 暖かさ
+
+ui-warp-text-e81cc8dc5fbba474 = 文字ワープ
+
+ui-water-paper-94b295607e53b2cc = ウォーターペーパー
+
+ui-watercolor-79fe7be125b1bcf1 = 水彩画
+
+ui-watercolour-look-lighter-interior-darker-955cea9a111d11a0 = 水彩画風: 内側は明るく、縁は暗く。
+
+ui-wave-cfda3b05b5bd43d6 = 波形
+
+ui-wavelength-max-2517d61e9c2ee918 = 波長 (最大)
+
+ui-wavelength-min-2533cc1e9c4752d2 = 波長 (最小)
+
+ui-waves-ed15efb3d099f15f = 波
+
+ui-web-color-dc206fab83b1da60 = Web カラー
+
+ui-web-photo-gallery-d4ed61babd3cd4b7 = Web フォトギャラリー…
+
+ui-wetness-f6e39d3af1e8968e = 湿り気
+
+ui-white-clip-460df2c2c682c1de = 白のクリップ
+
+ui-white-intensity-be581710be4fb339 = 白の強さ
+
+ui-white-is-high-1fc6f974d36a617c = 白を高く
+
+ui-white-matte-93f44761248dcc3d = 白の背景
+
+ui-wia-support-f487a4668bfac991 = WIA サポート
+
+ui-wide-blurry-548ab3bf7124aff8 = 広くぼやけた
+
+ui-wide-gamut-rgb-dec618303218b809 = Wide Gamut RGB
+
+ui-wide-sharp-4f5cd82c4ad04c74 = 広くシャープ
+
+ui-width-and-height-ac0eca0c803cf79f = 幅と高さ
+
+ui-wind-8adff4058ec29c09 = 風
+
+ui-word-spacing-ad80fd8a5224be2a = 単語間隔
+
+ui-working-fc52456af904bb76 = 作業用
+
+ui-working-gray-plate-d62dbedd4071910d = 作業用グレープレート
+
+ui-working-space-fb7ac6da9d23906c = 作業用スペース
+
+ui-working-spaces-75300479036de4ad = 作業用スペース
+
+ui-wrap-4e1ed5056c505e27 = 折り返し
+
+ui-x-08323007b4eada65 = X
+
+ui-x11-52a9397deddd2397 = X11
+
+ui-xor-521a5a7ded63a364 = XOR
+
+ui-y-08322f07b4ead8b2 = Y
+
+ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = キーボードショートカットセット { $set } をここで使用しています。{ $n } 個のショートカットが既定と異なります。編集 › キーボードショートカットで確認でき、「すべて既定に戻す」で元に戻せます。
+
+ui-zigzag-76d193b600c78947 = ジグザグ
+
+ui-zigzag-8cdab3b69e8095a7 = ジグザグ
+
+ui-zoom-1cb440cd80187719 = { $zoom }%
+
+ui-decontaminate-1f0aa396647233f3 = 混入を除去
+
+ui-emulsion-down-04563fb4794ff91f = 乳剤面を下
+
+ui-functions-16dce49f49de2be4 = 機能
+
+ui-output-2555373b75aa89b2 = 出力
+
+ui-print-resolution-ce140e05758a8376 = プリント解像度:
+
+ui-refine-edge-394e57164384edb3 = 境界線を調整
+
+ui-refine-strokes-0b1c46698a8ef47f = 調整ストローク
+
+ui-shift-edge-4fadcbcd31772f0a = エッジをシフト
+
+ui-smart-radius-2179959cee59e956 = スマート半径

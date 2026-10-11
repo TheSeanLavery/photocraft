@@ -75,6 +75,10 @@ pub fn document_sizes(doc: &Document) -> (u64, u64) {
 
 /// The status bar text for `key` (Photoshop wording).
 pub fn status_info_text(doc: &Document, key: &str, tool: &str, profile: &str) -> String {
+    status_info_text_with_units(doc, key, tool, profile, &Default::default())
+}
+
+fn status_info_text_with_units(doc: &Document, key: &str, tool: &str, profile: &str, units: &photocraft_engine::prefs::UnitsAndRulers) -> String {
     let bits = doc.depth.bits();
     match key {
         "sizes" => {
@@ -93,10 +97,18 @@ pub fn status_info_text(doc: &Document, key: &str, tool: &str, profile: &str) ->
             let n = doc.layer_count();
             crate::i18n::trn(crate::i18n::current(), n as u64, "{n} Layer", "{n} Layers")
         }
-        _ => crate::i18n::fmt(
+        _ if units.rulers == photocraft_engine::prefs::Unit::Pixels => crate::i18n::fmt(
             tl!("{w} px x {h} px ({ppi} ppi)"),
             &[("w", &doc.size.width.to_string()), ("h", &doc.size.height.to_string()), ("ppi", &widgets::fmt_num(doc.resolution_dpi as f64))],
         ),
+        _ => {
+            let dpi = doc.resolution_dpi as f64;
+            let (w, h) = (doc.size.width as f64, doc.size.height as f64);
+            crate::i18n::fmt(
+                tl!("{w} {unit} x {h} {unit} ({ppi} ppi)"),
+                &[("w", &units.format(w, dpi, w)), ("h", &units.format(h, dpi, h)), ("unit", units.rulers.suffix()), ("ppi", &widgets::fmt_num(dpi))],
+            )
+        }
     }
 }
 
@@ -124,13 +136,22 @@ pub fn status_bar_pro(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let (Some(st), Some(i)) = (app.session.active(), app.session.active_index()) else {
         ui.label(RichText::new(tl!("No document")).color(t.text_dim));
+        // A command run with no document open still reports here (#1567: File › Automate › Batch).
+        status_message(app, ui, &t);
         return;
     };
-    let text = status_info_text(&st.doc, &app.ui.chrome.status_info, tl!(app.ui.tool.label()), &profile_name(&st.doc));
+    let text = status_info_text_with_units(
+        &st.doc,
+        &app.ui.chrome.status_info,
+        tl!(app.ui.tool.label()),
+        &profile_name(&st.doc),
+        &app.session.prefs().units_and_rulers,
+    );
     if let Some(view) = app.ui.views.get_mut(i) {
         let mut pct = view.zoom * 100.0;
-        if widgets::value_field(ui, &mut pct, 1.0..=3200.0, "%", 64.0).changed() {
-            view.zoom = pct / 100.0;
+        let control_h = crate::panels::status_bar_heights(&t).1;
+        if widgets::compact_value_field(ui, &mut pct, crate::zoom_levels::percent_range(view), "%", 64.0, control_h).changed() {
+            view.zoom = crate::zoom_levels::clamp(pct / 100.0, view.doc_size);
             view.fit_pending = false;
         }
     }
@@ -140,9 +161,11 @@ pub fn status_bar_pro(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     if resp.hovered() {
         ui.painter().rect_filled(r, t.radius_sm, t.hover);
     }
-    icons::paint(ui, r, "chevron-right", 11.0, t.text_dim);
+    // Points along the bar, away from the zoom field.
+    icons::paint(ui, r, if crate::direction::is_rtl() { "chevron-left" } else { "chevron-right" }, 11.0, t.text_dim);
     let resp = resp.on_hover_text(tl!("Show"));
     egui::Popup::menu(&resp).show(|ui| {
+        crate::widgets::style_spectrum_popup_menu(ui);
         ui.set_min_width(200.0);
         for (key, label) in STATUS_INFO {
             let on = app.ui.chrome.status_info == *key;
@@ -152,12 +175,18 @@ pub fn status_bar_pro(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             }
         }
     });
-    if !app.ui.status.is_empty() {
-        let (r, _) = ui.allocate_exact_size(vec2(17.0, 16.0), Sense::hover());
-        ui.painter().line_segment([r.center_top(), r.center_bottom()], Stroke::new(1.0, t.separator));
-        let is_err = app.ui.status_error || app.ui.status.starts_with("Couldn");
-        ui.label(RichText::new(&app.ui.status).color(if is_err { t.warning } else { t.text_faint }));
+    status_message(app, ui, &t);
+}
+
+/// The latest status message after a separator, in the warning colour when it is an error.
+fn status_message(app: &PhotocraftApp, ui: &mut egui::Ui, t: &Tokens) {
+    if app.ui.status.is_empty() {
+        return;
     }
+    let (r, _) = ui.allocate_exact_size(vec2(17.0, 16.0), Sense::hover());
+    ui.painter().line_segment([r.center_top(), r.center_bottom()], Stroke::new(1.0, t.separator));
+    let is_err = app.ui.status_error || app.ui.status.starts_with("Couldn");
+    ui.label(RichText::new(&app.ui.status).color(if is_err { t.warning } else { t.text_faint }));
 }
 
 /// Home button at the very start of Photoshop 2026's options bar: toggles the Home (start)
@@ -247,6 +276,65 @@ mod tests {
     }
 
     #[test]
+    fn status_dimensions_follow_ruler_units_and_document_resolution() {
+        use photocraft_engine::prefs::{PointSize, Unit, UnitsAndRulers};
+        let mut d = doc();
+        d.resolution_dpi = 300.0;
+        for (unit, expected) in [
+            (Unit::Pixels, "2400 px x 1500 px (300 ppi)"),
+            (Unit::Inches, "8 in x 5 in (300 ppi)"),
+            (Unit::Centimeters, "20.32 cm x 12.7 cm (300 ppi)"),
+            (Unit::Millimeters, "203.2 mm x 127 mm (300 ppi)"),
+            (Unit::Points, "576 pt x 360 pt (300 ppi)"),
+            (Unit::Picas, "48 pica x 30 pica (300 ppi)"),
+            (Unit::Percent, "100 % x 100 % (300 ppi)"),
+        ] {
+            let units = UnitsAndRulers { rulers: unit, ..Default::default() };
+            assert_eq!(status_info_text_with_units(&d, "dimensions", "", "", &units), expected);
+            for (key, _) in STATUS_INFO.iter().filter(|(key, _)| *key != "dimensions") {
+                assert_eq!(status_info_text_with_units(&d, key, "Brush Tool", "sRGB", &units), status_info_text(&d, key, "Brush Tool", "sRGB"));
+            }
+        }
+        d.resolution_dpi = 240.0;
+        let units = UnitsAndRulers { rulers: Unit::Points, point_size: PointSize::Traditional, ..Default::default() };
+        assert_eq!(status_info_text_with_units(&d, "dimensions", "", "", &units), "722.7 pt x 451.7 pt (240 ppi)");
+    }
+
+    #[test]
+    fn status_bar_updates_dimensions_after_a_ruler_preference_change() {
+        use egui_kittest::{Harness, kittest::Queryable};
+        let mut failures = Vec::new();
+        for theme in [crate::theme::ThemeKind::Pro, crate::theme::ThemeKind::ProMedium] {
+            for width in [800.0, 1200.0] {
+                let builder = Harness::builder().with_size(vec2(width, 600.0)).with_max_steps(64);
+                let mut h = builder.build_eframe(move |cc| {
+                    PhotocraftApp::setup_context(&cc.egui_ctx, theme);
+                    let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+                    app.run("prefs.set", json!({"path": "interface.theme", "value": theme.id()})).unwrap();
+                    app.ui.theme = theme;
+                    app
+                });
+                h.state_mut().run("file.new", json!({"width": 1920, "height": 1080, "resolution": 72})).unwrap();
+                h.state_mut().sync_views();
+                h.run_steps(4);
+                assert_eq!(h.state().ui.theme, theme, "the fixture renders the requested theme");
+                assert!(h.query_by_label("1920 px x 1080 px (72 ppi)").is_some());
+                h.state_mut().run("prefs.set", json!({"path": "unitsAndRulers.rulers", "value": "inches"})).unwrap();
+                h.run_steps(4);
+                if h.query_by_label("26.667 in x 15 in (72 ppi)").is_none() || h.query_by_label("1920 px x 1080 px (72 ppi)").is_some() {
+                    failures.push(format!("{theme:?}, width={width}: inches"));
+                }
+                h.state_mut().run("prefs.set", json!({"path": "unitsAndRulers.rulers", "value": "cm"})).unwrap();
+                h.run_steps(4);
+                if h.query_by_label("67.73 cm x 38.1 cm (72 ppi)").is_none() {
+                    failures.push(format!("{theme:?}, width={width}: centimeters"));
+                }
+            }
+        }
+        assert!(failures.is_empty(), "the status bar must follow the preference immediately: {failures:?}");
+    }
+
+    #[test]
     fn status_profile_describes_rgb_gray_and_custom_profiles_without_mutating_the_document() {
         let mut rgb = doc();
         rgb.icc_profile = Some(photocraft_engine::color_cmds::working_profile(rgb.mode).to_bytes());
@@ -329,6 +417,21 @@ mod tests {
         assert_eq!(crop_ratio("", 1.0, 1.0), None);
         let (w, h) = crop_ratio("1:1", 0.0, 0.0).unwrap();
         assert_eq!(marquee_end("fixedRatio", w, h, false, [0.0, 0.0], [50.0, 20.0]), [50.0, 50.0]);
+    }
+
+    #[test]
+    fn status_message_shows_with_no_document_open() {
+        // #1567: File › Automate › Batch with no recorded action and no document answered nothing.
+        use egui_kittest::{Harness, kittest::Queryable};
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        app.session.actions.list.clear();
+        let e = crate::menus::invoke(&mut app, &egui::Context::default(), "file.automate.batch", json!({})).unwrap_err();
+        app.ui.status = e.clone();
+        app.ui.status_error = true;
+        let mut h = Harness::builder().with_size(vec2(900.0, 40.0)).build_ui_state(|ui, app| status_bar_pro(app, ui), app);
+        h.run_steps(2);
+        assert!(h.query_by_label("No document").is_some());
+        assert!(h.query_by_label(&e).is_some(), "status bar shows {e:?}");
     }
 
     #[test]

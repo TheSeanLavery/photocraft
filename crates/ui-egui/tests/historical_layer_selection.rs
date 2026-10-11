@@ -265,7 +265,13 @@ fn historical_icon_tiles_invert_without_tinting_fill_previews() {
                                 assert_eq!(r.fill, expected, "{theme} {name}: icon tint");
                                 found = true;
                             }
-                            if tokens.appearance != Appearance::Modern && r.rect.width() <= 36.0 && r.rect.height() <= 36.0 {
+                            // Mask link chains are small rounded rectangles; square thumbnail tiles remain sharp.
+                            if tokens.appearance != Appearance::Modern
+                                && r.rect.width() >= 12.0
+                                && r.rect.width() <= 36.0
+                                && r.rect.height() >= 12.0
+                                && r.rect.height() <= 36.0
+                            {
                                 assert_eq!(r.corner_radius, egui::CornerRadius::ZERO, "{theme} {name}: thumbnail radius");
                             }
                         }

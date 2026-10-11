@@ -3383,7 +3383,7 @@ ui-pattern-preview-e36e994295eca6bf = Pratinjau Pola
 
 ui-pattern-size-8bca37fd672238e4 = Ukuran Pola
 
-ui-pattern-stamp-3def986c64c12dcc = Pattern Stamp
+ui-pattern-stamp-3def986c64c12dcc = Stempel Pola
 
 ui-patterns-1d6dc3afda393884 = Pola
 
@@ -5168,3 +5168,865 @@ ui-use-available-disk-space-44211d74d7260f1a = Gunakan ruang disk tersedia
 ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Ruang pembatalan bertambah sesuai kebutuhan. Riwayat tanpa batas menyimpan keadaan hingga penyimpanan penuh. Jalur berlaku pada sesi cache berikutnya.
 
 ui-change-opacity-c419e848020b25f4 = Ubah opasitas
+
+ui-0-turns-this-threshold-off-svg-groups-ne-8107dd87e635679d = 0 menonaktifkan ambang ini; grup SVG yang bersarang lebih dari 100 tingkat selalu dirasterisasi.
+
+ui-101-by-101-average-f0636a75b4938275 = Rata-rata 101 × 101
+
+ui-11-by-11-average-538d383a16a69bb7 = Rata-rata 11 × 11
+
+ui-12-columns-b949e2085ce68503 = 12 kolom
+
+ui-24-bits-pixel-1efd69221601fa68 = 24 Bit/Piksel
+
+ui-3-by-3-average-400d4f87bb7a72ef = Rata-rata 3 × 3
+
+ui-31-by-31-average-f49ec39b911d80e3 = Rata-rata 31 × 31
+
+ui-32-bits-pixel-33b63adb24722469 = 32 Bit/Piksel
+
+ui-5-by-5-average-393c80f9d8845bab = Rata-rata 5 × 5
+
+ui-5-columns-3-rows-8ebf23bc0edaefdb = 5 kolom, 3 baris
+
+ui-50-gray-da82e26ee3dda904 = Abu-abu 50%
+
+ui-51-by-51-average-f8031ef2f1c3a59f = Rata-rata 51 × 51
+
+ui-8-columns-7960156dbbf9d0ba = 8 kolom
+
+ui-80-9314897fc598cede = 80%
+
+ui-85-9303957fc58a700f = 85%
+
+ui-90-89fe507fc0546e79 = 90%
+
+ui-95-8a0f4c7fc062dae0 = 95%
+
+ui-a-save-to-name-is-still-running-try-agai-05cc493545eb159a = Penyimpanan ke { $name } masih berjalan; coba lagi setelah selesai
+
+ui-activate-panel-2d26ff9c85f372cc = Aktifkan Panel
+
+ui-active-9a4fc0866deff4e1 = Aktif
+
+ui-add-anchor-point-tool-47f6a2d216ab0095 = Alat Tambah Titik Jangkar
+
+ui-add-beauty-precomp-from-the-aovs-4d9efefbd4ef0542 = Tambahkan prakomposisi beauty dari AOV
+
+ui-add-new-artboard-a9daaf925d16a4c3 = Tambah Artboard Baru
+
+ui-add-pair-0c629fff04fb2b1e = Tambah pasangan
+
+ui-add-to-favorites-0541c1994e6ae85e = Tambahkan ke favorit
+
+ui-add-to-swatches-3781607eddbada31 = Tambahkan ke Swatch
+
+ui-adds-the-current-gradient-to-the-gradien-a1f9968192c4ba50 = Menambahkan gradien saat ini ke panel Gradien
+
+ui-adwaita-cd477fc88437525a = Adwaita
+
+ui-adwaita-dark-50de267958d3f412 = Adwaita gelap
+
+ui-adwaita-dark-theme-05d4bf4c97aa218f = Tema Adwaita Gelap
+
+ui-adwaita-light-theme-03c426048b1e340f = Tema Adwaita Terang
+
+ui-all-layers-no-adjustments-ec9f521ee5d7479f = Semua Layer Tanpa Penyesuaian
+
+ui-all-shortcuts-reset-to-photocraft-defaul-e67eef4c40e01437 = Semua pintasan direset ke default PhotoCraft.
+
+ui-alt-click-went-to-the-desktop-which-move-bfd6236be063ce96 = Alt-klik diambil oleh desktop, yang memindahkan jendela dengan Alt-seret. Atur tombol pemindah jendelanya ke Super, atau kunci Alt di Jendela › Tombol Pengubah.
+
+ui-always-show-overlay-b6be473be8ad3beb = Selalu Tampilkan Overlay
+
+ui-and-n-more-6e37845d39302347 = …dan { $n } lagi
+
+ui-anti-aliased-c391708a54da1e67 = Dihaluskan
+
+ui-appearance-mode-c6e76c01b1038388 = Mode tampilan
+
+ui-appearance-settings-b5f1d7603a447b52 = Pengaturan Tampilan…
+
+ui-apply-at-canvas-bounds-63735797b390e9b3 = Terapkan efek di batas kanvas
+
+ui-artboard-tool-80bd830389a6711e = Alat Artboard
+
+ui-auto-adjust-opacity-28ceac7a28ddd13a = Sesuaikan Opasitas Otomatis
+
+ui-auto-center-preview-225b4704be74d581 = Pusatkan Pratinjau Otomatis
+
+ui-auto-hide-notifications-5e48a1ec5b48ddc0 = Sembunyikan notifikasi secara otomatis
+
+ui-auto-show-overlay-59ff23a3b368166d = Tampilkan Overlay Otomatis
+
+ui-automatic-04cc1a2793006d9a = Otomatis
+
+ui-background-from-layer-95241da9efd58afc = Background dari Layer
+
+ui-bevel-b65a0ed0fa933479 = Miring
+
+ui-bicubic-sharper-reduction-8526007a04be289f = Bicubic lebih tajam (pengecilan)
+
+ui-bicubic-smoother-enlargement-f1b8e48b0f7a4a58 = Bicubic lebih halus (pembesaran)
+
+ui-black-87de58185ee7e143 = Sangat Tebal
+
+ui-black-matte-7c051e0b8e0c064b = Latar Hitam
+
+ui-blend-if-47ff5afa1385a85d = Blend If:
+
+ui-block-c4d0291e851daf50 = Blok
+
+ui-bold-98d37886cf62c4a3 = Tebal
+
+ui-bottom-d0f114b5fd71868e = Bawah:
+
+ui-bottom-left-a4a6bc5593eb6541 = Kiri bawah
+
+ui-bottom-right-2acd3cb673e6fda2 = Kanan bawah
+
+ui-breeze-dark-e66fe26550bb0528 = Breeze gelap
+
+ui-breeze-dark-theme-a680c93f1fa1524d = Tema Breeze Gelap
+
+ui-breeze-light-0148f2375063bb68 = Breeze terang
+
+ui-breeze-light-theme-ed04a9643b4b988d = Tema Breeze Terang
+
+ui-browser-storage-is-unavailable-brushes-a-7917bc257e6f900e = Penyimpanan browser tidak tersedia; kuas hanya berlaku untuk sesi ini. Biarkan tab ini terbuka untuk mempertahankannya.
+
+ui-brush-name-ed530497d97024a4 = Nama kuas
+
+ui-brush-preset-changes-are-not-saved-error-5f27ebc7fd81a7c9 = Perubahan preset kuas belum disimpan: { $error }
+
+ui-brush-preset-options-ae5d75337b0c67ae = Opsi Preset Kuas
+
+ui-brush-stroke-e15a877d2a400187 = Sapuan kuas
+
+ui-budget-mb-af9a1600ca07b419 = Batas (MiB)
+
+ui-butt-flat-c72fa8c80b7c206a = Datar
+
+ui-camera-raw-name-38e81c84c9a3916e = Camera Raw ({ $name })
+
+ui-caps-4e22f5ac70d59b9a = Ujung
+
+ui-center-columns-eca652a77591890d = Pusatkan kolom
+
+ui-change-panel-group-c875bb8728a6f2da = Ubah Grup Panel
+
+ui-change-panel-layout-e2e9f02cb1355649 = Ubah Tata Letak Panel
+
+ui-channels-67ef32de1bae7097 = Channel:
+
+ui-clear-brush-strokes-12a3c251da9d3d0d = Hapus Goresan Kuas
+
+ui-clear-existing-guides-67c8180ae4647d7a = Hapus panduan yang ada
+
+ui-click-a-red-pupil-to-neutralize-it-fc040ab153516532 = Klik pupil merah untuk memperbaikinya
+
+ui-click-a-segment-to-add-an-anchor-point-a-0c07d54f4028e4af = Klik segmen untuk menambah titik jangkar · { $alt }-klik titik jangkar untuk menghapusnya
+
+ui-click-an-anchor-point-to-delete-it-alt-c-06d19be357a2d4d7 = Klik titik jangkar untuk menghapusnya · { $alt }-klik segmen untuk menambah titik
+
+ui-click-corner-drag-smooth-alt-drag-break-h-8598a28b712a87d6 = Klik: sudut · Seret: halus · { $alt }+seret: pisahkan pegangan · Klik atau seret titik pertama: tutup · { $key } selesai · Esc batal
+
+ui-click-smooth-point-double-click-corner-d-7ea166abf0ee7560 = Klik: titik halus · Klik ganda: sudut · Seret titik: pindahkan · Klik titik pertama: tutup · { $key } selesai
+
+ui-click-the-first-point-or-press-key-to-cl-901ea1b540ae3fc7 = Klik titik pertama atau tekan { $key } untuk menutup · { $del } menghapus titik · Esc membatalkan
+
+ui-click-then-move-along-an-edge-click-to-f-4f0fd576defa2100 = Klik, lalu gerakkan di sepanjang tepi · klik untuk menancapkan titik · { $alt }-klik untuk segmen lurus · klik dua kali untuk menutup
+
+ui-click-to-add-a-point-right-click-to-remo-19feda9c95fbcf54 = Klik untuk menambah titik, klik kanan untuk menghapusnya
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Klik untuk mengubah jumlah kolom; seret bilah judul untuk memindahkan
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Klik untuk mengubah jumlah kolom; seret untuk melepas Alat
+
+ui-click-to-pick-esc-to-cancel-5d333d800954a8d6 = Klik untuk memilih · Esc untuk membatalkan
+
+ui-click-to-place-alt-click-or-drag-off-can-0ced5c63027a6ce6 = Klik untuk menempatkan · Alt-klik atau seret ke luar kanvas untuk menghapus
+
+ui-close-panel-194028906d61d387 = Tutup Panel
+
+ui-color-a13d112d0512855e = Warna…
+
+ui-color-burn-paint-net-6bce7a866ee8fd93 = Color Burn (Paint.NET)
+
+ui-color-dodge-paint-net-6a1a7e45c5da25a9 = Color Dodge (Paint.NET)
+
+ui-color-picker-crop-shield-color-f0f21c4248e058e3 = Pemilih Warna (Warna Perisai Crop)
+
+ui-color-picker-fill-color-cf989f4d01ca0b61 = Pemilih Warna (Warna Isian)
+
+ui-color-picker-layer-style-color-fbf90c85b504683a = Pemilih Warna (Warna Gaya Lapisan)
+
+ui-color-picker-name-6336833802dc6c44 = Pemilih Warna ({ $name })
+
+ui-color-picker-solid-color-11504899368a43d3 = Pemilih Warna (Warna Solid)
+
+ui-color-picker-stroke-color-aac3b03188866056 = Pemilih Warna (Warna Stroke)
+
+ui-color-picker-text-color-6873936c7cbaceb3 = Pemilih Warna (Warna Teks)
+
+ui-color-replacement-tool-e0f757ad548a409c = Alat Penggantian Warna
+
+ui-color-to-alpha-5a172092ca34c10d = Warna ke Alpha…
+
+ui-cone-83c7f5ac8fb13c68 = Kerucut
+
+ui-cone-inverted-07c75939642bd114 = Kerucut (Terbalik)
+
+ui-cone-inverted-4f8ec26e3423aa10 = Kerucut - Terbalik
+
+ui-contents-b5e5b9d3f6d35ec1 = Isi:
+
+ui-continue-f031dd957d5c1b56 = Lanjutkan
+
+ui-contour-39d36135f075d52b = Kontur
+
+ui-contour-editor-999a1019725e56a4 = Editor Kontur
+
+ui-convert-point-tool-ebb1dfd0f79acf3a = Alat Convert Point
+
+ui-corner-c1f5008d5d2ff536 = Sudut
+
+ui-corners-c3453535587dc43f = Sudut
+
+ui-could-not-complete-the-free-transform-co-bfdbe92f0a214b00 = Tidak dapat menyelesaikan perintah Transformasi Bebas karena layer terkunci.
+
+ui-could-not-open-05042bf852b9a743 = Tidak dapat membuka
+
+ui-could-not-use-the-move-tool-because-the-l-34336f06c7d717d6 = Tidak dapat menggunakan alat Pindahkan karena layer terkunci.
+
+ui-cove-deep-f3413d717747416f = Teluk - Dalam
+
+ui-cove-shallow-a816ea81e32dc623 = Teluk - Dangkal
+
+ui-create-a-new-elliptical-frame-d31989faf7fc5d30 = Buat bingkai elips baru
+
+ui-create-a-new-rectangular-frame-29813cef7128625f = Buat bingkai persegi panjang baru
+
+ui-create-ellipse-f707994617445531 = Buat Elips
+
+ui-create-new-swatch-df52baa4652be53b = Buat swatch baru
+
+ui-create-polygon-0312408e42727249 = Buat Poligon
+
+ui-create-rectangle-446a2149ba949cae = Buat Persegi Panjang
+
+ui-create-triangle-70461e67c3bc8665 = Buat Segitiga
+
+ui-crop-shield-color-fcab973d194f6a5d = Warna perisai crop
+
+ui-current-below-no-adjustments-ad3ef5ddcba453be = Saat Ini & Di Bawahnya Tanpa Penyesuaian
+
+ui-curvature-pen-tool-f2c504abaa665e43 = Alat Pen Kelengkungan
+
+ui-curve-fit-4b92a705570d7f79 = Penyesuaian Kurva:
+
+ui-custom-pattern-b1725fbbdb358844 = Pola Kustom:
+
+ui-cycle-orientation-d47100e364dd1ce9 = Ganti Orientasi
+
+ui-cycle-overlay-cd2523de1e12bc5b = Ganti Overlay
+
+ui-dark-theme-6d2ab4707cffde72 = Tema gelap
+
+ui-darken-amount-4ff87ddb9162ea14 = Jumlah penggelapan
+
+ui-dash-1f756ca06449aeb3 = Garis
+
+ui-dash-gap-lengths-stroke-width-d58b32d0afc2986d = Panjang garis / celah × lebar goresan
+
+ui-dash-offset-e2b5660c676021d6 = Offset garis
+
+ui-dashed-6a8ccf30c380ff72 = Putus-putus
+
+ui-dashed-line-9de7b4d520d5eb5c = Garis putus-putus
+
+ui-date-taken-d246ca6065cd50fd = Tanggal Diambil
+
+ui-default-photocraft-size-42e29dd35050952b = Ukuran Default PhotoCraft
+
+ui-delete-anchor-point-tool-32015b0a036fc947 = Alat Hapus Titik Jangkar
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = Hapus dan Isi Seleksi
+
+ui-delete-count-layers-names-6bbff039943d0326 = Hapus { $count } layer? { $names }
+
+ui-delete-crop-preset-e34aa95ed101e033 = Hapus Preset Pangkas…
+
+ui-delete-layer-58301f0b5ef0e41a = Hapus layer?
+
+ui-delete-layer-name-9407eadca584de9c = Hapus layer ‘{ $name }’?
+
+ui-developing-name-3ca6c158e9e9f235 = Mengembangkan { $name }
+
+ui-diagonal-6308486872486528 = Diagonal
+
+ui-diagonal-descending-b3d2c399a327a7d9 = Diagonal (Menurun)
+
+ui-dock-panel-0cd117664b0f3f4e = Tambatkan Panel
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Tambatkan Alat di kiri
+
+ui-domed-6b80f3fc40f5c94c = Kubah
+
+ui-domed-inverted-3a1408397cf5ea60 = Kubah (Terbalik)
+
+ui-don-t-import-8a153d1cf3e9bcec = Jangan Impor
+
+ui-dotted-c6817b61ff95adbb = Titik-titik
+
+ui-drag-a-box-or-click-four-corners-drag-th-df3a1ca51159d17a = Seret kotak atau klik empat sudut · seret sudut ke tepi bentuk yang miring · { $commit } menerapkan · Esc membatalkan
+
+ui-drag-a-crop-box-drag-inside-to-move-edge-2899a0945842a534 = Seret kotak crop · seret di dalam untuk memindah · tepi mengubah ukuran (rasio { $ratio }, tengah { $centre }) · Space memindah saat menggambar · panah menggeser · X menukar orientasi · { $commit } menerapkan · Esc batal
+
+ui-drag-around-the-centre-to-rotate-the-vie-4287e10d00c995da = Seret di sekitar pusat untuk memutar tampilan  ·  Shift membatasi ke 15°
+
+ui-drag-draw-freehand-release-on-the-start-p-ea613d199529d708 = Seret: gambar bebas · Lepas di titik awal: tutup
+
+ui-dual-axis-1c45b5825da6a58e = Sumbu Ganda
+
+ui-edit-keyboard-shortcuts-reset-all-to-def-1c2e80c5385a9432 = Edit › Pintasan Keyboard › Setel Ulang Semua ke Bawaan membatalkan impor.
+
+ui-edit-paste-3f6b4ca340b0bccc = Edit › Tempel
+
+ui-edits-that-change-the-whole-document-suc-d220b789c66ab4eb = Suntingan yang mengubah seluruh dokumen, seperti mode campuran, opasitas, atau visibilitas layer, menggambar ulang semuanya.
+
+ui-enable-crop-shield-f3578921d3d300ef = Aktifkan Perisai Crop
+
+ui-enter-a-name-for-the-crop-preset-a58a2551cfe13f3e = Masukkan nama untuk preset pangkas
+
+ui-expand-detection-area-dceaf291bd07056d = Perluas Area Deteksi
+
+ui-export-sdr-preview-a2e7aebcb62b91d6 = Ekspor Pratinjau SDR…
+
+ui-export-swatches-429d4e913cd22171 = Ekspor Swatch…
+
+ui-export-swatches-for-exchange-49ca3270aeceae13 = Ekspor Swatch untuk Pertukaran…
+
+ui-exposure-d40fa037a6d0e233 = Waktu Eksposur
+
+ui-extrabold-fd6396c3deb95c21 = Ekstra Tebal
+
+ui-extralight-0704360f6be0647a = Ekstra Tipis
+
+ui-eyedroppers-9220889b81a1f1b5 = Eyedropper:
+
+ui-f-cycles-the-views-hold-x-to-see-the-ima-f78f72e02c811b5f = F berganti tampilan; tahan X untuk melihat gambar
+
+ui-f-stop-950ea3f6954631c3 = Bukaan
+
+ui-fill-color-61734769aae23385 = Warna isian
+
+ui-fill-screen-610513f68e54eeee = Isi Layar
+
+ui-float-panel-b52119e145970061 = Panel Mengambang
+
+ui-focal-length-35-mm-48b7586512d355f4 = Panjang Fokal (35 mm)
+
+ui-focal-length-aa1997545c858259 = Panjang Fokal
+
+ui-follows-only-edges-this-close-to-the-poi-10b48929e48da16b = Hanya mengikuti tepi sedekat ini dengan penunjuk ([ dan ] mengubahnya)
+
+ui-foreground-color-c4236e6fb45a0975 = Warna Foreground
+
+ui-frame-tool-3869ecc880418af6 = Alat Bingkai
+
+ui-freeform-pen-tool-6f6679338fdf5312 = Alat Pen Bebas
+
+ui-from-center-0d8a0ee0ef65cec8 = Dari Tengah
+
+ui-front-image-80d86d74a4acfac7 = Gambar Depan
+
+ui-fuchsia-8d83defd7f0120fc = Fuksia
+
+ui-gap-e5bb2f7e411d4221 = Celah
+
+ui-gaussian-bba39d25ae40ed28 = Gaussian
+
+ui-gloss-contour-5491d206d1cdb411 = Kontur Kilap
+
+ui-glow-4eaf4c888be6ecaa = Pendar
+
+ui-golden-ratio-ff69929862f02a2d = Rasio Emas
+
+ui-golden-spiral-5757498b8af1d487 = Spiral Emas
+
+ui-gradient-editor-bb6e0a95fb5ef2ac = Editor Gradien
+
+ui-gradient-picker-54dd1fd154401b2b = Pemilih gradien
+
+ui-gradient-stops-f06ae21e1135f30e = Titik gradien
+
+ui-group-with-94fcb352464d9a1e = Kelompokkan dengan
+
+ui-half-round-62b12796617538fe = Setengah Bulat
+
+ui-hdr-output-474159eb0db7fb90 = Keluaran HDR
+
+ui-hdr-workbench-847f1f37e6c4ef5a = Ruang kerja HDR
+
+ui-higher-values-follow-only-edges-that-con-339978148cf9c078 = Nilai lebih tinggi hanya mengikuti tepi yang kontras tajam dengan sekitarnya
+
+ui-horizontal-type-mask-tool-0114c5e36a28d713 = Alat Masker Teks Horizontal
+
+ui-how-often-fastening-points-are-placed-by-498d32d10d244c21 = Seberapa sering titik penambat ditempatkan sendiri
+
+ui-import-brushes-abr-bc61ea3383f9a612 = Impor kuas (.abr)
+
+ui-import-keyboard-shortcuts-9a7acd5b01140835 = Impor pintasan keyboard?
+
+ui-import-shortcuts-ca60eb051696939b = Impor Pintasan…
+
+ui-import-swatches-d6432c51430e3eba = Impor Swatch…
+
+ui-imported-n-shortcuts-from-file-click-ok-t-5da9bf038f58bce4 = { $n } pintasan diimpor dari { $file }. Klik OK untuk menyimpannya.
+
+ui-impressionist-838b2d95b3fe039e = Impresionis
+
+ui-include-in-playback-68b371aa09a42a7d = Sertakan dalam pemutaran
+
+ui-indigo-5c3d440918ff0f31 = Nila
+
+ui-invalid-delete-command-535e24127ed414d4 = Perintah hapus tidak valid
+
+ui-invalid-guide-layout-a7becc4715dd0ef0 = Tata letak panduan tidak valid
+
+ui-iso-speed-57950bb275b569a4 = Sensitivitas ISO
+
+ui-italic-affc1f243d43a170 = Miring
+
+ui-its-layers-don-t-fit-the-gpu-memory-budg-3727bf77369fb2ea = Layer tidak muat dalam anggaran memori GPU. Menaikkan Pemakaian memori di Preferensi › Performa menaikkan anggaran, hingga seperempat memori komputer ini.
+
+ui-keep-this-tab-open-to-retain-your-brushe-a5f6fe26fae0d562 = Biarkan tab ini terbuka untuk mempertahankan kuas Anda.
+
+ui-keyboard-shortcuts-imported-fee2c7c74ed2a6bf = Pintasan keyboard diimpor
+
+ui-knockout-114fcb275f7f7673 = Knockout
+
+ui-label-is-writing-the-file-and-can-no-lon-33df6081c771e2b9 = { $label } sedang menulis berkas dan tidak dapat dibatalkan lagi
+
+ui-large-document-redrawing-on-the-cpu-f68d13d740a377fe = Dokumen besar: menggambar ulang di CPU
+
+ui-layer-deleted-but-confirmation-preferenc-f2ce35477ff1e4fa = Layer dihapus, tetapi preferensi konfirmasi tidak dapat disimpan: { $error }
+
+ui-leave-empty-for-automatic-size-2f6af7cbd1f8cd38 = Kosongkan untuk ukuran otomatis
+
+ui-left-cdcd976a8ae9a624 = Kiri:
+
+ui-lens-f9af7c851d6f6256 = Lensa
+
+ui-light-b8b902e993554a24 = Tipis
+
+ui-light-theme-58b947c570ab5ee4 = Tema terang
+
+ui-link-radii-cf0a1c73be90d1a2 = Tautkan radius
+
+ui-linux-display-server-e35271f31f95faac = Server tampilan Linux
+
+ui-load-a-keyboard-shortcut-set-saved-as-ky-08aaf9f9e85e9925 = Muat set pintasan keyboard yang disimpan sebagai .kys
+
+ui-location-d83b1142cca7d946 = Lokasi:
+
+ui-low-resolution-previews-250ad01d7da7418c = Pratinjau resolusi rendah
+
+ui-make-10ce4e8ae215e940 = Merek
+
+ui-make-landscape-29de2da2acf3e4ec = Jadikan Lanskap
+
+ui-make-portrait-48262a543a70ad70 = Jadikan Potret
+
+ui-marching-ants-81b580a962b06f44 = Semut Berbaris
+
+ui-margin-27f17d733e6bbd89 = Margin
+
+ui-match-canvas-e96f08cd86b7fed4 = Sesuaikan dengan Kanvas
+
+ui-medium-9ccd01b2e5f752af = Sedang
+
+ui-missing-delete-command-a4f922e5ac863be5 = Perintah hapus tidak tersedia
+
+ui-miter-f77adc9d7250d2f8 = Tajam
+
+ui-miter-limit-26f9b3d9afbcfa5b = Batas sudut tajam
+
+ui-model-4383b12efc2485a7 = Model
+
+ui-more-documents-702166de66a88b90 = Dokumen lainnya
+
+ui-move-panel-3a47e11ada54b960 = Pindahkan Panel
+
+ui-n-commands-are-not-in-photocraft-8d9da53e6d113da9 = { $n } perintah tidak ada di PhotoCraft.
+
+ui-n-of-max-sample-points-23c59085c2f1cfcb = { $n } dari { $max } titik sampel
+
+ui-native-file-drag-and-drop-is-not-support-7f2828f39866b72e = Seret dan lepas berkas native belum didukung di Wayland. Gunakan Berkas › Buka, atau salin gambar di pengelola berkas lalu tempel dengan { $paste }.
+
+ui-negation-4fc106b159214b14 = Negasi
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm memilih subtipe berdasarkan kedalaman bit dan kanal gambar.
+
+ui-never-show-overlay-62e4d50ec1f95088 = Jangan Tampilkan Overlay
+
+ui-new-brush-preset-9a813a7c947ca0f2 = Preset Kuas Baru…
+
+ui-new-crop-preset-a06657144aecc436 = Preset Pangkas Baru…
+
+ui-new-document-with-mask-829ecf76a05eef44 = Dokumen Baru dengan Mask
+
+ui-new-layer-with-mask-a27e3dedb04b398a = Layer Baru dengan Mask
+
+ui-new-swatch-35500735beac1287 = Swatch Baru…
+
+ui-new-swatch-group-d508820c8747faca = Grup Swatch Baru…
+
+ui-next-appearance-mode-1ad9397736c7ee33 = Mode tampilan berikutnya
+
+ui-next-document-6e3c850115c17527 = Dokumen Berikutnya
+
+ui-no-document-open-3e622d7f3eb6fe8b = Tidak ada dokumen yang terbuka
+
+ui-no-matching-settings-ee7ac3cb953063dc = Tidak ada pengaturan yang cocok
+
+ui-no-saved-presets-yet-70f97356610163a1 = Belum ada preset tersimpan.
+
+ui-no-subject-found-try-a-rectangle-around-t-305b2a5462b07838 = Subjek tidak ditemukan — coba persegi panjang di sekitar objek
+
+ui-no-subject-found-try-object-selection-or-631a2c6cfea1b5bc = Subjek tidak ditemukan — coba Seleksi Objek atau Laso
+
+ui-not-a-web-colour-click-for-the-nearest-w-dcfca245f958d0b5 = Bukan warna web: klik untuk warna web terdekat
+
+ui-notification-duration-seconds-d8febd6df942f984 = Durasi notifikasi (detik)
+
+ui-now-drag-the-selection-onto-another-area-539004dc2ddeaa5c = Sekarang seret seleksi ke area lain
+
+ui-number-64f8e212c5ac06de = Jumlah
+
+ui-object-selection-found-nothing-there-try-ca465edbd222510f = Seleksi Objek tidak menemukan apa pun di sana — coba persegi panjang yang lebih rapat
+
+ui-on-black-e728be796304fcb9 = Di Atas Hitam
+
+ui-on-layers-c8e8d79373a527f0 = Di Atas Lapisan
+
+ui-on-white-6215953b11747b1b = Di Atas Putih
+
+ui-onion-skin-b8980fb3c2df588d = Kulit Bawang
+
+ui-opacity-threshold-3dbc5455a6a96857 = Ambang opasitas
+
+ui-open-exr-parts-fd9bfecaa27e1e30 = Buka bagian EXR…
+
+ui-open-in-camera-raw-c438bf24dab93647 = Buka di Camera Raw
+
+ui-open-paths-use-centered-strokes-3add57d4a0335f7d = Jalur terbuka menggunakan goresan tengah
+
+ui-open-source-65fefae8d3d63fa4 = sumber terbuka
+
+ui-opened-name-21b0dd7c898f99fb = Dibuka: { $name }
+
+ui-or-set-preferences-performance-linux-dis-45509c63905d59db = Atau atur Preferensi › Performa › Server tampilan Linux ke X11: PhotoCraft lalu selalu berjalan di XWayland.
+
+ui-out-of-gamut-for-printing-click-for-the-n-3c076c41858256ed = Di luar gamut cetak: klik untuk warna cetak terdekat
+
+ui-paint-over-hair-or-fur-on-the-image-alt-p-44f8b66674c7cf71 = Lukis di atas rambut atau bulu pada gambar; Alt melukis dalam mode lainnya
+
+ui-panel-menu-06b4f84ed48efc1a = Menu panel
+
+ui-path-the-path-is-not-valid-unicode-renam-8f12595c08cddc2c = { $path }: jalur bukan Unicode yang valid; ganti nama file lalu buka lagi.
+
+ui-pattern-stamp-tool-fa4eb4dc6655c0be = Alat Stempel Pola
+
+ui-perspective-crop-tool-9d2500bb26bc190b = Alat Crop Perspektif
+
+ui-photocraft-found-your-keyboard-shortcut-s-865cccf0e5aa0eef = PhotoCraft menemukan set pintasan keyboard Anda { $set } dari editor gambar lain di komputer ini: { $n } pintasannya berbeda dari PhotoCraft. Impor?
+
+ui-photocraft-screen-color-picker-7b92fa1bcc690048 = PhotoCraft — Pemilih Warna Layar
+
+ui-pick-a-screen-pixel-or-press-esc-to-canc-e81c68247e254db3 = Pilih piksel layar atau tekan Esc untuk membatalkan
+
+ui-pick-screen-color-b1eefd560cdcf751 = Pilih warna layar
+
+ui-point-sample-10f1da74f87660f7 = Sampel Titik
+
+ui-preset-name-a0b4d9aa9b88ec7b = Nama Preset
+
+ui-pressure-curve-19292bf407107dbf = Kurva tekanan
+
+ui-previous-document-eaa84057a6b49afb = Dokumen Sebelumnya
+
+ui-pro-light-5f027dfe73385691 = Pro (Terang)
+
+ui-pro-light-d99268b6a486cfe6 = Pro terang
+
+ui-pro-light-gray-b0b886c21e82d0dc = Pro (Abu-abu Terang)
+
+ui-pro-light-gray-bc41ae44cf80a191 = Pro abu-abu terang
+
+ui-pro-light-gray-theme-7ba042d458fbdefc = Tema Pro Abu-abu Terang
+
+ui-pro-light-theme-e381bc8b2c880e03 = Tema Pro Terang
+
+ui-pro-medium-3990a13d10e49531 = Pro Medium
+
+ui-pupil-size-a21b8b198e346afe = Ukuran pupil
+
+ui-quick-selection-found-nothing-there-79e12ccf085cca73 = Seleksi Cepat tidak menemukan apa pun di sana
+
+ui-rasterize-layer-style-c11eb0192450d280 = Rasterisasi Gaya Layer
+
+ui-rasterize-layers-ef809f91579ccb22 = Rasterisasi Layer
+
+ui-rasterize-svg-groups-deeper-than-2ea169bca636efde = Rasterisasi grup SVG yang lebih dalam dari ini
+
+ui-red-eye-tool-27d9f6bdd5ba4eeb = Alat Mata Merah
+
+ui-refine-9e0be4b61fc803be = Perhalus
+
+ui-refine-edge-brush-r-c2b236a925ebf002 = Kuas Perhalus Tepi (R)
+
+ui-reflect-d0229494c0f576bc = Pantul
+
+ui-regular-182bf85491dfe61c = Reguler
+
+ui-remove-from-favorites-486786afd446c748 = Hapus dari favorit
+
+ui-remove-from-recent-9d1617d42109ab60 = Hapus dari Daftar Terakhir
+
+ui-remove-name-from-recent-10f46ef1688734d3 = Hapus { $name } dari Daftar Terakhir
+
+ui-remove-pair-36d4c6635ffda785 = Hapus pasangan
+
+ui-remove-tool-f4e2e17b376f490b = Alat Hapus
+
+ui-replace-swatches-22ed7dc765dad82d = Ganti Swatch…
+
+ui-reset-all-tools-376ceb5881d91e9a = Reset Semua Alat
+
+ui-reset-all-tools-to-their-default-setting-051b717b3b6a210c = Reset semua alat ke pengaturan bawaannya?
+
+ui-reset-swatches-99689ab8ada5eb9a = Atur Ulang Swatch
+
+ui-reset-tool-09e396a78e8ad944 = Reset Alat
+
+ui-reset-view-c0bdf39ad3792a63 = Atur Ulang Tampilan
+
+ui-resize-panel-window-2882cbd9cf0bb38f = Ubah ukuran jendela panel
+
+ui-resize-panels-63366d26e7bff572 = Ubah ukuran panel
+
+ui-restore-original-edge-1f47567587324e0f = Pulihkan Tepi Asli
+
+ui-retry-saving-presets-46dc9ac2d6616d53 = Coba simpan preset lagi
+
+ui-right-cbe095148fc36d83 = Kanan:
+
+ui-ring-23d3ed2f82517781 = Cincin
+
+ui-ring-double-46bac415b3bcb0d3 = Cincin - Ganda
+
+ui-rolling-slope-descending-905375a37c64ed52 = Lereng Bergelombang - Menurun
+
+ui-rotate-view-tool-6ceafa4ba26e1b91 = Alat Putar Tampilan
+
+ui-round-dbce8f85403bd2bd = Bulat
+
+ui-rounded-steps-7f4362f1e501c0f7 = Tangga Bulat
+
+ui-rows-edb0eb2f630a8e3a = Baris
+
+ui-rule-of-thirds-a9efcd425580c820 = Aturan Sepertiga
+
+ui-sample-a-pixel-anywhere-on-the-screen-361adce80fa2c409 = Ambil sampel piksel di mana saja pada layar
+
+ui-sample-size-84705069550bbf3c = Ukuran Sampel:
+
+ui-save-as-preset-fcb3834698c2503d = Simpan sebagai Preset
+
+ui-saved-name-ec890ad7eb9202d3 = Tersimpan: { $name }
+
+ui-saving-brush-presets-keep-this-tab-open-u-0387001733cba4f2 = Menyimpan preset kuas… Biarkan tab ini terbuka sampai penyimpanan selesai.
+
+ui-saving-name-2363a755794e1f66 = Menyimpan { $name }
+
+ui-sawtooth-1-8eeceb1522eaf619 = Gigi Gergaji 1
+
+ui-scale-3aee47f8880725bf = Skala:
+
+ui-scope-8765632a779d5bdd = Cakupan
+
+ui-scroll-to-zoom-3c0b3a97ff55ae1a = Gulir untuk memperbesar
+
+ui-seafoam-ebe537921cc90f2b = Busa Laut
+
+ui-search-settings-a7fc4883f6918f9c = Cari pengaturan…
+
+ui-select-the-crop-presets-to-delete-719febcbd9ce2506 = Pilih preset pangkas yang akan dihapus
+
+ui-select-the-crop-presets-to-delete-e0e2e763194944f4 = Pilih preset pangkas yang akan dihapus:
+
+ui-selected-3ee82e06f8c5ee8e = Terpilih
+
+ui-selected-artboards-b150baa5bc687b52 = Artboard yang dipilih
+
+ui-selection-preview-a4f0a0102c940143 = Pratinjau Seleksi:
+
+ui-semibold-f43621cc0429d1c1 = SemiTebal
+
+ui-set-additional-crop-options-437370a0bbc94342 = Atur opsi Crop tambahan
+
+ui-set-black-point-3a2fd412fb7bf324 = Atur Titik Hitam
+
+ui-set-neutral-gray-point-80347a56d69ad333 = Atur Titik Abu-abu Netral
+
+ui-set-the-overlay-options-for-the-crop-too-b60af45f5cc99a74 = Atur opsi overlay untuk alat Crop
+
+ui-set-white-point-526c42ac4bcf95ae = Atur Titik Putih
+
+ui-show-canvas-dots-6d94c3d743b8de22 = Tampilkan titik kanvas
+
+ui-show-cropped-area-53b623311de34a66 = Tampilkan Area yang Di-crop
+
+ui-show-edge-0e6f6ff17e21f8ef = Tampilkan Tepi
+
+ui-show-grid-fae930dfc8ee4b2e = Tampilkan Grid
+
+ui-show-hide-all-panels-240e4d824315700b = Tampilkan/Sembunyikan Semua Panel
+
+ui-show-hide-panels-f43db26049aad092 = Tampilkan/Sembunyikan Panel
+
+ui-show-highlight-on-rollover-69405ef2139701f4 = Tampilkan sorotan saat kursor melintas
+
+ui-show-in-explorer-2f94447b91dbe64c = Tampilkan di Explorer
+
+ui-show-in-folder-e0edb8f0cae13d5f = Tampilkan di Folder
+
+ui-show-original-9f96d5b03071c5ed = Tampilkan Asli
+
+ui-show-rulers-15364a8b811babcf = Tampilkan Penggaris
+
+ui-show-sampling-ring-c1a7d88fc2b79a5b = Tampilkan Cincin Sampel
+
+ui-single-column-marquee-tool-1dac583cc51f40e3 = Alat Single Column Marquee
+
+ui-single-row-marquee-tool-220700fd1e13590f = Alat Single Row Marquee
+
+ui-size-was-old-41f38564856f8aff = { $size } (sebelumnya { $old })
+
+ui-slant-8684e6366a796841 = Kemiringan
+
+ui-snap-to-origin-2f5c18a1a31eaab6 = Jepret ke Titik Asal
+
+ui-solarized-dark-b3d33c9539e10efa = Solarized gelap
+
+ui-solarized-dark-theme-592f33cc33819357 = Tema Solarized Gelap
+
+ui-solid-9b8a594e6937f34a = Utuh
+
+ui-some-brush-presets-could-not-be-loaded-85dba33dc441678d = Beberapa preset kuas tidak dapat dimuat
+
+ui-star-ratio-24437e279a76229e = Rasio bintang:
+
+ui-straighten-the-image-by-drawing-a-line-o-e0da8c009ed35534 = Luruskan gambar dengan menggambar garis di atasnya
+
+ui-stroke-color-705a1554bb23c6c0 = Warna stroke
+
+ui-stroke-options-157cb1b9e34287dd = Opsi goresan
+
+ui-studio-light-c59588e3a608ca09 = Studio Light
+
+ui-symmetry-off-f51a8e00f2b6ab64 = Simetri Mati
+
+ui-sync-with-system-a2794e085c62fd61 = Sinkronkan dengan sistem
+
+ui-system-title-bar-b81774202f7af861 = Bilah judul sistem
+
+ui-targa-options-6616b16a7d3445cc = Opsi Targa
+
+ui-target-3ebe946eefdad3c8 = Target:
+
+ui-the-document-is-closed-8ec5c55a26b25b8f = Dokumen sudah ditutup
+
+ui-the-document-or-selected-layers-changed-p-9972332ed404c2e8 = Dokumen atau layer yang dipilih telah berubah. Minta penghapusan lagi.
+
+ui-the-gpu-compositor-wasn-t-used-reason-77c2ce25dec35c78 = Kompositor GPU tidak digunakan: { $reason }
+
+ui-the-gradient-the-gradient-tool-paints-wi-93518332f123931c = Gradien yang digambar oleh alat Gradien
+
+ui-the-keyboard-shortcut-set-was-not-import-03551b2b8d5b9f3d = Set pintasan keyboard tidak diimpor: { $error }
+
+ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = Anggaran memori dipakai bersama oleh piksel dokumen, data tertanam, dan riwayat urungkan. Anggaran bertambah saat diperlukan; memori aplikasi lainnya terpisah.
+
+ui-there-is-no-crop-size-or-ratio-to-save-10795b0c2723f449 = Tidak ada ukuran atau rasio pangkas untuk disimpan
+
+ui-thin-24348b0f6db9a923 = Sangat Tipis
+
+ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = Versi browser ini menyimpan riwayat urungkan di memori. Pengaturan disk kerja berlaku untuk aplikasi desktop.
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = Format ini menyimpan gambar yang diratakan. Gunakan Simpan Salinan untuk mempertahankan dokumen yang dapat diedit.
+
+ui-this-redraw-took-seconds-s-on-the-cpu-7e8d230e933eaa8f = Penggambaran ulang di CPU ini memakan waktu { $seconds } dtk.
+
+ui-to-drop-files-start-photocraft-under-xwa-c4006313bfe0433b = Untuk menjatuhkan berkas, jalankan PhotoCraft di XWayland: `{ $command }`
+
+ui-top-ec7ca21db87f9dcc = Atas:
+
+ui-top-left-35db253aba562917 = Kiri atas
+
+ui-top-right-9a12cffd0398f888 = Kanan atas
+
+ui-transform-symmetry-308ef5a329d1f431 = Transformasi Simetri
+
+ui-transparency-threshold-d681456c819197c6 = Ambang transparansi
+
+ui-triangle-2af10d61da454203 = Segitiga
+
+ui-unavailable-in-this-color-mode-f47ca21fc99575c0 = Tidak tersedia dalam mode warna ini
+
+ui-undo-disk-space-grows-only-when-needed-u-86946daf63c3a558 = Ruang disk untuk urungkan bertambah hanya bila diperlukan, hingga batas ini. Nol menonaktifkan cache disk. Jalur disk kerja berlaku pada sesi cache berikutnya.
+
+ui-update-the-current-brush-with-these-sett-a7e6365f7455aaec = Perbarui kuas saat ini dengan pengaturan ini
+
+ui-use-classic-mode-ef70cbf7d572eaf9 = Gunakan Mode Klasik
+
+ui-use-file-open-or-paste-a-copied-image-wi-fd54e18d000677d1 = Gunakan Berkas › Buka, atau tempel gambar yang disalin dengan { $paste }.
+
+ui-use-finite-lengths-and-a-positive-patter-45d1303fb60dbb99 = Gunakan panjang terbatas dan total pola positif
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Gunakan tekanan trackpad
+
+ui-vertical-type-mask-tool-35f5821cb3112aa1 = Alat Masker Teks Vertikal
+
+ui-violet-2882bc397b2e28dc = Ungu
+
+ui-w-unit-x-h-unit-ppi-ppi-1cc3519842d6fe39 = { $w } { $unit } x { $h } { $unit } ({ $ppi } ppi)
+
+ui-w-x-h-x-resolution-3b06634d489d6fe2 = L x T x Resolusi
+
+ui-white-matte-93f44761248dcc3d = Latar Putih
+
+ui-x11-52a9397deddd2397 = X11
+
+ui-xor-521a5a7ded63a364 = XOR
+
+ui-your-keyboard-shortcut-set-set-is-in-use-7844d48cfb597d5b = Set pintasan keyboard Anda { $set } dipakai di sini: { $n } pintasan berbeda dari bawaan. Edit › Pintasan Keyboard menampilkannya; Setel Ulang Semua ke Bawaan membatalkannya.
+
+ui-decontaminate-1f0aa396647233f3 = Dekontaminasi
+
+ui-emulsion-down-04563fb4794ff91f = Emulsi di Bawah
+
+ui-functions-16dce49f49de2be4 = Fungsi
+
+ui-output-2555373b75aa89b2 = Keluaran
+
+ui-print-resolution-ce140e05758a8376 = Resolusi Cetak:
+
+ui-refine-edge-394e57164384edb3 = Perbaiki Tepi
+
+ui-refine-strokes-0b1c46698a8ef47f = Goresan penyempurnaan
+
+ui-shift-edge-4fadcbcd31772f0a = Geser Tepi
+
+ui-smart-radius-2179959cee59e956 = Radius Cerdas

@@ -153,6 +153,14 @@ pub(crate) fn tick(app: &mut PhotocraftApp, ctx: &Context) {
 }
 
 fn import_file(app: &mut PhotocraftApp, ctx: &Context) -> Result<(), String> {
+    if app.services.file_dialog.is_some() {
+        let ctx = ctx.clone();
+        app.ask_file(crate::FileDialogRequest::Open { multiple: false, initial_dir: None, extensions: Some(vec!["json".into()]) }, move |app, answer| {
+            import_text(app, &ctx, read_theme_answer(answer)?)?;
+            Ok(Value::Null)
+        })?;
+        return Ok(());
+    }
     let pick = app.services.pick_theme.as_mut().ok_or("theme file picker is unavailable")?;
     if let Some(text) = pick()? {
         import_text(app, ctx, text)?;
@@ -160,10 +168,56 @@ fn import_file(app: &mut PhotocraftApp, ctx: &Context) -> Result<(), String> {
     Ok(())
 }
 
+/// Admit a theme before allocating or parsing its complete contents. The async platform
+/// picker returns paths on native and bytes in a browser; both keep the fork's 64 KiB limit.
+fn read_theme_answer(answer: crate::FileDialogAnswer) -> Result<String, String> {
+    use crate::FileDialogAnswer;
+    let max = crate::theme_pack::MAX_THEME_BYTES;
+    let too_large = || format!("theme exceeds {max} bytes");
+    let bytes = match answer {
+        FileDialogAnswer::Contents(_, bytes) => bytes,
+        FileDialogAnswer::ContentsMany(files) => files.into_iter().next().ok_or(crate::file_dialog::CANCELLED)?.1,
+        FileDialogAnswer::Paths(paths) => {
+            let path = paths.into_iter().next().ok_or(crate::file_dialog::CANCELLED)?;
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                use std::io::Read;
+                let file = std::fs::File::open(&path).map_err(|e| e.to_string())?;
+                if file.metadata().map_err(|e| e.to_string())?.len() > max as u64 {
+                    return Err(too_large());
+                }
+                let mut bytes = Vec::new();
+                file.take(max as u64 + 1).read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+                bytes
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                let _ = path;
+                return Err("theme file contents are unavailable".into());
+            }
+        }
+        FileDialogAnswer::SaveTo(_) => return Err("the theme open dialog gave an unexpected answer".into()),
+    };
+    if bytes.len() > max {
+        return Err(too_large());
+    }
+    String::from_utf8(bytes).map_err(|_| "theme file is not valid UTF-8".to_string())
+}
+
 fn export_file(app: &mut PhotocraftApp) -> Result<(), String> {
     let pack = draft(app)?;
     let text = definition(&pack)?;
     let suggested = format!("{}.theme.json", pack.id);
+    if app.services.file_dialog.is_some() {
+        app.ask_file(crate::FileDialogRequest::SaveFiltered { suggested, extensions: vec!["json".into()] }, move |app, answer| {
+            let crate::FileDialogAnswer::SaveTo(path) = answer else {
+                return Err("the theme save dialog gave an unexpected answer".into());
+            };
+            app.services.write.as_mut().ok_or("file writer is unavailable")?(&path, text.as_bytes())?;
+            Ok(Value::Null)
+        })?;
+        return Ok(());
+    }
     let pick = app.services.pick_save.as_mut().ok_or("save dialog is unavailable")?;
     let Some(path) = pick(&suggested) else { return Ok(()) };
     app.services.write.as_mut().ok_or("file writer is unavailable")?(&path, text.as_bytes())
@@ -461,6 +515,72 @@ mod tests {
         tick(&mut app, &ctx);
         assert!(app.ui.theme_manager.as_ref().unwrap().error.is_none());
     }
+    #[test]
+    fn asynchronous_theme_answer_rejects_oversize_contents_before_import() {
+        let max = crate::theme_pack::MAX_THEME_BYTES;
+        let answer = crate::FileDialogAnswer::Contents("too-large.theme.json".into(), vec![b' '; max + 1]);
+        assert_eq!(read_theme_answer(answer).unwrap_err(), format!("theme exceeds {max} bytes"));
+        assert!(read_theme_answer(crate::FileDialogAnswer::Contents("bad.theme.json".into(), vec![0xff])).is_err());
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn asynchronous_theme_path_rejects_oversize_file_before_reading() {
+        let path = std::env::temp_dir().join(format!(
+            "photocraft-theme-bound-{}-{}.json",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        let file = std::fs::File::create(&path).unwrap();
+        let max = crate::theme_pack::MAX_THEME_BYTES;
+        file.set_len(max as u64 + 1).unwrap();
+        drop(file);
+        let result = read_theme_answer(crate::FileDialogAnswer::Paths(vec![path.to_string_lossy().into_owned()]));
+        std::fs::remove_file(path).unwrap();
+        assert_eq!(result.unwrap_err(), format!("theme exceeds {max} bytes"));
+    }
+
+    #[test]
+    fn asynchronous_theme_import_and_export_use_json_filters_and_preserve_the_export_snapshot() {
+        let ctx = Context::default();
+        let mut app = PhotocraftApp::new(Session::new(), Services::default());
+        themes::sync(&mut app, &ctx);
+        command(&mut app, &ctx, "manager", &Value::Null).unwrap();
+        command(&mut app, &ctx, "duplicate", &Value::Null).unwrap();
+        let pack = draft(&app).unwrap();
+        let text = definition(&pack).unwrap();
+        let replies = Rc::new(RefCell::new(Vec::new()));
+        let queued = replies.clone();
+        app.services.file_dialog = Some(Box::new(move |request, _, reply| {
+            queued.borrow_mut().push((request, reply));
+        }));
+        let written = Rc::new(RefCell::new(Vec::new()));
+        let bytes = written.clone();
+        app.services.write = Some(Box::new(move |path, data| {
+            assert_eq!(path, "custom.theme.json");
+            *bytes.borrow_mut() = data.to_vec();
+            Ok(())
+        }));
+        export_file(&mut app).unwrap();
+        assert!(written.borrow().is_empty());
+        app.poll_file_dialog(&ctx, None);
+        let (request, reply) = replies.borrow_mut().pop().unwrap();
+        assert_eq!(request, crate::FileDialogRequest::SaveFiltered { suggested: format!("{}.theme.json", pack.id), extensions: vec!["json".into()] });
+        // Later manager edits cannot change the exported pack the user selected.
+        app.ui.theme_manager.as_mut().unwrap().json = "invalid later draft".into();
+        reply.send(Some(crate::FileDialogAnswer::SaveTo("custom.theme.json".into())));
+        app.poll_file_dialog(&ctx, None);
+        assert_eq!(ThemePack::parse(std::str::from_utf8(&written.borrow()).unwrap()).unwrap(), pack);
+        import_file(&mut app, &ctx).unwrap();
+        app.poll_file_dialog(&ctx, None);
+        let (request, reply) = replies.borrow_mut().pop().unwrap();
+        assert!(matches!(request, crate::FileDialogRequest::Open { multiple: false, extensions: Some(ref exts), .. } if exts == &["json"]));
+        reply.send(Some(crate::FileDialogAnswer::Contents("custom.theme.json".into(), text.as_bytes().to_vec())));
+        app.poll_file_dialog(&ctx, None);
+        assert_eq!(app.ui.theme_manager.as_ref().unwrap().json, text);
+        assert!(app.theme_rt.catalog.get(&pack.id).is_none(), "import remains an unapplied draft");
+    }
+
     #[test]
     fn manager_buttons_preview_and_cancel_on_a_small_display() {
         use egui_kittest::{Harness, kittest::Queryable};

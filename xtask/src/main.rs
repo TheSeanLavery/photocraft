@@ -15,6 +15,7 @@ mod scorecard;
 mod sha256;
 mod stats;
 mod version;
+mod web_assets;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
@@ -25,17 +26,20 @@ usage: cargo xtask <command>
 commands:
   layers          enforce the crate dependency layering (plan/architecture.md §3)
   wasm            cargo check --target wasm32-unknown-unknown for the wasm-safe crates
+  web-assets [--dir <site>]
+                  losslessly pack static Wasm assets (Trunk post-build; unchanged 24 MiB per-file cap)
   ci              fmt --check, clippy -D warnings, test, layers, wasm (stops at first failure)
-  corpus [--all | --pngsuite | --psd | --psd-tools | --photoshop] [--local] [--update-manifest]
+  corpus [--all | --pngsuite | --psd | --psd-tools | --pixls | --photoshop] [--local] [--update-manifest]
                   show where test corpora live and their pins (xtask/src/corpus_pins.rs), or fetch
-                  them into corpus/ (pinned commits, sha256-verified; --all = every corpus;
+                  them into corpus/ (pinned commits, sha256-verified; --all = every corpus but pixls,
                   --photoshop --local copies from ../photocraft-corpus or $PHOTOCRAFT_CORPUS_REPO)
-  test-corpus [-p <crate>]... [--changed] [--local] [-- <test args>]
+  test-corpus [-p <crate>]... [--changed] [--pixls] [--local] [-- <test args>]
                   fetch every corpus, then cargo test --release --features corpus on the corpus
-                  crates; --changed runs only if psd/io/codecs/compose/gpu/text/format changed;
+                  crates; --changed runs only if psd/io/codecs/compose/gpu/text/format/raw changed;
+                  --pixls (or -p raw) also fetches corpus/pixls and runs the raw corpus tests;
                   --local takes corpus/photoshop from the photocraft-corpus authoring clone
   stats [--exact] count tests and lines per crate (--exact: ask the test harness via `-- --list`)
-  parity          Photoshop menu parity; rewrites docs/parity.md
+  parity          Photoshop menu parity; rewrites docs/parity-checklist.md
   i18n-coverage   report stable UI translation coverage for registered languages
   i18n [audit | check | migrate --dry-run|--apply | generate [--force]]
                   inspect Rust UI calls and validate or generate Fluent catalogs
@@ -56,6 +60,7 @@ fn main() -> ExitCode {
     let result = match args.first().map(String::as_str) {
         Some("layers") => cmd_layers(),
         Some("wasm") => cmd_wasm(),
+        Some("web-assets") => web_assets::run(&rest),
         Some("ci") => cmd_ci(),
         Some("corpus") => corpus::cmd(&rest),
         Some("test-corpus") => corpus::test_cmd(&rest),
@@ -185,7 +190,7 @@ fn cmd_wasm() -> Result<(), String> {
 
 fn cmd_parity() -> Result<(), String> {
     let mut c = cargo();
-    c.args(["run", "-q", "-p", "photocraft-ui-egui", "--example", "parity", "--", "--write", "docs/parity.md"]);
+    c.args(["run", "-q", "-p", "photocraft-ui-egui", "--example", "parity", "--", "--write", "docs/parity-checklist.md"]);
     run(c, "cargo run -p photocraft-ui-egui --example parity")
 }
 

@@ -66,7 +66,10 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     // The active layer's mask (Photoshop lists it, in italics, below the colour channels).
     let masked = active_layer.and_then(|id| doc.layer(id)).filter(|l| l.mask.is_some()).cloned();
     let mask_tex = masked.as_ref().and_then(|l| Some(app.mask_thumb(&ctx, &doc, l.id, l.mask.as_ref()?)));
-    let mask_targeted = masked.is_some() && app.ui.mask_target && view.target == ChannelTarget::Composite && !quick;
+    let mask_targeted = masked.is_some()
+        && (app.ui.mask_target || view.target == ChannelTarget::LayerMask)
+        && (view.target == ChannelTarget::Composite || view.target == ChannelTarget::LayerMask)
+        && !quick;
     // Multichannel images are their ink channels only (no composite or colour rows).
     let multichannel = doc.mode == photocraft_doc::ColorMode::Multichannel;
     let mut rows = if multichannel { Vec::new() } else { vec![Row::Composite] };
@@ -83,7 +86,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     let shown_colors = if colors > 1 { colors } else { 0 };
     let mut actions: Vec<(String, Value)> = Vec::new();
     // The buttons sit in a footer at the panel's bottom, like Photoshop's.
-    let footer = 34.0;
+    let footer = widgets::footer_height(ui) + ui.spacing().item_spacing.y;
     let fill = ui.available_height() > footer + 60.0;
     let rows_h = if fill { ui.available_height() - footer } else { f32::INFINITY };
     let mut mask_click = None;
@@ -196,7 +199,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 } else if row == Row::LayerMask {
                     // Targets the mask, as clicking its thumbnail in the Layers panel does.
                     mask_click = Some(true);
-                    actions.push(("channel.target".into(), json!({ "channel": "composite" })));
+                    actions.push(("channel.target".into(), json!({ "channel": "mask" })));
                 } else {
                     if matches!(row, Row::Composite | Row::Color(_)) {
                         mask_click = Some(false);
@@ -257,7 +260,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                         }
                         Row::LayerMask => {
                             let enabled = masked.as_ref().and_then(|l| l.mask.as_ref()).is_none_or(|m| m.enabled);
-                            item(ui, a, if enabled { "Disable Layer Mask" } else { "Enable Layer Mask" }, "layer.layerMask.enabled", json!({}));
+                            item(ui, a, crate::layer_menu_ui::mask_toggle_label(enabled), "layer.layerMask.enabled", json!({}));
                             item(ui, a, "Delete Layer Mask", "layer.layerMask.delete", json!({}));
                         }
                     }
@@ -271,35 +274,29 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             });
         }
     });
-    ui.add_space(4.0);
-    widgets::hairline(ui);
-    ui.add_space(2.0);
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 2.0;
+    // Photoshop's order from the left: Load as selection, Save selection, New, Delete.
+    widgets::panel_footer(ui, |ui| {
         let target_ref = match view.target {
             ChannelTarget::Alpha(i) => json!(i),
             ChannelTarget::Color(k) => json!({ "color": k }),
             ChannelTarget::Composite => json!("composite"),
+            ChannelTarget::LayerMask => json!("mask"),
+            ChannelTarget::VectorMask => json!("vectorMask"),
         };
-        if icons::button(ui, "circle-dashed", 26.0, false, tl!("Load channel as selection")).clicked() {
-            actions.push(("select.loadSelection".into(), json!({ "channel": target_ref })));
+        if icons::button(ui, "trash", 26.0, false, tl!("Delete current channel")).clicked() {
+            actions.push(("channel.delete".into(), json!({})));
+        }
+        if icons::button(ui, "plus", 26.0, false, tl!("Create new channel")).clicked() {
+            actions.push(("channel.new".into(), json!({})));
         }
         if icons::button(ui, "square-dashed", 26.0, false, tl!("Save selection as channel")).clicked() {
             actions.push(("select.saveSelection".into(), json!({})));
         }
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if icons::button(ui, "trash", 26.0, false, tl!("Delete current channel")).clicked() {
-                actions.push(("channel.delete".into(), json!({})));
-            }
-            if icons::button(ui, "plus", 26.0, false, tl!("Create new channel")).clicked() {
-                actions.push(("channel.new".into(), json!({})));
-            }
-        });
+        if icons::button(ui, "circle-dashed", 26.0, false, tl!("Load channel as selection")).clicked() {
+            actions.push(("select.loadSelection".into(), json!({ "channel": target_ref })));
+        }
     });
     ctx.data_mut(|d| d.insert_temp(thumbs_id(), drawn));
-    if let Some(on) = mask_click {
-        app.ui.mask_target = on;
-    }
     for (id, p) in actions {
         if id == "ui.renameChannel" {
             if let Some(i) = p.as_u64().and_then(|i| doc.channels.get(i as usize)) {
@@ -309,6 +306,10 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             continue;
         }
         let _ = app.run(&id, p);
+    }
+    if let Some(on) = mask_click {
+        app.ui.mask_target = on;
+        app.sync_mask_targets();
     }
 }
 
@@ -406,5 +407,18 @@ mod tests {
             })
             .collect();
         assert_eq!(interrupts, [None, Some(false), Some(false), Some(false)]);
+    }
+
+    #[test]
+    fn channel_thumbs_honours_show_channels_in_color() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        app.run("file.new", json!({"width": 16, "height": 16})).unwrap();
+        let ctx = egui::Context::default();
+        let thumbs_gray = app.channel_thumbs(&ctx);
+        assert!(!thumbs_gray.is_empty());
+
+        app.session.execute("prefs.set", json!({"values": {"interface.showChannelsInColor": true}})).unwrap();
+        let thumbs_color = app.channel_thumbs(&ctx);
+        assert_eq!(thumbs_gray.len(), thumbs_color.len());
     }
 }

@@ -11,6 +11,36 @@ use photocraft_raster::Rgba8Image;
 
 const MODES: [ColorMode; 4] = [ColorMode::Rgb, ColorMode::Grayscale, ColorMode::Cmyk, ColorMode::Lab];
 
+#[test]
+fn custom_shape_stroke_roundtrip_keeps_every_style_field() {
+    for mode in MODES {
+        for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
+            let mut d = rich_doc(mode, depth);
+            let stroke = photocraft_doc::ShapeStroke {
+                width: 5.5,
+                opacity: 0.35,
+                align: photocraft_doc::StrokeAlign::Outside,
+                cap: photocraft_doc::LineCap::Square,
+                join: photocraft_doc::LineJoin::Bevel,
+                miter_limit: 2.0,
+                dashes: vec![0.0, 2.0, 4.0, 1.0, 1.5, 3.0],
+                dash_offset: -0.5,
+                ..Default::default()
+            };
+            d.layers.push(Layer::new(
+                "Custom stroke",
+                LayerContent::Shape(photocraft_doc::ShapeLayer {
+                    path: photocraft_doc::Path::new(vec![photocraft_doc::Subpath::polygon(&[(10.0, 10.0), (40.0, 10.0), (25.0, 40.0)])]),
+                    stroke: Some(stroke),
+                    ..Default::default()
+                }),
+            ));
+            let bytes = save_to_bytes(&d, &SaveOptions::default()).unwrap();
+            assert_eq!(load_from_bytes(&bytes).unwrap(), d);
+        }
+    }
+}
+
 fn check_zip(mode: ColorMode, depth: SampleType) {
     let doc = rich_doc(mode, depth);
     let bytes = save_to_bytes(&doc, &SaveOptions::default()).unwrap();
@@ -58,6 +88,54 @@ fn save_path_zip_file() {
     assert!(path.is_file());
     assert_eq!(load_path(&path).unwrap(), doc);
     std::fs::remove_dir_all(dir).unwrap();
+}
+
+/// The public [`ByteSource`] entry loads a saved directory like `load_path` does.
+#[test]
+fn load_bytes_source_matches_the_path_load() {
+    let doc = rich_doc(ColorMode::Rgb, SampleType::U8);
+    let dir = temp_dir("bytes-source");
+    let bundle = dir.join("a.pcraft");
+    PcraftWriter::new().save_dir(&doc, &bundle, &SaveOptions::default()).unwrap();
+    let loaded = load_bytes_source(&FsDir { root: bundle.clone() }, &LoadOptions::default()).unwrap();
+    assert_eq!(loaded, doc);
+    assert!(load_bytes_source(&FsDir { root: bundle.join("no-such-dir") }, &LoadOptions::default()).is_err(), "a missing bundle errors");
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+/// `read_entry` bounds the read itself, not the stat hint: a stream that ignores the hint
+/// and yields more than `max` errors instead of filling memory.
+#[test]
+fn read_entry_bounds_the_read_not_the_hint() {
+    struct Endless;
+    impl std::io::Read for Endless {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            buf.fill(b'x');
+            Ok(buf.len())
+        }
+    }
+    let mut endless = Endless;
+    let error = read_entry(&mut endless, 0, 100, "manifest.json").unwrap_err().to_string();
+    assert!(error.contains("exceeds"), "{error}");
+    let mut small = &b"hi"[..];
+    assert_eq!(read_entry(&mut small, 2, 100, "manifest.json").unwrap(), b"hi");
+}
+
+/// Reads the on-disk bundle shape for [`load_bytes_source_matches_the_path_load`].
+struct FsDir {
+    root: std::path::PathBuf,
+}
+
+impl ByteSource for FsDir {
+    fn get(&self, path: &str, max: usize) -> Result<Vec<u8>> {
+        let p = self.root.join(path);
+        let metadata = std::fs::metadata(&p).map_err(|_| FormatError::Corrupt(format!("missing `{path}`")))?;
+        if !metadata.is_file() {
+            return Err(FormatError::Corrupt(format!("`{path}` is not a regular file")));
+        }
+        let mut file = std::fs::File::open(&p).map_err(|_| FormatError::Corrupt(format!("missing `{path}`")))?;
+        read_entry(&mut file, metadata.len(), max, path)
+    }
 }
 
 /// Deepest group nesting in `layers` (0 when there are no groups).
@@ -391,6 +469,45 @@ fn blend_if_roundtrips() {
     assert!(back.layers.iter().skip(1).all(|l| l.blend_if.is_default()));
 }
 
+/// Advanced Blending (knockout, as-group switches, transparency shapes, masks hide effects)
+/// survives .pcraft at every depth; manifests written before the field existed load with
+/// Photoshop's defaults, and default layers don't write it.
+#[test]
+fn advanced_blending_roundtrips_and_defaults_when_absent() {
+    use photocraft_doc::{AdvancedBlending, Knockout};
+    for depth in SampleType::ALL {
+        let mut doc = rich_doc(ColorMode::Rgb, depth);
+        let a = AdvancedBlending {
+            knockout: Knockout::Deep,
+            blend_interior: true,
+            blend_clipped: false,
+            transparency_shapes: false,
+            layer_mask_hides_effects: true,
+            vector_mask_hides_effects: true,
+        };
+        doc.layers[0].advanced = a;
+        if let Some(l) = doc.layers.get_mut(1) {
+            l.advanced.knockout = Knockout::Shallow;
+        }
+        let bytes = save_to_bytes(&doc, &SaveOptions::default()).unwrap();
+        let back = load_from_bytes(&bytes).unwrap();
+        assert_eq!(back, doc, "{depth:?}");
+        assert_eq!(back.layers[0].advanced, a);
+        // Only the non-default layers carry the field.
+        let m = read_manifest(&bytes).unwrap();
+        let v = serde_json::to_value(&m.document).unwrap();
+        let with = v["layers"].as_array().unwrap().iter().filter(|l| l.get("advanced").is_some()).count();
+        assert_eq!(with, if doc.layers.len() > 1 { 2 } else { 1 });
+        // An older manifest (no `advanced`) loads with the defaults.
+        let mut old = v.clone();
+        for l in old["layers"].as_array_mut().unwrap() {
+            l.as_object_mut().unwrap().remove("advanced");
+        }
+        let old: photocraft_format::manifest::DocM = serde_json::from_value(old).unwrap();
+        assert!(old.layers.iter().all(|l| l.advanced.is_default()));
+    }
+}
+
 #[test]
 fn video_layer_frames_survive_roundtrip() {
     use photocraft_doc::{Timeline, VideoData, VideoSource};
@@ -407,6 +524,7 @@ fn video_layer_frames_survive_roundtrip() {
         frames.push(s);
     }
     let mut vd = VideoData::new(frames, 24.0);
+    vd.original_frames = Some(vd.frames.clone());
     vd.source = VideoSource::File { path: "/tmp/seq".into() };
     vd.show_altered = false;
     l.video = Some(vd);
@@ -416,6 +534,8 @@ fn video_layer_frames_survive_roundtrip() {
     let back = load_from_bytes(&bytes).unwrap();
     let v = back.layers.last().unwrap().video.as_ref().expect("video survived");
     assert_eq!(v.frames.len(), 3);
+    assert_eq!(v.original_frames.as_ref().map(Vec::len), Some(3));
+    assert_eq!(v.original_frames.as_ref().unwrap()[2].rgba(1, 1), v.frames[2].rgba(1, 1));
     assert_eq!(v.fps, 24.0);
     assert!(!v.show_altered);
     assert_eq!(v.source, VideoSource::File { path: "/tmp/seq".into() });
@@ -424,4 +544,48 @@ fn video_layer_frames_survive_roundtrip() {
     let mut px = [[0.0f32; 4]; 1];
     v.frames[2].read_rgba_into(Rect::from_xywh(1, 1, 1, 1), &mut px);
     assert!(px[0][0] > 0.9 && px[0][2] < 0.1, "frame 2 is reddish: {:?}", px[0]);
+}
+
+/// Issue #1101: serde_json writes NaN and the infinities as `null`, which the manifest's float
+/// fields refuse on load, so such a document saved "successfully" and never opened again. The
+/// save is refused instead, naming the value; finite documents are unaffected.
+#[test]
+fn a_non_finite_float_is_refused_at_save_rather_than_breaking_every_later_load() {
+    use photocraft_doc::Adjustment;
+    type Mutate = Box<dyn Fn(&mut Document)>;
+    let base = rich_doc(ColorMode::Rgb, SampleType::U8);
+    let cases: Vec<(&str, Mutate)> = vec![
+        (
+            "exposure",
+            Box::new(|d| {
+                d.insert_above(None, Layer::new("adj", LayerContent::Adjustment(Adjustment::Exposure { exposure: f32::NAN, offset: 0.0, gamma: 1.0 })));
+            }),
+        ),
+        (
+            "gamma",
+            Box::new(|d| {
+                d.insert_above(
+                    None,
+                    Layer::new("adj", LayerContent::Adjustment(Adjustment::Exposure { exposure: 0.0, offset: 0.0, gamma: f32::NEG_INFINITY })),
+                );
+            }),
+        ),
+        ("resolution_dpi", Box::new(|d| d.resolution_dpi = f32::INFINITY)),
+    ];
+    for (field, mutate) in cases {
+        let mut doc = base.clone();
+        mutate(&mut doc);
+        let err = save_to_bytes(&doc, &SaveOptions::default()).expect_err(field);
+        assert!(matches!(err, FormatError::NonFinite { .. }), "{field}: {err:?}");
+        let msg = err.to_string();
+        assert!(msg.contains(field) && msg.contains("NaN or infinite"), "{field}: {msg}");
+        // The incremental writer shares the check, for autosave and directory bundles.
+        let mut w = PcraftWriter::new();
+        assert!(matches!(w.save_zip(&doc, &SaveOptions::default()), Err(FormatError::NonFinite { .. })), "{field}: PcraftWriter");
+    }
+    // The same document with finite values round-trips as before.
+    let mut doc = base.clone();
+    doc.insert_above(None, Layer::new("adj", LayerContent::Adjustment(Adjustment::Exposure { exposure: 0.5, offset: 0.0, gamma: 1.0 })));
+    let back = load_from_bytes(&save_to_bytes(&doc, &SaveOptions::default()).unwrap()).unwrap();
+    assert_eq!(back, doc);
 }

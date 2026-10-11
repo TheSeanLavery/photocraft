@@ -39,6 +39,9 @@ fn form(app: &mut PhotocraftApp, command: &str, label: &str, fields: Value, choi
     json!({"dialog": app.ui.open_dialog(DialogKind::Command, f)})
 }
 
+/// File › Scripts › Browse… lists these script files (plus the JSON/text the engine parses).
+const SCRIPT_EXTENSIONS: &[&str] = &["psjs", "ccjs", "jsx", "js", "jsxbin", "json", "txt"];
+
 /// Menu items fronted here (dialogs before the engine command). `None` when not ours.
 pub fn invoke(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, params: &Value) -> Option<Result<Value, String>> {
     if !no_params(params) {
@@ -86,15 +89,13 @@ pub fn invoke(app: &mut PhotocraftApp, ctx: &egui::Context, id: &str, params: &V
             form(app, id, "Image Statistics", json!({"mode": "median", "input": dir, "align": false}), json!({"mode": modes}))
         }
         "file.scripts.browse" => {
-            let (name, bytes) = match app.pick_file_bytes()? {
-                Ok(picked) => picked,
-                Err(e) => return Some(Err(e)),
-            };
-            let r = app.run(id, json!({"script": String::from_utf8_lossy(&bytes)}));
-            if r.is_ok() {
-                app.ui.status = format!("Ran script {name}");
-            }
-            return Some(r);
+            return Some(app.pick_file_bytes_filtered(SCRIPT_EXTENSIONS, |app, name, bytes| {
+                let r = app.run("file.scripts.browse", json!({"script": String::from_utf8_lossy(&bytes)}));
+                if r.is_ok() {
+                    app.ui.status = format!("Ran script {name}");
+                }
+                r
+            }));
         }
         "file.scripts.scriptEventsManager" => {
             let enabled = app.session.prefs().script_events.enabled;
@@ -179,17 +180,19 @@ fn b(f: &Map<String, Value>, k: &str, d: bool) -> bool {
 // ---------- Save for Web ----------
 
 const WEB_FORMATS: [(&str, &str); 5] = [("gif", "GIF"), ("png8", "PNG-8"), ("png24", "PNG-24"), ("jpeg", "JPEG"), ("wbmp", "WBMP")];
+const WEB_COMMAND: &str = "file.export.saveForWebLegacy";
 
 pub fn open_web(app: &mut PhotocraftApp) -> u64 {
     let mut f = Map::new();
     f.insert("__web".into(), json!(true));
+    f.insert("__command".into(), json!(WEB_COMMAND));
     f.insert("__label".into(), json!("Save for Web (Legacy)"));
     f.insert("__view".into(), json!("2up"));
-    // Start from the last settings, like Photoshop.
+    // Remember encoding choices, but each document starts at its own full size.
     let last = app.session.file_menu.last_web.clone().unwrap_or_else(|| json!({"format": "jpeg", "quality": 60}));
     if let Value::Object(m) = last {
         for (k, v) in m {
-            if !matches!(k.as_str(), "path" | "dir") {
+            if !matches!(k.as_str(), "path" | "dir" | "width" | "height" | "percent") {
                 f.insert(k, v);
             }
         }
@@ -496,24 +499,62 @@ fn web_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Valu
 
 fn web_confirm(app: &mut PhotocraftApp, f: &Map<String, Value>) -> Result<Value, String> {
     let mut p = params(f);
+    // Check while the control/input policy is still installed, before an asynchronous picker
+    // can outlive the request. A browser download uses the interactive platform writer.
+    if let Some(authorize) = app.session.authorize.or(if app.automation_input { app.services.automation_authorize } else { None }) {
+        authorize(WEB_COMMAND, &p).map_err(|e| e.to_string())?;
+    }
+    if app.automation_input
+        && let Some(authorize) = app.services.automation_command.as_ref()
+    {
+        authorize(WEB_COMMAND, &p)?;
+    }
+    if p.get("path").is_some() || p.get("dir").is_some() {
+        return save_for_web(app, p);
+    }
     let doc = app.session.active().ok_or("no document")?.doc.clone();
     let has_slices = !doc.slices.is_empty();
-    if p.get("path").is_none() && p.get("dir").is_none() {
-        let st = WebSettings::from_params(&p, "file.export.saveForWebLegacy").map_err(|e| e.to_string())?;
-        let base = photocraft_doc::slices::base_name(&doc);
-        let suggested = if has_slices && b(f, "html", true) { format!("{base}.html") } else { format!("{base}.{}", st.format.ext()) };
-        let path = app.services.pick_save.as_mut().and_then(|pick| pick(&suggested)).ok_or("cancelled")?;
+    let html = b(f, "html", true);
+    let st = WebSettings::from_params(&p, "file.export.saveForWebLegacy").map_err(|e| e.to_string())?;
+    let base = photocraft_doc::slices::base_name(&doc);
+    let suggested = if has_slices && html { format!("{base}.html") } else { format!("{base}.{}", st.format.ext()) };
+    app.pick_save(&suggested, move |app, path| {
+        app.refocus(doc.id)?;
         if has_slices {
             let dir = path.rfind(['/', '\\']).map(|i| path[..i].to_string()).unwrap_or_else(|| ".".into());
             p["dir"] = json!(dir);
-            p["html"] = json!(b(f, "html", true));
+            p["html"] = json!(html);
         } else {
             p["path"] = json!(path);
         }
-    }
-    let r = app.run("file.export.saveForWebLegacy", p)?;
+        save_for_web(app, p)
+    })
+}
+
+/// Runs Save for Web with `p`, which says where to write.
+fn save_for_web(app: &mut PhotocraftApp, p: Value) -> Result<Value, String> {
+    #[cfg(target_arch = "wasm32")]
+    let result = download_for_web(app, p);
+    #[cfg(not(target_arch = "wasm32"))]
+    let result = app.run(WEB_COMMAND, p);
+    let r = result.inspect_err(|error| {
+        app.ui.status = error.clone();
+        app.ui.status_error = true;
+    })?;
+    app.sync_views();
     app.ui.status = format!("Saved for Web: {} file(s)", r["files"].as_array().map_or(0, Vec::len));
+    app.ui.status_error = false;
     Ok(r)
+}
+
+#[cfg(any(test, target_arch = "wasm32"))]
+fn download_for_web(app: &mut PhotocraftApp, mut p: Value) -> Result<Value, String> {
+    // Browser downloads have no directory hierarchy. Keep the HTML's image and spacer URLs
+    // beside the downloaded page, matching the names handed to the platform service.
+    p["imagesFolder"] = json!("");
+    let write = app.services.write.as_mut().ok_or("no download service")?;
+    web_cmds::save_for_web_with_writer(&mut app.session, &p, &mut |path, bytes| write(path, bytes).map_err(photocraft_engine::EngineError::Other))
+        .map_err(|e| e.to_string())
 }
 
 // ---------- Print ----------
@@ -544,11 +585,40 @@ pub fn open_print(app: &mut PhotocraftApp) -> u64 {
         ("registrationMarks", json!(false)),
         ("description", json!(false)),
         ("labels", json!(false)),
+        ("emulsionDown", json!(false)),
+        ("units", json!("cm")),
         ("output", json!("")),
     ] {
         f.entry(k.to_string()).or_insert(v);
     }
     app.ui.open_dialog(DialogKind::Command, f)
+}
+
+/// Points per unit for the Position and Size fields.
+fn unit_pt(units: &str) -> f64 {
+    match units {
+        "mm" => 72.0 / 25.4,
+        "in" => 72.0,
+        _ => 72.0 / 2.54,
+    }
+}
+
+/// A number field in `units` for a value kept in points; true when edited.
+fn length_field(ui: &mut egui::Ui, label: &str, pt: &mut f64, units: &str) -> bool {
+    let t = Tokens::get(ui.ctx());
+    let k = unit_pt(units);
+    let mut v = (*pt / k) as f32;
+    let mut changed = false;
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new(label).color(t.text_dim));
+        let before = v;
+        crate::widgets::value_field(ui, &mut v, 0.0..=10000.0, units, 70.0);
+        if (v - before).abs() > 1e-4 && v.is_finite() {
+            *pt = f64::from(v) * k;
+            changed = true;
+        }
+    });
+    changed
 }
 
 fn print_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
@@ -568,6 +638,8 @@ fn print_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Va
                     ui.painter().rect_filled(page, 0.0, egui::Color32::WHITE);
                     ui.painter().rect_stroke(page, 0.0, egui::Stroke::new(1.0, t.separator), egui::StrokeKind::Outside);
                     let (x, y, w, h) = l.rect;
+                    // Emulsion Down shows the page as it prints: mirrored.
+                    let x = if l.emulsion_down { pw - x - w } else { x };
                     let img = egui::Rect::from_min_size(
                         egui::pos2(page.left() + x as f32 * k, page.bottom() - (y + h) as f32 * k),
                         egui::vec2(w as f32 * k, h as f32 * k),
@@ -582,7 +654,12 @@ fn print_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Va
                         tx
                     });
                     let clip = ui.painter().with_clip_rect(page);
-                    clip.image(tex.id(), img, egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)), egui::Color32::WHITE);
+                    let uv = if l.emulsion_down {
+                        egui::Rect::from_min_max(egui::pos2(1.0, 0.0), egui::pos2(0.0, 1.0))
+                    } else {
+                        egui::Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0))
+                    };
+                    clip.image(tex.id(), img, uv, egui::Color32::WHITE);
                     let mark = egui::Stroke::new(1.0, egui::Color32::BLACK);
                     if l.marks.corner_crop {
                         for (c, dx, dy) in
@@ -650,20 +727,27 @@ fn print_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Va
                 240.0,
             );
             if s(f, "colorHandling", "") == "photocraftManages" {
-                dropdown_str(
-                    ui,
-                    "print-profile",
-                    f,
-                    "printerProfile",
-                    &[
-                        ("coated-cmyk", tl!("Coated CMYK")),
-                        ("srgb", "sRGB IEC61966-2.1"),
-                        ("adobe-rgb-compat", tl!("Adobe RGB (1998) compatible")),
-                        ("display-p3", tl!("Display P3")),
-                        ("gray-gamma-2.2", tl!("Gray Gamma 2.2")),
-                    ],
-                    240.0,
-                );
+                // Photoshop's Printer Profile menu: the built-ins, then every installed printer
+                // (output class) profile by its description.
+                let installed: Vec<_> = photocraft_engine::installed_profiles::installed()
+                    .into_iter()
+                    .filter(|p| p.is_destination() && p.class == photocraft_cms::ProfileClass::Output)
+                    .collect();
+                let mut profiles: Vec<(&str, &str)> = vec![
+                    ("coated-cmyk", tl!("Coated CMYK")),
+                    ("srgb", "sRGB IEC61966-2.1"),
+                    ("adobe-rgb-compat", tl!("Adobe RGB (1998) compatible")),
+                    ("display-p3", tl!("Display P3")),
+                    ("gray-gamma-2.2", tl!("Gray Gamma 2.2")),
+                ];
+                profiles.extend(installed.iter().map(|p| (p.path.as_str(), p.description.as_str())));
+                // A remembered profile that is no longer installed still shows, by its file name.
+                let cur = s(f, "printerProfile", "coated-cmyk");
+                let stem = std::path::Path::new(&cur).file_stem().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                if !profiles.iter().any(|(v, _)| *v == cur) {
+                    profiles.push((cur.as_str(), stem.as_str()));
+                }
+                dropdown_str(ui, "print-profile", f, "printerProfile", &profiles, 240.0);
                 ui.horizontal(|ui| {
                     dropdown_str(
                         ui,
@@ -682,16 +766,54 @@ fn print_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Va
                 });
             }
             head(ui, tl!("Position and Size"));
+            dropdown_str(ui, "print-units", f, "units", &[("cm", tl!("Centimeters")), ("mm", tl!("Millimeters")), ("in", tl!("Inches"))], 130.0);
+            let units = s(f, "units", "cm");
             check(ui, f, "center", tl!("Center"), true);
             if !b(f, "center", true) {
                 ui.horizontal(|ui| {
-                    number(ui, f, "top", tl!("Top"), 0.0..=100.0, "in", 0.0);
-                    number(ui, f, "left", tl!("Left"), 0.0..=100.0, "in", 0.0);
+                    // Kept in inches (Photoshop's Position fields), shown in the chosen units.
+                    for (key, label) in [("top", tl!("Top")), ("left", tl!("Left"))] {
+                        let mut pt = n(f, key, 0.0) * 72.0;
+                        if length_field(ui, label, &mut pt, &units) {
+                            f.insert(key.into(), json!(pt / 72.0));
+                        }
+                    }
                 });
             }
             check(ui, f, "scaleToFit", tl!("Scale to Fit Media"), false);
-            if !b(f, "scaleToFit", false) {
-                number(ui, f, "scale", tl!("Scale"), 1.0..=1000.0, "%", 100.0);
+            // Scaled Print Size: Scale, Height and Width move together; Print Resolution follows.
+            if let Ok(l) = photocraft_engine::print_cmds::layout(&doc, &params(f), "file.print") {
+                let (_, _, w, h) = l.rect;
+                let (mut w2, mut h2) = (w, h);
+                let fit = b(f, "scaleToFit", false);
+                if !fit {
+                    // Two decimals: Height and Width set fractional scales.
+                    ui.horizontal(|ui| {
+                        ui.label(egui::RichText::new(tl!("Scale")).color(t.text_dim));
+                        let mut v = n(f, "scale", 100.0) as f32;
+                        crate::widgets::value_field(ui, &mut v, 1.0..=1000.0, "%", 64.0);
+                        f.insert("scale".into(), json!((f64::from(v) * 100.0).round() / 100.0));
+                    });
+                }
+                ui.horizontal(|ui| {
+                    let hc = length_field(ui, tl!("Height"), &mut h2, &units);
+                    let wc = length_field(ui, tl!("Width"), &mut w2, &units);
+                    let k = if wc && w > 0.0 {
+                        Some(w2 / w)
+                    } else if hc && h > 0.0 {
+                        Some(h2 / h)
+                    } else {
+                        None
+                    };
+                    if let Some(k) = k.filter(|k| k.is_finite() && *k > 0.0) {
+                        f.insert("scale".into(), json!(((l.scale * k * 100.0) * 100.0).round() / 100.0));
+                        f.insert("scaleToFit".into(), json!(false));
+                    }
+                });
+                if w > 0.0 {
+                    let ppi = f64::from(doc.size.width) / (w / 72.0);
+                    ui.label(egui::RichText::new(format!("{} {ppi:.0} PPI", tl!("Print Resolution:"))).color(t.text_dim).size(11.0));
+                }
             }
             head(ui, tl!("Printing Marks"));
             ui.horizontal(|ui| {
@@ -703,6 +825,8 @@ fn print_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Va
                 check(ui, f, "description", tl!("Description"), false);
                 check(ui, f, "labels", tl!("Labels"), false);
             });
+            head(ui, tl!("Functions"));
+            check(ui, f, "emulsionDown", tl!("Emulsion Down"), false);
             head(ui, tl!("Save as PDF"));
             let mut out = s(f, "output", "");
             if ui.add(egui::TextEdit::singleline(&mut out).hint_text(tl!("(print to the printer)")).desired_width(300.0)).changed() {
@@ -750,6 +874,83 @@ mod tests {
         let d = app.ui.dialog_mut(r["dialog"].as_u64().unwrap()).unwrap();
         assert_eq!(d.fields["format"], "gif");
         assert!(!d.fields.contains_key("path"));
+    }
+
+    #[test]
+    fn save_for_web_starts_at_the_current_document_size() {
+        let (mut app, _) = app();
+        let path = std::env::temp_dir().join(format!("pc-webui-size-{}.png", std::process::id())).to_string_lossy().into_owned();
+        app.run("file.export.saveForWebLegacy", json!({"path": path, "format": "png24", "width": 60, "height": 40, "percent": 50})).unwrap();
+        app.run("file.new", json!({"width": 240, "height": 160, "name": "next"})).unwrap();
+        let id = open_web(&mut app);
+        let f = &app.ui.dialog_mut(id).unwrap().fields;
+        assert_eq!(f["format"], "png24");
+        assert_eq!(f["percent"], 100.0);
+        assert!(!f.contains_key("width"));
+        assert!(!f.contains_key("height"));
+    }
+
+    #[test]
+    fn save_for_web_downloads_images_and_html_through_the_platform_writer() {
+        let (mut app, _) = app();
+        let downloads = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+        let captured = downloads.clone();
+        app.services.write = Some(Box::new(move |path, bytes| {
+            captured.borrow_mut().push((path.to_string(), bytes.to_vec()));
+            Ok(())
+        }));
+        download_for_web(&mut app, json!({"path": "web.png", "format": "png24"})).unwrap();
+        assert_eq!(downloads.borrow()[0].0, "web.png");
+        assert!(downloads.borrow()[0].1.starts_with(b"\x89PNG\r\n\x1a\n"));
+        downloads.borrow_mut().clear();
+
+        app.run("slice.new", json!({"rect": [0, 0, 60, 80], "name": "left"})).unwrap();
+        download_for_web(&mut app, json!({"dir": ".", "format": "png24", "html": true, "imagesFolder": "images"})).unwrap();
+        let files = downloads.borrow();
+        let html = std::str::from_utf8(&files.iter().find(|(path, _)| path.ends_with(".html")).unwrap().1).unwrap();
+        assert!(!html.contains("images/"), "downloaded files are siblings, not an images directory");
+        for (path, bytes) in files.iter().filter(|(path, _)| !path.ends_with(".html")) {
+            let name = std::path::Path::new(path).file_name().unwrap().to_str().unwrap();
+            assert!(html.contains(&format!("src=\"{name}\"")), "missing downloaded image {name}");
+            assert!(!bytes.is_empty());
+        }
+        assert!(files.iter().any(|(path, _)| path.ends_with("spacer.gif")));
+        drop(files);
+
+        app.services.write = Some(Box::new(|_, _| Err("download failed".into())));
+        assert_eq!(download_for_web(&mut app, json!({"path": "fail.png", "format": "png24"})).unwrap_err(), "download failed");
+        app.services.write = None;
+        assert_eq!(download_for_web(&mut app, json!({"path": "missing.png"})).unwrap_err(), "no download service");
+    }
+
+    #[test]
+    fn save_for_web_authorizes_before_opening_a_picker() {
+        fn deny(_: &str, _: &Value) -> photocraft_engine::Result<()> {
+            Err(photocraft_engine::EngineError::Other("export denied".into()))
+        }
+        for explicit_path in [false, true] {
+            for synthetic_input in [false, true] {
+                let (mut app, ctx) = app();
+                let id = open_web(&mut app);
+                if explicit_path {
+                    app.ui.dialog_mut(id).unwrap().fields.insert("path".into(), json!("denied.png"));
+                }
+                app.services.automation_authorize = Some(deny);
+                app.services.file_dialog = Some(Box::new(|_, _, _| panic!("denied export must not show a picker")));
+                app.services.write = Some(Box::new(|_, _| panic!("denied export must not write")));
+                let error = if synthetic_input {
+                    app.automation_input = true;
+                    crate::dialogs::confirm(&mut app, id).unwrap_err()
+                } else {
+                    let (request, _) = crate::control::ControlRequest::new("ui.dialog.confirm", json!({"dialog": id}));
+                    let crate::control::Outcome::Done(reply) = crate::control::handle(&mut app, &ctx, &request) else { panic!("expected immediate denial") };
+                    assert_eq!(reply["ok"], false);
+                    reply["error"].as_str().unwrap().to_string()
+                };
+                assert_eq!(error, "export denied");
+                assert!(!app.file_dialog_open());
+            }
+        }
     }
 
     #[test]
