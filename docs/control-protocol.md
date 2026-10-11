@@ -453,3 +453,16 @@ to restore that destination. Native UI runs cold restoration as a cancellable
 job; automation waits for completion through the existing job control protocol.
 `history.retryStorage` retries a failed scratch store after storage is repaired.
 No command restores every intermediate state just to move the cursor.
+
+## Save format chooser
+
+On macOS, Save As and Save a Copy show an editor format chooser before the native destination
+sheet. The native panel does not offer a file-type dropdown. Control clients can use:
+
+- `ui.saveFormat.inspect`: `selected` extension (null when closed) and the current build's writable
+  format names/extensions.
+- `ui.saveFormat.confirm {format: "bmp"}`: validate the format, replace the suggested suffix and
+  continue to the native destination sheet. Unsupported/import-only formats leave the chooser open.
+- `ui.saveFormat.cancel`: close the chooser without opening a destination sheet or writing.
+
+These methods choose a format only; the existing authorized save commands handle file writes.

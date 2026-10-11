@@ -28,6 +28,12 @@ readiness; treat it as an upper bound.
 
 **Menu parity: 532 / 625 (85.1%)** on 2026-10-01, up from 224 (35.8%) the day before. See [`parity.md`](parity.md).
 
+2026-10-10: the additional-export follow-up adds 11 symmetric baseline legacy/asset codecs,
+layered OpenRaster and raster SVG/SVGZ/PDF delivery: 28 default Save As groups and 29 Export As
+groups. Tests cover 264 new codec layout/depth conversions, baseline ORA layers/groups at 8/16-bit,
+and rendered PDF outputs. Historical codec variants, JXL/JP2/HEIF encoding, vector PDF/SVG,
+PDF import and animation remain open; see [format catalog and limits](export-formats.md).
+
 ## Honest parity assessment (2026-10-05)
 
 2026-10-10 collaboration overlap validation: four native artists completed 256
