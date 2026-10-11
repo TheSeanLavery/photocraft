@@ -54,10 +54,32 @@ pub(crate) fn room_from_location(path: &str, query: &str) -> Result<Option<Strin
     Ok(room)
 }
 
+/// Keep the shareable page address aligned with the admitted room without reloading the editor.
+pub(crate) fn room_page_address(path: &str, query: &str, code: Option<&str>) -> Result<String, String> {
+    let mut parameters: Vec<String> =
+        query.trim_start_matches('?').split('&').filter(|p| !p.is_empty() && !p.starts_with("room=")).map(str::to_owned).collect();
+    if let Some(code) = code {
+        parameters.push(format!("room={}", photocraft_collab::invite::normalize_code(code)?));
+    }
+    let path = if path.starts_with("/join/") { "/app/" } else { path };
+    Ok(if parameters.is_empty() { path.to_owned() } else { format!("{path}?{}", parameters.join("&")) })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use photocraft_collab::wire::{self, Decoder, Wire};
+
+    #[test]
+    fn shared_page_tracks_new_room_and_clears_old_invites_on_leave() {
+        let address = room_page_address("/app/", "?cpu&room=OLDROOM&room=STALE1", Some("newroom")).unwrap();
+        let (path, query) = address.split_once('?').unwrap();
+        assert_eq!(room_from_location(path, query).unwrap(), Some("NEWROOM".into()));
+        assert!(query.starts_with("cpu&"));
+        assert_eq!(room_page_address(path, query, None).unwrap(), "/app/?cpu");
+        assert_eq!(room_page_address("/join/OLDROOM", "", Some("NEWROOM")).unwrap(), "/app/?room=NEWROOM");
+        assert!(room_page_address("/app/", "", Some("bad/code")).is_err());
+    }
 
     #[test]
     fn selects_fair_peer_lanes_without_interleaving_transfers() {

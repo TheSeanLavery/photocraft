@@ -19,6 +19,11 @@ Rust/WASM editor at `/app/?room=ABCD1234` and starts joining that room. A passwo
 is requested separately and never included in the URL. The editor host must
 remain open to supply the document and order edits; the signaling service runs
 independently in Cloudflare Durable Objects.
+The browser address updates to the admitted room when creating or joining one,
+and removes the room parameter when leaving. Sharing the page therefore uses
+the current room rather than an earlier invitation. Joining loads the host's
+actual document and layers after the WebRTC checkpoint arrives; it does not
+create a replacement blank document.
 
 Installed desktop packages register `photocraft://join/ABCD1234`. The browser's
 **Open in PhotoCraft** button uses this protocol. macOS handles both cold launches

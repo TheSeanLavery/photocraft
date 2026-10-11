@@ -411,6 +411,27 @@ pub fn attach(mut app: PhotocraftApp, ctx: egui::Context) -> PhotocraftApp {
         }
     }))
 }
+
+fn sync_room_address(code: Option<&str>) {
+    let result = (|| -> Result<(), String> {
+        let window = web_sys::window().ok_or("No browser window")?;
+        let location = window.location();
+        let path = location.pathname().map_err(|e| format!("Cannot read page path: {e:?}"))?;
+        let query = location.search().map_err(|e| format!("Cannot read page query: {e:?}"))?;
+        let address = super::collaboration_protocol::room_page_address(&path, &query, code)?;
+        if address != format!("{path}{query}") {
+            window
+                .history()
+                .map_err(|e| format!("Cannot access page history: {e:?}"))?
+                .replace_state_with_url(&JsValue::NULL, "", Some(&address))
+                .map_err(|e| format!("Cannot update invitation address: {e:?}"))?;
+        }
+        Ok(())
+    })();
+    if let Err(error) = result {
+        log::warn!("{error}");
+    }
+}
 impl Bridge {
     fn host(&self) -> bool {
         self.admission.as_ref().is_some_and(|a| a.peer == a.host)
@@ -523,6 +544,7 @@ impl Bridge {
                 NetworkIntent::Create { server, password, .. } => (server, None, password),
                 NetworkIntent::Join { server, code, password, .. } => (server, Some(code), password),
                 NetworkIntent::Leave => {
+                    sync_room_address(None);
                     app.ui.collaboration.transport_pending = false;
                     app.ui.collaboration.transport_status = "Disconnected".into();
                     app.session.collaboration = Default::default();
@@ -549,6 +571,7 @@ impl Bridge {
             let Some(event) = event else { break };
             match event {
                 Event::Joined(a) => {
+                    sync_room_address(Some(&a.code));
                     app.session.collaboration = Default::default();
                     app.session.collaboration.document_id = app.session.active().map(|s| s.doc.id);
                     app.session.collaboration.room = Some(RoomState::new(a.code.clone(), a.host.clone(), a.peer.clone()));
