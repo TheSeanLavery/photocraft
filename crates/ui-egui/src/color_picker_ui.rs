@@ -241,6 +241,11 @@ fn float_color(v: &Value) -> Option<[f32; 3]> {
     }
     Some(c)
 }
+/// Preserve the selected gain while changing hue/saturation, including dim colors.
+fn float_field_color(peak: f32, x: f32, y: f32) -> [f32; 3] {
+    hsv_to_rgb(x.clamp(0.0, 1.0) * 360.0, 1.0 - y.clamp(0.0, 1.0), if peak > 0.0 { peak } else { 1.0 })
+}
+
 fn float_body(app: &PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     let mut c = current(f).rgb;
     let original = c;
@@ -265,14 +270,26 @@ fn float_body(app: &PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>
         c = if peak > 0.0 { c.map(|v| (v * ratio).min(65504.0)) } else { [2.0f32.powf(gain_ev); 3] };
     }
     ui.weak("+1 EV doubles RGB numbers; this equals light intensity in a linear working profile.");
-    // The hue field selects a unit color while retaining the current HDR scale.
+    // Field and selected color use the same current gain, including above-white values.
+    let peak = c[0].max(c[1]).max(c[2]);
     let hsv = rgb_to_hsv(c.map(|v| v / peak.max(1e-6)));
     let (rect, response) = ui.allocate_exact_size(vec2(360.0, 140.0), Sense::click_and_drag());
-    ui.painter().add(grid_mesh(rect, 32, |x, y| hsv_to_rgb(x * 360.0, 1.0 - y, 1.0)));
+    let gpu_field =
+        crate::hdr_ui::float_picker_preview(app, ui, rect, [360, 140], u64::from(peak.to_bits()), egui::Id::new("hdr-picker-field").value(), || {
+            let mut b = photocraft_compose::Buffer::filled(photocraft_geom::Rect::new(0, 0, 360, 140), [0.0; 4]);
+            for (i, pixel) in b.px.iter_mut().enumerate() {
+                let rgb = float_field_color(peak, (i % 360) as f32 / 359.0, (i / 360) as f32 / 139.0);
+                *pixel = [rgb[0], rgb[1], rgb[2], 1.0];
+            }
+            b
+        });
+    if !gpu_field {
+        ui.painter().add(grid_mesh(rect, 32, |x, y| float_field_color(peak, x, y)));
+    }
     if let Some(p) = response.interact_pointer_pos().filter(|_| response.clicked() || response.dragged()) {
         let h = ((p.x - rect.left()) / rect.width()).clamp(0.0, 1.0) * 360.0;
         let sat = 1.0 - ((p.y - rect.top()) / rect.height()).clamp(0.0, 1.0);
-        c = hsv_to_rgb(h, sat, peak.max(1.0));
+        c = float_field_color(peak, h / 360.0, 1.0 - sat);
     }
     let point = pos2(rect.left() + hsv[0] / 360.0 * rect.width(), rect.bottom() - hsv[1] * rect.height());
     ui.painter().circle_stroke(point, 5.0, Stroke::new(1.5, t.text));
@@ -292,7 +309,11 @@ fn float_body(app: &PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>
             }
         });
     });
-    ui.weak("Hue is SDR. Swatches use float GPU output when available; CPU previews clip at white.");
+    ui.weak(if gpu_field {
+        "Field and swatches preview the selected HDR intensity."
+    } else {
+        "SDR preview: float RGB is preserved, but this display path clips highlights."
+    });
     ui.horizontal(|ui| {
         for (label, v) in [("White", 1.0), ("+1 EV", 2.0), ("+2 EV", 4.0)] {
             if ui.button(label).clicked() {
@@ -600,6 +621,22 @@ mod tests {
         assert_eq!(current(&fields).rgb, [4.0, 2.125, 0.3]);
         confirm(&mut app, &fields).unwrap();
         assert_eq!(app.session.tools.foreground, [4.0, 2.125, 0.3, 1.0]);
+    }
+
+    #[test]
+    fn float_hue_selection_preserves_hdr_and_dim_intensity() {
+        let mut app = PhotocraftApp::new(Default::default(), Default::default());
+        app.session.execute("file.new", json!({"width":8,"height":8,"depth":32})).unwrap();
+        for peak in [0.25, 1.0, 4.0, 16.0] {
+            let id = open(&mut app, "foreground");
+            let mut fields = app.ui.dialog_mut(id).unwrap().fields.clone();
+            // Selecting green at half saturation must retain the current gain.
+            let selected = float_field_color(peak, 1.0 / 3.0, 0.5);
+            assert_eq!(selected, [peak * 0.5, peak, peak * 0.5]);
+            set_rgb(&mut fields, selected, Keep::Nothing);
+            confirm(&mut app, &fields).unwrap();
+            assert_eq!(app.session.tools.foreground, [peak * 0.5, peak, peak * 0.5, 1.0]);
+        }
     }
 
     #[test]
