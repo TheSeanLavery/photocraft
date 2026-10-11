@@ -16,56 +16,76 @@ pub fn export(app: &mut PhotocraftApp) -> Result<Value, String> {
 /// Genuine float swatch on the GPU; SDR fallback is explicitly a clipped approximation.
 /// The document's composite RGB encoding and ICC profile are used, as by paint/eyedropper.
 pub fn swatch(app: &PhotocraftApp, ui: &mut egui::Ui, rect: Rect, color: [f32; 4], key: u64) {
-    if let (Some(g), Some(st)) = (&app.gpu, app.session.active())
-        && g.format_for(photocraft_color::SampleType::F32, [1, 1]) == eframe::wgpu::TextureFormat::Rgba16Float
-    {
-        let b = photocraft_compose::Buffer::filled(photocraft_geom::Rect::new(0, 0, 1, 1), color);
-        if let Ok(display) = app.session.color.canvas_display(&st.doc) {
-            let signature = egui::Id::new((app.session.color.display_signature(&st.doc), color.map(f32::to_bits))).value();
-            let mode = if let Some((_, mode)) = g.display_lut_signature(key, 0).filter(|(saved, _)| *saved == signature) {
-                mode
-            } else {
-                let b = display.texture_buffer(&b);
-                g.upload_buffer_full(key, &b, photocraft_color::SampleType::F32);
-                let mode = match app.session.color.gpu_canvas_lut(&st.doc, 33) {
-                    Ok(Some(lut)) => {
-                        g.set_display_lut(key, 0, 33, Some(&lut));
-                        1
-                    }
-                    _ => {
-                        g.set_display_lut(key, 0, 33, None);
-                        0
-                    }
-                };
-                g.cache_display_lut_signature(key, 0, signature, mode);
-                mode
-            };
-            crate::gpu_canvas::GpuCanvas::paint(
-                &ui.painter().with_clip_rect(rect.intersect(ui.clip_rect())),
-                rect,
-                crate::gpu_canvas::ViewParams {
-                    doc: key,
-                    output: 0,
-                    doc_size: [1, 1],
-                    zoom: rect.width().max(rect.height()),
-                    center: [0.5, 0.5],
-                    shadow: false,
-                    pixel_grid: false,
-                    view_key: key,
-                    display: mode,
-                    hdr: None,
-                    output_headroom: if app.ui.sdr_output { 1.0 } else { g.output_headroom() },
-                    workbench: None,
-                },
-            );
-            return;
-        }
+    if float_picker_preview(app, ui, rect, [1, 1], egui::Id::new(color.map(f32::to_bits)).value(), key, || {
+        photocraft_compose::Buffer::filled(photocraft_geom::Rect::new(0, 0, 1, 1), color)
+    }) {
+        return;
     }
     ui.painter().rect_filled(
         rect,
         0.0,
         egui::Color32::from_rgb((color[0].clamp(0.0, 1.0) * 255.0) as u8, (color[1].clamp(0.0, 1.0) * 255.0) as u8, (color[2].clamp(0.0, 1.0) * 255.0) as u8),
     );
+}
+
+/// Cached float picker image; colors remain in the document's composite profile.
+/// Build pixels only when intensity or the display transform changes.
+pub(crate) fn float_picker_preview(
+    app: &PhotocraftApp,
+    ui: &egui::Ui,
+    rect: Rect,
+    size: [u32; 2],
+    content_signature: u64,
+    key: u64,
+    pixels: impl FnOnce() -> photocraft_compose::Buffer,
+) -> bool {
+    if size.contains(&0) {
+        return false;
+    }
+    let (Some(g), Some(st)) = (&app.gpu, app.session.active()) else { return false };
+    if g.format_for(photocraft_color::SampleType::F32, size) != eframe::wgpu::TextureFormat::Rgba16Float {
+        return false;
+    }
+    let Ok(display) = app.session.color.canvas_display(&st.doc) else { return false };
+    let signature = egui::Id::new((app.session.color.display_signature(&st.doc), content_signature, size)).value();
+    let mode = if let Some((_, mode)) = g.display_lut_signature(key, 0).filter(|(saved, _)| *saved == signature) {
+        mode
+    } else {
+        let b = pixels();
+        let b = display.texture_buffer(&b);
+        g.upload_buffer_full(key, &b, photocraft_color::SampleType::F32);
+        let mode = match app.session.color.gpu_canvas_lut(&st.doc, 33) {
+            Ok(Some(lut)) => {
+                g.set_display_lut(key, 0, 33, Some(&lut));
+                1
+            }
+            _ => {
+                g.set_display_lut(key, 0, 33, None);
+                0
+            }
+        };
+        g.cache_display_lut_signature(key, 0, signature, mode);
+        mode
+    };
+    crate::gpu_canvas::GpuCanvas::paint(
+        &ui.painter().with_clip_rect(rect.intersect(ui.clip_rect())),
+        rect,
+        crate::gpu_canvas::ViewParams {
+            doc: key,
+            output: 0,
+            doc_size: size,
+            zoom: (rect.width() / size[0] as f32).max(rect.height() / size[1] as f32),
+            center: [size[0] as f32 * 0.5, size[1] as f32 * 0.5],
+            shadow: false,
+            pixel_grid: false,
+            view_key: key,
+            display: mode,
+            hdr: None,
+            output_headroom: if app.ui.sdr_output { 1.0 } else { g.output_headroom() },
+            workbench: None,
+        },
+    );
+    true
 }
 
 pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
@@ -307,7 +327,7 @@ impl PreviewDisplay<'_> {
 
 /// Bounded swatch resources; unused keys allocate nothing.
 pub(crate) fn gpu_keys() -> impl Iterator<Item = u64> {
-    [egui::Id::new("hdr-picker-new").value(), egui::Id::new("hdr-picker-old").value()]
+    [egui::Id::new("hdr-picker-new").value(), egui::Id::new("hdr-picker-old").value(), egui::Id::new("hdr-picker-field").value()]
         .into_iter()
         .chain((0..32usize).map(|i| egui::Id::new(("hdr-saved-swatch", i)).value()))
         .chain(FILTER_PREVIEW_KEYS.into_iter().map(|s| egui::Id::new(s).value()))

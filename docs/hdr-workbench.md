@@ -34,7 +34,9 @@ In a 32-bit document the foreground/background and gradient-stop picker stores
 float RGB arrays instead of hex colors. Its numeric fields use the document's
 composite RGB profile, which is named in the dialog. RGB gain doubles the numbers
 per EV; this is a light-intensity change in a linear working profile. The hue
-field is SDR, while the new/current swatches render through the float GPU canvas.
+field and new/current swatches render through the float GPU canvas at the selected
+RGB gain. Changing hue or saturation preserves that gain, including colors below
+reference white. CPU preview clips highlights but keeps the chosen float values.
 Their visible brightness is limited by current display headroom.
 
 The eyedropper reads original composite pixels, including values above 1.0;
