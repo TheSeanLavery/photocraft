@@ -117,6 +117,11 @@ impl PhotocraftApp {
     /// (#1826, #1866). A caller's explicit directory is kept. The chosen folder is remembered for
     /// the document the dialog was asked for.
     pub(crate) fn pick_save(&mut self, suggested: &str, then: impl FnOnce(&mut Self, String) -> Result<Value, String> + 'static) -> Result<Value, String> {
+        if self.services.file_dialog.is_none() {
+            let path = self.services.pick_save.as_mut().and_then(|pick| pick(suggested)).ok_or(CANCELLED)?;
+            let path = Self::lowercased_extension(self, path);
+            return then(self, path);
+        }
         let mut suggested = std::path::PathBuf::from(suggested);
         let doc = self.session.active().map(|d| d.doc.id);
         // Closed documents' folders are no longer needed.

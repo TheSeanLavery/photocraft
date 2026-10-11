@@ -3755,3 +3755,67 @@ cameraData	Lens	Lens
 	Emulsion Down	Emulsie omlaag
 	Functions	Functies
 	Print Resolution:	Afdrukresolutie:
+
+# Fork feature translations retained alongside upstream language coverage.
+	Apply Theme	Thema toepassen
+	Branch	Tak
+	Budget mb	Limiet MB
+	Cancel Theme Preview	Themavoorbeeld annuleren
+	Caption font	Titellettertype
+	Change opacity	Dekking wijzigen
+	Click to change columns; drag the title bar to move	Klik om kolommen te wijzigen; sleep de titelbalk om te verplaatsen
+	Click to change columns; drag to detach Tools	Klik om kolommen te wijzigen; sleep om Gereedschappen los te maken
+	Collaboration View Settings	Weergave-instellingen voor samenwerking
+	Collaboration…	Samenwerking…
+	Copy JSON	JSON kopiëren
+	Dock Tools on the left	Gereedschappen links vastzetten
+	Draft: {name}	Concept: {name}
+	Duplicate Theme	Thema dupliceren
+	Edit Theme Definition	Themadefinitie bewerken
+	Edit the definition below. Duplicate a built-in theme before changing it.	Bewerk de definitie hieronder. Dupliceer een ingebouwd thema voordat u het wijzigt.
+	Export SDR Preview…	SDR-voorbeeld exporteren…
+	Export Theme…	Thema exporteren…
+	Font {requested} is unavailable; using {actual}.	Lettertype {requested} is niet beschikbaar; {actual} wordt gebruikt.
+	Full HD Portrait	Full HD staand
+	HDR Output	HDR-uitvoer
+	HDR Workbench	HDR-werkruimte
+	Import Theme…	Thema importeren…
+	List Themes	Thema's weergeven
+	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum-thema
+	Macintosh System 6 Theme	Macintosh System 6-thema
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm kiest het subtype op basis van de bitdiepte en kanalen van de afbeelding.
+	Opacity Threshold	Dekkingsdrempel
+	Portrait 4:5	Staand 4:5
+	Preview Theme	Themavoorbeeld
+	Preview is active. Cancel restores your saved theme.	Het voorbeeld is actief. Annuleren herstelt uw opgeslagen thema.
+	QHD 1440p	QHD 1440p
+	Remove Theme	Thema verwijderen
+	Reset Changes	Wijzigingen herstellen
+	Reset Theme	Thema herstellen
+	Retry storage	Opslaan opnieuw proberen
+	Return to Original	Terug naar origineel
+	Saved theme	Opgeslagen thema
+	Scroll down	Omlaag scrollen
+	Scroll left	Naar links scrollen
+	Scroll right	Naar rechts scrollen
+	Scroll up	Omhoog scrollen
+	Select Theme	Thema selecteren
+	Shape Operations	Vormbewerkingen
+	Square 1:1	Vierkant 1:1
+	Story 9:16	Verhaal 9:16
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	De geheugenlimiet wordt gedeeld door documentpixels, ingesloten gegevens en de geschiedenis. Het gebruik groeit naar behoefte; overig appgeheugen komt daarbovenop.
+	Theme Details	Themadetails
+	Theme Manager	Themabeheer
+	Theme Manager…	Themabeheer…
+	Theme definition exceeds 64 KiB	De themadefinitie is groter dan 64 KiB
+	Theme id	Thema-ID
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Deze browserversie bewaart de geschiedenis in het geheugen. Werkschijfinstellingen gelden voor de desktopapp.
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Dit formaat slaat een samengevoegde afbeelding op. Gebruik Een kopie opslaan om uw bewerkbare document te behouden.
+	Transparency Threshold	Transparantiedrempel
+	UHD 4K Portrait	UHD 4K staand
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	De schijfruimte voor de geschiedenis groeit alleen naar behoefte, tot deze limiet. Nul schakelt schijfcaching uit. Werkschijfpaden gelden voor de volgende cachesessie.
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	De schijfruimte voor de geschiedenis groeit alleen naar behoefte. Een onbeperkte geschiedenis bewaart toestanden totdat de opslag vol is. Werkschijfpaden gelden voor de volgende cachesessie.
+	Unlimited history	Onbeperkte geschiedenis
+	Use available disk space	Beschikbare schijfruimte gebruiken
+	Use trackpad pressure	Druk op trackpad gebruiken
+	Windows 98 SE Theme	Windows 98 SE-thema

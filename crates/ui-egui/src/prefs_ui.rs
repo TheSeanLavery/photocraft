@@ -475,7 +475,14 @@ fn finish_recovery(app: &mut PhotocraftApp, key: &str, value: &Value) {
     {
         *target = view;
     }
-    if context.active {
+    // Restore startup selection among recovered tabs, while preserving live work opened
+    // or edited during the asynchronous decode. Admission already retained that document's ID.
+    let may_restore_focus = app.session.active().is_none_or(|state| {
+        state.doc.id == id
+            || (app.prefs_rt.recovery_keys.contains_key(&state.doc.id)
+                && app.prefs_rt.autosaved.get(&state.doc.id).is_some_and(|stamp| stamp.revision == state.revision))
+    });
+    if context.active && may_restore_focus {
         app.session.set_active(index);
         if let Some(tool) = context.tool {
             app.ui.tool = tool;
@@ -603,9 +610,11 @@ pub fn tick(app: &mut PhotocraftApp, ctx: &egui::Context) {
     autosave(app);
     if let Some(error) = &app.prefs_rt.recovery_error {
         app.ui.status.clone_from(error);
+        app.ui.status_error = true;
     }
     if let Some(error) = app.prefs_rt.autosave_errors.values().next() {
         app.ui.status.clone_from(error);
+        app.ui.status_error = true;
     }
     if app.services.autosave.is_some() {
         let delay = if app.prefs_rt.pending_autosaves.is_empty() && app.prefs_rt.retiring.is_empty() { 1_000 } else { 100 };
@@ -836,6 +845,7 @@ fn autosave(app: &mut PhotocraftApp) {
                             && app.ui.status == error
                         {
                             app.ui.status = "Recovery checkpoint removed".into();
+                            app.ui.status_error = false;
                         }
                     }
                     Err(e) => {
@@ -857,6 +867,7 @@ fn autosave(app: &mut PhotocraftApp) {
                             && app.ui.status == error
                         {
                             app.ui.status = "Recovery checkpoint saved".into();
+                            app.ui.status_error = false;
                         }
                     }
                     Err(e) => {
@@ -3006,10 +3017,10 @@ mod tests {
         let values = prefs::Preferences::default().to_json();
         assert!(has_visible_fields(&values, "general"));
         assert!(has_visible_fields(&values, "fileHandling"));
-        // Every setting of these sections is still unimplemented.
-        for section in ["integrations", "scratchDisks"] {
-            assert!(!has_visible_fields(&values, section), "{section}");
-        }
+        // Integration settings remain unimplemented.
+        assert!(!has_visible_fields(&values, "integrations"));
+        // Fork scratch-disk preferences configure the disk-backed history cache.
+        assert!(has_visible_fields(&values, "scratchDisks"));
         // "Fill new type layers with placeholder text" and "Use Escape to Commit" are live; other Type rows stay hidden.
         assert!(has_visible_fields(&values, "type"));
         assert!(!prefs::is_hidden("type.fillNewTypeLayersWithPlaceholder"));
@@ -3449,6 +3460,7 @@ mod tests {
         complete(&completed, id, revision, Err("disk full".into()));
         tick(&mut app, &ctx);
         assert!(app.ui.status.contains("disk full"));
+        assert!(app.ui.status_error, "failed checkpoints render as errors");
         assert!(!app.prefs_rt.autosaved.contains_key(&id));
         autosave_now(&mut app);
         tick(&mut app, &ctx);
@@ -3464,6 +3476,7 @@ mod tests {
         tick(&mut app, &ctx);
         assert!(app.prefs_rt.autosave_errors.is_empty());
         assert!(!app.ui.status.contains("disk full"), "a completed retry clears the displayed failure");
+        assert!(!app.ui.status_error, "completed retry clears its own error styling");
         assert!(app.prefs_rt.autosaved.contains_key(&id));
     }
     #[test]

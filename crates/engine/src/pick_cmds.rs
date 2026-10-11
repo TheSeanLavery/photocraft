@@ -29,6 +29,9 @@ fn layers_hit(doc: &Document, x: i32, y: i32, type_bounds: bool) -> Vec<LayerId>
     let rows = doc.walk();
     let mut out = Vec::new();
     for (path, _, l) in rows.iter().rev() {
+        if !l.visible || l.opacity <= 0.0 || l.fill_opacity <= 0.0 {
+            continue;
+        }
         // The layer and every enclosing group must be visible.
         if !(1..path.len()).all(|n| {
             doc.layer_at(&path[..n]).is_some_and(|a| {

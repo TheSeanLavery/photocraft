@@ -753,7 +753,7 @@ fn wire_points(points: &[Vec<f64>]) -> Vec<photocraft_engine::paint::StrokePoint
 /// A pen tap (a drag still at its one press point when released) paints its dab at the highest
 /// pressure the pen reached during the contact, not just the first sample's (#1798). A mouse is
 /// unchanged at full pressure.
-fn tap_at_peak_pressure(app: &mut PhotocraftApp) {
+pub(crate) fn tap_at_peak_pressure(app: &mut PhotocraftApp) {
     if app.stylus.sample().is_none() {
         return;
     }
@@ -769,7 +769,7 @@ const HOLD_REPEAT_MS: f64 = 16.0;
 
 /// Is the live stroke one that changes while the pointer is held still (airbrush Build-up, or
 /// smoothing catching up)? Only then does a held pointer repeat its point and keep repainting.
-fn stroke_wants_time(app: &PhotocraftApp) -> bool {
+pub(crate) fn stroke_wants_time(app: &PhotocraftApp) -> bool {
     app.live_stroke.as_ref().is_some_and(|l| l.stroke.wants_time())
 }
 
@@ -1744,7 +1744,7 @@ fn ensure_proxy_preview(app: &mut PhotocraftApp, idx: usize) -> Option<(u32, u64
         let st = app.session.documents().get(idx)?;
         (st.doc.id, st.revision, st.doc.clone())
     };
-    let k = crate::proxy::factor(&doc);
+    let k = crate::proxy::preview_factor(&doc, crate::proxy::reduced_previews(app));
     let gpu = app.gpu.as_ref()?;
     if doc.depth == photocraft_color::SampleType::F32
         && gpu.format_for(doc.depth, [doc.size.width.div_ceil(k), doc.size.height.div_ceil(k)]) != eframe::wgpu::TextureFormat::Rgba16Float
@@ -3172,8 +3172,10 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         }
         // The (temporary) Hand pans above; its gestures never reach the tool underneath. While a
         // Free Transform box is open the Hand does not pan, so the box gets these events (#2302).
-        if crate::brush_input::route(app, &response, &xf, tool) || hand_pan {
-            (buttons.started, buttons.dragged, buttons.stopped) = (false, false, false);
+        let routed_paint = crate::brush_input::route(app, &response, &xf, tool);
+        if routed_paint || hand_pan {
+            (buttons.started, buttons.dragged, buttons.stopped, buttons.clicked) = (false, false, false, false);
+            app.press_stroke = false;
         }
         // Rotate View: drag around the view centre. Compass clicks are not a rotate drag.
         let over_compass = crate::rotate_view::compass_visible(view.rotation)
@@ -3195,7 +3197,8 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         // Live painting tools start on the press, not once the pointer passes egui's click
         // distance: the first dab shows at once. The drag recognised later continues that stroke,
         // and a click (or a long press that never moved) just ends it.
-        if strokes_live(tool)
+        if !routed_paint
+            && strokes_live(tool)
             && app.drag.is_none()
             && response.is_pointer_button_down_on()
             && ui.input(|i| i.pointer.primary_pressed())
@@ -3573,7 +3576,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                             _ => {
                                 let centre = brush_tip_centre(tool, alt || app.ui.shell.sticky_alt, cur.show_crosshair_in_brush_tip, r);
                                 if tool != Tool::QuickSelection && crate::brush_cursor::show(&ctx, r, centre) {
-                                    egui::CursorIcon::Crosshair
+                                    egui::CursorIcon::None
                                 } else {
                                     crate::tool_cursor::circle(&painter, p, r, centre)
                                 }
@@ -3653,8 +3656,11 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     // Scrollbars (scrollbars.rs): drawn over the canvas edges, they take the pointer there.
     let t0 = crate::gpu_canvas::now_ms();
     let before = view.center;
+    // Historical bars reserve their strip from the supplied area; the brush's rect already
+    // excludes that strip. Supplying it again would put the arrows inside the brush canvas.
+    let scrollbar_area = if crate::theme::Tokens::get(&ctx).appearance != crate::theme::Appearance::Modern { bar_area } else { rect };
     let over_bars = app.ui.view.shows_scrollbars()
-        && crate::scrollbars::show(ui, rect, &mut view, flip, aspect, app.session.prefs().tools.overscroll, egui::Id::new(("pc-canvas", idx)));
+        && crate::scrollbars::show(ui, scrollbar_area, &mut view, flip, aspect, app.session.prefs().tools.overscroll, egui::Id::new(("pc-canvas", idx)));
     ctx.data_mut(|d| d.insert_temp(bars_id, over_bars));
     if view.center != before {
         ctx.request_repaint();
@@ -4365,9 +4371,7 @@ pub(crate) fn alt_samples(tool: Tool, mods: egui::Modifiers) -> bool {
 /// The sampling cursor: a pipette whose tip is the sampled pixel. Draws it at `p` and returns the
 /// OS cursor to set (hidden).
 pub(crate) fn pipette_cursor(ctx: &egui::Context, p: Pos2) -> egui::CursorIcon {
-    // The tip of the icon's pipette is at (2, 22) of its 24-unit box.
-    crate::icons::cursor(ctx, "pipette", p, vec2(2.0, 22.0) / 24.0, 20.0);
-    egui::CursorIcon::None
+    crate::brush_cursor::eyedropper(ctx, p)
 }
 
 /// Decided when the press starts, so ⌥ pressed or released mid-stroke never switches between
@@ -5393,8 +5397,8 @@ mod tests {
         let dialog = crate::adjust_dialog::open(&mut app, "image.adjustments.exposure").unwrap();
         app.ui.dialog_mut(dialog).unwrap().fields.insert("exposure".into(), serde_json::json!(-1.0));
         ensure_texture(&mut app, &ctx, 0, None).unwrap();
-        let shown = app.filter_preview.as_ref().unwrap().result.as_ref().unwrap();
-        assert_eq!(photocraft_compose::flatten(shown).px[0], [1.0, 2.0, 4.0, 1.0]);
+        let (shown, _) = display_doc(&mut app, 0);
+        assert_eq!(photocraft_compose::flatten(&shown).px[0], [1.0, 2.0, 4.0, 1.0]);
         app.ui.dialog_mut(dialog).unwrap().fields.insert("__preview".into(), serde_json::json!(false));
         assert!(filter_preview_document(&mut app, 0, &ctx).is_none());
         ensure_texture(&mut app, &ctx, 0, None).unwrap();
@@ -5661,6 +5665,7 @@ mod tests {
         app.run("collab.room.create", json!({"code":"MASK01","peer":"alice"})).unwrap();
         app.ui.mask_target = true;
         app.ui.tool = Tool::Brush;
+        app.run("tools.setColors", json!({"foreground":"#000000"})).unwrap();
         tool_event(&mut app, ToolEvent::Down { x: 10.0, y: 10.0, pressure: 0.5 }, egui::Modifiers::NONE);
         tool_event(&mut app, ToolEvent::Up { x: 20.0, y: 20.0 }, egui::Modifiers::NONE);
         assert!(!app.ui.status_error, "{}", app.ui.status);
@@ -7302,7 +7307,7 @@ mod merge_room_symmetry_tests {
             let mut app = PhotocraftApp::new(Default::default(), Default::default());
             app.run("file.new", json!({"width":16,"height":16,"background":"white"})).unwrap();
             app.run("paint.setSymmetry", json!({"mode":"vertical","center":[8.0,8.0]})).unwrap();
-            app.run("tools.setBrush", json!({"brush":{"size":3,"hardness":1,"smoothing":0}})).unwrap();
+            app.run("tools.setBrush", json!({"brush":{"size":3,"hardness":1,"smoothing":{"amount":0}}})).unwrap();
             app.ui.tool = Tool::Brush;
             app.sync_views();
             if shared {

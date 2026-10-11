@@ -1155,7 +1155,8 @@ fn gradient_map(ui: &mut egui::Ui, v: &mut Value, cx: &EditorCx) -> Edit {
         let (press, close) = crate::press_menu::PressCombo::before(ui, cx.mem.with("gm-preset"));
         let combo = egui::ComboBox::from_id_salt(cx.mem.with("gm-preset"))
             .selected_text(tl!("Custom"))
-            .width(190.0)
+            // Keep the preset label and picker inside compact historical Properties.
+            .width(190.0_f32.min(ui.available_width().max(0.0)))
             .height(420.0)
             .icon(widgets::chevron_icon)
             .close_behavior(close)

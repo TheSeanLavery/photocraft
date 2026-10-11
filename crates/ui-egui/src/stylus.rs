@@ -254,21 +254,23 @@ impl Stylus {
         }
     }
 
-    /// The current pen sample, `None` for a mouse (and for any pen while Use Tablet Pressure is
-    /// off).
+    /// The current pen or opted-in Force Touch sample, `None` for a mouse. Tablet settings and
+    /// its pressure curve affect the pen; Force Touch has independent preferences.
     pub fn sample(&self) -> Option<PenSample> {
-        if !self.use_pressure {
-            return None;
+        let pen = self
+            .use_pressure
+            .then(|| self.current.or_else(|| self.latest()).or(self.touch.map(|pressure| PenSample { pressure, ..Default::default() })))
+            .flatten();
+        if let Some(s) = pen {
+            // Tablet pressure preferences affect the pen only. Force Touch has its own opt-in.
+            return Some(PenSample { pressure: self.shape_pen_pressure(s.pressure), ..s });
         }
-        let s =
-            self.current.or_else(|| self.latest()).or(self.touch.map(|pressure| PenSample { pressure, ..Default::default() })).or_else(|| {
-                self.use_trackpad_pressure.then(|| self.trackpad_feed.get()).flatten().map(|pressure| PenSample { pressure, ..Default::default() })
-            })?;
-        // The pen's pressure through Preferences › Tools › Pressure Curve, before any brush sees it.
-        Some(match &self.pressure_curve {
-            Some(c) => PenSample { pressure: c.eval(s.pressure), ..s },
-            None => s,
-        })
+        self.use_trackpad_pressure.then(|| self.trackpad_feed.get()).flatten().map(|pressure| PenSample { pressure, ..Default::default() })
+    }
+
+    /// Apply the tablet curve to an ordered raw pen force; Force Touch is independent.
+    pub(crate) fn shape_pen_pressure(&self, pressure: f32) -> f32 {
+        self.pressure_curve.as_ref().map_or(pressure, |curve| curve.eval(pressure))
     }
 
     /// Preferences › Tools › Pressure Curve (rebuilt only when the points change).
@@ -358,6 +360,9 @@ impl Stylus {
     /// often far lighter than the tap. 1 for a mouse.
     pub(crate) fn tap_pressure(&self) -> f32 {
         let Some(s) = self.sample() else { return 1.0 };
+        if !self.use_pressure || (self.current.is_none() && self.latest().is_none() && self.touch.is_none()) {
+            return s.pressure;
+        }
         let peak = match &self.pressure_curve {
             Some(c) => c.eval(self.peak),
             None => self.peak,
@@ -562,7 +567,9 @@ mod tests {
         assert_eq!(s.pressure(), 1.0);
         s.trackpad_feed.set(Some(0.4));
         s.use_pressure = false;
+        s.set_pressure_curve(&[[0.0, 0.0], [1.0, 0.2]]);
         assert_eq!(s.pressure(), 0.4);
+        assert_eq!(s.tap_pressure(), 0.4, "tablet curve does not reshape independent Force Touch pressure");
         s.trackpad_feed.set(None);
         assert_eq!(s.pressure(), 1.0);
         s.trackpad_feed.set(Some(0.6));

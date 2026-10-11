@@ -62,13 +62,16 @@ impl Catalog {
 
     pub fn get(&self, id: &str) -> Option<ThemePack> {
         if let Some(kind) = builtin(id) {
+            let selected = crate::theme::Tokens::for_kind(kind).row_selected_text;
             return Some(ThemePack {
                 version: 1,
                 id: id.into(),
                 name: kind.label().into(),
                 base: kind.label().into(),
                 appearance: Default::default(),
-                colors: BTreeMap::new(),
+                // Built-ins keep their authored selection contrast; portable legacy packs
+                // still inherit `text` when no selected-row foreground was specified.
+                colors: BTreeMap::from([("row_selected_text".into(), format!("#{:02X}{:02X}{:02X}", selected.r(), selected.g(), selected.b()))]),
                 geometry: Default::default(),
                 typography: Default::default(),
             });

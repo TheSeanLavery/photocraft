@@ -475,7 +475,10 @@ mod integration_tests {
         let st = s.active().unwrap();
         assert!(st.history.state_by_id(st.doc.clone(), branch_b).is_some());
         assert!(st.history.state_by_id(st.doc.clone(), branch_c).is_none());
-        assert!(!st.history.can_redo());
+        assert_eq!(st.history.adjacent_id(true), Some(branch_b), "an unrelated preserved branch remains redoable");
+        s.redo();
+        assert_eq!(s.active().unwrap().history.current_id(), branch_b);
+        s.undo();
         s.execute("layer.new.layer", json!({"name":"D"})).unwrap();
         let original = s.active().unwrap().history.try_state(0).unwrap().unwrap();
         s.active_mut().unwrap().history.replace_resident(&original, Arc::new(Broken));

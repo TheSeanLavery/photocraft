@@ -922,7 +922,9 @@ mod tests {
         std::fs::create_dir(&recovery).unwrap();
         autosave(&mut app, &ctx);
         let mut recovered = Vec::new();
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+        // The unchanged snapshot retries after a 30 s backoff. Leave time for the
+        // queued worker write and completion polling after that deadline.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(45);
         while std::time::Instant::now() < deadline {
             prefs_ui::tick(&mut app, &ctx);
             recovered = list_recovery(&recovery);

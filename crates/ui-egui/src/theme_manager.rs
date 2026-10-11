@@ -155,9 +155,8 @@ pub(crate) fn tick(app: &mut PhotocraftApp, ctx: &Context) {
 fn import_file(app: &mut PhotocraftApp, ctx: &Context) -> Result<(), String> {
     if app.services.file_dialog.is_some() {
         let ctx = ctx.clone();
-        app.pick_file_bytes_filtered(&["json"], move |app, _, bytes| {
-            let text = String::from_utf8(bytes).map_err(|_| "theme file is not valid UTF-8".to_string())?;
-            import_text(app, &ctx, text)?;
+        app.ask_file(crate::FileDialogRequest::Open { multiple: false, initial_dir: None, extensions: Some(vec!["json".into()]) }, move |app, answer| {
+            import_text(app, &ctx, read_theme_answer(answer)?)?;
             Ok(Value::Null)
         })?;
         return Ok(());
@@ -167,6 +166,42 @@ fn import_file(app: &mut PhotocraftApp, ctx: &Context) -> Result<(), String> {
         import_text(app, ctx, text)?;
     }
     Ok(())
+}
+
+/// Admit a theme before allocating or parsing its complete contents. The async platform
+/// picker returns paths on native and bytes in a browser; both keep the fork's 64 KiB limit.
+fn read_theme_answer(answer: crate::FileDialogAnswer) -> Result<String, String> {
+    use crate::FileDialogAnswer;
+    let max = crate::theme_pack::MAX_THEME_BYTES;
+    let too_large = || format!("theme exceeds {max} bytes");
+    let bytes = match answer {
+        FileDialogAnswer::Contents(_, bytes) => bytes,
+        FileDialogAnswer::ContentsMany(files) => files.into_iter().next().ok_or(crate::file_dialog::CANCELLED)?.1,
+        FileDialogAnswer::Paths(paths) => {
+            let path = paths.into_iter().next().ok_or(crate::file_dialog::CANCELLED)?;
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                use std::io::Read;
+                let file = std::fs::File::open(&path).map_err(|e| e.to_string())?;
+                if file.metadata().map_err(|e| e.to_string())?.len() > max as u64 {
+                    return Err(too_large());
+                }
+                let mut bytes = Vec::new();
+                file.take(max as u64 + 1).read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+                bytes
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                let _ = path;
+                return Err("theme file contents are unavailable".into());
+            }
+        }
+        FileDialogAnswer::SaveTo(_) => return Err("the theme open dialog gave an unexpected answer".into()),
+    };
+    if bytes.len() > max {
+        return Err(too_large());
+    }
+    String::from_utf8(bytes).map_err(|_| "theme file is not valid UTF-8".to_string())
 }
 
 fn export_file(app: &mut PhotocraftApp) -> Result<(), String> {
@@ -480,6 +515,31 @@ mod tests {
         tick(&mut app, &ctx);
         assert!(app.ui.theme_manager.as_ref().unwrap().error.is_none());
     }
+    #[test]
+    fn asynchronous_theme_answer_rejects_oversize_contents_before_import() {
+        let max = crate::theme_pack::MAX_THEME_BYTES;
+        let answer = crate::FileDialogAnswer::Contents("too-large.theme.json".into(), vec![b' '; max + 1]);
+        assert_eq!(read_theme_answer(answer).unwrap_err(), format!("theme exceeds {max} bytes"));
+        assert!(read_theme_answer(crate::FileDialogAnswer::Contents("bad.theme.json".into(), vec![0xff])).is_err());
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn asynchronous_theme_path_rejects_oversize_file_before_reading() {
+        let path = std::env::temp_dir().join(format!(
+            "photocraft-theme-bound-{}-{}.json",
+            std::process::id(),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        let file = std::fs::File::create(&path).unwrap();
+        let max = crate::theme_pack::MAX_THEME_BYTES;
+        file.set_len(max as u64 + 1).unwrap();
+        drop(file);
+        let result = read_theme_answer(crate::FileDialogAnswer::Paths(vec![path.to_string_lossy().into_owned()]));
+        std::fs::remove_file(path).unwrap();
+        assert_eq!(result.unwrap_err(), format!("theme exceeds {max} bytes"));
+    }
+
     #[test]
     fn asynchronous_theme_import_and_export_use_json_filters_and_preserve_the_export_snapshot() {
         let ctx = Context::default();

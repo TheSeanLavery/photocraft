@@ -7471,3 +7471,129 @@ ui-refine-strokes-0b1c46698a8ef47f = Verfijningsstreken
 ui-shift-edge-4fadcbcd31772f0a = Rand verschuiven
 
 ui-smart-radius-2179959cee59e956 = Slimme straal
+
+# Fork feature translations; existing authored messages above are preserved.
+
+ui-apply-theme-940745b76f98edfc = Thema toepassen
+
+ui-branch-7a07940a2b62f185 = Tak
+
+ui-budget-mb-af9a1600ca07b419 = Limiet MB
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = Themavoorbeeld annuleren
+
+ui-caption-font-01f956c20c42c9c8 = Titellettertype
+
+ui-change-opacity-c419e848020b25f4 = Dekking wijzigen
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Klik om kolommen te wijzigen; sleep de titelbalk om te verplaatsen
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Klik om kolommen te wijzigen; sleep om Gereedschappen los te maken
+
+ui-collaboration-view-settings-cd37c80a120a2d5e = Weergave-instellingen voor samenwerking
+
+ui-collaboration-977b20dea89dd78c = Samenwerking…
+
+ui-copy-json-fc4e8907ed0b8b94 = JSON kopiëren
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Gereedschappen links vastzetten
+
+ui-draft-name-c0af463d8e1619b5 = Concept: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = Thema dupliceren
+
+ui-edit-theme-definition-7f259c436cbc367b = Themadefinitie bewerken
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = Bewerk de definitie hieronder. Dupliceer een ingebouwd thema voordat u het wijzigt.
+
+ui-export-sdr-preview-a2e7aebcb62b91d6 = SDR-voorbeeld exporteren…
+
+ui-export-theme-9924f16b219aa424 = Thema exporteren…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = Lettertype { $requested } is niet beschikbaar; { $actual } wordt gebruikt.
+
+ui-full-hd-portrait-39a9f8c4e7cf39c5 = Full HD staand
+
+ui-hdr-output-474159eb0db7fb90 = HDR-uitvoer
+
+ui-hdr-workbench-847f1f37e6c4ef5a = HDR-werkruimte
+
+ui-import-theme-a399ac79528870d5 = Thema importeren…
+
+ui-list-themes-3674d7aab0c03693 = Thema's weergeven
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Mac OS 9.1 Platinum-thema
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Macintosh System 6-thema
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm kiest het subtype op basis van de bitdiepte en kanalen van de afbeelding.
+
+ui-opacity-threshold-3dbc5455a6a96857 = Dekkingsdrempel
+
+ui-portrait-4-5-2d9505f71636dfcd = Staand 4:5
+
+ui-preview-theme-7eced90e6da56ad4 = Themavoorbeeld
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = Het voorbeeld is actief. Annuleren herstelt uw opgeslagen thema.
+
+ui-qhd-1440p-f76058a8c5f6bd81 = QHD 1440p
+
+ui-remove-theme-f449889ab3dc13fe = Thema verwijderen
+
+ui-reset-changes-91bb267473e72bf7 = Wijzigingen herstellen
+
+ui-reset-theme-09df599fa743782b = Thema herstellen
+
+ui-retry-storage-2e07dc65352aa868 = Opslaan opnieuw proberen
+
+ui-return-to-original-49ddd457800418b3 = Terug naar origineel
+
+ui-saved-theme-c30bc5d2b3c69847 = Opgeslagen thema
+
+ui-scroll-down-fff28769afb825f2 = Omlaag scrollen
+
+ui-scroll-left-58498927306bf4d7 = Naar links scrollen
+
+ui-scroll-right-3171dac9aaa15648 = Naar rechts scrollen
+
+ui-scroll-up-ae49a1e892131037 = Omhoog scrollen
+
+ui-select-theme-85a12011f3908f5a = Thema selecteren
+
+ui-shape-operations-e3eaf23b5a6b5836 = Vormbewerkingen
+
+ui-square-1-1-e6c9e86c3fb7e676 = Vierkant 1:1
+
+ui-story-9-16-35ed85c9f46c846c = Verhaal 9:16
+
+ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = De geheugenlimiet wordt gedeeld door documentpixels, ingesloten gegevens en de geschiedenis. Het gebruik groeit naar behoefte; overig appgeheugen komt daarbovenop.
+
+ui-theme-details-a78c7b85de9ad366 = Themadetails
+
+ui-theme-manager-43184a7204b2f7ef = Themabeheer
+
+ui-theme-manager-5e06c12bd6d5d9a9 = Themabeheer…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = De themadefinitie is groter dan 64 KiB
+
+ui-theme-id-2057ac72399d5a4d = Thema-ID
+
+ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = Deze browserversie bewaart de geschiedenis in het geheugen. Werkschijfinstellingen gelden voor de desktopapp.
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = Dit formaat slaat een samengevoegde afbeelding op. Gebruik Een kopie opslaan om uw bewerkbare document te behouden.
+
+ui-transparency-threshold-d681456c819197c6 = Transparantiedrempel
+
+ui-uhd-4k-portrait-d52f839571d5640a = UHD 4K staand
+
+ui-undo-disk-space-grows-only-when-needed-u-86946daf63c3a558 = De schijfruimte voor de geschiedenis groeit alleen naar behoefte, tot deze limiet. Nul schakelt schijfcaching uit. Werkschijfpaden gelden voor de volgende cachesessie.
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = De schijfruimte voor de geschiedenis groeit alleen naar behoefte. Een onbeperkte geschiedenis bewaart toestanden totdat de opslag vol is. Werkschijfpaden gelden voor de volgende cachesessie.
+
+ui-unlimited-history-d3654847d93db9b8 = Onbeperkte geschiedenis
+
+ui-use-available-disk-space-44211d74d7260f1a = Beschikbare schijfruimte gebruiken
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Druk op trackpad gebruiken
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Windows 98 SE-thema

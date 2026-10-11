@@ -7108,3 +7108,127 @@ ui-refine-strokes-0b1c46698a8ef47f = Штрихи уточнення
 ui-shift-edge-4fadcbcd31772f0a = Змістити край
 
 ui-smart-radius-2179959cee59e956 = Розумний радіус
+
+# Fork feature translations; existing authored messages above are preserved.
+
+ui-apply-theme-940745b76f98edfc = Застосувати тему
+
+ui-branch-7a07940a2b62f185 = Гілка
+
+ui-budget-mb-af9a1600ca07b419 = Ліміт МБ
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = Скасувати попередній перегляд теми
+
+ui-caption-font-01f956c20c42c9c8 = Шрифт заголовка
+
+ui-change-opacity-c419e848020b25f4 = Змінити непрозорість
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Клацніть, щоб змінити кількість стовпців; перетягніть заголовок, щоб перемістити
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Клацніть, щоб змінити кількість стовпців; перетягніть, щоб відокремити інструменти
+
+ui-collaboration-view-settings-cd37c80a120a2d5e = Параметри перегляду спільної роботи
+
+ui-collaboration-977b20dea89dd78c = Спільна робота…
+
+ui-continue-f031dd957d5c1b56 = Продовжити
+
+ui-copy-json-fc4e8907ed0b8b94 = Копіювати JSON
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Закріпити інструменти ліворуч
+
+ui-draft-name-c0af463d8e1619b5 = Чернетка: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = Дублювати тему
+
+ui-edit-theme-definition-7f259c436cbc367b = Редагувати визначення теми
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = Редагуйте визначення нижче. Перед зміною вбудованої теми створіть її копію.
+
+ui-export-sdr-preview-a2e7aebcb62b91d6 = Експортувати попередній перегляд SDR…
+
+ui-export-theme-9924f16b219aa424 = Експортувати тему…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = Шрифт { $requested } недоступний; використовується { $actual }.
+
+ui-full-hd-portrait-39a9f8c4e7cf39c5 = Full HD, вертикально
+
+ui-hdr-output-474159eb0db7fb90 = Виведення HDR
+
+ui-hdr-workbench-847f1f37e6c4ef5a = Робочий простір HDR
+
+ui-import-theme-a399ac79528870d5 = Імпортувати тему…
+
+ui-list-themes-3674d7aab0c03693 = Список тем
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Тема Mac OS 9.1 Platinum
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Тема Macintosh System 6
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm вибирає підтип за глибиною та каналами зображення.
+
+ui-portrait-4-5-2d9505f71636dfcd = Портрет 4:5
+
+ui-preview-theme-7eced90e6da56ad4 = Попередній перегляд теми
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = Попередній перегляд активний. Скасування відновлює збережену тему.
+
+ui-qhd-1440p-f76058a8c5f6bd81 = QHD 1440p
+
+ui-remove-theme-f449889ab3dc13fe = Видалити тему
+
+ui-reset-changes-91bb267473e72bf7 = Скинути зміни
+
+ui-reset-theme-09df599fa743782b = Скинути тему
+
+ui-retry-storage-2e07dc65352aa868 = Повторити збереження
+
+ui-return-to-original-49ddd457800418b3 = Повернутися до оригіналу
+
+ui-saved-theme-c30bc5d2b3c69847 = Збережена тема
+
+ui-scroll-down-fff28769afb825f2 = Прокрутити вниз
+
+ui-scroll-left-58498927306bf4d7 = Прокрутити ліворуч
+
+ui-scroll-right-3171dac9aaa15648 = Прокрутити праворуч
+
+ui-scroll-up-ae49a1e892131037 = Прокрутити вгору
+
+ui-select-theme-85a12011f3908f5a = Вибрати тему
+
+ui-shape-operations-e3eaf23b5a6b5836 = Операції з фігурами
+
+ui-square-1-1-e6c9e86c3fb7e676 = Квадрат 1:1
+
+ui-story-9-16-35ed85c9f46c846c = Історія 9:16
+
+ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = Ліміт пам’яті спільний для пікселів документа, вбудованих даних та історії скасувань. Використання зростає за потреби; інша пам’ять програми враховується окремо.
+
+ui-theme-details-a78c7b85de9ad366 = Відомості про тему
+
+ui-theme-manager-43184a7204b2f7ef = Менеджер тем
+
+ui-theme-manager-5e06c12bd6d5d9a9 = Менеджер тем…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Визначення теми перевищує 64 КіБ
+
+ui-theme-id-2057ac72399d5a4d = Ідентифікатор теми
+
+ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = Ця браузерна збірка зберігає історію скасувань у пам’яті. Параметри робочого диска стосуються настільної програми.
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = Цей формат зберігає зведене зображення. Використовуйте «Зберегти копію», щоб зберегти редагований документ.
+
+ui-uhd-4k-portrait-d52f839571d5640a = UHD 4K, вертикально
+
+ui-undo-disk-space-grows-only-when-needed-u-86946daf63c3a558 = Дисковий простір для скасувань зростає лише за потреби, до цього ліміту. Нуль вимикає дисковий кеш. Шляхи робочих дисків застосовуються до наступного сеансу кешування.
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Дисковий простір для скасувань зростає лише за потреби. Необмежена історія зберігає стани, доки сховище не заповниться. Шляхи робочих дисків застосовуються до наступного сеансу кешування.
+
+ui-unlimited-history-d3654847d93db9b8 = Необмежена історія
+
+ui-use-available-disk-space-44211d74d7260f1a = Використовувати доступний дисковий простір
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Використовувати натискання на трекпад
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Тема Windows 98 SE

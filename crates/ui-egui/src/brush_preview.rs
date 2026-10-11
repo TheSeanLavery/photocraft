@@ -117,7 +117,7 @@ pub fn preview_pixels(b: &BrushSettings, w: u32, h: u32, color: [f32; 4]) -> Vec
     brush.color = color;
     brush.erase = false;
     brush.seed = 7;
-    // Build-up adds dabs over (simulated) time: the preview has none.
+    // Keep the strip stable without airbrush build-up; sample time still drives speed spacing.
     brush.build_up = false;
     let n = 64;
     let points: Vec<StrokePoint> = (0..=n)
@@ -125,7 +125,7 @@ pub fn preview_pixels(b: &BrushSettings, w: u32, h: u32, color: [f32; 4]) -> Vec
             let s = i as f64 / n as f64;
             let x = 10.0 + s * (w as f64 - 20.0);
             let y = h as f64 / 2.0 - (s * std::f64::consts::TAU).sin() * h as f64 * 0.22;
-            StrokePoint::new(x, y, (s * std::f64::consts::PI).sin().max(0.05) as f32)
+            StrokePoint { time: s * 1000.0, ..StrokePoint::new(x, y, (s * std::f64::consts::PI).sin().max(0.05) as f32) }
         })
         .collect();
     let fmt = PixelFormat::new(ColorMode::Rgb, SampleType::U8, true);
@@ -309,6 +309,7 @@ mod tests {
             let render = |brush: &BrushSettings| stroke_texture(&ctx, "settings-strip", brush, w, h, Color32::WHITE);
             let on = render(&session.tools.brush);
             let on_pixels = preview_pixels(&session.tools.brush, w, h, [1.0; 4]);
+            assert!(on_pixels.as_chunks::<4>().0.iter().any(|p| p[3] > 0), "the preview contains a stroke");
             assert_eq!(render(&session.tools.brush).id(), on.id());
             assert_eq!(render_count(&ctx), 1);
 

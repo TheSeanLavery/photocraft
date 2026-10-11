@@ -89,19 +89,18 @@ fn brush_cursor_preserves_preferences_and_large_tip_has_a_native_hotspot() {
     h.state_mut().session.tools.brush.size = 20.0;
     h.event(egui::Event::PointerMoved(free_canvas(&h)));
     h.run_steps(2);
-    let crosshair = if cfg!(target_os = "windows") { egui::CursorIcon::None } else { egui::CursorIcon::Crosshair };
+    let crosshair = egui::CursorIcon::Crosshair;
     for (pref, icon) in [("precise", crosshair), ("standard", egui::CursorIcon::Default)] {
         h.state_mut().run("prefs.set", json!({"path": "cursors.painting", "value": pref})).unwrap();
         h.step();
-        assert!(h.output().platform_output.cursor_image.is_none());
+        assert_eq!(h.output().platform_output.cursor_image.is_some(), pref == "precise", "precise uses the native crosshair; standard uses the OS pointer");
         assert_eq!(h.output().platform_output.cursor_icon, icon);
     }
     h.state_mut().run("prefs.set", json!({"path": "cursors.painting", "value": "normalTip"})).unwrap();
     h.state_mut().session.tools.brush.size = 2000.0;
     h.step();
-    assert!(h.output().platform_output.cursor_image.is_none());
-    // Windows draws its own visible crosshair and hides the system cursor (#737).
-    assert_eq!(h.output().platform_output.cursor_icon, crosshair);
+    assert!(h.output().platform_output.cursor_image.is_some(), "large overlay keeps the native crosshair at its hotspot");
+    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::Crosshair);
 }
 
 #[test]
@@ -120,8 +119,9 @@ fn crosshair_only_while_painting_restores_the_native_tip_after_mouse_up() {
     h.hover_at(end);
     h.step();
     assert!(h.state().drag.is_some());
-    assert!(h.output().platform_output.cursor_image.is_none(), "the native tip must not cover the painting crosshair");
-    let crosshair = if cfg!(target_os = "windows") { egui::CursorIcon::None } else { egui::CursorIcon::Crosshair };
+    let painting = h.output().platform_output.cursor_image.as_ref().expect("native painting crosshair");
+    assert!(!std::sync::Arc::ptr_eq(&tip.rgba, &painting.rgba), "replace the tip with the painting crosshair");
+    let crosshair = egui::CursorIcon::Crosshair;
     assert_eq!(h.output().platform_output.cursor_icon, crosshair, "show the painting crosshair");
     h.event(egui::Event::PointerButton { pos: end, button: egui::PointerButton::Primary, pressed: false, modifiers: Modifiers::NONE });
     h.run_steps(2);
@@ -132,6 +132,8 @@ fn crosshair_only_while_painting_restores_the_native_tip_after_mouse_up() {
 #[test]
 fn alt_brush_shows_pipette_samples_and_restores_the_brush_on_release() {
     let mut h = harness();
+    // The sampling ring is covered separately; this test exercises native pipette lifetime.
+    h.state_mut().ui.tool_options.eyedropper_ring = false;
     h.state_mut().ui.tool = crate::state::Tool::Brush;
     h.state_mut().session.tools.brush.size = 20.0;
     let p = h.state().last_canvas_rect.center();
@@ -173,9 +175,9 @@ fn alt_brush_shows_pipette_samples_and_restores_the_brush_on_release() {
     h.state_mut().run("prefs.set", json!({"path": "cursors.other", "value": "precise"})).unwrap();
     h.event(egui::Event::ModifiersChanged(Modifiers::ALT));
     h.step();
-    assert!(h.output().platform_output.cursor_image.is_none());
+    assert_eq!(h.output().platform_output.cursor_image.is_some(), cfg!(not(target_arch = "wasm32")), "Precise uses the native crosshair bitmap");
     // Windows draws its own visible crosshair and hides the system cursor (#737).
-    let crosshair = if cfg!(target_os = "windows") { egui::CursorIcon::None } else { egui::CursorIcon::Crosshair };
+    let crosshair = egui::CursorIcon::Crosshair;
     assert_eq!(h.output().platform_output.cursor_icon, crosshair);
 }
 
@@ -427,7 +429,8 @@ fn curves_picker_samples_document_coordinates_through_the_view_transform() {
     let left = pos2(canvas.left() + 60.0, canvas.center().y);
     h.hover_at(left);
     h.run_steps(1);
-    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::None);
+    assert!(h.output().platform_output.cursor_image.is_some(), "native curves pipette");
+    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::Crosshair);
     press(&mut h, left, true);
     press(&mut h, left, false);
     h.run_steps(3);
@@ -679,10 +682,13 @@ fn eyedropper_and_alt_sampling_show_a_pipette() {
         h.output().platform_output.cursor_icon
     };
     h.state_mut().ui.tool = crate::state::Tool::Eyedropper;
-    assert_eq!(cursor(&mut h), egui::CursorIcon::None, "the pipette replaces the pointer");
+    assert_eq!(cursor(&mut h), egui::CursorIcon::Crosshair, "visible fallback for the native pipette");
+    let pipette = h.output().platform_output.cursor_image.clone().expect("native pipette replaces the pointer");
+    assert_ne!(pipette.hotspot[0], pipette.hotspot[1], "the sampled pixel is at the pipette tip");
     h.state_mut().ui.tool = crate::state::Tool::Brush;
     h.event(egui::Event::ModifiersChanged(Modifiers::ALT));
-    assert_eq!(cursor(&mut h), egui::CursorIcon::None, "⌥ samples with a pipette");
+    assert_eq!(cursor(&mut h), egui::CursorIcon::Crosshair, "visible fallback for Alt sampling");
+    assert!(std::sync::Arc::ptr_eq(&pipette.rgba, &h.output().platform_output.cursor_image.as_ref().expect("Alt uses the native pipette").rgba));
     h.state_mut().run("prefs.set", json!({"values": {"cursors.other": "precise"}})).unwrap();
     // Every platform reports the crosshair. The desktop builds also hand the OS a black-and-white
     // bitmap for it (`tool_cursor`, #1160, #1343), with `Crosshair` underneath as the fallback.

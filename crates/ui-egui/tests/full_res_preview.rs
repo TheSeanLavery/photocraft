@@ -120,6 +120,7 @@ fn adjustment_layer_drag_previews_at_full_resolution_when_low_res_is_off() {
     let layer = {
         let app = h.state_mut();
         app.run("layer.newAdjustmentLayer.invert", json!({})).expect("adjustment layer");
+        app.ui.mask_target = false;
         let id = app.session.active().and_then(|d| d.active_layer).expect("active layer");
         // What the Properties panel sets while a slider drags.
         app.live_adjust = Some((id, json!({})));

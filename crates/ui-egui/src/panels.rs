@@ -1583,7 +1583,9 @@ pub fn status_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         .exact_size(theme::LayoutTokens::get(ui.ctx()).status_bar_height)
         .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(10, 0)))
         .show(ui, |ui| {
-            let control_h = status_bar_heights(&t).1;
+            let metrics = theme::LayoutTokens::get(ui.ctx());
+            let control_h =
+                if t.appearance == theme::Appearance::Modern { status_bar_heights(&t).1 } else { metrics.field_height.min(metrics.status_bar_height - 2.0) };
             // Read from the right in a right-to-left UI, with the trailing group at the left.
             crate::direction::horizontal_centered(ui, |ui| {
                 if t.pro {
@@ -1617,12 +1619,7 @@ pub fn status_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 ui.with_layout(crate::direction::trailing(), |ui| {
                     if app.session.active().is_some()
                         && !t.pro
-                        && (if t.appearance != theme::Appearance::Modern {
-                            widgets::chrome_button(ui, tl!("Fit"), theme::LayoutTokens::get(ui.ctx()).status_bar_height - 2.0)
-                        } else {
-                            widgets::secondary_button(ui, tl!("Fit"), 0.0)
-                        })
-                        .clicked()
+                        && widgets::chrome_button(ui, tl!("Fit"), control_h).clicked()
                         && let Some(i) = app.session.active_index()
                     {
                         app.ui.views[i].fit_pending = true;
@@ -3533,6 +3530,7 @@ fn hex_edit(ui: &mut egui::Ui, id: egui::Id, color: &mut [f32; 4]) -> bool {
     // `Frame::NONE`: the themed surface above is this field's frame.
     let resp =
         child.add(egui::TextEdit::singleline(&mut text).id(id).char_limit(7).desired_width(field.width()).frame(egui::Frame::NONE).font(theme::mono(12.0)));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, format!("#{r:02X}{g:02X}{b:02X}")));
     if resp.has_focus() {
         ui.data_mut(|d| d.insert_temp(id, text.clone()));
     } else {
@@ -3586,15 +3584,17 @@ fn smoothing_options(ui: &mut egui::Ui, b: &mut photocraft_engine::BrushSettings
 /// hardness, the preset library), the one a right-click on the canvas opens.
 fn brush_preset_chip(ui: &mut egui::Ui, b: &photocraft_engine::BrushSettings, state: &mut crate::state::UiState) {
     let t = Tokens::get(ui.ctx());
-    let (r, _) = ui.allocate_exact_size(vec2(44.0, 30.0), Sense::hover());
+    let historical = t.appearance != theme::Appearance::Modern;
+    let height = if historical { theme::LayoutTokens::get(ui.ctx()).field_height } else { 30.0 };
+    let (r, _) = ui.allocate_exact_size(vec2(44.0, height), Sense::hover());
     let resp = ui.interact(r, crate::brush_picker::chip_id(), Sense::click());
     if resp.hovered() || state.brush_picker.is_some() {
         ui.painter().rect_filled(r, t.radius_sm, t.hover);
     }
-    let c = pos2(r.left() + 14.0, r.top() + 11.0);
+    let c = pos2(r.left() + 14.0, r.top() + if historical { height * 0.35 } else { 11.0 });
     // Photoshop's white tip vanishes on light chrome; light themes use their icon colour.
     let tip = if t.dark() { Color32::WHITE } else { t.icon };
-    brush_tip(ui.painter(), c, 7.0, b.hardness, tip);
+    brush_tip(ui.painter(), c, if historical { height * 0.23 } else { 7.0 }, b.hardness, tip);
     ui.painter().text(pos2(c.x, r.bottom() - 5.0), Align2::CENTER_CENTER, format!("{}", b.size.round() as i64), egui::FontId::proportional(9.5), t.text_dim);
     icons::paint(ui, Rect::from_center_size(pos2(r.right() - 9.0, c.y), vec2(10.0, 10.0)), "chevron-down", 9.0, t.text_faint);
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Brush Preset picker")));

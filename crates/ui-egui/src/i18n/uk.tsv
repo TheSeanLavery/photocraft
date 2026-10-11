@@ -3693,3 +3693,66 @@ cameraData	Lens	Об'єктив
 	Emulsion Down	Емульсією донизу
 	Functions	Функції
 	Print Resolution:	Роздільна здатність друку:
+
+# Fork feature translations retained alongside upstream language coverage.
+	Apply Theme	Застосувати тему
+	Branch	Гілка
+	Budget mb	Ліміт МБ
+	Cancel Theme Preview	Скасувати попередній перегляд теми
+	Caption font	Шрифт заголовка
+	Change opacity	Змінити непрозорість
+	Click to change columns; drag the title bar to move	Клацніть, щоб змінити кількість стовпців; перетягніть заголовок, щоб перемістити
+	Click to change columns; drag to detach Tools	Клацніть, щоб змінити кількість стовпців; перетягніть, щоб відокремити інструменти
+	Collaboration View Settings	Параметри перегляду спільної роботи
+	Collaboration…	Спільна робота…
+	Continue	Продовжити
+	Copy JSON	Копіювати JSON
+	Dock Tools on the left	Закріпити інструменти ліворуч
+	Draft: {name}	Чернетка: {name}
+	Duplicate Theme	Дублювати тему
+	Edit Theme Definition	Редагувати визначення теми
+	Edit the definition below. Duplicate a built-in theme before changing it.	Редагуйте визначення нижче. Перед зміною вбудованої теми створіть її копію.
+	Export SDR Preview…	Експортувати попередній перегляд SDR…
+	Export Theme…	Експортувати тему…
+	Font {requested} is unavailable; using {actual}.	Шрифт {requested} недоступний; використовується {actual}.
+	Full HD Portrait	Full HD, вертикально
+	HDR Output	Виведення HDR
+	HDR Workbench	Робочий простір HDR
+	Import Theme…	Імпортувати тему…
+	List Themes	Список тем
+	Mac OS 9.1 Platinum Theme	Тема Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Тема Macintosh System 6
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm вибирає підтип за глибиною та каналами зображення.
+	Portrait 4:5	Портрет 4:5
+	Preview Theme	Попередній перегляд теми
+	Preview is active. Cancel restores your saved theme.	Попередній перегляд активний. Скасування відновлює збережену тему.
+	QHD 1440p	QHD 1440p
+	Remove Theme	Видалити тему
+	Reset Changes	Скинути зміни
+	Reset Theme	Скинути тему
+	Retry storage	Повторити збереження
+	Return to Original	Повернутися до оригіналу
+	Saved theme	Збережена тема
+	Scroll down	Прокрутити вниз
+	Scroll left	Прокрутити ліворуч
+	Scroll right	Прокрутити праворуч
+	Scroll up	Прокрутити вгору
+	Select Theme	Вибрати тему
+	Shape Operations	Операції з фігурами
+	Square 1:1	Квадрат 1:1
+	Story 9:16	Історія 9:16
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Ліміт пам’яті спільний для пікселів документа, вбудованих даних та історії скасувань. Використання зростає за потреби; інша пам’ять програми враховується окремо.
+	Theme Details	Відомості про тему
+	Theme Manager	Менеджер тем
+	Theme Manager…	Менеджер тем…
+	Theme definition exceeds 64 KiB	Визначення теми перевищує 64 КіБ
+	Theme id	Ідентифікатор теми
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Ця браузерна збірка зберігає історію скасувань у пам’яті. Параметри робочого диска стосуються настільної програми.
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Цей формат зберігає зведене зображення. Використовуйте «Зберегти копію», щоб зберегти редагований документ.
+	UHD 4K Portrait	UHD 4K, вертикально
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	Дисковий простір для скасувань зростає лише за потреби, до цього ліміту. Нуль вимикає дисковий кеш. Шляхи робочих дисків застосовуються до наступного сеансу кешування.
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Дисковий простір для скасувань зростає лише за потреби. Необмежена історія зберігає стани, доки сховище не заповниться. Шляхи робочих дисків застосовуються до наступного сеансу кешування.
+	Unlimited history	Необмежена історія
+	Use available disk space	Використовувати доступний дисковий простір
+	Use trackpad pressure	Використовувати натискання на трекпад
+	Windows 98 SE Theme	Тема Windows 98 SE

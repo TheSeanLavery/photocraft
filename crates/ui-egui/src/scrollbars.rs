@@ -127,6 +127,10 @@ fn bar_rects_with_width(rect: Rect, horizontal: bool, vertical: bool, width: f32
     (h, v)
 }
 
+fn len_fits(len: f32, visible: f32, zoom: f32) -> bool {
+    zoom.is_finite() && zoom > 0.0 && len * zoom <= visible
+}
+
 fn show_historical(ui: &Ui, outer: Rect, view: &mut View, flip: bool, aspect: f32, overscroll: bool, key: Id) -> bool {
     let content = crate::scroll_area::content_rect(ui, outer);
     let [w, h] = view.doc_size;
@@ -135,11 +139,15 @@ fn show_historical(ui: &Ui, outer: Rect, view: &mut View, flip: bool, aspect: f3
     let aspect = if aspect.is_finite() && aspect > 0.0 { aspect } else { 1.0 };
     let mut over = false;
     for axis in 0..2 {
+        // Classic document windows centre a fitting image and disable that axis's arrows.
+        if !overscroll && len_fits(view.doc_size[axis] as f32, if axis == 0 { content.width() / aspect } else { content.height() }, zoom) {
+            view.center[axis] = view.doc_size[axis] as f32 / 2.0;
+        }
         let center = if axis == 0 { if flip { w as f32 - view.center[0] } else { view.center[0] } } else { view.center[1] };
         let len = if axis == 0 { w as f32 } else { h as f32 };
         let visible = if axis == 0 { content.width() / aspect } else { content.height() };
         let Some(span) = Span::of(len, center, visible, zoom) else { continue };
-        let extent = span.extent(overscroll);
+        let extent = if !overscroll && len_fits(len, visible, zoom) { (span.v0, span.v1) } else { span.extent(overscroll) };
         let bar = if axis == 0 {
             Rect::from_min_max(content.left_bottom(), pos2(content.right(), outer.bottom()))
         } else {

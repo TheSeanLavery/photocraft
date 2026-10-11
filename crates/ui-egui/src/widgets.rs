@@ -331,7 +331,7 @@ fn value_field_box(
     let metrics = theme::LayoutTokens::get(ui.ctx());
     let font = crate::theme_fonts::number(ui.ctx(), metrics.field_font_size);
     let calibrated = crate::theme_fonts::chrome_line_height(ui.ctx(), &font).is_some();
-    let vertical_padding = if calibrated { 1.0 } else { 2.0 };
+    let vertical_padding = if calibrated || size.y < metrics.field_height { 1.0 } else { 2.0 };
     // Measure the selected face, including compatibility calibration and custom
     // sizes. Nominal font size alone does not describe its actual line box.
     let number_galley = ui.painter().layout_no_wrap(
@@ -342,14 +342,15 @@ fn value_field_box(
     let suffix_font = crate::theme_fonts::number(ui.ctx(), (metrics.field_font_size - 1.0).max(6.0));
     let suffix_galley = ui.painter().layout_no_wrap(suffix.to_owned(), suffix_font, t.text_faint);
     let height = size.y.max(number_galley.size().y.max(suffix_galley.size().y) + 2.0 * vertical_padding);
-    let suffix_w = if suffix.is_empty() { 0.0 } else { suffix_galley.size().x + 8.0 };
+    let suffix_w = if suffix.is_empty() { 0.0 } else { suffix_galley.size().x + 3.0 };
     let width = size.x.max(number_galley.size().x + suffix_w + 8.0);
     let (rect, slot) = ui.allocate_exact_size(vec2(width, height), Sense::hover());
     surface(ui, rect, t.field, false);
     if !t.bevel {
         ui.painter().rect_stroke(rect, t.radius_sm, Stroke::new(1.0, t.field_border), StrokeKind::Inside);
     }
-    let field = Rect::from_min_max(rect.min + vec2(4.0, vertical_padding), rect.max - vec2(4.0 + suffix_w + trailing, vertical_padding));
+    let field =
+        Rect::from_min_max(rect.min + vec2(4.0, vertical_padding), rect.max - vec2(4.0 + suffix_w + trailing, vertical_padding)).translate(vec2(0.0, -1.0));
     // Small ranges (gamma 0.01–9.99, 0–1 centres) need two decimals and a finer drag, like Photoshop.
     let fine = range.end() - range.start() <= 10.0;
     let (lo, hi) = (*range.start(), *range.end());
@@ -1092,6 +1093,17 @@ pub fn dropdown_wheel_hovered<T: PartialEq + Clone>(ui: &mut Ui, id: &str, curre
 }
 
 fn dropdown_with<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, options: &[(T, &str)], width: f32, wheel: bool) -> (Vec<T>, Option<T>) {
+    if Tokens::get(ui.ctx()).appearance != theme::Appearance::Modern {
+        let mut rect = ui.available_rect_before_wrap();
+        rect.set_width(if width.is_finite() { width.clamp(0.0, rect.width().max(0.0)) } else { rect.width().max(0.0) });
+        // ComboBox::width sets a minimum; truncation uses the child UI's available width.
+        // Keep the whole gesture in this scope so press, wheel and popup IDs stay aligned.
+        return ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| dropdown_contents(ui, id, current, options, width, wheel)).inner;
+    }
+    dropdown_contents(ui, id, current, options, width, wheel)
+}
+
+fn dropdown_contents<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, options: &[(T, &str)], width: f32, wheel: bool) -> (Vec<T>, Option<T>) {
     let label = options.iter().find(|(v, _)| v == current).map(|(_, l)| tl!(l)).unwrap_or("—");
     let t = Tokens::get(ui.ctx());
     let historical = t.appearance != theme::Appearance::Modern;
@@ -1108,57 +1120,58 @@ fn dropdown_with<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, o
     let mut reveal = wheel && ui.data_mut(|d| d.remove_temp::<bool>(reveal_id)).unwrap_or(false);
     // The list opens on the press: press, drag onto an option and release to choose it (#2735).
     let (press, close) = crate::press_menu::PressCombo::before(ui, id);
-    let response =
-        egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon).close_behavior(close).show_ui(ui, |ui| {
-            fit_widest_option(ui, options.iter().map(|(_, l)| tl!(l)));
-            // A typed letter jumps to the next option starting with it, ↩ closes the list (#1481).
-            let labels: Vec<&str> = options.iter().map(|(_, l)| tl!(l)).collect();
-            let shown = options.iter().position(|(v, _)| v == current);
-            if let Some((v, _)) = type_ahead::keys(ui, ui.make_persistent_id(id), shown, &labels).and_then(|i| options.get(i)) {
+    let combo = egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon).close_behavior(close);
+    let combo = if historical { combo.truncate() } else { combo };
+    let response = combo.show_ui(ui, |ui| {
+        fit_widest_option(ui, options.iter().map(|(_, l)| tl!(l)));
+        // A typed letter jumps to the next option starting with it, ↩ closes the list (#1481).
+        let labels: Vec<&str> = options.iter().map(|(_, l)| tl!(l)).collect();
+        let shown = options.iter().position(|(v, _)| v == current);
+        if let Some((v, _)) = type_ahead::keys(ui, ui.make_persistent_id(id), shown, &labels).and_then(|i| options.get(i)) {
+            *current = v.clone();
+            chosen.push(v.clone());
+            reveal = true;
+            keyed = true;
+        }
+        // Over the open list the wheel steps the value too, instead of scrolling the list.
+        over_list = wheel && ui.rect_contains_pointer(ui.clip_rect());
+        if over_list {
+            let stepped = wheel_steps(ui, wheel_id, true, current, options);
+            wheeled = !stepped.is_empty();
+            reveal |= wheeled;
+            chosen.extend(stepped);
+        }
+        // The row nearest the pointer, by its distance to each row.
+        let pointer = ui.ctx().pointer_hover_pos().filter(|_| ui.rect_contains_pointer(ui.clip_rect()));
+        let mut nearest: Option<(f32, &T)> = None;
+        for (v, l) in options {
+            let selected = v == current;
+            let text = egui::RichText::new(tl!(l));
+            let text = if selected && (t.bevel || historical) { text.color(t.accent_text) } else { text };
+            let item = ui.selectable_label(selected, text);
+            if reveal && v == current {
+                item.scroll_to_me(None);
+            }
+            if item.hovered() {
+                hovered = Some(v.clone());
+            }
+            if let Some(p) = pointer {
+                let d = (item.rect.top() - p.y).max(p.y - item.rect.bottom()).max(0.0);
+                if nearest.is_none_or(|(n, _)| d < n) {
+                    nearest = Some((d, v));
+                }
+            }
+            if press.chosen(ui, &item) {
                 *current = v.clone();
                 chosen.push(v.clone());
-                reveal = true;
-                keyed = true;
             }
-            // Over the open list the wheel steps the value too, instead of scrolling the list.
-            over_list = wheel && ui.rect_contains_pointer(ui.clip_rect());
-            if over_list {
-                let stepped = wheel_steps(ui, wheel_id, true, current, options);
-                wheeled = !stepped.is_empty();
-                reveal |= wheeled;
-                chosen.extend(stepped);
-            }
-            // The row nearest the pointer, by its distance to each row.
-            let pointer = ui.ctx().pointer_hover_pos().filter(|_| ui.rect_contains_pointer(ui.clip_rect()));
-            let mut nearest: Option<(f32, &T)> = None;
-            for (v, l) in options {
-                let selected = v == current;
-                let text = egui::RichText::new(tl!(l));
-                let text = if selected && (t.bevel || historical) { text.color(t.accent_text) } else { text };
-                let item = ui.selectable_label(selected, text);
-                if reveal && v == current {
-                    item.scroll_to_me(None);
-                }
-                if item.hovered() {
-                    hovered = Some(v.clone());
-                }
-                if let Some(p) = pointer {
-                    let d = (item.rect.top() - p.y).max(p.y - item.rect.bottom()).max(0.0);
-                    if nearest.is_none_or(|(n, _)| d < n) {
-                        nearest = Some((d, v));
-                    }
-                }
-                if press.chosen(ui, &item) {
-                    *current = v.clone();
-                    chosen.push(v.clone());
-                }
-            }
-            // Between two rows (item spacing) the pointer hovers neither; it is still over the list,
-            // so keep previewing the nearest row instead of flashing the current value back (#2553).
-            if hovered.is_none() {
-                hovered = nearest.map(|(_, v)| v.clone());
-            }
-        });
+        }
+        // Between two rows (item spacing) the pointer hovers neither; it is still over the list,
+        // so keep previewing the nearest row instead of flashing the current value back (#2553).
+        if hovered.is_none() {
+            hovered = nearest.map(|(_, v)| v.clone());
+        }
+    });
     press.after(&response.response);
     if combo_box_arrow_keys(ui, &response.response, current, options) {
         chosen.push(current.clone());
@@ -1305,26 +1318,37 @@ pub fn swatch_popup(swatch: &Response) -> egui::Popup<'static> {
 }
 
 pub fn dropdown_with_tooltips<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, options: &[(T, &str, &str)], width: f32) -> bool {
+    if Tokens::get(ui.ctx()).appearance != theme::Appearance::Modern {
+        let mut rect = ui.available_rect_before_wrap();
+        rect.set_width(if width.is_finite() { width.clamp(0.0, rect.width().max(0.0)) } else { rect.width().max(0.0) });
+        return ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| dropdown_tooltip_contents(ui, id, current, options, width)).inner;
+    }
+    dropdown_tooltip_contents(ui, id, current, options, width)
+}
+
+fn dropdown_tooltip_contents<T: PartialEq + Clone>(ui: &mut Ui, id: &str, current: &mut T, options: &[(T, &str, &str)], width: f32) -> bool {
+    let historical = Tokens::get(ui.ctx()).appearance != theme::Appearance::Modern;
     let label = options.iter().find(|(v, _, _)| v == current).map(|(_, l, _)| tl!(l)).unwrap_or("—");
     let mut changed = false;
     let (press, close) = crate::press_menu::PressCombo::before(ui, id);
-    let response =
-        egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon).close_behavior(close).show_ui(ui, |ui| {
-            fit_widest_option(ui, options.iter().map(|(_, l, _)| tl!(l)));
-            let labels: Vec<&str> = options.iter().map(|(_, l, _)| tl!(l)).collect();
-            let shown = options.iter().position(|(v, _, _)| v == current);
-            if let Some((v, _, _)) = type_ahead::keys(ui, ui.make_persistent_id(id), shown, &labels).and_then(|i| options.get(i)) {
+    let combo = egui::ComboBox::from_id_salt(id).selected_text(label).width(width).height(420.0).icon(chevron_icon).close_behavior(close);
+    let combo = if historical { combo.truncate() } else { combo };
+    let response = combo.show_ui(ui, |ui| {
+        fit_widest_option(ui, options.iter().map(|(_, l, _)| tl!(l)));
+        let labels: Vec<&str> = options.iter().map(|(_, l, _)| tl!(l)).collect();
+        let shown = options.iter().position(|(v, _, _)| v == current);
+        if let Some((v, _, _)) = type_ahead::keys(ui, ui.make_persistent_id(id), shown, &labels).and_then(|i| options.get(i)) {
+            *current = v.clone();
+            changed = true;
+        }
+        for (v, l, tip) in options {
+            let item = ui.selectable_label(v == current, tl!(l)).on_hover_text(tl!(tip));
+            if press.chosen(ui, &item) {
                 *current = v.clone();
                 changed = true;
             }
-            for (v, l, tip) in options {
-                let item = ui.selectable_label(v == current, tl!(l)).on_hover_text(tl!(tip));
-                if press.chosen(ui, &item) {
-                    *current = v.clone();
-                    changed = true;
-                }
-            }
-        });
+        }
+    });
     press.after(&response.response);
     if let Some((_, _, tip)) = options.iter().find(|(v, _, _)| v == current) {
         let _ = response.response.on_hover_text(tl!(tip));

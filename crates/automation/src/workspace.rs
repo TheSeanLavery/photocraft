@@ -248,6 +248,8 @@ pub fn authorize_engine_command(id: &str, params: &Value) -> Result<(), Automati
             "pattern.import"
                 | "pattern.export"
                 | "edit.presets.migratePresets"
+                // This scans OS directories, rather than an automation read-root capability.
+                | "edit.installedProfiles"
                 | "measurementLog.export"
                 | "layer.videoLayers.newVideoLayerFromFile"
                 | "layer.videoLayers.replaceFootage"
@@ -750,6 +752,19 @@ mod tests {
             authorize_engine_command("prefs.set", &serde_json::json!({"values": {"interface.language": "fr", "historyLog.filePath": "/outside/log"}})).is_err()
         );
         assert!(authorize_engine_command("prefs.set", &serde_json::json!({"path": "interface.language", "value": "fr"})).is_ok());
+    }
+
+    #[test]
+    fn installed_profiles_discovery_cannot_use_ambient_os_directories() {
+        for params in [serde_json::json!({}), serde_json::json!({"class":"output","colorSpace":"cmyk"})] {
+            assert!(authorize_engine_command("edit.installedProfiles", &params).is_err());
+            assert!(authorize_desktop_engine_command("edit.installedProfiles", &params).is_err());
+            let mut session = photocraft_engine::Session::new();
+            session.authorize = Some(authorize_engine_step);
+            assert!(session.execute("edit.installedProfiles", params).is_err());
+        }
+        // Grants for doc.open cannot constrain this command's implicit OS profile roots.
+        // Keep discovery denied until it has a capability-scoped implementation.
     }
 
     #[test]

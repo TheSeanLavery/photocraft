@@ -3607,3 +3607,67 @@ cameraData	Lens	Obiektyw
 	Emulsion Down	Emulsja w dół
 	Functions	Funkcje
 	Print Resolution:	Rozdzielczość druku:
+
+# Fork feature translations retained alongside upstream language coverage.
+	Apply Theme	Zastosuj motyw
+	Branch	Gałąź
+	Budget mb	Limit MB
+	Cancel Theme Preview	Anuluj podgląd motywu
+	Caption font	Czcionka tytułu
+	Change opacity	Zmień krycie
+	Click to change columns; drag the title bar to move	Kliknij, aby zmienić liczbę kolumn; przeciągnij pasek tytułu, aby przesunąć
+	Click to change columns; drag to detach Tools	Kliknij, aby zmienić liczbę kolumn; przeciągnij, aby odłączyć Narzędzia
+	Collaboration View Settings	Ustawienia widoku współpracy
+	Collaboration…	Współpraca…
+	Continue	Kontynuuj
+	Copy JSON	Kopiuj JSON
+	Delete and Fill Selection	Usuń i wypełnij zaznaczenie
+	Dock Tools on the left	Zadokuj Narzędzia po lewej
+	Draft: {name}	Wersja robocza: {name}
+	Duplicate Theme	Powiel motyw
+	Edit Theme Definition	Edytuj definicję motywu
+	Edit the definition below. Duplicate a built-in theme before changing it.	Edytuj poniższą definicję. Przed zmianą wbudowanego motywu utwórz jego kopię.
+	Export SDR Preview…	Eksportuj podgląd SDR…
+	Export Theme…	Eksportuj motyw…
+	Font {requested} is unavailable; using {actual}.	Czcionka {requested} jest niedostępna; używana jest {actual}.
+	Full HD Portrait	Full HD pionowo
+	HDR Output	Wyjście HDR
+	HDR Workbench	Obszar roboczy HDR
+	Import Theme…	Importuj motyw…
+	List Themes	Lista motywów
+	Mac OS 9.1 Platinum Theme	Motyw Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Motyw Macintosh System 6
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm wybiera podtyp na podstawie głębi i kanałów obrazu.
+	Portrait 4:5	Portret 4:5
+	Preview Theme	Podgląd motywu
+	Preview is active. Cancel restores your saved theme.	Podgląd jest aktywny. Anulowanie przywraca zapisany motyw.
+	QHD 1440p	QHD 1440p
+	Remove Theme	Usuń motyw
+	Reset Changes	Cofnij zmiany
+	Reset Theme	Zresetuj motyw
+	Retry storage	Ponów zapis
+	Return to Original	Przywróć oryginał
+	Saved theme	Zapisany motyw
+	Scroll down	Przewiń w dół
+	Scroll left	Przewiń w lewo
+	Scroll right	Przewiń w prawo
+	Scroll up	Przewiń w górę
+	Select Theme	Wybierz motyw
+	Shape Operations	Operacje na kształtach
+	Square 1:1	Kwadrat 1:1
+	Story 9:16	Relacja 9:16
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Limit pamięci jest wspólny dla pikseli dokumentu, osadzonych danych i historii cofania. Wykorzystanie rośnie w razie potrzeby; pozostała pamięć aplikacji jest dodatkowa.
+	Theme Details	Szczegóły motywu
+	Theme Manager	Menedżer motywów
+	Theme Manager…	Menedżer motywów…
+	Theme definition exceeds 64 KiB	Definicja motywu przekracza 64 KiB
+	Theme id	Identyfikator motywu
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Ta wersja przeglądarkowa przechowuje historię cofania w pamięci. Ustawienia dysku roboczego dotyczą aplikacji komputerowej.
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Ten format zapisuje spłaszczony obraz. Użyj „Zapisz kopię”, aby zachować edytowalny dokument.
+	UHD 4K Portrait	UHD 4K pionowo
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	Miejsce na dysku dla cofania rośnie tylko w razie potrzeby, do tego limitu. Zero wyłącza pamięć podręczną na dysku. Ścieżki dysków roboczych obowiązują od następnej sesji buforowania.
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Miejsce na dysku dla cofania rośnie tylko w razie potrzeby. Nieograniczona historia zachowuje stany do zapełnienia pamięci. Ścieżki dysków roboczych obowiązują od następnej sesji buforowania.
+	Unlimited history	Nieograniczona historia
+	Use available disk space	Użyj dostępnego miejsca na dysku
+	Use trackpad pressure	Użyj nacisku gładzika
+	Windows 98 SE Theme	Motyw Windows 98 SE

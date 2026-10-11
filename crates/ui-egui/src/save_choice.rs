@@ -21,6 +21,9 @@ impl PhotocraftApp {
         then: impl FnOnce(&mut Self, String) -> Result<Value, String> + 'static,
     ) -> Result<Value, String> {
         if !self.services.choose_save_format {
+            if self.services.file_dialog.is_some() {
+                return self.pick_save(suggested, then);
+            }
             let path = self.services.pick_save.as_mut().and_then(|f| f(suggested)).ok_or("cancelled")?;
             return then(self, path);
         }

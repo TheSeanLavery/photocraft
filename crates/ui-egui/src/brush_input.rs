@@ -26,7 +26,20 @@ pub fn route(app: &mut PhotocraftApp, response: &Response, xf: &ViewXform, tool:
     }
     let (events, mods, frame_time, touch) = response.ctx.input(|i| {
         (
-            i.raw.events.iter().filter(|e| app.stylus.use_pressure || !matches!(e, Event::Touch { .. })).cloned().collect::<Vec<_>>(),
+            i.raw
+                .events
+                .iter()
+                .filter(|e| app.stylus.use_pressure || !matches!(e, Event::Touch { .. }))
+                .cloned()
+                .map(|mut event| {
+                    if let Event::Touch { force: Some(force), .. } = &mut event
+                        && force.is_finite()
+                    {
+                        *force = app.stylus.shape_pen_pressure(force.clamp(0.0, 1.0));
+                    }
+                    event
+                })
+                .collect::<Vec<_>>(),
             i.modifiers,
             i.time,
             i.any_touches() || i.raw.events.iter().any(|e| matches!(e, Event::Touch { .. })),
@@ -55,8 +68,26 @@ pub fn route(app: &mut PhotocraftApp, response: &Response, xf: &ViewXform, tool:
         motion.as_mut().map_or_else(Vec::new, |read| read(event, zoom))
     });
     app.brush_input.defer_preview = true;
-    for (event, modifiers, erase) in samples {
+    let now_ms = frame_time * 1000.0;
+    let mut base_ms = app.stylus.last_point_ms().map_or(now_ms, |time| time.min(now_ms));
+    let moves = samples.iter().filter(|(event, _, _)| matches!(event, ToolEvent::Move { .. })).count();
+    let mut move_index = 0;
+    app.stylus.clock_ms = now_ms;
+    for (mut event, modifiers, erase) in samples {
+        if let ToolEvent::Move { x, y, .. } = event {
+            app.stylus.clock_ms = crate::canvas::spread_ms(base_ms, now_ms, move_index, moves);
+            app.stylus.select(move_index, moves);
+            event = ToolEvent::Move { x, y, pressure: app.stylus.pressure() };
+            move_index += 1;
+        } else {
+            app.stylus.clear_selection();
+            app.stylus.clock_ms = now_ms;
+            if matches!(event, ToolEvent::Down { .. }) {
+                base_ms = now_ms;
+            }
+        }
         if matches!(event, ToolEvent::Up { .. }) {
+            crate::canvas::tap_at_peak_pressure(app);
             crate::canvas::feed_live_stroke(app);
         }
         if matches!(event, ToolEvent::Down { .. }) {
@@ -72,6 +103,14 @@ pub fn route(app: &mut PhotocraftApp, response: &Response, xf: &ViewXform, tool:
             // Release it only after the brush has consumed that frame's events.
             app.stylus.trackpad_feed.set(None);
         }
+    }
+    app.stylus.clear_selection();
+    app.stylus.clock_ms = now_ms;
+    if moves == 0 && app.brush_input.owner.is_some() && crate::canvas::stroke_wants_time(app) {
+        if let Some(point) = app.drag.as_ref().and_then(|drag| drag.points.last()).copied() {
+            tool_event(app, ToolEvent::Move { x: point[0], y: point[1], pressure: app.stylus.pressure() }, mods);
+        }
+        response.ctx.request_repaint_after(std::time::Duration::from_millis(16));
     }
     app.brush_input.defer_preview = false;
     crate::canvas::feed_live_stroke(app);
@@ -248,6 +287,97 @@ mod tests {
     use egui::{Pos2, Rect, pos2};
 
     use super::*;
+
+    #[test]
+    fn idle_raw_frames_do_not_add_samples_to_control_owned_strokes() {
+        use egui_kittest::Harness;
+        use serde_json::json;
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":128,"height":128,"background":"transparent"})).unwrap();
+        app.run("tools.setBrush", json!({"buildUp":true,"smoothing":{"amount":0.05}})).unwrap();
+        app.ui.tool = Tool::Brush;
+        let mut h = Harness::builder().with_size(egui::vec2(1000.0, 800.0)).build_eframe(|_| app);
+        h.run_steps(3);
+        let ctx = h.ctx.clone();
+        let (request, _) = crate::control::ControlRequest::new(
+            "ui.pointer",
+            json!({"events":[
+                {"kind":"down","x":30,"y":30,"pressure":0.3},
+                {"kind":"move","x":50,"y":50,"pressure":0.4}
+            ]}),
+        );
+        assert!(matches!(crate::control::handle(h.state_mut(), &ctx, &request), crate::control::Outcome::Done(_)));
+        assert!(crate::canvas::stroke_wants_time(h.state()), "the control gesture exercises time-based rendering");
+        assert!(h.state().brush_input.owner.is_none(), "the OS route has no pointer capture");
+        let original = h.state().drag.as_ref().unwrap().points.clone();
+        h.run_steps(12);
+        assert_eq!(h.state().drag.as_ref().unwrap().points, original, "idle native frames cannot insert ambient pressure into ordered controls");
+        let (request, _) = crate::control::ControlRequest::new("ui.pointer", json!({"events":[{"kind":"up","x":50,"y":50}]}));
+        assert!(matches!(crate::control::handle(h.state_mut(), &ctx, &request), crate::control::Outcome::Done(_)));
+        let strokes: Vec<_> = h.state().session.journal.iter().filter(|(id, _)| id == "paint.stroke").collect();
+        assert_eq!(strokes.len(), 1);
+        assert_eq!(strokes[0].1["points"].as_array().unwrap().len(), original.len());
+    }
+
+    #[test]
+    fn exclusive_raw_route_commits_stationary_tap_at_peak_pen_pressure() {
+        use crate::stylus::PenSample;
+        use egui_kittest::Harness;
+        use serde_json::json;
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":128,"height":128,"background":"transparent"})).unwrap();
+        app.run("tools.setBrush", json!({"smoothing":{"amount":0.0}})).unwrap();
+        app.ui.tool = Tool::Brush;
+        let mut h = Harness::builder().with_size(egui::vec2(1000.0, 800.0)).build_eframe(|_| app);
+        h.run_steps(3);
+        let p = h.state().last_canvas_rect.center();
+        h.state().stylus.feed.set(Some(PenSample { pressure: 0.1, ..Default::default() }));
+        h.input_mut().events.extend([Event::PointerMoved(p), button(p, true, PointerButton::Primary)]);
+        h.step();
+        h.state().stylus.feed.set(Some(PenSample { pressure: 0.5, ..Default::default() }));
+        h.state().stylus.feed.set(Some(PenSample { pressure: 0.0, ..Default::default() }));
+        h.input_mut().events.push(button(p, false, PointerButton::Primary));
+        h.step();
+        let strokes: Vec<_> = h.state().session.journal.iter().filter(|(id, _)| id == "paint.stroke").collect();
+        assert_eq!(strokes.len(), 1, "the raw route exclusively owns its press and release");
+        let points = strokes[0].1["points"].as_array().unwrap();
+        assert_eq!(points.len(), 1, "a stationary tap remains a single dab");
+        assert!((points[0][2].as_f64().unwrap() - 0.5).abs() < 1e-3, "a tap consumes peak contact pressure before the lift");
+    }
+
+    #[test]
+    fn ordered_touch_press_and_moves_apply_pen_pressure_curve_once() {
+        use egui_kittest::Harness;
+        use serde_json::json;
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width":128,"height":128,"background":"transparent"})).unwrap();
+        app.run("prefs.set", json!({"path":"tools.pressureCurve","value":[[0.0,0.0],[0.3,0.6],[1.0,1.0]]})).unwrap();
+        app.run("tools.setBrush", json!({"smoothing":{"amount":0.0}})).unwrap();
+        app.ui.tool = Tool::Brush;
+        let mut h = Harness::builder().with_size(egui::vec2(1000.0, 800.0)).build_eframe(|_| app);
+        h.run_steps(3);
+        let p = h.state().last_canvas_rect.center();
+        let q = p + egui::vec2(20.0, 0.0);
+        let touch = |phase, pos| Event::Touch { device_id: egui::TouchDeviceId(0), id: egui::TouchId(0), phase, pos, force: Some(0.3) };
+        h.input_mut().events.extend([
+            Event::PointerMoved(p),
+            touch(egui::TouchPhase::Start, p),
+            button(p, true, PointerButton::Primary),
+            touch(egui::TouchPhase::Move, q),
+            Event::PointerMoved(q),
+            button(q, false, PointerButton::Primary),
+            touch(egui::TouchPhase::End, q),
+        ]);
+        h.step();
+        let strokes: Vec<_> = h.state().session.journal.iter().filter(|(id, _)| id == "paint.stroke").collect();
+        assert_eq!(strokes.len(), 1);
+        let points = strokes[0].1["points"].as_array().unwrap();
+        assert!(points.len() >= 2);
+        assert!(
+            points.iter().all(|point| (point[2].as_f64().unwrap() - 0.6).abs() < 1e-3),
+            "the press and interpolated moves each apply the tablet curve once"
+        );
+    }
 
     #[test]
     fn release_frame_uses_last_trackpad_pressure_then_clears_it() {

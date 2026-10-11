@@ -407,6 +407,7 @@ mod tests {
         let target = doc_id(&app, 0);
         let (release, wait) = std::sync::mpsc::channel();
         let wait = std::sync::Arc::new(std::sync::Mutex::new(wait));
+        app.background_jobs = true;
         app.services.save_file = Some(std::sync::Arc::new(move |_, _, _, ctl| {
             wait.lock().map_err(|e| e.to_string())?.recv().map_err(|e| e.to_string())?;
             ctl.commit().map_err(|e| e.to_string())?;

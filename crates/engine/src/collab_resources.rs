@@ -494,7 +494,7 @@ mod tests {
     fn captured_context_replays_private_selection_and_color_at_every_depth() {
         for depth in [8, 16, 32] {
             let mut artist = Session::new();
-            artist.execute("file.new", json!({"width":16,"height":16,"depth":depth,"fill":"transparent"})).unwrap();
+            artist.execute("file.new", json!({"width":16,"height":16,"depth":depth,"background":"transparent"})).unwrap();
             artist.execute("tools.setColors", json!({"foreground":"#ff0000"})).unwrap();
             artist.execute("select.rect", json!({"x":0,"y":0,"width":8,"height":16})).unwrap();
             let params = json!({"points":[[4,8,0.8],[12,8,0.8]],"size":6,"hardness":1,"smoothing":0});

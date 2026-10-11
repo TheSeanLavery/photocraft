@@ -3690,3 +3690,66 @@ cameraData	Lens	Φακός
 	Emulsion Down	Γαλάκτωμα προς τα κάτω
 	Functions	Λειτουργίες
 	Print Resolution:	Ανάλυση εκτύπωσης:
+
+# Fork feature translations retained alongside upstream language coverage.
+	Apply Theme	Εφαρμογή θέματος
+	Branch	Κλάδος
+	Budget mb	Όριο MB
+	Cancel Theme Preview	Ακύρωση προεπισκόπησης θέματος
+	Caption font	Γραμματοσειρά τίτλου
+	Change opacity	Αλλαγή αδιαφάνειας
+	Click to change columns; drag the title bar to move	Κλικ για αλλαγή στηλών· σύρετε τη γραμμή τίτλου για μετακίνηση
+	Click to change columns; drag to detach Tools	Κλικ για αλλαγή στηλών· σύρετε για αποσύνδεση των εργαλείων
+	Collaboration View Settings	Ρυθμίσεις προβολής συνεργασίας
+	Collaboration…	Συνεργασία…
+	Copy JSON	Αντιγραφή JSON
+	Delete and Fill Selection	Διαγραφή και γέμισμα επιλογής
+	Dock Tools on the left	Προσάρτηση εργαλείων αριστερά
+	Draft: {name}	Προσχέδιο: {name}
+	Duplicate Theme	Διπλασιασμός θέματος
+	Edit Theme Definition	Επεξεργασία ορισμού θέματος
+	Edit the definition below. Duplicate a built-in theme before changing it.	Επεξεργαστείτε τον ορισμό παρακάτω. Αντιγράψτε ένα ενσωματωμένο θέμα πριν το αλλάξετε.
+	Export SDR Preview…	Εξαγωγή προεπισκόπησης SDR…
+	Export Theme…	Εξαγωγή θέματος…
+	Font {requested} is unavailable; using {actual}.	Η γραμματοσειρά {requested} δεν είναι διαθέσιμη· χρησιμοποιείται η {actual}.
+	Full HD Portrait	Full HD κατακόρυφα
+	HDR Output	Έξοδος HDR
+	HDR Workbench	Χώρος εργασίας HDR
+	Import Theme…	Εισαγωγή θέματος…
+	List Themes	Λίστα θεμάτων
+	Mac OS 9.1 Platinum Theme	Θέμα Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Θέμα Macintosh System 6
+	Netpbm chooses the subtype from the image depth and channels.	Το Netpbm επιλέγει τον υποτύπο από το βάθος και τα κανάλια της εικόνας.
+	Portrait 4:5	Κατακόρυφο 4:5
+	Preview Theme	Προεπισκόπηση θέματος
+	Preview is active. Cancel restores your saved theme.	Η προεπισκόπηση είναι ενεργή. Η ακύρωση επαναφέρει το αποθηκευμένο θέμα.
+	QHD 1440p	QHD 1440p
+	Remove Theme	Αφαίρεση θέματος
+	Reset Changes	Επαναφορά αλλαγών
+	Reset Theme	Επαναφορά θέματος
+	Retry storage	Επανάληψη αποθήκευσης
+	Return to Original	Επιστροφή στο πρωτότυπο
+	Saved theme	Αποθηκευμένο θέμα
+	Scroll down	Κύλιση κάτω
+	Scroll left	Κύλιση αριστερά
+	Scroll right	Κύλιση δεξιά
+	Scroll up	Κύλιση πάνω
+	Select Theme	Επιλογή θέματος
+	Shape Operations	Λειτουργίες σχημάτων
+	Square 1:1	Τετράγωνο 1:1
+	Story 9:16	Ιστορία 9:16
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Το όριο μνήμης μοιράζεται στα εικονοστοιχεία του εγγράφου, τα ενσωματωμένα δεδομένα και το ιστορικό αναίρεσης. Η χρήση αυξάνεται όσο χρειάζεται· η υπόλοιπη μνήμη της εφαρμογής είναι επιπλέον.
+	Theme Details	Λεπτομέρειες θέματος
+	Theme Manager	Διαχείριση θεμάτων
+	Theme Manager…	Διαχείριση θεμάτων…
+	Theme definition exceeds 64 KiB	Ο ορισμός του θέματος υπερβαίνει τα 64 KiB
+	Theme id	Αναγνωριστικό θέματος
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Αυτή η έκδοση για πρόγραμμα περιήγησης διατηρεί το ιστορικό αναίρεσης στη μνήμη. Οι ρυθμίσεις δίσκου εργασίας αφορούν την εφαρμογή υπολογιστή.
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Αυτή η μορφή αποθηκεύει μια συγχωνευμένη εικόνα. Χρησιμοποιήστε «Αποθήκευση αντιγράφου» για να διατηρήσετε το επεξεργάσιμο έγγραφο.
+	UHD 4K Portrait	UHD 4K κατακόρυφα
+	Undo disk space grows only when needed, up to this limit. Zero disables disk caching. Scratch paths apply to the next cache session.	Ο χώρος δίσκου για αναίρεση αυξάνεται μόνο όσο χρειάζεται, μέχρι αυτό το όριο. Το μηδέν απενεργοποιεί την προσωρινή αποθήκευση στον δίσκο. Οι διαδρομές δίσκων εργασίας ισχύουν στην επόμενη περίοδο προσωρινής αποθήκευσης.
+	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Ο χώρος δίσκου για αναίρεση αυξάνεται μόνο όσο χρειάζεται. Το απεριόριστο ιστορικό διατηρεί τις καταστάσεις μέχρι να γεμίσει ο αποθηκευτικός χώρος. Οι διαδρομές δίσκων εργασίας ισχύουν στην επόμενη περίοδο προσωρινής αποθήκευσης.
+	Unlimited history	Απεριόριστο ιστορικό
+	Use available disk space	Χρήση διαθέσιμου χώρου δίσκου
+	Use trackpad pressure	Χρήση πίεσης επιφάνειας αφής
+	Windows 98 SE Theme	Θέμα Windows 98 SE

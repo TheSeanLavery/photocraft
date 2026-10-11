@@ -7094,3 +7094,129 @@ ui-refine-strokes-0b1c46698a8ef47f = Pociągnięcia udoskonalania
 ui-shift-edge-4fadcbcd31772f0a = Przesuń krawędź
 
 ui-smart-radius-2179959cee59e956 = Inteligentny promień
+
+# Fork feature translations; existing authored messages above are preserved.
+
+ui-apply-theme-940745b76f98edfc = Zastosuj motyw
+
+ui-branch-7a07940a2b62f185 = Gałąź
+
+ui-budget-mb-af9a1600ca07b419 = Limit MB
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = Anuluj podgląd motywu
+
+ui-caption-font-01f956c20c42c9c8 = Czcionka tytułu
+
+ui-change-opacity-c419e848020b25f4 = Zmień krycie
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Kliknij, aby zmienić liczbę kolumn; przeciągnij pasek tytułu, aby przesunąć
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Kliknij, aby zmienić liczbę kolumn; przeciągnij, aby odłączyć Narzędzia
+
+ui-collaboration-view-settings-cd37c80a120a2d5e = Ustawienia widoku współpracy
+
+ui-collaboration-977b20dea89dd78c = Współpraca…
+
+ui-continue-f031dd957d5c1b56 = Kontynuuj
+
+ui-copy-json-fc4e8907ed0b8b94 = Kopiuj JSON
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = Usuń i wypełnij zaznaczenie
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Zadokuj Narzędzia po lewej
+
+ui-draft-name-c0af463d8e1619b5 = Wersja robocza: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = Powiel motyw
+
+ui-edit-theme-definition-7f259c436cbc367b = Edytuj definicję motywu
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = Edytuj poniższą definicję. Przed zmianą wbudowanego motywu utwórz jego kopię.
+
+ui-export-sdr-preview-a2e7aebcb62b91d6 = Eksportuj podgląd SDR…
+
+ui-export-theme-9924f16b219aa424 = Eksportuj motyw…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = Czcionka { $requested } jest niedostępna; używana jest { $actual }.
+
+ui-full-hd-portrait-39a9f8c4e7cf39c5 = Full HD pionowo
+
+ui-hdr-output-474159eb0db7fb90 = Wyjście HDR
+
+ui-hdr-workbench-847f1f37e6c4ef5a = Obszar roboczy HDR
+
+ui-import-theme-a399ac79528870d5 = Importuj motyw…
+
+ui-list-themes-3674d7aab0c03693 = Lista motywów
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Motyw Mac OS 9.1 Platinum
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Motyw Macintosh System 6
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Netpbm wybiera podtyp na podstawie głębi i kanałów obrazu.
+
+ui-portrait-4-5-2d9505f71636dfcd = Portret 4:5
+
+ui-preview-theme-7eced90e6da56ad4 = Podgląd motywu
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = Podgląd jest aktywny. Anulowanie przywraca zapisany motyw.
+
+ui-qhd-1440p-f76058a8c5f6bd81 = QHD 1440p
+
+ui-remove-theme-f449889ab3dc13fe = Usuń motyw
+
+ui-reset-changes-91bb267473e72bf7 = Cofnij zmiany
+
+ui-reset-theme-09df599fa743782b = Zresetuj motyw
+
+ui-retry-storage-2e07dc65352aa868 = Ponów zapis
+
+ui-return-to-original-49ddd457800418b3 = Przywróć oryginał
+
+ui-saved-theme-c30bc5d2b3c69847 = Zapisany motyw
+
+ui-scroll-down-fff28769afb825f2 = Przewiń w dół
+
+ui-scroll-left-58498927306bf4d7 = Przewiń w lewo
+
+ui-scroll-right-3171dac9aaa15648 = Przewiń w prawo
+
+ui-scroll-up-ae49a1e892131037 = Przewiń w górę
+
+ui-select-theme-85a12011f3908f5a = Wybierz motyw
+
+ui-shape-operations-e3eaf23b5a6b5836 = Operacje na kształtach
+
+ui-square-1-1-e6c9e86c3fb7e676 = Kwadrat 1:1
+
+ui-story-9-16-35ed85c9f46c846c = Relacja 9:16
+
+ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = Limit pamięci jest wspólny dla pikseli dokumentu, osadzonych danych i historii cofania. Wykorzystanie rośnie w razie potrzeby; pozostała pamięć aplikacji jest dodatkowa.
+
+ui-theme-details-a78c7b85de9ad366 = Szczegóły motywu
+
+ui-theme-manager-43184a7204b2f7ef = Menedżer motywów
+
+ui-theme-manager-5e06c12bd6d5d9a9 = Menedżer motywów…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Definicja motywu przekracza 64 KiB
+
+ui-theme-id-2057ac72399d5a4d = Identyfikator motywu
+
+ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = Ta wersja przeglądarkowa przechowuje historię cofania w pamięci. Ustawienia dysku roboczego dotyczą aplikacji komputerowej.
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = Ten format zapisuje spłaszczony obraz. Użyj „Zapisz kopię”, aby zachować edytowalny dokument.
+
+ui-uhd-4k-portrait-d52f839571d5640a = UHD 4K pionowo
+
+ui-undo-disk-space-grows-only-when-needed-u-86946daf63c3a558 = Miejsce na dysku dla cofania rośnie tylko w razie potrzeby, do tego limitu. Zero wyłącza pamięć podręczną na dysku. Ścieżki dysków roboczych obowiązują od następnej sesji buforowania.
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Miejsce na dysku dla cofania rośnie tylko w razie potrzeby. Nieograniczona historia zachowuje stany do zapełnienia pamięci. Ścieżki dysków roboczych obowiązują od następnej sesji buforowania.
+
+ui-unlimited-history-d3654847d93db9b8 = Nieograniczona historia
+
+ui-use-available-disk-space-44211d74d7260f1a = Użyj dostępnego miejsca na dysku
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Użyj nacisku gładzika
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Motyw Windows 98 SE

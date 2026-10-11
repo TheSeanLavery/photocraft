@@ -231,13 +231,16 @@ pub struct MenuParams {
 #[serde(deny_unknown_fields)]
 pub struct UiSetParams {
     /// Fields for the control method `ui.set`: tool, panels, dock, dockTabs, dockWidth, colorPanel
-    /// ({background: bool} picks which swatch the Color panel edits), maskTarget,
-    /// vectorMaskTarget, selectionMode, zoom, center, rotation (view angle in degrees), fit, theme (pro, proMedium, studio,
-    /// studioLight, classic, solarizedDark, adwaita, adwaitaDark, breezeLight, breezeDark), brushSection, brushTab,
+    /// ({background: bool} picks which swatch the Color panel edits), toolbarColumns (1, 2,
+    /// or null for automatic), toolbarFloating (bool), toolbarPosition ([x, y]), maskTarget,
+    /// vectorMaskTarget, selectionMode, zoom, center, rotation (view angle in degrees), fit,
+    /// theme (a built-in theme ID), brushSection, brushTab,
     /// brushesView, brushPicker ([x, y] opens the Brush Preset picker there, null closes it),
     /// brushPickerName, brushPickerStroke, brushPickerTip (the picker card's parts, at least one
     /// on), brushPickerScale (the picker footer's card-scale slider, 0.15 to 2, 1 the standard),
-    /// brushSize, gradientBlendMode
+    /// brushSize, vectorMode (path or shape), penShapeOperation (newLayer, combine, subtract,
+    /// intersect or exclude), hdrOutput (bool, enables HDR presentation when supported),
+    /// collaboration (a patch of private collaboration settings), gradientBlendMode
     /// (a blend mode name, for the Gradient tool), gradientClassic (bool), eyedropperSampleSize
     /// ("point" or 1, 3, 5, 11, 31, 51, 101), eyedropperSample (current, currentAndBelow, all,
     /// allNoAdjustments, currentAndBelowNoAdjustments), eyedropperRing (bool), cropOverlay (thirds,

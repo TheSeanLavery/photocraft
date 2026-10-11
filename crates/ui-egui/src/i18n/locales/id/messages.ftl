@@ -3383,7 +3383,7 @@ ui-pattern-preview-e36e994295eca6bf = Pratinjau Pola
 
 ui-pattern-size-8bca37fd672238e4 = Ukuran Pola
 
-ui-pattern-stamp-3def986c64c12dcc = Pattern Stamp
+ui-pattern-stamp-3def986c64c12dcc = Stempel Pola
 
 ui-patterns-1d6dc3afda393884 = Pola
 

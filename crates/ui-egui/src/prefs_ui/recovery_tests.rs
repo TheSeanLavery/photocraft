@@ -94,7 +94,13 @@ fn recovery_keeps_frames_and_editing_live_and_adopts_the_admitted_document() {
     let mut doc = document("Recovered");
     doc.layers[0].surface_mut().unwrap().write_pixel(1, 2, &[1.0, 0.0, 0.0, 1.0]);
     let original = doc.clone();
-    let (pending, started, release, finished) = gated(doc);
+    let (mut pending, started, release, finished) = gated(doc);
+    let load = pending.load;
+    pending.load = Box::new(move || {
+        let mut recovered = load()?;
+        recovered.context = json!({"active":true,"tool":"Move","tabOrder":0});
+        Ok(recovered)
+    });
     let (services, log) = services(vec![pending]);
     let mut app = PhotocraftApp::new(Session::new(), services);
     let ctx = egui::Context::default();
@@ -106,6 +112,7 @@ fn recovery_keeps_frames_and_editing_live_and_adopts_the_admitted_document() {
     // Opening a copy while decoding exercises ID collision handling as well as focus retention.
     app.session.add_document(original.clone(), Some("working.psb".into()));
     let working_id = app.session.active().unwrap().doc.id;
+    app.ui.tool = crate::state::Tool::Brush;
     app.run("edit.fill", json!({"color": "#0000ff"})).unwrap();
     for _ in 0..3 {
         frame(&mut app, &ctx);
@@ -116,7 +123,8 @@ fn recovery_keeps_frames_and_editing_live_and_adopts_the_admitted_document() {
     finished.recv_timeout(Duration::from_secs(10)).unwrap();
     settle(&mut app, &ctx);
 
-    assert_eq!(app.session.active().unwrap().doc.id, working_id, "finishing recovery must not steal focus");
+    assert_eq!(app.session.active().unwrap().doc.id, working_id, "an active checkpoint must not steal focus from live work");
+    assert_eq!(app.ui.tool, crate::state::Tool::Brush, "an active checkpoint must not replace the user's current tool");
     let recovered = app.session.documents().iter().find(|st| st.doc.id != working_id).unwrap();
     assert_eq!(recovered.path.as_deref(), Some("original.psb"));
     assert!(recovered.is_dirty());

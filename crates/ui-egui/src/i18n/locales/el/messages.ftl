@@ -7307,3 +7307,127 @@ ui-refine-strokes-0b1c46698a8ef47f = Πινελιές βελτίωσης
 ui-shift-edge-4fadcbcd31772f0a = Μετατόπιση άκρης
 
 ui-smart-radius-2179959cee59e956 = Έξυπνη ακτίνα
+
+# Fork feature translations; existing authored messages above are preserved.
+
+ui-apply-theme-940745b76f98edfc = Εφαρμογή θέματος
+
+ui-branch-7a07940a2b62f185 = Κλάδος
+
+ui-budget-mb-af9a1600ca07b419 = Όριο MB
+
+ui-cancel-theme-preview-8b9c6963c052c3a8 = Ακύρωση προεπισκόπησης θέματος
+
+ui-caption-font-01f956c20c42c9c8 = Γραμματοσειρά τίτλου
+
+ui-change-opacity-c419e848020b25f4 = Αλλαγή αδιαφάνειας
+
+ui-click-to-change-columns-drag-the-title-b-a6d6183d68817a4e = Κλικ για αλλαγή στηλών· σύρετε τη γραμμή τίτλου για μετακίνηση
+
+ui-click-to-change-columns-drag-to-detach-t-ea128c856674ca2b = Κλικ για αλλαγή στηλών· σύρετε για αποσύνδεση των εργαλείων
+
+ui-collaboration-view-settings-cd37c80a120a2d5e = Ρυθμίσεις προβολής συνεργασίας
+
+ui-collaboration-977b20dea89dd78c = Συνεργασία…
+
+ui-copy-json-fc4e8907ed0b8b94 = Αντιγραφή JSON
+
+ui-delete-and-fill-selection-03e92da8be77ac94 = Διαγραφή και γέμισμα επιλογής
+
+ui-dock-tools-on-the-left-92a81b88e5646bd0 = Προσάρτηση εργαλείων αριστερά
+
+ui-draft-name-c0af463d8e1619b5 = Προσχέδιο: { $name }
+
+ui-duplicate-theme-29f5530c05d899c5 = Διπλασιασμός θέματος
+
+ui-edit-theme-definition-7f259c436cbc367b = Επεξεργασία ορισμού θέματος
+
+ui-edit-the-definition-below-duplicate-a-bu-dc9e9a4459f14e0e = Επεξεργαστείτε τον ορισμό παρακάτω. Αντιγράψτε ένα ενσωματωμένο θέμα πριν το αλλάξετε.
+
+ui-export-sdr-preview-a2e7aebcb62b91d6 = Εξαγωγή προεπισκόπησης SDR…
+
+ui-export-theme-9924f16b219aa424 = Εξαγωγή θέματος…
+
+ui-font-requested-is-unavailable-using-actu-fd4a57aa61ab25c3 = Η γραμματοσειρά { $requested } δεν είναι διαθέσιμη· χρησιμοποιείται η { $actual }.
+
+ui-full-hd-portrait-39a9f8c4e7cf39c5 = Full HD κατακόρυφα
+
+ui-hdr-output-474159eb0db7fb90 = Έξοδος HDR
+
+ui-hdr-workbench-847f1f37e6c4ef5a = Χώρος εργασίας HDR
+
+ui-import-theme-a399ac79528870d5 = Εισαγωγή θέματος…
+
+ui-list-themes-3674d7aab0c03693 = Λίστα θεμάτων
+
+ui-mac-os-9-1-platinum-theme-e9dff22747db4da7 = Θέμα Mac OS 9.1 Platinum
+
+ui-macintosh-system-6-theme-161ad7b705ae835b = Θέμα Macintosh System 6
+
+ui-netpbm-chooses-the-subtype-from-the-imag-c55b4bbe0c2f34f4 = Το Netpbm επιλέγει τον υποτύπο από το βάθος και τα κανάλια της εικόνας.
+
+ui-portrait-4-5-2d9505f71636dfcd = Κατακόρυφο 4:5
+
+ui-preview-theme-7eced90e6da56ad4 = Προεπισκόπηση θέματος
+
+ui-preview-is-active-cancel-restores-your-s-8923617aa2dc34cb = Η προεπισκόπηση είναι ενεργή. Η ακύρωση επαναφέρει το αποθηκευμένο θέμα.
+
+ui-qhd-1440p-f76058a8c5f6bd81 = QHD 1440p
+
+ui-remove-theme-f449889ab3dc13fe = Αφαίρεση θέματος
+
+ui-reset-changes-91bb267473e72bf7 = Επαναφορά αλλαγών
+
+ui-reset-theme-09df599fa743782b = Επαναφορά θέματος
+
+ui-retry-storage-2e07dc65352aa868 = Επανάληψη αποθήκευσης
+
+ui-return-to-original-49ddd457800418b3 = Επιστροφή στο πρωτότυπο
+
+ui-saved-theme-c30bc5d2b3c69847 = Αποθηκευμένο θέμα
+
+ui-scroll-down-fff28769afb825f2 = Κύλιση κάτω
+
+ui-scroll-left-58498927306bf4d7 = Κύλιση αριστερά
+
+ui-scroll-right-3171dac9aaa15648 = Κύλιση δεξιά
+
+ui-scroll-up-ae49a1e892131037 = Κύλιση πάνω
+
+ui-select-theme-85a12011f3908f5a = Επιλογή θέματος
+
+ui-shape-operations-e3eaf23b5a6b5836 = Λειτουργίες σχημάτων
+
+ui-square-1-1-e6c9e86c3fb7e676 = Τετράγωνο 1:1
+
+ui-story-9-16-35ed85c9f46c846c = Ιστορία 9:16
+
+ui-the-memory-budget-is-shared-by-document-p-7f11e53e1764332d = Το όριο μνήμης μοιράζεται στα εικονοστοιχεία του εγγράφου, τα ενσωματωμένα δεδομένα και το ιστορικό αναίρεσης. Η χρήση αυξάνεται όσο χρειάζεται· η υπόλοιπη μνήμη της εφαρμογής είναι επιπλέον.
+
+ui-theme-details-a78c7b85de9ad366 = Λεπτομέρειες θέματος
+
+ui-theme-manager-43184a7204b2f7ef = Διαχείριση θεμάτων
+
+ui-theme-manager-5e06c12bd6d5d9a9 = Διαχείριση θεμάτων…
+
+ui-theme-definition-exceeds-64-kib-547265c42bc4d0ac = Ο ορισμός του θέματος υπερβαίνει τα 64 KiB
+
+ui-theme-id-2057ac72399d5a4d = Αναγνωριστικό θέματος
+
+ui-this-browser-build-keeps-undo-history-in-73877559d3cac31a = Αυτή η έκδοση για πρόγραμμα περιήγησης διατηρεί το ιστορικό αναίρεσης στη μνήμη. Οι ρυθμίσεις δίσκου εργασίας αφορούν την εφαρμογή υπολογιστή.
+
+ui-this-format-saves-a-flattened-image-use-s-480a438b31c683bb = Αυτή η μορφή αποθηκεύει μια συγχωνευμένη εικόνα. Χρησιμοποιήστε «Αποθήκευση αντιγράφου» για να διατηρήσετε το επεξεργάσιμο έγγραφο.
+
+ui-uhd-4k-portrait-d52f839571d5640a = UHD 4K κατακόρυφα
+
+ui-undo-disk-space-grows-only-when-needed-u-86946daf63c3a558 = Ο χώρος δίσκου για αναίρεση αυξάνεται μόνο όσο χρειάζεται, μέχρι αυτό το όριο. Το μηδέν απενεργοποιεί την προσωρινή αποθήκευση στον δίσκο. Οι διαδρομές δίσκων εργασίας ισχύουν στην επόμενη περίοδο προσωρινής αποθήκευσης.
+
+ui-undo-disk-space-grows-only-when-needed-unlimited-a85baa5bcec5dde7 = Ο χώρος δίσκου για αναίρεση αυξάνεται μόνο όσο χρειάζεται. Το απεριόριστο ιστορικό διατηρεί τις καταστάσεις μέχρι να γεμίσει ο αποθηκευτικός χώρος. Οι διαδρομές δίσκων εργασίας ισχύουν στην επόμενη περίοδο προσωρινής αποθήκευσης.
+
+ui-unlimited-history-d3654847d93db9b8 = Απεριόριστο ιστορικό
+
+ui-use-available-disk-space-44211d74d7260f1a = Χρήση διαθέσιμου χώρου δίσκου
+
+ui-use-trackpad-pressure-99cbd3f48f8a737d = Χρήση πίεσης επιφάνειας αφής
+
+ui-windows-98-se-theme-9ff7794c19a7307e = Θέμα Windows 98 SE
