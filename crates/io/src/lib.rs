@@ -33,6 +33,7 @@ pub mod effects_map;
 mod flat;
 mod gradient_bake;
 pub mod linked;
+mod mixed_documents;
 mod multichannel_map;
 mod openraster;
 pub mod pattern_map;

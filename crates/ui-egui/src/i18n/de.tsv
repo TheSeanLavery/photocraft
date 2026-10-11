@@ -2255,3 +2255,5 @@
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Speicher für Rückgängig wächst nach Bedarf. Unbegrenzter Verlauf behält Zustände bis der Speicher voll ist. Pfade gelten für die nächste Cache-Sitzung.
 
 	Change opacity	Deckkraft ändern
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG erhält unterstützte Formen und Rasterebenen. Nicht unterstützte Funktionen werden möglicherweise gerastert.

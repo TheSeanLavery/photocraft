@@ -2230,3 +2230,5 @@ cameraRaw	Blending	混合
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	撤销存储空间按需增长。无限历史记录保留状态，直到存储空间已满。暂存路径适用于下次缓存会话。
 
 	Change opacity	更改不透明度
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG 会保留受支持的形状和栅格图层。不受支持的功能可能会被栅格化。

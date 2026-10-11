@@ -2641,3 +2641,5 @@ cameraRaw	Blending	Fusion
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Le stockage d’annulation grandit selon les besoins. L’historique illimité conserve les états jusqu’à saturation. Les chemins s’appliquent à la prochaine session du cache.
 
 	Change opacity	Modifier l’opacité
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG conserve les formes et les calques pixellisés pris en charge. Les fonctions non prises en charge peuvent être pixellisées.

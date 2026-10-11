@@ -9,6 +9,9 @@ fn error(s: impl std::fmt::Display) -> IoError {
     IoError::Unsupported(format!("raster document export: {s}"))
 }
 pub(crate) fn export(doc: &Document, ext: &str, opts: &ExportOptions) -> Result<ExportResult, IoError> {
+    if let Some(result) = crate::mixed_documents::export(doc, ext, opts)? {
+        return Ok(result);
+    }
     let (w, h) = (doc.size.width, doc.size.height);
     photocraft_codecs::Limits { max_alloc: 256 << 20, ..Default::default() }.check(w, h, ChannelLayout::Rgba, SampleType::U16)?;
     let png = crate::flat::export_flat(doc, Format::Png, opts)?;
@@ -130,6 +133,9 @@ pub(crate) fn import_wrapper(name: &str, bytes: &[u8]) -> Result<Option<crate::I
     } else {
         bytes
     };
+    if let Some(result) = crate::mixed_documents::import(name, bytes)? {
+        return Ok(Some(result));
+    }
     let marker = b"data-photocraft-raster";
     if !bytes.windows(marker.len()).any(|b| b == marker) {
         return Ok(None);

@@ -2206,3 +2206,5 @@ cameraRaw	Color	カラー
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	取り消し用ディスク容量は必要に応じて増加します。無制限の履歴は容量がいっぱいになるまで保持されます。パスは次のキャッシュセッションに適用されます。
 
 	Change opacity	不透明度を変更
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG はサポートされているシェイプとラスターレイヤーを保持します。未対応の機能はラスタライズされる場合があります。

@@ -2289,3 +2289,5 @@ cameraRaw	Amount	Quantità
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Lo spazio per annullare cresce secondo necessità. La cronologia illimitata conserva gli stati fino a esaurire lo spazio. I percorsi valgono per la prossima sessione cache.
 
 	Change opacity	Cambia opacità
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG conserva le forme e i livelli raster supportati. Le funzionalità non supportate possono essere rasterizzate.

@@ -2628,3 +2628,5 @@ cameraRaw	Blending	Pembauran
 	Undo disk space grows only when needed. Unlimited history retains states until storage is full. Scratch paths apply to the next cache session.	Ruang pembatalan bertambah sesuai kebutuhan. Riwayat tanpa batas menyimpan keadaan hingga penyimpanan penuh. Jalur berlaku pada sesi cache berikutnya.
 
 	Change opacity	Ubah opasitas
+
+	SVG preserves supported shapes and raster layers. Unsupported features may be rasterized.	SVG mempertahankan bentuk dan lapisan raster yang didukung. Fitur yang tidak didukung dapat dirasterisasi.
