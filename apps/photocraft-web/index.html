@@ -24,7 +24,7 @@
     #photocraft_loading a { color: #e0e0e0; pointer-events: auto; }
     /* The app removes this element once it runs. If the WebAssembly never downloads or doesn't match
        this page, no Rust runs to say so, so the page itself shows what to do after a while. */
-    #photocraft_stalled { color: #8c8c8c; visibility: hidden; animation: photocraft-stalled 0s 20s forwards; }
+    #photocraft_stalled, #photocraft_startup_stalled { color: #8c8c8c; visibility: hidden; animation: photocraft-stalled 0s 20s forwards; }
     @keyframes photocraft-stalled { to { visibility: visible; } }
   </style>
 </head>
@@ -37,7 +37,7 @@
   </div>
   <div id="photocraft_loading" hidden>
     <p>Loading PhotoCraft&hellip;</p>
-    <p>This is taking longer than usual. If PhotoCraft doesn't start, its files may have failed to
+    <p id="photocraft_startup_stalled">This is taking longer than usual. If PhotoCraft doesn't start, its files may have failed to
       download or come from a different version of this page. <a href="">Reload</a> to try again; the browser
       console lists what failed.</p>
   </div>
