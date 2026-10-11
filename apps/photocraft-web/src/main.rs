@@ -42,8 +42,8 @@ mod tests {
     #[test]
     fn loading_page_offers_a_reload_when_startup_stalls() {
         let html = include_str!("../index.html");
-        let (_, hint) = html.split_once("<p id=\"photocraft_stalled\">").expect("stalled-startup hint in the loading element");
-        assert!(hint.contains("failed to") && hint.contains("<a href=\"\">Reload</a>"), "{hint}");
+        let (_, hint) = html.split_once("<p id=\"photocraft_stalled\">").expect("stalled-startup hint on the launch screen");
+        assert!(hint.contains("loading stalls") && hint.contains("<a href=\"\">Reload</a>"), "{hint}");
         assert!(html.contains("animation: photocraft-stalled"), "the hint appears after a delay");
         assert!(!html.contains("<script"), "trunk injects the generated loader; the page has no script of its own");
     }
