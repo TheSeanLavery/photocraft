@@ -29,16 +29,14 @@ fi
 # uploadable. Override with PHOTOCRAFT_WASM_MAX_BYTES only to investigate.
 MAX_WASM_BYTES="${PHOTOCRAFT_WASM_MAX_BYTES:-25165824}" # 24 MiB, leaving headroom below the host cap
 WASM_COUNT=0
-for wasm in "$SITE"/*.wasm; do
-  [ -f "$wasm" ] || continue
-  WASM_COUNT=$((WASM_COUNT + 1))
-  size=$(wc -c <"$wasm" | tr -d ' ')
-  echo "$(basename "$wasm"): $size bytes ($((size / 1048576)) MiB; limit $MAX_WASM_BYTES)"
+while IFS= read -r -d '' asset; do
+  size=$(wc -c <"$asset" | tr -d ' ')
+  case "$asset" in *.wasm) WASM_COUNT=$((WASM_COUNT + 1)); echo "$(basename "$asset"): $size bytes ($((size / 1048576)) MiB; limit $MAX_WASM_BYTES)" ;; esac
   if [ "$size" -gt "$MAX_WASM_BYTES" ]; then
-    echo "error: $(basename "$wasm") is $size bytes, over the $MAX_WASM_BYTES-byte limit (Cloudflare's per-file cap is 25 MiB)" >&2
+    echo "error: ${asset#"$SITE/"} is $size bytes, over the $MAX_WASM_BYTES-byte runtime asset limit (Cloudflare's per-file cap is 25 MiB)" >&2
     exit 1
   fi
-done
+done < <(find "$SITE" -type f -print0)
 [ "$WASM_COUNT" -gt 0 ] || { echo "error: no .wasm in $SITE" >&2; exit 1; }
 
 NAME="photocraft-web-$VERSION"
@@ -68,6 +66,15 @@ if [ -n "${PHOTOCRAFT_WEB_FONTS_DIR:-}" ]; then
   done
   echo "served fonts: $(grep -cvE '^[[:space:]]*(#|$)' "$FONTS_MANIFEST") manifest lines from $PHOTOCRAFT_WEB_FONTS_DIR"
 fi
+# Served fonts and copied documentation are added after the Trunk output check. Enforce the
+# same host cap on the final site too, so an optional font cannot silently make it unuploadable.
+while IFS= read -r -d '' asset; do
+  size=$(wc -c <"$asset" | tr -d ' ')
+  if [ "$size" -gt "$MAX_WASM_BYTES" ]; then
+    echo "error: ${asset#"$WORK/$NAME/"} is $size bytes, over the $MAX_WASM_BYTES-byte runtime asset limit" >&2
+    exit 1
+  fi
+done < <(find "$WORK/$NAME" -type f -print0)
 rm -f "$DIST/$NAME.zip"
 (cd "$WORK" && zip -qr9 "$DIST/$NAME.zip" "$NAME")
 echo "wrote $DIST/$NAME.zip"

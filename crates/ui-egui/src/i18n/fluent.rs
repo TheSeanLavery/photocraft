@@ -1,4 +1,5 @@
 //! Stable Fluent message IDs layered under the existing public translation API.
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
@@ -31,30 +32,51 @@ impl Catalog {
     }
 }
 
-static CATALOGS: [OnceLock<Catalog>; 17] = [const { OnceLock::new() }; 17];
+static CATALOGS: [OnceLock<Option<Catalog>>; 17] = [const { OnceLock::new() }; 17];
+
+// Keeping the authored source in native builds also keeps native tools independent of an
+// external locale bundle. The web build retains every language in a smaller, lossless payload.
+macro_rules! source {
+    ($locale:literal) => {{
+        #[cfg(not(target_arch = "wasm32"))]
+        let text = include_str!(concat!("locales/", $locale, "/messages.ftl"));
+        #[cfg(target_arch = "wasm32")]
+        let text = include_bytes!(concat!(env!("OUT_DIR"), "/i18n/fluent-", $locale, ".ftl.deflate")).as_slice();
+        text
+    }};
+}
 
 fn catalog(code: &str) -> Option<&'static Catalog> {
     let (index, locale, source) = match code {
-        "en" => (0, "en", include_str!("locales/en/messages.ftl")),
-        "ja" => (1, "ja", include_str!("locales/ja/messages.ftl")),
-        "zh-hans" => (2, "zh-CN", include_str!("locales/zh-CN/messages.ftl")),
-        "zh-hant" => (3, "zh-TW", include_str!("locales/zh-TW/messages.ftl")),
-        "es" => (4, "es", include_str!("locales/es/messages.ftl")),
-        "ru" => (5, "ru", include_str!("locales/ru/messages.ftl")),
-        "cs" => (6, "cs", include_str!("locales/cs/messages.ftl")),
-        "fr" => (7, "fr", include_str!("locales/fr/messages.ftl")),
-        "id" => (8, "id", include_str!("locales/id/messages.ftl")),
-        "ko" => (9, "ko", include_str!("locales/ko/messages.ftl")),
-        "de" => (10, "de", include_str!("locales/de/messages.ftl")),
-        "pt-br" => (11, "pt-BR", include_str!("locales/pt-BR/messages.ftl")),
-        "it" => (12, "it", include_str!("locales/it/messages.ftl")),
-        "uk" => (13, "uk", include_str!("locales/uk/messages.ftl")),
-        "pl" => (14, "pl", include_str!("locales/pl/messages.ftl")),
-        "el" => (15, "el", include_str!("locales/el/messages.ftl")),
-        "nl" => (16, "nl", include_str!("locales/nl/messages.ftl")),
+        "en" => (0, "en", source!("en")),
+        "ja" => (1, "ja", source!("ja")),
+        "zh-hans" => (2, "zh-CN", source!("zh-CN")),
+        "zh-hant" => (3, "zh-TW", source!("zh-TW")),
+        "es" => (4, "es", source!("es")),
+        "ru" => (5, "ru", source!("ru")),
+        "cs" => (6, "cs", source!("cs")),
+        "fr" => (7, "fr", source!("fr")),
+        "id" => (8, "id", source!("id")),
+        "ko" => (9, "ko", source!("ko")),
+        "de" => (10, "de", source!("de")),
+        "pt-br" => (11, "pt-BR", source!("pt-BR")),
+        "it" => (12, "it", source!("it")),
+        "uk" => (13, "uk", source!("uk")),
+        "pl" => (14, "pl", source!("pl")),
+        "el" => (15, "el", source!("el")),
+        "nl" => (16, "nl", source!("nl")),
         _ => return None,
     };
-    Some(CATALOGS.get(index)?.get_or_init(|| Catalog::new(locale, source)))
+    CATALOGS
+        .get(index)?
+        .get_or_init(|| {
+            #[cfg(not(target_arch = "wasm32"))]
+            let source = Cow::Borrowed(source);
+            #[cfg(target_arch = "wasm32")]
+            let source: Cow<'_, str> = Cow::Owned(super::inflate(source).ok()?);
+            Some(Catalog::new(locale, &source))
+        })
+        .as_ref()
 }
 
 struct Keys {
@@ -67,7 +89,11 @@ fn keys() -> &'static Keys {
     KEYS.get_or_init(|| {
         let mut plain = HashMap::new();
         let mut other = HashMap::new();
-        for line in include_str!("keys.tsv").lines().filter(|line| !line.is_empty() && !line.starts_with('#')) {
+        #[cfg(not(target_arch = "wasm32"))]
+        let source = Cow::Borrowed(include_str!("keys.tsv"));
+        #[cfg(target_arch = "wasm32")]
+        let source: Cow<'_, str> = Cow::Owned(super::inflate(include_bytes!(concat!(env!("OUT_DIR"), "/i18n/fluent-keys.tsv.deflate"))).unwrap_or_default());
+        for line in source.lines().filter(|line| !line.is_empty() && !line.starts_with('#')) {
             let mut parts = line.split('\t');
             let (Some(context), Some(source), Some(id), None) = (parts.next(), parts.next(), parts.next(), parts.next()) else {
                 continue;
@@ -140,4 +166,39 @@ pub fn plural(code: &str, n: u64, one: &str, other: &str) -> Option<String> {
     let mut args = FluentArgs::new();
     args.set("n", count);
     render(&catalog(code)?.bundle, id, Some(&args))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn compressed_fluent_payloads_preserve_all_authored_bytes() {
+        macro_rules! check {
+            ($locale:literal) => {
+                assert_eq!(
+                    super::super::inflate(include_bytes!(concat!(env!("OUT_DIR"), "/i18n/fluent-", $locale, ".ftl.deflate"))).unwrap(),
+                    include_str!(concat!("locales/", $locale, "/messages.ftl")),
+                    "locale {} changed while compressing",
+                    $locale
+                );
+            };
+        }
+        check!("en");
+        check!("ja");
+        check!("zh-CN");
+        check!("zh-TW");
+        check!("es");
+        check!("ru");
+        check!("cs");
+        check!("fr");
+        check!("id");
+        check!("ko");
+        check!("de");
+        check!("pt-BR");
+        check!("it");
+        check!("uk");
+        check!("pl");
+        check!("el");
+        check!("nl");
+        assert_eq!(super::super::inflate(include_bytes!(concat!(env!("OUT_DIR"), "/i18n/fluent-keys.tsv.deflate"))).unwrap(), include_str!("keys.tsv"));
+    }
 }

@@ -7,7 +7,10 @@ static site in `photocraft-web-<version>/`:
 |---|---|
 | `index.html` | The page. It loads everything through relative URLs. |
 | `photocraft-web-<hash>.js` | wasm-bindgen glue (generated, ES module) |
-| `photocraft-web-<hash>_bg.wasm` | The app: about 19 MiB raw, 8 MiB with gzip, 5.6 MiB with Brotli (see [Sizes](#sizes)) |
+| `photocraft-web-<hash>_bg.wasm` | Complete executable, about 21.7 MiB raw (see [Sizes](#sizes)) |
+| `photocraft-static-assets-<hash>.wasm` | Paired static fonts/locales/shaders/tables, about 6.7 MiB raw |
+| `photocraft-static-assets.json` | Exact bundle/version/file digest manifest |
+| `photocraft-wire-worker_bg.wasm` and worker glue | Collaboration codec worker, about 3.1 MiB raw |
 | `_headers`, `.htaccess` | Sample header rules for Netlify/Cloudflare Pages and Apache |
 | `fonts/` (optional) | Fonts loaded on demand, listed in `fonts/manifest.txt` (see [Fonts](#fonts)) |
 
@@ -65,28 +68,31 @@ location /photocraft/ {
 ```
 
 The editor and image processing run on the visitor's device. Open uses the browser file
-picker; Save and Export download files. Preferences use browser localStorage. There is no
-server-side document storage, desktop TCP control server, or web autosave/crash recovery;
-save/download work before closing or reloading the page. A browser with WebGPU or WebGL2 is
-required; `?webgl` forces the fallback when troubleshooting.
+picker; Save and Export download files. Preferences and themes use browser localStorage;
+custom brushes persist in IndexedDB when browser storage is available. This browser shell has
+no document autosave/crash recovery or desktop TCP control server, so save/download documents
+before closing or reloading the page. A browser with WebGPU or WebGL2 is required;
+`?webgl` forces the fallback when troubleshooting.
 
 To verify the browser deployment, open the page, open an image and save/export it.
 
 ## Sizes
 
-Measured on the 0.2.x build (`packaging/web/package.sh`; gzip `-9`, Brotli quality 11):
+Measured on the compact integration build (2026-10-11), after lossless static asset packing:
 
-| File | Raw | gzip | Brotli |
-|---|---|---|---|
-| `photocraft-web-<hash>_bg.wasm` | 19,680,726 bytes (18.8 MiB) | 8,177,260 (7.8 MiB) | 5,868,731 (5.6 MiB) |
-| `photocraft-web-<hash>.js` | about 160 KB | about 23 KB | about 20 KB |
+| File | Raw |
+|---|---|
+| `photocraft-web-<hash>_bg.wasm` | 22,787,987 bytes (21.7 MiB) |
+| `photocraft-static-assets-<hash>.wasm` | 7,046,425 bytes (6.7 MiB) |
+| `photocraft-wire-worker_bg.wasm` | 3,256,221 bytes (3.1 MiB) |
 
-Per-file upload limits: Cloudflare Pages and Workers static assets reject any file over
-**25 MiB** (26,214,400 bytes; [Cloudflare Pages limits](https://developers.cloudflare.com/pages/platform/limits/#file-size)). The wasm fits, and `packaging/web/package.sh` fails the build if
-it ever grows past 25 MiB, so a release can't ship a file a common host refuses. (Releases up to
-0.2.0 shipped a 25.8 MiB wasm, which Cloudflare rejected; issue #198.) The size comes from the
-`wasm-release` Cargo profile (fat LTO, size-optimized code with the pixel crates kept at full
-speed) plus `wasm-opt -Oz`.
+The package gate is **24 MiB (25,165,824 bytes) per runtime file**, including executable,
+static asset module, worker, JavaScript and optional served fonts. It leaves hosting headroom
+and does not change with asset extraction. Upload the complete site rather than only the
+executable: both modules are necessary, paired by a common original-module digest. The size
+comes from the `wasm-release` Cargo profile (fat LTO, size-optimized cold code with pixel crates
+kept at full speed), `wasm-opt -Oz`, lossless localization compression and separate static
+asset storage. gzip/Brotli still reduce transfer size; their sizes depend on host settings.
 
 ## Any path works
 
@@ -100,8 +106,8 @@ hash, so they can be cached forever. Only `index.html` needs revalidation.
 - **MIME type:** serve `.wasm` as `application/wasm`. Browsers refuse to stream-compile it under
   any other type, and the app then loads slowly or not at all. Serve `.js` as `text/javascript`.
   Most hosts already do both. For nginx, check that `mime.types` has `application/wasm wasm;`.
-- **Compression:** turn on gzip or Brotli for `.wasm`, `.js` and `.html`. That takes the
-  download from about 19 MiB to about 8 MiB (gzip) or 5.6 MiB (Brotli). You can also
+- **Compression:** turn on gzip or Brotli for `.wasm`, `.js` and `.html` to reduce download
+  size. The packaging limit still applies to each uncompressed runtime file. You can also
   precompress (`brotli -k *.wasm`) and let the server send `Content-Encoding: br`.
 - **Caching:** `Cache-Control: public, max-age=31536000, immutable` on the hashed `.wasm` and
   `.js` files, and `no-cache` on `index.html`.
@@ -198,3 +204,45 @@ PhotoCraft renders with wgpu. It uses **WebGPU** when the browser has it and fal
 For example: `<iframe src="https://example.com/photocraft/?webgl" ...>`.
 
 A browser with neither WebGPU nor WebGL2 gets a message in place of the app.
+
+
+## Static WebAssembly assets
+
+The Trunk post-build hook runs `cargo xtask web-assets`. It keeps every executable function,
+import, table and global, and moves active static data (fonts, localization, shader text, icons
+and lookup tables) into `photocraft-static-assets-<hash>.wasm`. The asset module imports the
+executable's exported memory and writes the exact original bytes at the original offsets.
+The executable retains empty active segment slots and its DataCount. Native builds are unchanged.
+
+The generated loader validates matching version/bundle markers on both compiled modules, loads
+assets before calling Rust's explicit start, and rejects missing/corrupt/mismatched assets. URLs
+resolve relative to the generated ES module, so nested paths and iframes keep working. Both executable and asset
+fetches use SHA384 integrity; the final executable, asset module and glue have independent content
+hashes, and HTML preload SRI is recomputed. Servers should serve both `.wasm` files with
+`application/wasm`; buffered compilation remains available for hosts with a generic MIME type.
+Copy the complete site, including `photocraft-static-assets.json`, rather than individual files.
+
+Asynchronous initialization fetches the paired assets automatically. Synchronous initialization
+remains synchronous and requires both already-loaded modules (or their bytes):
+`initSync({module: executableModule, static_assets: assetModule})`. It reports an error if assets
+are omitted and never starts an uninitialized executable. Async object-form initialization also
+accepts `static_assets` for preloaded modules. Existing browser startup uses async initialization
+and asynchronous instantiation, which supports large modules. Chrome imposes an 8 MiB limit on
+synchronous main-thread WebAssembly operations; use async initialization there, including when
+modules are already compiled. Synchronous initialization remains available where the platform
+supports it.
+
+The packer recognizes the current wasm-bindgen initialization sequence strictly and rejects an
+unrecognized compiler layout. It rejects module start functions, passive segments, imported or
+multiple/shared/64-bit memories, invalid signed offsets, inconsistent DataCount and oversized or
+truncated payloads. Both the loader and packer reject mixed bundles. Repeating the packer checks
+its emitted file digests and the unchanged **24 MiB limit on every runtime asset**, including
+fonts and JavaScript. It generates a complete sibling staging directory before publication and
+restores the original directory if publishing fails. Trunk publishes only the completed site.
+
+To pack an existing Trunk output, run `cargo xtask web-assets --dir dist/web`; to check format and
+loader regressions, run `cargo test -p xtask web_assets`. Browser acceptance must also cover real
+startup at root/nested paths, wrong-MIME fallback, missing/mixed asset rejection before startup,
+HDR rendering/export, language switching, served fonts and collaboration. Static asset extraction
+preserves the original full linear memory, including gaps and zero bytes; it does not remove an
+editor feature or raise the package size limit.

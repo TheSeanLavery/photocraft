@@ -15,6 +15,7 @@ mod scorecard;
 mod sha256;
 mod stats;
 mod version;
+mod web_assets;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
@@ -25,6 +26,8 @@ usage: cargo xtask <command>
 commands:
   layers          enforce the crate dependency layering (plan/architecture.md §3)
   wasm            cargo check --target wasm32-unknown-unknown for the wasm-safe crates
+  web-assets [--dir <site>]
+                  losslessly pack static Wasm assets (Trunk post-build; unchanged 24 MiB per-file cap)
   ci              fmt --check, clippy -D warnings, test, layers, wasm (stops at first failure)
   corpus [--all | --pngsuite | --psd | --psd-tools | --pixls | --photoshop] [--local] [--update-manifest]
                   show where test corpora live and their pins (xtask/src/corpus_pins.rs), or fetch
@@ -57,6 +60,7 @@ fn main() -> ExitCode {
     let result = match args.first().map(String::as_str) {
         Some("layers") => cmd_layers(),
         Some("wasm") => cmd_wasm(),
+        Some("web-assets") => web_assets::run(&rest),
         Some("ci") => cmd_ci(),
         Some("corpus") => corpus::cmd(&rest),
         Some("test-corpus") => corpus::test_cmd(&rest),

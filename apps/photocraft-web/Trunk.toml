@@ -8,3 +8,10 @@ filehash = true
 [serve]
 addresses = ["127.0.0.1"]
 port = 8765
+
+# Separate static fonts/locales/shaders/tables from executable Wasm. The Rust packer binds both
+# modules, updates final content hashes/SRI, and stages the complete site before Trunk publishes it.
+[[hooks]]
+stage = "post_build"
+command = "cargo"
+command_arguments = ["run", "--quiet", "--manifest-path", "../../Cargo.toml", "-p", "xtask", "--", "web-assets"]
