@@ -222,6 +222,10 @@ impl ScrollArea {
         self.inner = self.inner.id_salt(id);
         self
     }
+    pub fn vertical_scroll_offset(mut self, offset: f32) -> Self {
+        self.inner = self.inner.vertical_scroll_offset(offset);
+        self
+    }
     pub fn max_height(mut self, v: f32) -> Self {
         self.inner = self.inner.max_height(v);
         self
