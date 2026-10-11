@@ -16,6 +16,8 @@ use std::{
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 use wasm_bindgen_futures::{JsFuture, spawn_local};
 use web_sys::{RtcConfiguration, RtcDataChannel, RtcDataChannelInit, RtcDataChannelState, RtcPeerConnection, RtcSdpType, RtcSessionDescriptionInit};
+#[path = "peer_policy.rs"]
+mod peer_policy;
 const MAX_EVENTS: usize = 1024;
 // Encoded queues retain the protocol cap plus conservative structured-clone metadata credit.
 const MAX_QUEUE_BYTES: usize = super::worker_codec::policy::MAX_SINGLE;
@@ -46,6 +48,8 @@ struct Signal {
 }
 type Handlers = Rc<RefCell<Vec<Closure<dyn FnMut(web_sys::Event)>>>>;
 struct Link {
+    identity: Rc<u64>,
+    grace: peer_policy::DisconnectGrace,
     connection: RtcPeerConnection,
     channels: Rc<RefCell<BTreeMap<String, RtcDataChannel>>>,
     handlers: Handlers,
@@ -53,6 +57,8 @@ struct Link {
 impl Drop for Link {
     fn drop(&mut self) {
         self.connection.set_ondatachannel(None);
+        self.connection.set_onconnectionstatechange(None);
+        self.connection.set_oniceconnectionstatechange(None);
         for channel in self.channels.borrow().values() {
             channel.set_onopen(None);
             channel.set_onclose(None);
@@ -66,20 +72,22 @@ impl Drop for Link {
 type EncodedSlot = Rc<RefCell<Option<Arc<Vec<u8>>>>>;
 enum WorkerPending {
     Encode(EncodedSlot, usize),
-    Decode(String, ChannelKind),
+    Decode(String, Rc<u64>, ChannelKind),
     Remove,
 }
 enum Event {
     Worker(Box<super::worker_codec::Reply>),
     Joined(Admission),
-    Packet(String, ChannelKind, js_sys::ArrayBuffer),
-    Connected(String),
-    Disconnected(String),
+    Packet(String, Rc<u64>, ChannelKind, js_sys::ArrayBuffer),
+    Connected(String, Rc<u64>),
+    LinkHealth(String, Rc<u64>, String),
+    Replaced(String, Rc<u64>, Rc<u64>),
     Error(String),
-    PeerError(String, String),
+    PeerError(String, Rc<u64>, String),
 }
 struct Transport {
     generation: u64,
+    next_instance: u64,
     links: BTreeMap<String, Link>,
     events: VecDeque<Event>,
     worker_events: VecDeque<Event>,
@@ -122,6 +130,7 @@ struct Bridge {
     transfer_id: u64,
     queued_bytes: usize,
     pending_bootstraps: Vec<String>,
+    pending_decoder_removals: HashSet<String>,
     bootstrapped: bool,
 }
 type SharedApp = Rc<RefCell<PhotocraftApp>>;
@@ -259,6 +268,9 @@ impl Drop for Diagnostics {
         self.element.remove();
     }
 }
+fn decoder_key(_peer: &str, identity: &Rc<u64>) -> String {
+    format!("instance:{:x}", **identity)
+}
 fn clock_ms() -> f64 {
     web_sys::window().and_then(|w| w.performance()).map_or_else(js_sys::Date::now, |p| p.now())
 }
@@ -380,16 +392,22 @@ fn attach_channel(
         channel.close();
         return;
     }
+    let identity = shared.borrow().links.get(&peer).map(|link| link.identity.clone());
+    let Some(identity) = identity else {
+        channel.close();
+        return;
+    };
     channel.set_binary_type(web_sys::RtcDataChannelType::Arraybuffer);
     channels.borrow_mut().insert(channel.label(), channel.clone());
     let sh = Rc::downgrade(&shared);
     let pe = peer.clone();
     let cx = ctx.clone();
+    let token = identity.clone();
     let cb = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
         if kind == ChannelKind::Edits
             && let Some(sh) = sh.upgrade()
         {
-            event(&sh, generation, Event::Connected(pe.clone()), &cx);
+            event(&sh, generation, Event::Connected(pe.clone(), token.clone()), &cx);
         }
     });
     channel.set_onopen(Some(cb.as_ref().unchecked_ref()));
@@ -397,6 +415,7 @@ fn attach_channel(
     let sh = Rc::downgrade(&shared);
     let pe = peer.clone();
     let cx = ctx.clone();
+    let token = identity.clone();
     let cb = Closure::<dyn FnMut(web_sys::Event)>::new(move |e: web_sys::Event| {
         let Some(sh) = sh.upgrade() else {
             return;
@@ -406,27 +425,33 @@ fn attach_channel(
         };
         let data = e.data();
         if !data.is_instance_of::<js_sys::ArrayBuffer>() {
-            event(&sh, generation, Event::PeerError(pe.clone(), "Expected binary collaboration packet".into()), &cx);
+            event(&sh, generation, Event::PeerError(pe.clone(), token.clone(), "Expected binary collaboration packet".into()), &cx);
             return;
         }
         let array = js_sys::Uint8Array::new(&data);
         if array.length() as usize > wire::MAX_PACKET {
-            event(&sh, generation, Event::PeerError(pe.clone(), "Collaboration packet too large".into()), &cx);
+            event(&sh, generation, Event::PeerError(pe.clone(), token.clone(), "Collaboration packet too large".into()), &cx);
             return;
         }
         let Ok(buffer) = data.dyn_into::<js_sys::ArrayBuffer>() else {
             return;
         };
-        event(&sh, generation, Event::Packet(pe.clone(), kind, buffer), &cx);
+        event(&sh, generation, Event::Packet(pe.clone(), token.clone(), kind, buffer), &cx);
     });
     channel.set_onmessage(Some(cb.as_ref().unchecked_ref()));
     handlers.borrow_mut().push(cb);
     let weak = Rc::downgrade(&shared);
+    let close_channel = channel.clone();
     let cb = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
         if kind == ChannelKind::Edits
             && let Some(shared) = weak.upgrade()
         {
-            event(&shared, generation, Event::Disconnected(peer.clone()), &ctx);
+            let token = shared.try_borrow().ok().and_then(|state| {
+                state.links.get(&peer).filter(|link| link.channels.borrow().get("edits") == Some(&close_channel)).map(|link| link.identity.clone())
+            });
+            if let Some(token) = token {
+                event(&shared, generation, Event::LinkHealth(peer.clone(), token, "closed".into()), &ctx);
+            }
         }
     });
     channel.set_onclose(Some(cb.as_ref().unchecked_ref()));
@@ -453,9 +478,15 @@ fn new_link(peer: &str, ice: &Value, shared: &Shared, generation: u64, ctx: &egu
     let parsed = js_sys::JSON::parse(&ice.to_string()).map_err(js_error)?;
     config.set_ice_servers(&parsed);
     let pc = RtcPeerConnection::new_with_configuration(&config).map_err(js_error)?;
-    if shared.borrow().links.len() >= 64 {
+    if shared.borrow().links.len() >= 64 && !shared.borrow().links.contains_key(peer) {
         return Err("Too many room peers".into());
     }
+    let instance = {
+        let mut shared = shared.borrow_mut();
+        shared.next_instance = shared.next_instance.checked_add(1).ok_or("Peer instance id exhausted")?;
+        shared.next_instance
+    };
+    let identity = Rc::new(instance);
     let channels = Rc::new(RefCell::new(BTreeMap::new()));
     let handlers: Handlers = Rc::default();
     let sh = Rc::downgrade(shared);
@@ -463,14 +494,56 @@ fn new_link(peer: &str, ice: &Value, shared: &Shared, generation: u64, ctx: &egu
     let cx = ctx.clone();
     let ch = channels.clone();
     let weak_handlers = Rc::downgrade(&handlers);
+    let token = Rc::downgrade(&identity);
     let cb = Closure::<dyn FnMut(web_sys::Event)>::new(move |e: web_sys::Event| {
-        if let (Some(sh), Some(handlers), Ok(e)) = (sh.upgrade(), weak_handlers.upgrade(), e.dyn_into::<web_sys::RtcDataChannelEvent>()) {
-            attach_channel(e.channel(), pe.clone(), sh, generation, cx.clone(), ch.clone(), handlers);
+        if let (Some(sh), Some(handlers), Some(token), Ok(e)) =
+            (sh.upgrade(), weak_handlers.upgrade(), token.upgrade(), e.dyn_into::<web_sys::RtcDataChannelEvent>())
+        {
+            let current = sh.try_borrow().ok().is_some_and(|state| {
+                state.generation == generation && state.links.get(&pe).is_some_and(|link| peer_policy::same_instance(&link.identity, &token))
+            });
+            if current {
+                attach_channel(e.channel(), pe.clone(), sh, generation, cx.clone(), ch.clone(), handlers);
+            } else {
+                e.channel().close();
+            }
         }
     });
     pc.set_ondatachannel(Some(cb.as_ref().unchecked_ref()));
     handlers.borrow_mut().push(cb);
-    shared.borrow_mut().links.insert(peer.into(), Link { connection: pc.clone(), channels, handlers });
+    for property in ["connectionState", "iceConnectionState"] {
+        let weak = Rc::downgrade(shared);
+        let peer = peer.to_owned();
+        let token = Rc::downgrade(&identity);
+        let callback_ctx = ctx.clone();
+        let cb = Closure::<dyn FnMut(web_sys::Event)>::new(move |_| {
+            let (Some(shared), Some(token)) = (weak.upgrade(), token.upgrade()) else { return };
+            let state = {
+                let Ok(transport) = shared.try_borrow() else { return };
+                if transport.generation != generation {
+                    return;
+                }
+                let Some(link) = transport.links.get(&peer).filter(|link| peer_policy::same_instance(&link.identity, &token)) else { return };
+                js_sys::Reflect::get(link.connection.as_ref(), &JsValue::from_str(property)).ok().and_then(|value| value.as_string())
+            };
+            if let Some(state) = state {
+                event(&shared, generation, Event::LinkHealth(peer.clone(), token, state), &callback_ctx);
+            }
+        });
+        if property == "connectionState" {
+            pc.set_onconnectionstatechange(Some(cb.as_ref().unchecked_ref()));
+        } else {
+            pc.set_oniceconnectionstatechange(Some(cb.as_ref().unchecked_ref()));
+        }
+        handlers.borrow_mut().push(cb);
+    }
+    let previous = shared
+        .borrow_mut()
+        .links
+        .insert(peer.into(), Link { identity: identity.clone(), grace: Default::default(), connection: pc.clone(), channels, handlers });
+    if let Some(previous) = previous {
+        event(shared, generation, Event::Replaced(peer.to_owned(), identity, previous.identity.clone()), ctx);
+    }
     Ok(pc)
 }
 async fn description(pc: &RtcPeerConnection, offer: bool) -> Result<String, String> {
@@ -510,6 +583,9 @@ async fn remote(pc: &RtcPeerConnection, sdp: &str, offer: bool) -> Result<(), St
     JsFuture::from(pc.set_remote_description(&init)).await.map_err(js_error)?;
     Ok(())
 }
+fn current_connection(shared: &Shared, generation: u64, peer: &str, pc: &RtcPeerConnection) -> bool {
+    shared.try_borrow().ok().is_some_and(|state| state.generation == generation && state.links.get(peer).is_some_and(|link| link.connection == *pc))
+}
 async fn open_room(shared: Shared, generation: u64, ctx: egui::Context, server: String, code: Option<String>, password: Option<String>) -> Result<(), String> {
     let admission: Admission =
         serde_json::from_value(post(&server, if code.is_some() { "/join" } else { "/create" }, &json!({"code":code,"password":password})).await?)
@@ -547,7 +623,11 @@ async fn open_room(shared: Shared, generation: u64, ctx: egui::Context, server: 
                     shared.borrow().links.get(&admission.host).map(|l| (l.channels.clone(), l.handlers.clone())).ok_or("Missing host link")?;
                 attach_channel(channel, admission.host.clone(), shared.clone(), generation, ctx.clone(), channels, handlers);
             }
-            let sdp = description(&pc, true).await?;
+            let result = description(&pc, true).await;
+            if !current_connection(&shared, generation, &admission.host, &pc) {
+                return Ok(());
+            }
+            let sdp = result?;
             post(&server, "/signal", &json!({"auth":admission.auth(),"signal":{"from":admission.peer,"to":admission.host,"sdp":sdp,"offer":true}})).await?;
         }
         while shared.borrow().generation == generation {
@@ -566,19 +646,33 @@ async fn open_room(shared: Shared, generation: u64, ctx: egui::Context, server: 
                     continue;
                 }
                 if signal.sdp.is_empty() {
-                    shared.borrow_mut().links.remove(&signal.from);
-                    event(&shared, generation, Event::Disconnected(signal.from), &ctx);
+                    let token = shared.borrow().links.get(&signal.from).map(|link| link.identity.clone());
+                    if let Some(token) = token {
+                        event(&shared, generation, Event::LinkHealth(signal.from, token, "closed".into()), &ctx);
+                    }
                     continue;
                 }
                 if signal.offer && admission.peer == admission.host {
                     let pc = new_link(&signal.from, &ice, &shared, generation, &ctx)?;
-                    remote(&pc, &signal.sdp, true).await?;
-                    let sdp = description(&pc, false).await?;
+                    let result = remote(&pc, &signal.sdp, true).await;
+                    if !current_connection(&shared, generation, &signal.from, &pc) {
+                        continue;
+                    }
+                    result?;
+                    let result = description(&pc, false).await;
+                    if !current_connection(&shared, generation, &signal.from, &pc) {
+                        continue;
+                    }
+                    let sdp = result?;
                     post(&server, "/signal", &json!({"auth":admission.auth(),"signal":{"from":admission.peer,"to":signal.from,"sdp":sdp,"offer":false}}))
                         .await?;
                 } else if !signal.offer && signal.from == admission.host {
-                    let pc = shared.borrow().links.get(&signal.from).map(|l| l.connection.clone()).ok_or("Unknown host answer")?;
-                    remote(&pc, &signal.sdp, false).await?;
+                    let Some(pc) = shared.borrow().links.get(&signal.from).map(|l| l.connection.clone()) else { continue };
+                    let result = remote(&pc, &signal.sdp, false).await;
+                    if !current_connection(&shared, generation, &signal.from, &pc) {
+                        continue;
+                    }
+                    result?;
                 }
             }
             sleep(250).await;
@@ -592,6 +686,7 @@ async fn open_room(shared: Shared, generation: u64, ctx: egui::Context, server: 
 pub fn attach(mut app: PhotocraftApp, ctx: egui::Context) -> SharedApp {
     let shared = Rc::new(RefCell::new(Transport {
         generation: 0,
+        next_instance: 0,
         links: BTreeMap::new(),
         events: VecDeque::new(),
         worker_events: VecDeque::new(),
@@ -624,6 +719,7 @@ pub fn attach(mut app: PhotocraftApp, ctx: egui::Context) -> SharedApp {
         transfer_id: 0,
         queued_bytes: 0,
         pending_bootstraps: Vec::new(),
+        pending_decoder_removals: HashSet::new(),
         bootstrapped: false,
     }));
     let disabled =
@@ -706,6 +802,9 @@ impl Bridge {
             }
         }
     }
+    fn current_link(&self, peer: &str, identity: &Rc<u64>) -> bool {
+        self.shared.borrow().links.get(peer).is_some_and(|link| peer_policy::same_instance(&link.identity, identity))
+    }
     fn host(&self) -> bool {
         self.admission.as_ref().is_some_and(|a| a.peer == a.host)
     }
@@ -786,10 +885,8 @@ impl Bridge {
     }
     fn remove_lane(&mut self, peer: &str) {
         if let Some(lane) = self.outgoing.remove(peer) {
-            self.outgoing_jobs = self.outgoing_jobs.saturating_sub(lane.len());
-            for job in lane {
-                self.queued_bytes = self.queued_bytes.saturating_sub(job.charge);
-            }
+            let charge = lane.iter().fold(0_usize, |total, job| total.saturating_add(job.charge));
+            (self.outgoing_jobs, self.queued_bytes) = peer_policy::release_credit(self.outgoing_jobs, self.queued_bytes, lane.len(), charge);
         }
     }
     fn broadcast(&mut self, except: Option<&str>, channel: ChannelKind, message: &Wire) -> Result<(), String> {
@@ -816,7 +913,7 @@ impl Bridge {
         let mut blocked = HashSet::new();
         let mut sent_live = false;
         let mut sent_bulk = false;
-        while budget.packet(clock_ms()) {
+        loop {
             let key = super::collaboration_protocol::next_peer(
                 self.outgoing
                     .iter()
@@ -835,6 +932,19 @@ impl Bridge {
                 blocked.insert(key);
                 continue;
             };
+            let size = wire::FRAGMENT_BYTES.min(bytes.len().saturating_sub(job.index.saturating_mul(wire::FRAGMENT_BYTES))).saturating_add(32);
+            let ready = self.shared.borrow().links.get(&job.peer).is_some_and(|link| {
+                link.channels.borrow().get("edits").is_some_and(|channel| {
+                    peer_policy::packet_ready(channel.ready_state() == RtcDataChannelState::Open, channel.buffered_amount() as usize, size)
+                })
+            });
+            if !ready {
+                blocked.insert(key);
+                continue;
+            }
+            if !budget.packet(clock_ms()) {
+                break;
+            }
             let packet = wire::fragment_message(job.id, &bytes, job.index).map_err(|e| e.to_string())?;
             if !self.packet(&job.peer, ChannelKind::Edits, &packet)? {
                 blocked.insert(key);
@@ -928,6 +1038,7 @@ impl Bridge {
             self.bootstrap_wait = None;
             self.bootstrap_attempt = None;
             self.pending_bootstraps.clear();
+            self.pending_decoder_removals.clear();
             self.bootstrapped = false;
             self.admission = None;
             let generation = self.shared.borrow().generation;
@@ -953,6 +1064,26 @@ impl Bridge {
                 }
             });
         }
+        if let Some(codec) = &self.codec {
+            for key in self.pending_decoder_removals.clone() {
+                if !budget.available(clock_ms()) {
+                    break;
+                }
+                match codec.submit(self.shared.borrow().generation, super::worker_codec::Task::Remove(key.clone())) {
+                    Ok((id, _)) => {
+                        self.worker_pending.insert(id, WorkerPending::Remove);
+                        self.pending_decoder_removals.remove(&key);
+                    }
+                    Err(error) if error.starts_with("Collaboration send queue full") => break,
+                    Err(error) => return Err(format!("Codec worker cleanup failed — rejoin: {error}")),
+                }
+            }
+            if !self.pending_decoder_removals.is_empty() {
+                ctx.request_repaint_after(std::time::Duration::from_secs(1));
+            }
+        } else {
+            self.pending_decoder_removals.clear();
+        }
         while budget.event(clock_ms()) {
             let incoming = {
                 let mut shared = self.shared.borrow_mut();
@@ -976,7 +1107,10 @@ impl Bridge {
                         publish_profile(app)?;
                     }
                 }
-                Event::Connected(peer) => {
+                Event::Connected(peer, identity) => {
+                    if !self.current_link(&peer, &identity) {
+                        continue;
+                    }
                     if self.host() {
                         if !self.connected.contains(&peer) && !self.pending_bootstraps.contains(&peer) {
                             self.bootstrap_wait.get_or_insert(clock_ms());
@@ -986,8 +1120,8 @@ impl Bridge {
                         self.connected.insert(peer);
                     }
                 }
-                Event::Packet(peer, channel, bytes) => {
-                    if !self.shared.borrow().links.contains_key(&peer) {
+                Event::Packet(peer, identity, channel, bytes) => {
+                    if !self.current_link(&peer, &identity) {
                         continue;
                     }
                     if let Some(codec) = &self.codec {
@@ -995,13 +1129,13 @@ impl Bridge {
                             || codec.queued() >= 256
                             || codec.bytes().saturating_add(bytes.byte_length() as usize).saturating_add(2048) > super::worker_codec::policy::LIMIT
                         {
-                            self.shared.borrow_mut().events.push_front(Event::Packet(peer, channel, bytes));
+                            self.shared.borrow_mut().events.push_front(Event::Packet(peer, identity.clone(), channel, bytes));
                             self.progress = self.progress.saturating_sub(1);
                             break;
                         }
-                        match codec.submit_packet(self.shared.borrow().generation, peer.clone(), channel == ChannelKind::Edits, &bytes) {
+                        match codec.submit_packet(self.shared.borrow().generation, decoder_key(&peer, &identity), channel == ChannelKind::Edits, &bytes) {
                             Ok((id, _)) => {
-                                self.worker_pending.insert(id, WorkerPending::Decode(peer, channel));
+                                self.worker_pending.insert(id, WorkerPending::Decode(peer, identity, channel));
                             }
                             Err(error) => return Err(format!("Codec worker overloaded — rejoin: {error}")),
                         }
@@ -1010,7 +1144,7 @@ impl Bridge {
                     let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
                     let result = (|| {
                         let message = if channel == ChannelKind::Edits {
-                            self.decoder.push(&peer, &bytes).map_err(|e| e.to_string())?
+                            self.decoder.push(&decoder_key(&peer, &identity), &bytes).map_err(|e| e.to_string())?
                         } else {
                             Some(wire::decode_unreliable(&bytes).map_err(|e| e.to_string())?)
                         };
@@ -1054,8 +1188,8 @@ impl Bridge {
                         (WorkerPending::Encode(slot, charge), ResultData::Encoded(bytes)) if bytes.len() <= charge => {
                             *slot.borrow_mut() = Some(Arc::new(bytes));
                         }
-                        (WorkerPending::Decode(peer, channel), ResultData::Decoded(Some(message))) => {
-                            if !self.shared.borrow().links.contains_key(&peer) {
+                        (WorkerPending::Decode(peer, identity, channel), ResultData::Decoded(Some(message))) => {
+                            if !self.current_link(&peer, &identity) {
                                 continue;
                             }
                             let started = clock_ms();
@@ -1067,8 +1201,12 @@ impl Bridge {
                                 self.peer_error(app, peer, error)?;
                             }
                         }
-                        (WorkerPending::Decode(_, _), ResultData::Decoded(None)) | (WorkerPending::Remove, ResultData::Removed) => {}
-                        (WorkerPending::Decode(peer, _), ResultData::Failed(error)) => self.peer_error(app, peer, error)?,
+                        (WorkerPending::Decode(_, _, _), ResultData::Decoded(None)) | (WorkerPending::Remove, ResultData::Removed) => {}
+                        (WorkerPending::Decode(peer, identity, _), ResultData::Failed(error)) => {
+                            if self.current_link(&peer, &identity) {
+                                self.peer_error(app, peer, error)?;
+                            }
+                        }
                         (_, result) => {
                             let error = match result {
                                 ResultData::Failed(error) => error,
@@ -1079,27 +1217,44 @@ impl Bridge {
                         }
                     }
                 }
-                Event::PeerError(peer, error) => self.peer_error(app, peer, error)?,
-                Event::Disconnected(peer) => {
-                    self.pending_bootstraps.retain(|p| p != &peer);
-                    self.connected.remove(&peer);
-                    self.remove_lane(&peer);
-                    self.decoder.remove(&peer);
-                    if let Some(codec) = &self.codec
-                        && let Ok((id, _)) = codec.submit(self.shared.borrow().generation, super::worker_codec::Task::Remove(peer.clone()))
-                    {
-                        self.worker_pending.insert(id, WorkerPending::Remove);
+                Event::PeerError(peer, identity, error) => {
+                    if self.current_link(&peer, &identity) {
+                        self.peer_error(app, peer, error)?;
                     }
-                    if let Some(room) = app.session.collaboration.room.as_mut() {
-                        room.members.remove(&peer);
+                }
+                Event::Replaced(peer, identity, previous) => {
+                    self.remove_decoder(decoder_key(&peer, &previous));
+                    if self.current_link(&peer, &identity) {
+                        self.connected.remove(&peer);
+                        self.pending_bootstraps.retain(|p| p != &peer);
+                        self.remove_lane(&peer);
                     }
-                    if self.host() {
-                        app.session.collaboration.sequencer.forget_peer(&peer);
-                        self.broadcast(None, ChannelKind::Edits, &Wire::Left(peer))?;
-                    } else {
-                        app.ui.collaboration.transport_status = "Host disconnected — drawing preserved locally".into();
-                        app.ui.collaboration.transport_pending = false;
-                        app.session.collaboration = Default::default();
+                }
+                Event::LinkHealth(peer, identity, health) => {
+                    let now = clock_ms();
+                    let action = {
+                        let mut shared = self.shared.borrow_mut();
+                        shared
+                            .links
+                            .get_mut(&peer)
+                            .filter(|link| peer_policy::same_instance(&link.identity, &identity))
+                            .map(|link| link.grace.update(&health, now))
+                    };
+                    match action {
+                        Some(peer_policy::HealthAction::Close) => self.disconnect(app, &peer)?,
+                        Some(peer_policy::HealthAction::Schedule) => {
+                            let weak = Rc::downgrade(&self.shared);
+                            let token = Rc::downgrade(&identity);
+                            let generation = self.shared.borrow().generation;
+                            let ctx = ctx.clone();
+                            spawn_local(async move {
+                                sleep(30_000).await;
+                                if let (Some(shared), Some(token)) = (weak.upgrade(), token.upgrade()) {
+                                    event(&shared, generation, Event::LinkHealth(peer, token, "timeout".into()), &ctx);
+                                }
+                            });
+                        }
+                        _ => {}
                     }
                 }
                 Event::Error(error) => {
@@ -1119,6 +1274,7 @@ impl Bridge {
                     self.outgoing_jobs = 0;
                     self.cached_checkpoint = None;
                     self.pending_bootstraps.clear();
+                    self.pending_decoder_removals.clear();
                     self.bootstrapped = false;
                     self.queued_bytes = 0;
                     app.session.collaboration = Default::default();
@@ -1241,17 +1397,45 @@ impl Bridge {
         app.ui.collaboration.voice_status = "Voice off".into();
         Ok(())
     }
+    fn remove_decoder(&mut self, key: String) {
+        self.decoder.remove(&key);
+        if self.codec.is_some() {
+            self.pending_decoder_removals.insert(key);
+        }
+    }
+    fn disconnect(&mut self, app: &mut PhotocraftApp, peer: &str) -> Result<(), String> {
+        let link = self.shared.borrow_mut().links.remove(peer);
+        let known = link.is_some() || self.connected.contains(peer) || self.pending_bootstraps.iter().any(|p| p == peer);
+        if let Some(link) = link {
+            self.remove_decoder(decoder_key(peer, &link.identity));
+        }
+        if !known {
+            return Ok(());
+        }
+        self.pending_bootstraps.retain(|p| p != peer);
+        self.connected.remove(peer);
+        self.remove_lane(peer);
+        if let Some(room) = app.session.collaboration.room.as_mut() {
+            room.members.remove(peer);
+        }
+        if self.host() {
+            app.session.collaboration.sequencer.forget_peer(peer);
+            self.broadcast(None, ChannelKind::Edits, &Wire::Left(peer.to_owned()))?;
+        } else {
+            app.ui.collaboration.transport_status = "Host disconnected — drawing preserved locally".into();
+            app.ui.collaboration.transport_pending = false;
+            app.session.collaboration = Default::default();
+        }
+        Ok(())
+    }
     fn peer_error(&mut self, app: &mut PhotocraftApp, peer: String, error: String) -> Result<(), String> {
-        self.shared.borrow_mut().links.remove(&peer);
+        let link = self.shared.borrow_mut().links.remove(&peer);
+        if let Some(link) = link {
+            self.remove_decoder(decoder_key(&peer, &link.identity));
+        }
         self.connected.remove(&peer);
         self.pending_bootstraps.retain(|p| p != &peer);
         self.remove_lane(&peer);
-        self.decoder.remove(&peer);
-        if let Some(codec) = &self.codec
-            && let Ok((id, _)) = codec.submit(self.shared.borrow().generation, super::worker_codec::Task::Remove(peer.clone()))
-        {
-            self.worker_pending.insert(id, WorkerPending::Remove);
-        }
         app.ui.collaboration.error = format!("Disconnected a peer after invalid input: {error}");
         if let Some(room) = app.session.collaboration.room.as_mut() {
             room.members.remove(&peer);

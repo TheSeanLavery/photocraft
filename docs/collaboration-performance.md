@@ -289,3 +289,23 @@ The deployed Rust Worker build `d520ec345ef5f722` hosted a 1920×1080 RGB/8 canv
 The browser codec Worker remained active. Busy samples show healthy replies received while awaiting engine consumption; all queues drained afterward. Sampled browser collaboration tick p95 was 22.2ms/23.2ms during the first pass and 11.3ms in the second-pass sample. These are bounded sample windows, not whole-run FPS. Worst observed individual host engine apply was 1126ms, so this is correctness and networking progress evidence, not a claim of stall-free rendering. Large dependent generic operations and overlapping history recomposition remain costly. Browser automation focus emulation reports the host visible, so this run does not establish actual hidden-tab pumping.
 
 The second pass has a complete 8.34s hardware H264 ScreenCaptureKit recording (208 accepted frames, 9 writer backpressure drops), inspected at start/middle/end. Sanitized statistics live in `docs/evidence/collaboration-four-browser-dense-2026-10-10.json`; local video and full reports live under `plan/evidence/browser-overlap/final-browser/`.
+
+
+### Failed peers and reconnect grace
+
+Browser connection and ICE state changes now release failed or closed peers immediately. A disconnected peer gets a recoverable 30-second grace period; reconnecting cancels its deadline. Each connection instance guards its channel callbacks, asynchronous SDP completion and decoded Worker results, so late work cannot target a replacement connection. Replacing a peer retires its partial fragments and requires a fresh checkpoint.
+
+Cleanup removes the connection, its outgoing lane and decoder, releasing only its credits. Decoder cleanup retries if the Worker is busy. SCTP readiness is checked before fragment allocation and send-quota charging. A retained dead lane previously consumed bounded per-frame work and could eventually fill the shared 4,096-job cap, blocking live fanout. The preserved stress host exposed 580 stale jobs after abrupt client termination; this fix addresses that retention, separately from the measured heavy engine-apply stall.
+
+```mermaid
+stateDiagram-v2
+    Connected --> Grace: ICE disconnected
+    Grace --> Connected: reconnect before 30 seconds
+    Grace --> Cleanup: grace expires
+    Connected --> Cleanup: failed or closed
+    Cleanup --> Removed: release peer lane, decoder and credits
+    Removed --> Bootstrap: replacement connection
+    Bootstrap --> Connected: canonical document installed
+```
+
+Five peer-policy regressions and four Worker policy regressions passed on Linux. Strict browser WASM Clippy passed for both binaries, all targets and HEIF. Live disconnect validation remains pending at the time of this source entry. Current-main integration separately passed 870 engine, 1,019 UI, 17 collaboration tests, strict native Clippy, adversarial command tests, layers, and 2,080 corpus tests plus 14 imported-format regressions on Linux.
