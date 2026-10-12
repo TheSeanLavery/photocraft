@@ -170,13 +170,24 @@ fn snap_time_id(owner: Id) -> Id {
     Id::new("pc-wheel-snap-time").with(owner)
 }
 
+fn snap_frame_result_id(owner: Id) -> Id {
+    Id::new("pc-wheel-snap-frame-result").with(owner)
+}
+
+fn active_snap_owner_id() -> Id {
+    Id::new("pc-wheel-active-snap-owner")
+}
+
 const SNAP_IDLE_TIMEOUT: f64 = 0.5;
 
 /// Read this frame's wheel input. Call it every frame (hovered or not) so the Alt and Shift
 /// states of the gesture follow the latest wheel event. `owner` scopes the snap-zoom
-/// accumulator so independent callers (canvas, Camera Raw) don't share residual state.
-pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool, owner: Id) -> Option<Wheel> {
+/// accumulator per viewport. `hovered` gates accumulation: only the viewport receiving
+/// navigation may add raw input to the snap residual.
+pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool, owner: Id, hovered: bool) -> Option<Wheel> {
     let notch = ctx.options(|o| o.input_options.line_scroll_speed);
+
+    // --- Modifier tracking (always runs for all callers) ---
     let (scroll, zoom_delta, latest_alt, latest_shift, wheel, page) = ctx.input(|i| {
         let latest_alt = i.events.iter().rev().find_map(|e| match e {
             Event::MouseWheel { modifiers, .. } => Some(modifiers.alt && !modifiers.command && !modifiers.ctrl),
@@ -210,8 +221,12 @@ pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool, owner: Id) 
         }
         None => ctx.data(|d| d.get_temp::<bool>(shift_id())).unwrap_or(false),
     };
-    // The wheel events that belong to the gesture in progress: Shift+Alt (snap zoom), Alt-only
-    // (continuous zoom), Shift-only (snap zoom with zoom_with_wheel), or plain (scroll/zoom).
+
+    if !hovered {
+        return None;
+    }
+
+    // --- Input classification (hovered viewport only) ---
     let raw = wheel
         .iter()
         .filter(|(_, _, m)| {
@@ -241,6 +256,27 @@ pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool, owner: Id) 
         if dy == 0.0 {
             return None;
         }
+
+        // Per-frame idempotency: a second read in the same frame returns the cached result.
+        let frame_nr = ctx.cumulative_pass_nr();
+        if let Some((cached_frame, cached_steps)) =
+            ctx.data(|d| d.get_temp::<(u64, i32)>(snap_frame_result_id(owner)))
+            && cached_frame == frame_nr
+        {
+            return if cached_steps == 0 { None } else { Some(Wheel::SnapZoom(cached_steps)) };
+        }
+
+        // When the receiving viewport changes, clear the old viewport's residual so a
+        // partial gesture doesn't reappear when returning to it.
+        let prev_active = ctx.data(|d| d.get_temp::<Id>(active_snap_owner_id()));
+        if let Some(old) = prev_active.filter(|&p| p != owner) {
+            ctx.data_mut(|d| {
+                d.remove::<f32>(snap_residual_id(old));
+                d.remove::<f64>(snap_time_id(old));
+            });
+        }
+        ctx.data_mut(|d| d.insert_temp(active_snap_owner_id(), owner));
+
         let now = ctx.input(|i| i.time);
         let last_time = ctx.data(|d| d.get_temp::<f64>(snap_time_id(owner)));
         let prev = if last_time.is_some_and(|t| now - t < SNAP_IDLE_TIMEOUT && (now - t).is_finite()) {
@@ -252,11 +288,12 @@ pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool, owner: Id) 
         let total = prev + dy;
         let n = if total.is_finite() { (total / notch_val).trunc() } else { 0.0 };
         let remainder = total - n * notch_val;
+        let steps = n.clamp(-10.0, 10.0) as i32;
         ctx.data_mut(|d| {
             d.insert_temp(snap_residual_id(owner), if remainder.is_finite() { remainder } else { 0.0 });
             d.insert_temp(snap_time_id(owner), now);
+            d.insert_temp(snap_frame_result_id(owner), (frame_nr, steps));
         });
-        let steps = n.clamp(-10.0, 10.0) as i32;
         if steps == 0 { None } else { Some(Wheel::SnapZoom(steps)) }
     } else {
         if !snap_mode {
@@ -300,7 +337,7 @@ mod tests {
             if legacy {
                 fold_legacy_pinch(&ctx, &mut raw);
             }
-            let mut out = ctx.run_ui(raw, |ui| match read(ui.ctx(), zoom_with_wheel, true, owner) {
+            let mut out = ctx.run_ui(raw, |ui| match read(ui.ctx(), zoom_with_wheel, true, owner, true) {
                 Some(Wheel::Pan(d)) => pan += d,
                 Some(Wheel::Zoom(f)) => zoom *= f,
                 Some(Wheel::SnapZoom(n)) => snaps += n,
@@ -554,7 +591,7 @@ mod tests {
             let raw =
                 RawInput { time: Some(f64::from(n) / 60.0), predicted_dt: 1.0 / 60.0, events: frames.next().unwrap_or_default(), ..Default::default() };
             let mut out = ctx.run_ui(raw, |ui| {
-                if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), zoom_with_wheel, true, owner) {
+                if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), zoom_with_wheel, true, owner, true) {
                     snaps += s;
                 }
             });
@@ -655,32 +692,118 @@ mod tests {
     }
 
     #[test]
-    fn separate_owners_do_not_share_residual() {
+    fn cross_viewport_does_not_leak_residual() {
         let owner_a = Id::new("owner-a");
         let owner_b = Id::new("owner-b");
         let ctx = Context::default();
         configure(&ctx);
         let mut snaps_a = 0i32;
         let mut snaps_b = 0i32;
-        for n in 0..8 {
-            let events = if n < 4 {
-                vec![wheel_point(Vec2::new(0.0, 10.0), Modifiers::SHIFT)]
-            } else {
-                vec![]
+        // Frame 0: 30 points over A (hovered), B not hovered.
+        let raw = RawInput {
+            time: Some(0.0),
+            predicted_dt: 1.0 / 60.0,
+            events: vec![wheel_point(Vec2::new(0.0, 30.0), Modifiers::SHIFT)],
+            ..Default::default()
+        };
+        let mut out = ctx.run_ui(raw, |ui| {
+            if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_a, true) {
+                snaps_a += s;
+            }
+            if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_b, false) {
+                snaps_b += s;
+            }
+        });
+        out.textures_delta.clear();
+        assert_eq!(snaps_a, 0, "A: 30 points, below 1 notch");
+        assert_eq!(snaps_b, 0, "B: not hovered, nothing");
+        // Frame 1: 10 points, pointer moved to B (B hovered, A not).
+        let raw = RawInput {
+            time: Some(1.0 / 60.0),
+            predicted_dt: 1.0 / 60.0,
+            events: vec![wheel_point(Vec2::new(0.0, 10.0), Modifiers::SHIFT)],
+            ..Default::default()
+        };
+        let mut out = ctx.run_ui(raw, |ui| {
+            if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_a, false) {
+                snaps_a += s;
+            }
+            if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_b, true) {
+                snaps_b += s;
+            }
+        });
+        out.textures_delta.clear();
+        assert_eq!(snaps_b, 0, "B: only 10 points of its own, no snap");
+        // Frame 2–4: 30 more points over B.
+        for n in 2..5 {
+            let raw = RawInput {
+                time: Some(f64::from(n) / 60.0),
+                predicted_dt: 1.0 / 60.0,
+                events: vec![wheel_point(Vec2::new(0.0, 10.0), Modifiers::SHIFT)],
+                ..Default::default()
             };
-            let raw = RawInput { time: Some(f64::from(n) / 60.0), predicted_dt: 1.0 / 60.0, events, ..Default::default() };
             let mut out = ctx.run_ui(raw, |ui| {
-                if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_a) {
-                    snaps_a += s;
-                }
-                if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_b) {
+                let _ = read(ui.ctx(), true, true, owner_a, false);
+                if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_b, true) {
                     snaps_b += s;
                 }
             });
             out.textures_delta.clear();
         }
-        assert_eq!(snaps_a, 1, "owner A accumulates independently");
-        assert_eq!(snaps_b, 1, "owner B accumulates independently");
+        assert_eq!(snaps_b, 1, "B: 10+10+10+10 = 40 → 1 step");
+        // Frame 5: switch back to A — A's residual was cleared on the viewport switch.
+        let raw = RawInput {
+            time: Some(5.0 / 60.0),
+            predicted_dt: 1.0 / 60.0,
+            events: vec![wheel_point(Vec2::new(0.0, 30.0), Modifiers::SHIFT)],
+            ..Default::default()
+        };
+        let mut out = ctx.run_ui(raw, |ui| {
+            if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_a, true) {
+                snaps_a += s;
+            }
+            let _ = read(ui.ctx(), true, true, owner_b, false);
+        });
+        out.textures_delta.clear();
+        assert_eq!(snaps_a, 0, "A: fresh start after switch, 30 points, no snap yet");
+    }
+
+    #[test]
+    fn two_reads_same_owner_same_frame_do_not_double_count() {
+        let owner = Id::new("same-owner");
+        let ctx = Context::default();
+        configure(&ctx);
+        let mut total_snaps = 0i32;
+        let raw = RawInput {
+            time: Some(0.0),
+            predicted_dt: 1.0 / 60.0,
+            events: vec![wheel_point(Vec2::new(0.0, 20.0), Modifiers::SHIFT)],
+            ..Default::default()
+        };
+        let mut out = ctx.run_ui(raw, |ui| {
+            if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner, true) {
+                total_snaps += s;
+            }
+            if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner, true) {
+                total_snaps += s;
+            }
+        });
+        out.textures_delta.clear();
+        assert_eq!(total_snaps, 0, "20 points read twice must not become 40");
+        // Now add another 20 in the next frame — should snap since accumulated 20+20=40.
+        let raw = RawInput {
+            time: Some(1.0 / 60.0),
+            predicted_dt: 1.0 / 60.0,
+            events: vec![wheel_point(Vec2::new(0.0, 20.0), Modifiers::SHIFT)],
+            ..Default::default()
+        };
+        let mut out = ctx.run_ui(raw, |ui| {
+            if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner, true) {
+                total_snaps += s;
+            }
+        });
+        out.textures_delta.clear();
+        assert_eq!(total_snaps, 1, "20 + 20 across two frames → 1 step");
     }
 
     #[test]
