@@ -93,7 +93,8 @@ pub fn classify(i: Input) -> Option<Wheel> {
         // ⌥ + scroll: continuous ×1.1 zoom. The smoothed tail of a notch is ignored.
         (true, false) => step(i.raw.y + i.raw.x),
         // ⇧ + scroll wheel with the preference on: snap to the zoom ladder.
-        (false, true) if i.shift => snap(i.raw.y),
+        // Some systems deliver Shift+wheel as horizontal (delta in x, y = 0).
+        (false, true) if i.shift => snap(i.raw.y + i.raw.x),
         // ⌘/Ctrl folds the wheel into x: those still scroll sideways.
         (false, true) if i.raw.y != 0.0 || i.scroll.y != 0.0 => step(i.raw.y),
         _ if !(i.scroll.x.is_finite() && i.scroll.y.is_finite()) || i.scroll == Vec2::ZERO => None,
@@ -362,6 +363,10 @@ mod tests {
         assert_eq!(classify(snap(-40.0)), Some(Wheel::SnapZoom(-1)), "one notch down → −1 step");
         assert_eq!(classify(snap(80.0)), Some(Wheel::SnapZoom(2)), "two notches → +2 steps");
         assert_eq!(classify(snap(0.0)), None, "no scroll → nothing");
+        // Some systems deliver Shift+wheel as horizontal (delta in x, y = 0).
+        let snap_h = |dx: f32| Input { shift: true, zoom_with_wheel: true, raw: Vec2::new(dx, 0.0), ..input(Vec2::new(dx, 0.0), false) };
+        assert_eq!(classify(snap_h(40.0)), Some(Wheel::SnapZoom(1)), "horizontal notch → +1 step");
+        assert_eq!(classify(snap_h(-40.0)), Some(Wheel::SnapZoom(-1)), "horizontal notch down → −1 step");
     }
 
     #[test]
@@ -394,6 +399,12 @@ mod tests {
         assert_eq!(zoom, 1.0, "no continuous zoom: {zoom}");
         let (_, _, snaps) = gesture(vec![vec![wheel(-notch, Modifiers::SHIFT)]], true, false);
         assert_eq!(snaps, -1, "⇧ + wheel down → snap out");
+        // Some systems deliver Shift+wheel as horizontal (delta in x, y = 0).
+        let h_notch = Vec2::new(1.0, 0.0);
+        let (pan, zoom, snaps) = gesture(vec![vec![wheel(h_notch, Modifiers::SHIFT)]], true, false);
+        assert_eq!(snaps, 1, "⇧ + horizontal wheel with zoom_with_wheel → snap");
+        assert!(pan == Vec2::ZERO, "no pan: {pan:?}");
+        assert_eq!(zoom, 1.0, "no continuous zoom: {zoom}");
         // Shift + Alt + wheel without the preference.
         let shift_alt = Modifiers { shift: true, alt: true, ..Modifiers::NONE };
         let (pan, zoom, snaps) = gesture(vec![vec![wheel(notch, shift_alt)]], false, false);
