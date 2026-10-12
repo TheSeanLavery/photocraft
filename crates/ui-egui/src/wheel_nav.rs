@@ -162,9 +162,20 @@ fn shift_id() -> Id {
     Id::new("pc-wheel-shift")
 }
 
+fn snap_residual_id(owner: Id) -> Id {
+    Id::new("pc-wheel-snap-residual").with(owner)
+}
+
+fn snap_time_id(owner: Id) -> Id {
+    Id::new("pc-wheel-snap-time").with(owner)
+}
+
+const SNAP_IDLE_TIMEOUT: f64 = 0.5;
+
 /// Read this frame's wheel input. Call it every frame (hovered or not) so the Alt and Shift
-/// states of the gesture follow the latest wheel event.
-pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool) -> Option<Wheel> {
+/// states of the gesture follow the latest wheel event. `owner` scopes the snap-zoom
+/// accumulator so independent callers (canvas, Camera Raw) don't share residual state.
+pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool, owner: Id) -> Option<Wheel> {
     let notch = ctx.options(|o| o.input_options.line_scroll_speed);
     let (scroll, zoom_delta, latest_alt, latest_shift, wheel, page) = ctx.input(|i| {
         let latest_alt = i.events.iter().rev().find_map(|e| match e {
@@ -222,7 +233,40 @@ pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool) -> Option<W
                     MouseWheelUnit::Page => page,
                 }
         });
-    classify(Input { scroll, raw, zoom_delta, alt, shift, zoom_with_wheel, pinch_zooms, notch })
+    let snap_mode = shift && ((alt && !zoom_with_wheel) || (!alt && zoom_with_wheel));
+    let has_pinch = pinch_zooms && zoom_delta.is_finite() && zoom_delta > 0.0 && zoom_delta != 1.0;
+
+    if snap_mode && !has_pinch {
+        let dy = raw.y + raw.x;
+        if dy == 0.0 {
+            return None;
+        }
+        let now = ctx.input(|i| i.time);
+        let last_time = ctx.data(|d| d.get_temp::<f64>(snap_time_id(owner)));
+        let prev = if last_time.is_some_and(|t| now - t < SNAP_IDLE_TIMEOUT && (now - t).is_finite()) {
+            ctx.data(|d| d.get_temp::<f32>(snap_residual_id(owner))).unwrap_or(0.0)
+        } else {
+            0.0
+        };
+        let notch_val = if notch.is_finite() && notch > 0.0 { notch } else { 40.0 };
+        let total = prev + dy;
+        let n = if total.is_finite() { (total / notch_val).trunc() } else { 0.0 };
+        let remainder = total - n * notch_val;
+        ctx.data_mut(|d| {
+            d.insert_temp(snap_residual_id(owner), if remainder.is_finite() { remainder } else { 0.0 });
+            d.insert_temp(snap_time_id(owner), now);
+        });
+        let steps = n.clamp(-10.0, 10.0) as i32;
+        if steps == 0 { None } else { Some(Wheel::SnapZoom(steps)) }
+    } else {
+        if !snap_mode {
+            ctx.data_mut(|d| {
+                d.remove::<f32>(snap_residual_id(owner));
+                d.remove::<f64>(snap_time_id(owner));
+            });
+        }
+        classify(Input { scroll, raw, zoom_delta, alt, shift, zoom_with_wheel, pinch_zooms, notch })
+    }
 }
 
 #[cfg(test)]
@@ -245,6 +289,7 @@ mod tests {
     /// Feed `events` through an egui context set up like the app's (`legacy`: the Windows pinch
     /// fold on) and add up what the wheel did to the view over the following second.
     fn gesture(frames: Vec<Vec<Event>>, zoom_with_wheel: bool, legacy: bool) -> (Vec2, f32, i32) {
+        let owner = Id::new("test-gesture");
         let ctx = Context::default();
         configure(&ctx);
         let (mut pan, mut zoom, mut snaps) = (Vec2::ZERO, 1.0, 0i32);
@@ -255,7 +300,7 @@ mod tests {
             if legacy {
                 fold_legacy_pinch(&ctx, &mut raw);
             }
-            let mut out = ctx.run_ui(raw, |ui| match read(ui.ctx(), zoom_with_wheel, true) {
+            let mut out = ctx.run_ui(raw, |ui| match read(ui.ctx(), zoom_with_wheel, true, owner) {
                 Some(Wheel::Pan(d)) => pan += d,
                 Some(Wheel::Zoom(f)) => zoom *= f,
                 Some(Wheel::SnapZoom(n)) => snaps += n,
@@ -264,6 +309,10 @@ mod tests {
             out.textures_delta.clear();
         }
         (pan, zoom, snaps)
+    }
+
+    fn wheel_point(delta: Vec2, modifiers: Modifiers) -> Event {
+        Event::MouseWheel { unit: MouseWheelUnit::Point, delta, phase: TouchPhase::Move, modifiers }
     }
 
     fn near(a: Vec2, b: Vec2) -> bool {
@@ -492,5 +541,165 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// A gesture helper that runs each frame at 1/60 s spacing with Point-unit events,
+    /// collecting snaps, and using a specific owner ID.
+    fn snap_gesture(frames: Vec<Vec<Event>>, zoom_with_wheel: bool, owner: Id) -> i32 {
+        let ctx = Context::default();
+        configure(&ctx);
+        let mut snaps = 0i32;
+        let mut frames = frames.into_iter();
+        for n in 0..60 {
+            let raw =
+                RawInput { time: Some(f64::from(n) / 60.0), predicted_dt: 1.0 / 60.0, events: frames.next().unwrap_or_default(), ..Default::default() };
+            let mut out = ctx.run_ui(raw, |ui| {
+                if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), zoom_with_wheel, true, owner) {
+                    snaps += s;
+                }
+            });
+            out.textures_delta.clear();
+        }
+        snaps
+    }
+
+    #[test]
+    fn fractional_point_events_accumulate_across_frames() {
+        let quarter = Vec2::new(0.0, 10.0);
+        let batched = snap_gesture(
+            vec![vec![wheel_point(Vec2::new(0.0, 40.0), Modifiers::SHIFT)]],
+            true,
+            Id::new("accum-batched"),
+        );
+        let split = snap_gesture(
+            vec![
+                vec![wheel_point(quarter, Modifiers::SHIFT)],
+                vec![wheel_point(quarter, Modifiers::SHIFT)],
+                vec![wheel_point(quarter, Modifiers::SHIFT)],
+                vec![wheel_point(quarter, Modifiers::SHIFT)],
+            ],
+            true,
+            Id::new("accum-split"),
+        );
+        assert_eq!(batched, 1, "40 points batched → 1 step");
+        assert_eq!(split, 1, "4 × 10 points split → 1 step");
+    }
+
+    #[test]
+    fn fractional_accumulation_negative_and_horizontal() {
+        let neg_quarter = Vec2::new(0.0, -10.0);
+        let neg_split = snap_gesture(
+            vec![
+                vec![wheel_point(neg_quarter, Modifiers::SHIFT)],
+                vec![wheel_point(neg_quarter, Modifiers::SHIFT)],
+                vec![wheel_point(neg_quarter, Modifiers::SHIFT)],
+                vec![wheel_point(neg_quarter, Modifiers::SHIFT)],
+            ],
+            true,
+            Id::new("accum-neg"),
+        );
+        assert_eq!(neg_split, -1, "4 × −10 points → −1 step");
+        let h_quarter = Vec2::new(10.0, 0.0);
+        let h_split = snap_gesture(
+            vec![
+                vec![wheel_point(h_quarter, Modifiers::SHIFT)],
+                vec![wheel_point(h_quarter, Modifiers::SHIFT)],
+                vec![wheel_point(h_quarter, Modifiers::SHIFT)],
+                vec![wheel_point(h_quarter, Modifiers::SHIFT)],
+            ],
+            true,
+            Id::new("accum-horiz"),
+        );
+        assert_eq!(h_split, 1, "horizontal 4 × 10 → 1 step");
+    }
+
+    #[test]
+    fn accumulation_handles_empty_frames_and_direction_reversal() {
+        let snaps = snap_gesture(
+            vec![
+                vec![wheel_point(Vec2::new(0.0, 10.0), Modifiers::SHIFT)],
+                vec![], // empty frame
+                vec![wheel_point(Vec2::new(0.0, 10.0), Modifiers::SHIFT)],
+                vec![wheel_point(Vec2::new(0.0, 10.0), Modifiers::SHIFT)],
+                vec![wheel_point(Vec2::new(0.0, 10.0), Modifiers::SHIFT)],
+            ],
+            true,
+            Id::new("accum-empty"),
+        );
+        assert_eq!(snaps, 1, "empty frame preserves residual");
+        let reversal = snap_gesture(
+            vec![
+                vec![wheel_point(Vec2::new(0.0, 30.0), Modifiers::SHIFT)],
+                vec![wheel_point(Vec2::new(0.0, -15.0), Modifiers::SHIFT)],
+            ],
+            true,
+            Id::new("accum-reversal"),
+        );
+        assert_eq!(reversal, 0, "30 − 15 = 15 points, below 1 notch → 0 steps");
+    }
+
+    #[test]
+    fn accumulation_shift_alt_without_preference() {
+        let shift_alt = Modifiers { shift: true, alt: true, ..Modifiers::NONE };
+        let split = snap_gesture(
+            vec![
+                vec![wheel_point(Vec2::new(0.0, 10.0), shift_alt)],
+                vec![wheel_point(Vec2::new(0.0, 10.0), shift_alt)],
+                vec![wheel_point(Vec2::new(0.0, 10.0), shift_alt)],
+                vec![wheel_point(Vec2::new(0.0, 10.0), shift_alt)],
+            ],
+            false,
+            Id::new("accum-shift-alt"),
+        );
+        assert_eq!(split, 1, "Shift+Alt 4 × 10 → 1 step without preference");
+    }
+
+    #[test]
+    fn separate_owners_do_not_share_residual() {
+        let owner_a = Id::new("owner-a");
+        let owner_b = Id::new("owner-b");
+        let ctx = Context::default();
+        configure(&ctx);
+        let mut snaps_a = 0i32;
+        let mut snaps_b = 0i32;
+        for n in 0..8 {
+            let events = if n < 4 {
+                vec![wheel_point(Vec2::new(0.0, 10.0), Modifiers::SHIFT)]
+            } else {
+                vec![]
+            };
+            let raw = RawInput { time: Some(f64::from(n) / 60.0), predicted_dt: 1.0 / 60.0, events, ..Default::default() };
+            let mut out = ctx.run_ui(raw, |ui| {
+                if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_a) {
+                    snaps_a += s;
+                }
+                if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_b) {
+                    snaps_b += s;
+                }
+            });
+            out.textures_delta.clear();
+        }
+        assert_eq!(snaps_a, 1, "owner A accumulates independently");
+        assert_eq!(snaps_b, 1, "owner B accumulates independently");
+    }
+
+    #[test]
+    fn accumulation_hostile_numbers() {
+        for dy in [1e30, -1e30, 1e-10, -1e-10] {
+            let snaps = snap_gesture(
+                vec![vec![wheel_point(Vec2::new(0.0, dy), Modifiers::SHIFT)]],
+                true,
+                Id::new("accum-hostile"),
+            );
+            assert!(snaps.abs() <= 10, "hostile {dy} clamped: {snaps}");
+        }
+    }
+
+    #[test]
+    fn line_unit_snap_still_works_with_accumulation() {
+        let (_, _, snaps) = gesture(vec![vec![wheel(Vec2::new(0.0, 1.0), Modifiers::SHIFT)]], true, false);
+        assert_eq!(snaps, 1, "Line-unit notch produces 1 step");
+        let (_, _, snaps) = gesture(vec![vec![wheel(Vec2::new(0.0, -1.0), Modifiers::SHIFT)]], true, false);
+        assert_eq!(snaps, -1, "Line-unit notch down produces −1 step");
     }
 }
