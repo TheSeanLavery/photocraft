@@ -259,8 +259,7 @@ pub fn read(ctx: &Context, zoom_with_wheel: bool, pinch_zooms: bool, owner: Id, 
 
         // Per-frame idempotency: a second read in the same frame returns the cached result.
         let frame_nr = ctx.cumulative_pass_nr();
-        if let Some((cached_frame, cached_steps)) =
-            ctx.data(|d| d.get_temp::<(u64, i32)>(snap_frame_result_id(owner)))
+        if let Some((cached_frame, cached_steps)) = ctx.data(|d| d.get_temp::<(u64, i32)>(snap_frame_result_id(owner)))
             && cached_frame == frame_nr
         {
             return if cached_steps == 0 { None } else { Some(Wheel::SnapZoom(cached_steps)) };
@@ -559,12 +558,33 @@ mod tests {
             for alt in [false, true] {
                 for notch in [0.0, -1.0, f32::NAN, 40.0] {
                     for zd in [f32::NAN, 0.0, -1.0, f32::INFINITY, 1.0] {
-                        let i =
-                            Input { scroll: Vec2::new(0.0, s), raw: Vec2::new(0.0, s), zoom_delta: zd, alt, shift: false, zoom_with_wheel: !alt, pinch_zooms: true, notch };
+                        let i = Input {
+                            scroll: Vec2::new(0.0, s),
+                            raw: Vec2::new(0.0, s),
+                            zoom_delta: zd,
+                            alt,
+                            shift: false,
+                            zoom_with_wheel: !alt,
+                            pinch_zooms: true,
+                            notch,
+                        };
                         if let Some(Wheel::Zoom(f)) = classify(i) {
                             assert!(f.is_finite() && f > 0.0, "{f} from {i:?}");
                         }
-                        let si = Input { shift: true, zoom_with_wheel: true, ..Input { scroll: Vec2::new(0.0, s), raw: Vec2::new(0.0, s), zoom_delta: zd, alt: false, shift: false, zoom_with_wheel: true, pinch_zooms: true, notch } };
+                        let si = Input {
+                            shift: true,
+                            zoom_with_wheel: true,
+                            ..Input {
+                                scroll: Vec2::new(0.0, s),
+                                raw: Vec2::new(0.0, s),
+                                zoom_delta: zd,
+                                alt: false,
+                                shift: false,
+                                zoom_with_wheel: true,
+                                pinch_zooms: true,
+                                notch,
+                            }
+                        };
                         if let Some(Wheel::SnapZoom(n)) = classify(si) {
                             assert!(n.abs() <= 10, "snap steps clamped: {n} from {si:?}");
                         }
@@ -588,8 +608,7 @@ mod tests {
         let mut snaps = 0i32;
         let mut frames = frames.into_iter();
         for n in 0..60 {
-            let raw =
-                RawInput { time: Some(f64::from(n) / 60.0), predicted_dt: 1.0 / 60.0, events: frames.next().unwrap_or_default(), ..Default::default() };
+            let raw = RawInput { time: Some(f64::from(n) / 60.0), predicted_dt: 1.0 / 60.0, events: frames.next().unwrap_or_default(), ..Default::default() };
             let mut out = ctx.run_ui(raw, |ui| {
                 if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), zoom_with_wheel, true, owner, true) {
                     snaps += s;
@@ -603,11 +622,7 @@ mod tests {
     #[test]
     fn fractional_point_events_accumulate_across_frames() {
         let quarter = Vec2::new(0.0, 10.0);
-        let batched = snap_gesture(
-            vec![vec![wheel_point(Vec2::new(0.0, 40.0), Modifiers::SHIFT)]],
-            true,
-            Id::new("accum-batched"),
-        );
+        let batched = snap_gesture(vec![vec![wheel_point(Vec2::new(0.0, 40.0), Modifiers::SHIFT)]], true, Id::new("accum-batched"));
         let split = snap_gesture(
             vec![
                 vec![wheel_point(quarter, Modifiers::SHIFT)],
@@ -665,10 +680,7 @@ mod tests {
         );
         assert_eq!(snaps, 1, "empty frame preserves residual");
         let reversal = snap_gesture(
-            vec![
-                vec![wheel_point(Vec2::new(0.0, 30.0), Modifiers::SHIFT)],
-                vec![wheel_point(Vec2::new(0.0, -15.0), Modifiers::SHIFT)],
-            ],
+            vec![vec![wheel_point(Vec2::new(0.0, 30.0), Modifiers::SHIFT)], vec![wheel_point(Vec2::new(0.0, -15.0), Modifiers::SHIFT)]],
             true,
             Id::new("accum-reversal"),
         );
@@ -700,12 +712,8 @@ mod tests {
         let mut snaps_a = 0i32;
         let mut snaps_b = 0i32;
         // Frame 0: 30 points over A (hovered), B not hovered.
-        let raw = RawInput {
-            time: Some(0.0),
-            predicted_dt: 1.0 / 60.0,
-            events: vec![wheel_point(Vec2::new(0.0, 30.0), Modifiers::SHIFT)],
-            ..Default::default()
-        };
+        let raw =
+            RawInput { time: Some(0.0), predicted_dt: 1.0 / 60.0, events: vec![wheel_point(Vec2::new(0.0, 30.0), Modifiers::SHIFT)], ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| {
             if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner_a, true) {
                 snaps_a += s;
@@ -774,12 +782,8 @@ mod tests {
         let ctx = Context::default();
         configure(&ctx);
         let mut total_snaps = 0i32;
-        let raw = RawInput {
-            time: Some(0.0),
-            predicted_dt: 1.0 / 60.0,
-            events: vec![wheel_point(Vec2::new(0.0, 20.0), Modifiers::SHIFT)],
-            ..Default::default()
-        };
+        let raw =
+            RawInput { time: Some(0.0), predicted_dt: 1.0 / 60.0, events: vec![wheel_point(Vec2::new(0.0, 20.0), Modifiers::SHIFT)], ..Default::default() };
         let mut out = ctx.run_ui(raw, |ui| {
             if let Some(Wheel::SnapZoom(s)) = read(ui.ctx(), true, true, owner, true) {
                 total_snaps += s;
@@ -809,11 +813,7 @@ mod tests {
     #[test]
     fn accumulation_hostile_numbers() {
         for dy in [1e30, -1e30, 1e-10, -1e-10] {
-            let snaps = snap_gesture(
-                vec![vec![wheel_point(Vec2::new(0.0, dy), Modifiers::SHIFT)]],
-                true,
-                Id::new("accum-hostile"),
-            );
+            let snaps = snap_gesture(vec![vec![wheel_point(Vec2::new(0.0, dy), Modifiers::SHIFT)]], true, Id::new("accum-hostile"));
             assert!(snaps.abs() <= 10, "hostile {dy} clamped: {snaps}");
         }
     }

@@ -2932,8 +2932,13 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     let bars_id = egui::Id::new(("pc-canvas-bars-hover", idx));
     let over_bars = ctx.data(|d| d.get_temp::<bool>(bars_id)).unwrap_or(false);
     let nav_hovered = response.hovered() || free_hover || over_bars;
-    let wheel =
-        crate::wheel_nav::read(&ctx, app.session.prefs().general.zoom_with_scroll_wheel, app.session.prefs().enhanced_controls.zoom_with_trackpad_pinch, response.id.with("wheel"), nav_hovered);
+    let wheel = crate::wheel_nav::read(
+        &ctx,
+        app.session.prefs().general.zoom_with_scroll_wheel,
+        app.session.prefs().enhanced_controls.zoom_with_trackpad_pinch,
+        response.id.with("wheel"),
+        nav_hovered,
+    );
     if nav_hovered {
         let pointer = ui.input(|i| i.pointer.hover_pos());
         match (wheel, pointer) {
