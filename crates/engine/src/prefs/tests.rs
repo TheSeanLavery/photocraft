@@ -361,7 +361,13 @@ fn temporary_tools_and_fill_keys_are_rebindable() {
     let mut s = session();
     let r = s.execute("edit.keyboardShortcuts", json!({"filter": "tools.temporary"})).unwrap();
     let ids: Vec<&str> = r["commands"].as_array().unwrap().iter().filter_map(|c| c["id"].as_str()).collect();
-    assert!(ids.contains(&"tools.temporary.hand") && ids.contains(&"tools.temporary.zoomIn") && ids.contains(&"tools.temporary.zoomOut"), "{ids:?}");
+    assert!(
+        ids.contains(&"tools.temporary.hand")
+            && ids.contains(&"tools.temporary.zoomIn")
+            && ids.contains(&"tools.temporary.zoomOut")
+            && ids.contains(&"tools.temporary.erase"),
+        "{ids:?}"
+    );
     assert!(r["commands"].as_array().unwrap().iter().all(|c| c["hold"] == true));
     // Rebind the temporary zoom; an unknown id still fails.
     s.execute("edit.keyboardShortcuts", json!({"set": {"tools.temporary.zoomIn": "Ctrl+Space"}})).unwrap();
@@ -695,4 +701,14 @@ fn scratch_budget_rejects_invalid_values_atomically() {
         );
         assert_eq!(*s.prefs(), before);
     }
+}
+
+/// #3296: like Photoshop, "Use Shift Key for Tool Switch" is on by default; a stored choice wins.
+#[test]
+fn shift_key_tool_switch_is_on_by_default_and_a_stored_false_is_kept() {
+    assert!(Preferences::default().tools.use_shift_key_for_tool_switch);
+    let missing: Tools = serde_json::from_value(json!({"showTooltips": false})).unwrap();
+    assert!(missing.use_shift_key_for_tool_switch, "a settings file without the key gets the new default");
+    let stored: Tools = serde_json::from_value(json!({"useShiftKeyForToolSwitch": false})).unwrap();
+    assert!(!stored.use_shift_key_for_tool_switch);
 }

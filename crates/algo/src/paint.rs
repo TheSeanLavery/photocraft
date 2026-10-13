@@ -82,6 +82,7 @@ fn composite_area(
     coverage: impl Fn(i32, i32) -> f32 + Sync,
     color: impl Fn(i32, i32) -> [f32; 4] + Sync,
     lock_transparency: bool,
+    inks: Option<[f32; 4]>,
 ) {
     // Composite tile by tile (in parallel on native); tiles with zero coverage are left untouched,
     // so their copy-on-write storage (and GPU residency) survives.
@@ -112,6 +113,14 @@ fn composite_area(
                     o[3] = d[3];
                 }
                 from_rgba_into(&fmt, o, &mut enc);
+                // A colour picked as CMYK inks replaces fully covered pixels of a CMYK target as it is.
+                if let Some(i) = inks
+                    && fmt.mode == photocraft_color::ColorMode::Cmyk
+                    && blend_mode == BlendMode::Normal
+                    && k >= 1.0
+                {
+                    enc[..4].copy_from_slice(&i);
+                }
                 px.copy_from_slice(&enc[..n]);
             }
         }
@@ -162,7 +171,7 @@ pub fn paint_gradient(
         paint_gradient_full(s, area, opacity, blend_mode, color);
         return;
     }
-    composite_area(s, area, blend_mode, |x, y| opacity * selection.map_or(1.0, |m| m.sample_channel(x, y, 0)), color, lock_transparency);
+    composite_area(s, area, blend_mode, |x, y| opacity * selection.map_or(1.0, |m| m.sample_channel(x, y, 0)), color, lock_transparency, None);
 }
 
 /// Paint directly into copy-on-write tiles. A full 8K canvas previously staged every tile as
@@ -239,13 +248,32 @@ pub fn bucket_fill_src(
     lock_transparency: bool,
     src: impl Fn(i32, i32) -> [f32; 4] + Sync,
 ) -> bool {
+    bucket_fill_inks(s, area, seed, tolerance, contiguous, anti_alias, opacity, selection, lock_transparency, src, None)
+}
+
+/// [`bucket_fill_src`] where `inks` (CMYK, 0..1) are what a fully covered pixel of a CMYK target
+/// gets instead of `src`'s sRGB stand-in (a colour that was picked as CMYK).
+#[allow(clippy::too_many_arguments)]
+pub fn bucket_fill_inks(
+    s: &mut Surface,
+    area: Rect,
+    seed: (i32, i32),
+    tolerance: f32,
+    contiguous: bool,
+    anti_alias: bool,
+    opacity: f32,
+    selection: Option<&Surface>,
+    lock_transparency: bool,
+    src: impl Fn(i32, i32) -> [f32; 4] + Sync,
+    inks: Option<[f32; 4]>,
+) -> bool {
     if !area.contains(seed.0, seed.1) {
         return false;
     }
     let img = crate::selection::rgba8_image(s, area);
     let Some(region) = crate::selection::wand_region(&img, area, seed, tolerance, contiguous, anti_alias) else { return false };
     drop(img);
-    bucket_fill_region_src(s, &region, opacity, selection, lock_transparency, src);
+    bucket_fill_region_inks(s, &region, opacity, selection, lock_transparency, src, inks);
     true
 }
 
@@ -259,9 +287,30 @@ pub fn bucket_fill_region_src(
     lock_transparency: bool,
     src: impl Fn(i32, i32) -> [f32; 4] + Sync,
 ) {
+    bucket_fill_region_inks(s, region, opacity, selection, lock_transparency, src, None);
+}
+
+/// [`bucket_fill_region_src`] with the CMYK `inks` of [`bucket_fill_inks`].
+pub fn bucket_fill_region_inks(
+    s: &mut Surface,
+    region: &crate::selection::Region,
+    opacity: f32,
+    selection: Option<&Surface>,
+    lock_transparency: bool,
+    src: impl Fn(i32, i32) -> [f32; 4] + Sync,
+    inks: Option<[f32; 4]>,
+) {
     // Composite only over the filled region's box.
     let b = region.bbox;
-    composite_area(s, b, BlendMode::Normal, |x, y| region.at(x, y) * opacity * selection.map_or(1.0, |m| m.sample_channel(x, y, 0)), src, lock_transparency);
+    composite_area(
+        s,
+        b,
+        BlendMode::Normal,
+        |x, y| region.at(x, y) * opacity * selection.map_or(1.0, |m| m.sample_channel(x, y, 0)),
+        src,
+        lock_transparency,
+        inks,
+    );
 }
 
 #[cfg(test)]
@@ -336,6 +385,7 @@ mod tests {
                     |_, _| 0.65,
                     |x, y| sample_stops(&stops, geometry.sample(x as f32 + 0.5, y as f32 + 0.5)),
                     lock_transparency,
+                    None,
                 );
                 assert_eq!(actual, expected, "format {format:?} lock_transparency={lock_transparency}");
             }

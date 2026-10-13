@@ -613,8 +613,13 @@ impl Bridge {
                 if app.session.collaboration.applied_revision != 0 {
                     return Err("Unexpected duplicate bootstrap".into());
                 }
-                let limits =
-                    photocraft_format::LoadOptions { max_manifest_bytes: 8 << 20, max_blob_bytes: 64 << 20, max_total_bytes: 512 << 20, preserve_ids: true };
+                let limits = photocraft_format::LoadOptions {
+                    max_manifest_bytes: 8 << 20,
+                    max_blob_bytes: 64 << 20,
+                    max_total_bytes: 512 << 20,
+                    preserve_ids: true,
+                    ..Default::default()
+                };
                 let mut doc = photocraft_format::load_from_bytes_with(&document, &limits).map_err(|e| e.to_string())?;
                 doc.selection = None;
                 room.chat.clear();

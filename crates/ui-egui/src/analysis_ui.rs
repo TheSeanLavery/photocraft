@@ -566,7 +566,7 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, tool: Tool) -> bo
                 ui.label(RichText::new(tl!("Label Size")).color(t.text_dim).size(11.0));
                 let b = crate::widgets::value_field(ui, &mut ls, 8.0..=72.0, "", 44.0).changed();
                 if a || b {
-                    let _ = app.run("count.setGroup", json!({"markerSize": ms.round(), "labelSize": ls.round()}));
+                    let _ = app.run("count.setGroup", count_size_params(ms, ls));
                 }
             }
             true
@@ -613,6 +613,13 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, tool: Tool) -> bo
 }
 
 // ------------------------------------------------------------------ panels and dialogs
+
+/// `count.setGroup` params for the options bar's Marker Size and Label Size fields, sent as JSON
+/// integers (the fields edit `f32`s; `8.0` is a float on the wire).
+fn count_size_params(marker: f32, label: f32) -> Value {
+    let whole = |v: f32, lo: f32, hi: f32| if v.is_finite() { v.round().clamp(lo, hi) as u32 } else { lo as u32 };
+    json!({"markerSize": whole(marker, 1.0, 10.0), "labelSize": whole(label, 8.0, 72.0)})
+}
 
 fn float_frame(t: &Tokens) -> egui::Frame {
     egui::Frame::NONE
@@ -783,7 +790,9 @@ fn notes_panel(app: &mut PhotocraftApp, ctx: &egui::Context) {
             if ui.add_enabled_ui(n > 1, |ui| crate::icons::button(ui, "chevrons-right", 22.0, false, tl!("Next note"))).inner.clicked() {
                 sel = sel.map(|i| (i + 1) % n);
             }
-            ui.label(RichText::new(sel.map_or("0 of 0".into(), |i| format!("{} of {n}", i + 1))).color(t.text_dim).size(11.0));
+            let template = "{index} of {total}";
+            let position = crate::i18n::fmt(tl!(template), &[("index", &sel.map_or(0, |i| i + 1).to_string()), ("total", &n.to_string())]);
+            ui.label(RichText::new(position).color(t.text_dim).size(11.0));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.add_enabled_ui(sel.is_some(), |ui| crate::icons::button(ui, "trash", 22.0, false, tl!("Delete note"))).inner.clicked() {
                     delete = true;
@@ -1221,5 +1230,18 @@ pub(crate) mod tests {
         assert!(!empty.ui.status_error);
         assert!(empty.run("view.colorSamplers.add", json!({"x": 1, "y": 1})).is_err());
         assert!(empty.run("view.colorSamplers.list", json!({})).is_err());
+    }
+
+    #[test]
+    fn count_size_fields_send_whole_numbers_the_engine_applies() {
+        let p = count_size_params(7.6, 20.0);
+        assert_eq!(p, json!({"markerSize": 8, "labelSize": 20}));
+        assert!(p["markerSize"].is_u64() && p["labelSize"].is_u64());
+        assert_eq!(count_size_params(f32::NAN, 500.0), json!({"markerSize": 1, "labelSize": 72}));
+        let (mut app, _ctx) = app();
+        app.run("count.add", json!({"x": 10, "y": 10})).unwrap();
+        app.run("count.setGroup", count_size_params(8.0, 20.0)).unwrap();
+        let g = &app.session.active().unwrap().doc.measurement.count_groups[0];
+        assert_eq!((g.marker_size, g.label_size), (8, 20));
     }
 }

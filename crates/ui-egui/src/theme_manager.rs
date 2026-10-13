@@ -196,7 +196,8 @@ fn read_theme_answer(answer: crate::FileDialogAnswer) -> Result<String, String> 
                 return Err("theme file contents are unavailable".into());
             }
         }
-        FileDialogAnswer::SaveTo(_) => return Err("the theme open dialog gave an unexpected answer".into()),
+        FileDialogAnswer::Unavailable(reason) => return Err(reason),
+        FileDialogAnswer::SaveTo(_) | FileDialogAnswer::FolderTo(_) => return Err("the theme open dialog gave an unexpected answer".into()),
     };
     if bytes.len() > max {
         return Err(too_large());

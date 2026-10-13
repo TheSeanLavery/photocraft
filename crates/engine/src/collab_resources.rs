@@ -217,7 +217,13 @@ fn isolated(doc: &Document, context: &Value) -> Result<Session> {
     if bundle.len() > 32 << 20 {
         return Err(other("artist context exceeds 32 MiB"));
     }
-    let limits = photocraft_format::LoadOptions { max_manifest_bytes: 8 << 20, max_blob_bytes: 32 << 20, max_total_bytes: 64 << 20, preserve_ids: true };
+    let limits = photocraft_format::LoadOptions {
+        max_manifest_bytes: 8 << 20,
+        max_blob_bytes: 32 << 20,
+        max_total_bytes: 64 << 20,
+        preserve_ids: true,
+        ..Default::default()
+    };
     let context_doc = photocraft_format::load_from_bytes_with(&bundle, &limits).map_err(other)?;
     let mut doc = doc.clone();
     let visibility: std::collections::BTreeMap<LayerId, bool> = decode(context, "layerVisibility")?;

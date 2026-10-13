@@ -89,7 +89,7 @@ pub enum Outcome {
 /// field's value is validated before the first one is applied, so a typo, an unknown field, a
 /// bad value or a bad nested key can't reply with success while nothing — or only half of it —
 /// changed (#412).
-pub const UI_SET_FIELDS: [&str; 40] = [
+pub const UI_SET_FIELDS: [&str; 41] = [
     "tool",
     "panels",
     "dock",
@@ -130,6 +130,7 @@ pub const UI_SET_FIELDS: [&str; 40] = [
     "cropOverlayOrientation",
     "cropShield",
     "shapeStroke",
+    "camTransformOnDrop",
 ];
 
 /// Most clicks one `ui.click` may queue (#982). Each click is a press and a release that the app
@@ -387,16 +388,14 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
             let all = p.get("job").is_none_or(Value::is_null);
             match p.get("job").and_then(Value::as_u64) {
                 Some(j) if app.session.job(photocraft_engine::jobs::JobId(j)).is_some() => {
-                    crate::jobs_ui::cancel(app, photocraft_engine::jobs::JobId(j));
-                    ok(json!({"cancelled": 1}))
+                    let cancelled = crate::jobs_ui::cancel(app, photocraft_engine::jobs::JobId(j));
+                    ok(json!({"cancelled": usize::from(cancelled)}))
                 }
                 Some(j) => err(format!("no running job {j}")),
                 None if all => {
                     let ids: Vec<_> = app.session.jobs().into_iter().map(|j| j.id).collect();
-                    for j in &ids {
-                        crate::jobs_ui::cancel(app, *j);
-                    }
-                    ok(json!({"cancelled": ids.len()}))
+                    let cancelled = ids.into_iter().filter(|j| crate::jobs_ui::cancel(app, *j)).count();
+                    ok(json!({"cancelled": cancelled}))
                 }
                 None => err("`job` must be a job id"),
             }
@@ -501,6 +500,8 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     None => None,
                 };
                 let eyedropper_ring = bool_field(p, "eyedropperRing")?;
+                // Content-Aware Move's Transform On Drop checkbox.
+                let cam_transform_on_drop = bool_field(p, "camTransformOnDrop")?;
                 // The Crop tool's overlay menu (#1919).
                 let crop_overlay = match p.get("cropOverlay") {
                     Some(v) => Some(v.as_str().and_then(crate::crop_overlay::CropOverlay::from_id).ok_or_else(|| {
@@ -671,6 +672,9 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 if let Some(ring) = eyedropper_ring {
                     app.ui.tool_options.eyedropper_ring = ring;
                 }
+                if let Some(on) = cam_transform_on_drop {
+                    app.ui.tool_options.cam_transform_on_drop = on;
+                }
                 if let Some(k) = crop_overlay {
                     app.ui.tool_options.crop_overlay = k;
                 }
@@ -688,6 +692,7 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 }
                 if let Some(m) = mask_target {
                     app.ui.mask_target = m;
+                    app.ui.properties_layer = None;
                     app.ui.vector_mask_target &= !m;
                     app.sync_mask_targets();
                 }
@@ -699,6 +704,9 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 // Selection tools' options-bar mode: 0 New, 1 Add, 2 Subtract, 3 Intersect.
                 if let Some(m) = selection_mode {
                     app.ui.selection_mode = m.min(3) as u8;
+                }
+                if let Some(k) = theme {
+                    app.set_theme(ctx, k);
                 }
                 if let Some(v) = dock_tabs {
                     app.ui.dock_tabs = v;
@@ -745,9 +753,6 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                     if let Some(r) = rotation {
                         app.ui.views[i].rotation = crate::rotate_view::wrap_deg(r as f32);
                     }
-                }
-                if let Some(k) = theme {
-                    app.set_theme(ctx, k);
                 }
                 if let Some(i) = brush_section {
                     app.ui.brush_section = (i as usize).min(crate::brush_panel::SECTIONS.len() - 1);
@@ -1005,6 +1010,13 @@ fn dispatch(app: &mut PhotocraftApp, ctx: &egui::Context, req: &ControlRequest) 
                 if !secondary && crate::adjust_dialog::picker_armed(app) {
                     if matches!(ev, ToolEvent::Down { .. }) {
                         crate::adjust_dialog::sample_at(app, x, y);
+                    }
+                    continue;
+                }
+                // A Properties Levels/Curves eyedropper owns the primary button the same way.
+                if app.ui.dialogs.is_empty() && !matches!(s("button"), Some("secondary" | "right")) && crate::layer_picker::armed(app).is_some() {
+                    if matches!(ev, ToolEvent::Down { .. }) {
+                        crate::layer_picker::sample_at(app, x, y);
                     }
                     continue;
                 }
@@ -1307,7 +1319,9 @@ pub fn inspect(app: &PhotocraftApp, ctx: &egui::Context) -> Value {
         "magnetic": app.ui.magnetic,
         "textEdit": app.ui.text_edit,
         "typeTransform": app.ui.type_transform,
+        "camTransform": app.ui.cam_transform,
         "layerMenu": app.ui.layer_menu,
+        "layerPicker": app.ui.layer_picker,
         "brushPicker": app.ui.brush_picker.map(|pos| json!({
             "pos": pos,
             // The picker's content size once its corner grip was dragged (null: the default).
@@ -2223,6 +2237,17 @@ mod tests {
     }
 
     #[test]
+    fn ui_set_theme_keeps_explicit_dock_tab_indices() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+        let ctx = egui::Context::default();
+        for theme in ["adwaitaDark", "pro"] {
+            let r = call(&mut app, &ctx, "ui.set", json!({"theme": theme, "dockTabs": {"color": 0}}));
+            assert_eq!(r["ok"], true, "{r}");
+            assert_eq!(app.ui.dock_tabs.color, 0, "{theme}: explicit tab index changed");
+        }
+    }
+
+    #[test]
     fn ui_set_color_panel_picks_the_edited_chip() {
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
         let ctx = egui::Context::default();
@@ -2751,6 +2776,7 @@ mod tests {
                 name: "Linked contents".into(),
                 steps: vec![(command.into(), json!({"layer": smart.0}))],
                 disabled: Default::default(),
+                ..Default::default()
             }];
             let r = call(&mut app, &ctx, "engine.execute", json!({"command": "actions.play", "params": {"action": "Linked contents"}}));
             assert_eq!(r["ok"], true, "{r}");
@@ -2781,6 +2807,7 @@ mod tests {
             name: "Open".into(),
             steps: vec![("file.open".into(), json!({"path": "/etc/passwd"})), ("layer.new.layer".into(), json!({}))],
             disabled: Default::default(),
+            ..Default::default()
         });
         let ctx = egui::Context::default();
         let r = call(&mut app, &ctx, "engine.execute", json!({"command": "actions.play", "params": {"action": "Open"}}));
@@ -2800,6 +2827,7 @@ mod tests {
             name: "Open".into(),
             steps: vec![("file.open".into(), json!({"path": "/etc/passwd"})), ("layer.new.layer".into(), json!({}))],
             disabled: Default::default(),
+            ..Default::default()
         });
         app.automation_input = true;
         let r = app.run("actions.play", json!({"action": "Open"})).unwrap();

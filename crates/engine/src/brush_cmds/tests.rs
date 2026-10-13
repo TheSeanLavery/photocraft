@@ -869,3 +869,35 @@ fn an_offer_that_does_not_match_the_commit_is_ignored() {
     let r = s.execute("paint.stroke", other).unwrap();
     assert!(r.get("fromLive").is_none());
 }
+
+/// Photoshop's Clear painting mode (#3439): a Brush or Pencil stroke in `"mode": "clear"` erases
+/// with that brush, and History still names the tool rather than the Eraser.
+#[test]
+fn clear_mode_erases_with_the_brush_or_pencil() {
+    for (cmd, label) in [("paint.stroke", "Brush Tool"), ("paint.pencil", "Pencil")] {
+        let mut s = session(40, 20);
+        s.execute("edit.fill", json!({"color": "#ff0000"})).unwrap();
+        s.execute(cmd, json!({"points": [[2, 10], [38, 10]], "size": 6, "mode": "clear", "brush": {"hardness": 1.0}})).unwrap();
+        assert_eq!(rgba(&s, 20, 10)[3], 0.0, "{cmd}: cleared to transparency");
+        assert_eq!(rgba(&s, 20, 2), [1.0, 0.0, 0.0, 1.0], "{cmd}: untouched pixels stay");
+        assert_eq!(s.active().unwrap().history.undo_label(), Some(label), "{cmd}");
+    }
+}
+
+/// #4344: a foreground picked as CMYK 100/0/0/0 is painted into a CMYK document as those inks by
+/// the Brush and the Pencil, not as whatever its sRGB stand-in converts back to (100/28/0/17).
+#[test]
+fn brush_and_pencil_paint_a_cmyk_pick_with_the_picked_inks() {
+    let cyan = [1.0f32, 0.0, 0.0, 0.0];
+    for cmd in ["paint.stroke", "paint.pencil"] {
+        let mut s = session(16, 16);
+        s.execute("image.mode.cmyk", json!({})).unwrap();
+        let rgb = photocraft_color::convert::cmyk_to_rgb(cyan).map(|c| c.clamp(0.0, 1.0));
+        s.execute("tools.setColors", json!({"foreground": rgb, "foregroundCmyk": cyan})).unwrap();
+        s.execute(cmd, json!({"points": [[8.0, 8.0]], "size": 6.0, "hardness": 1.0})).unwrap();
+        let st = s.active().unwrap();
+        let surf = st.doc.layer(st.active_layer.unwrap()).unwrap().surface().unwrap();
+        let got: Vec<f32> = surf.read_region(Rect::new(8, 8, 9, 9)).into_iter().take(4).collect();
+        assert!(got.iter().zip(cyan).all(|(a, b)| (a - b).abs() < 0.02), "{cmd}: {got:?}");
+    }
+}

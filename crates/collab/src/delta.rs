@@ -119,7 +119,13 @@ impl DocumentBundle {
         let bytes = zip.finish().map_err(failure)?;
         let mut doc = photocraft_format::load_from_bytes_with(
             &bytes,
-            &LoadOptions { max_manifest_bytes: 64 * 1024 * 1024, max_blob_bytes: MAX_BUNDLE, max_total_bytes: MAX_BUNDLE as u64, preserve_ids: true },
+            &LoadOptions {
+                max_manifest_bytes: 64 * 1024 * 1024,
+                max_blob_bytes: MAX_BUNDLE,
+                max_total_bytes: MAX_BUNDLE as u64,
+                preserve_ids: true,
+                ..Default::default()
+            },
         )
         .map_err(failure)?;
         doc.id = id;
