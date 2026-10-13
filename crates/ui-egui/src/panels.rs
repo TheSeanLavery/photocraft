@@ -4617,21 +4617,23 @@ mod snapshot_row_tests {
     /// its camera button in view.
     #[test]
     fn many_snapshots_keep_the_footer_in_a_short_panel() {
-        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
-        app.run("file.new", json!({"width": 200, "height": 150})).unwrap();
-        for _ in 0..6 {
-            app.run("history.newSnapshot", json!({})).unwrap();
+        for height in [100.0, 250.0] {
+            let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
+            app.run("file.new", json!({"width": 200, "height": 150})).unwrap();
+            for _ in 0..6 {
+                app.run("history.newSnapshot", json!({})).unwrap();
+            }
+            let mut h = Harness::builder().with_size(vec2(300.0, height)).build_ui_state(|ui, app: &mut PhotocraftApp| history(app, ui), app);
+            PhotocraftApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
+            h.state_mut().ui.theme = crate::theme::ThemeKind::ProMedium;
+            h.run_steps(3);
+            let view = h.ctx.input(|i| i.viewport_rect());
+            let buttons: Vec<Rect> = h
+                .ctx
+                .viewport(|v| v.prev_pass.widgets.layers().flat_map(|(_, w)| w.iter()).filter(|w| w.rect.size() == vec2(26.0, 26.0)).map(|w| w.rect).collect());
+            assert_eq!(buttons.len(), 3, "{buttons:?}");
+            assert!(buttons.iter().all(|b| view.contains_rect(*b)), "footer in view: {buttons:?} in {view:?}");
         }
-        let mut h = Harness::builder().with_size(vec2(300.0, 250.0)).build_ui_state(|ui, app: &mut PhotocraftApp| history(app, ui), app);
-        PhotocraftApp::setup_context(&h.ctx, crate::theme::ThemeKind::ProMedium);
-        h.state_mut().ui.theme = crate::theme::ThemeKind::ProMedium;
-        h.run_steps(3);
-        let view = h.ctx.input(|i| i.viewport_rect());
-        let buttons: Vec<Rect> = h
-            .ctx
-            .viewport(|v| v.prev_pass.widgets.layers().flat_map(|(_, w)| w.iter()).filter(|w| w.rect.size() == vec2(26.0, 26.0)).map(|w| w.rect).collect());
-        assert_eq!(buttons.len(), 3, "{buttons:?}");
-        assert!(buttons.iter().all(|b| view.contains_rect(*b)), "footer in view: {buttons:?} in {view:?}");
     }
 
     /// Renaming belongs to one document: snapshot ids restart in each, so switching tabs must not

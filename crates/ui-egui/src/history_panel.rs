@@ -137,8 +137,12 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     }
     // Virtualize rows: an unlimited document must not paint thousands of widgets each frame.
     let count = snapshot_count + app.history_previews.rows.len();
-    let max_height = (ui.available_height() - if t.pro { widgets::footer_height(ui) + ui.spacing().item_spacing.y } else { 0.0 }).max(48.0);
-    let mut area = crate::scroll_area::ScrollArea::vertical().id_salt(("history-rows", document.id.0)).max_height(max_height).auto_shrink([false, false]);
+    let max_height = (ui.available_height() - if t.pro { widgets::footer_height(ui) + ui.spacing().item_spacing.y } else { 0.0 }).max(0.0);
+    let mut area = crate::scroll_area::ScrollArea::vertical()
+        .id_salt(("history-rows", document.id.0))
+        .max_height(max_height)
+        .min_scrolled_height(0.0)
+        .auto_shrink([false, false]);
     // Follow appended actions only if the previous viewport was at the end. Use
     // the adapter's returned offset so historical scrollbar drags count too.
     if let Some(previous) = app.history_previews.scroll
