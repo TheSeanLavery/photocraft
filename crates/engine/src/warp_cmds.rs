@@ -110,17 +110,17 @@ pub fn warp_from_params(cmd: &str, p: &Value, rect: [f64; 4]) -> Result<Warp> {
     Ok(w)
 }
 
+/// A Background is turned into a normal layer by the caller first
+/// ([`crate::extra_cmds::background_to_layer`]).
 fn warp_layer(doc_sel: Option<&Surface>, group: Locks, l: &mut Layer, w: &Warp, rect: Rect, interp: Interp) -> Result<()> {
-    if l.locks.position && l.name == "Background" {
-        l.locks.position = false;
-        l.locks.transparency = false;
-        l.name = "Layer 0".into();
-    }
     let locks = l.locks.union(group);
     if locks.position || locks.all {
         return Err(EngineError::Other(format!("layer \"{}\" is locked", l.name)));
     }
     let map = |x: f64, y: f64| w.map(x, y);
+    // A selection limits the linked mask exactly as it limits the pixels (#4175, as Free Transform
+    // and Perspective Warp do, #3083); a layer that moves whole takes its whole mask along.
+    let mask_sel = doc_sel.filter(|_| !crate::transform_cmds::moves_whole(l));
     match &mut l.content {
         LayerContent::Group(g) => {
             for c in g.children.iter_mut() {
@@ -128,7 +128,8 @@ fn warp_layer(doc_sel: Option<&Surface>, group: Locks, l: &mut Layer, w: &Warp, 
             }
         }
         LayerContent::Text(_) => return Err(EngineError::Other("Warp needs rasterized type (or use Type › Warp Text)".into())),
-        LayerContent::Shape(_) => return Err(EngineError::Other("Warp needs a rasterized shape (Layer › Rasterize › Shape)".into())),
+        // The path is warped and the shape stays a shape (#3009).
+        LayerContent::Shape(sh) => crate::vector_cmds::map_shape(sh, None, Some(w))?,
         LayerContent::Smart(sm) => {
             // Store in source space: undo the placement (affine, or Distort / Perspective) around the warp.
             let inv = crate::smart_cmds::placement(sm).inverse().ok_or_else(|| EngineError::Other("the smart object's transform is degenerate".into()))?;
@@ -176,7 +177,16 @@ fn warp_layer(doc_sel: Option<&Surface>, group: Locks, l: &mut Layer, w: &Warp, 
     if let Some(m) = l.mask.as_mut()
         && m.linked
     {
-        m.surface = warp_mesh_gray(&m.surface, &map, interp);
+        let whole = |m: &Surface| Ok(warp_mesh_gray(m, &map, interp));
+        m.surface = match mask_sel {
+            Some(sel) => crate::transform_cmds::move_gray_selected(&m.surface, sel, &|lifted, src| Ok(warp_mesh_surface(lifted, src, &map, interp)), &whole)?,
+            None => whole(&m.surface)?,
+        };
+    }
+    if let Some(vm) = l.vector_mask.as_mut()
+        && vm.linked
+    {
+        vm.path = crate::vector_cmds::map_path(&vm.path, None, Some(w))?;
     }
     Ok(())
 }
@@ -264,6 +274,7 @@ fn apply(s: &mut Session, p: &Value, cmd: &str) -> Result<Value> {
         let sel = doc.selection.clone();
         let is_group = doc.layer(id).is_some_and(Layer::is_group);
         let group = crate::transform_cmds::group_locks(doc, id);
+        crate::extra_cmds::background_to_layer(doc, id);
         let l = doc.layer_mut(id).ok_or(EngineError::NoLayer(id))?;
         warp_layer(if is_group { None } else { sel.as_ref() }, group, l, &w, rect, interp)?;
         let snapshot = doc.clone();
@@ -600,8 +611,9 @@ mod tests {
         let before = active_surface(&s);
         s.execute("edit.transform.warp", json!({"style": "arc", "bend": 50})).unwrap();
         let after = active_surface(&s);
-        assert!(after.content_bounds().y1 > 42, "{:?}", after.content_bounds());
-        assert!(after.pixel(11, 11)[3] < 0.5, "top-left corner pulls in");
+        // As in Photoshop: the bottom edge keeps its corners, the top rises and spreads.
+        let c = after.content_bounds();
+        assert!(c.y1 <= 41 && c.y0 < 8 && c.x0 < 8 && c.x1 > 62, "{c:?}");
         s.undo();
         assert_eq!(active_surface(&s), before);
         assert!(s.execute("edit.transform.warp", json!({"style": "spiral"})).is_err());
@@ -744,5 +756,55 @@ mod tests {
         let r = s.execute("edit.transform.warpGrid", json!({"warp": Warp::custom(m, b), "size": "default"})).unwrap();
         let back: Warp = serde_json::from_value(r["warp"].clone()).unwrap();
         assert_eq!(back.mesh.unwrap().us.len(), 2);
+    }
+
+    /// A selection limits the warp of a linked mask too, as it does the pixels (#4175; Free
+    /// Transform and Perspective Warp did this already, #3083): the moved part of the mask lines
+    /// up with the moved pixels and the unselected part stays put.
+    #[test]
+    fn linked_mask_with_a_selection_warps_only_the_selected_region() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width": 100, "height": 100})).unwrap();
+        s.execute("layer.new.layer", json!({})).unwrap();
+        s.execute("layer.layerMask.revealAll", json!({})).unwrap();
+        s.edit("paint", |doc, active| {
+            let l = doc.layer_mut(active.unwrap()).unwrap();
+            l.surface_mut().unwrap().fill_rect(Rect::new(10, 10, 30, 20), &[1.0, 0.0, 0.0, 1.0]);
+            // Hide the left quarter (selected) and the right quarter (not selected).
+            let m = l.mask.as_mut().unwrap();
+            m.surface.fill_rect(Rect::new(10, 10, 15, 20), &[0.0]);
+            m.surface.fill_rect(Rect::new(25, 10, 30, 20), &[0.0]);
+            m.linked = true;
+            Ok(())
+        })
+        .unwrap();
+        let mask_at = |s: &Session, x, y| {
+            let st = s.active().unwrap();
+            st.doc.layer(st.active_layer.unwrap()).unwrap().mask.as_ref().unwrap().surface.sample_channel(x, y, 0)
+        };
+        let alpha_at = |s: &Session, x, y| {
+            let st = s.active().unwrap();
+            st.doc.layer(st.active_layer.unwrap()).unwrap().surface().unwrap().pixel(x, y)[3]
+        };
+        s.execute("select.rect", json!({"x": 10, "y": 10, "width": 10, "height": 10})).unwrap();
+        // A mesh that translates the selected box 50 px down.
+        let b = [10.0, 10.0, 20.0, 20.0];
+        let mesh = BezierMesh::identity(b, 1, 1).map_points(|p| [p[0], p[1] + 50.0]);
+        s.execute("edit.transform.warp", json!({"rect": [10, 10, 20, 20], "mesh": mesh})).unwrap();
+        // Moved pixels and their mask line up.
+        assert!(alpha_at(&s, 12, 65) > 0.99);
+        assert!(mask_at(&s, 12, 65) < 0.01, "selected hidden quarter moved");
+        assert!(mask_at(&s, 17, 65) > 0.99, "selected visible quarter moved");
+        // The vacated area reads as revealed, with transparent pixels.
+        assert!(alpha_at(&s, 12, 15) < 0.01);
+        assert!(mask_at(&s, 12, 15) > 0.99);
+        // The unselected part of the mask stays, aligned with the unselected pixels.
+        assert!(alpha_at(&s, 27, 15) > 0.99);
+        assert!(mask_at(&s, 27, 15) < 0.01, "unselected mask stays put");
+        assert!(mask_at(&s, 27, 65) > 0.99, "and isn't copied along");
+        for (x, y) in [(11, 61), (13, 68), (16, 61), (18, 68)] {
+            let want = if x < 15 { 0.0 } else { 1.0 };
+            assert!((mask_at(&s, x, y) - want).abs() < 0.01, "({x},{y}): {}", mask_at(&s, x, y));
+        }
     }
 }

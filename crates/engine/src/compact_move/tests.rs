@@ -32,7 +32,7 @@ fn compare_all_states(mut session: Session, moves: &[(i32, i32)]) {
     let id = session.active().unwrap().doc.layers.first().unwrap().id;
     for &(dx, dy) in moves {
         let mut next = expected.last().unwrap().as_ref().clone();
-        crate::layer_multi_cmds::move_layers(&mut next, &[(id, dx, dy)]).unwrap();
+        crate::layer_multi_cmds::move_layers(&mut next, expected.last().unwrap(), &[(id, dx, dy)]).unwrap();
         expected.push(Arc::new(next));
         session.execute("layer.translate", json!({"dx":dx,"dy":dy})).unwrap();
         assert_eq!(session.active().unwrap().doc.as_ref(), expected.last().unwrap().as_ref());

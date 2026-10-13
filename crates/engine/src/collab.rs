@@ -1161,7 +1161,7 @@ impl Session {
         if let Some(st) = self.docs.iter_mut().find(|st| Some(st.doc.id) == self.collaboration.document_id) {
             st.history.record(id, before, st.layer_target());
         }
-        self.after_command(id, params, true);
+        self.after_command(id, params, true, None);
         if id == "layer.smartObjects.saveContents"
             && let Some(st) = self.active_mut()
         {
@@ -1310,7 +1310,7 @@ impl Session {
             if let Some(st) = self.docs.iter_mut().find(|st| Some(st.doc.id) == self.collaboration.document_id) {
                 st.history.record("Brush stroke", before, photocraft_ops::LayerTarget { active: st.active_layer, selected: st.selected_layers.clone() });
             }
-            self.after_command("paint.stroke", params, true);
+            self.after_command("paint.stroke", params, true, None);
         }
         result
     }

@@ -60,7 +60,13 @@ impl CheckpointRestore {
         }
         let mut document = photocraft_format::load_from_bytes_with(
             &checkpoint.baseline,
-            &photocraft_format::LoadOptions { max_manifest_bytes: 8 << 20, max_blob_bytes: 64 << 20, max_total_bytes: 512 << 20, preserve_ids: true },
+            &photocraft_format::LoadOptions {
+                max_manifest_bytes: 8 << 20,
+                max_blob_bytes: 64 << 20,
+                max_total_bytes: 512 << 20,
+                preserve_ids: true,
+                ..Default::default()
+            },
         )
         .map_err(|e| EngineError::Other(e.to_string()))?;
         document.selection = None;

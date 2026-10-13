@@ -13,7 +13,7 @@ use photocraft_ops::{ArchivedDocument, History, HistoryCheckpoint, HistoryState}
 use photocraft_raster::Tile;
 use serde::{Deserialize, Serialize};
 
-use crate::store::{self, Source, write_atomic};
+use crate::store::{self, ByteSource, write_atomic};
 use crate::{FormatError, LoadOptions, PcraftWriter, Result, SaveOptions, SaveStats};
 
 const MAX_DESCRIPTOR: u64 = 256 << 20;
@@ -483,7 +483,7 @@ struct RecoverySource {
     lease: Arc<RootLease>,
     manifest: String,
 }
-impl Source for RecoverySource {
+impl ByteSource for RecoverySource {
     fn get(&self, path: &str, max: usize) -> Result<Vec<u8>> {
         if path == store::MANIFEST {
             if self.manifest.len() > max {
@@ -639,6 +639,152 @@ pub fn discard_recovery(recovery_dir: &Path, entry: &RecoveryEntry) -> Result<()
     }
     remove_entry(recovery_dir, &entry.info.key)
 }
+
+/// The crash-recovery autosaves of one app session, keyed by document id (the `DocId` value).
+///
+/// New documents save under `doc-<session>-<id>`, with a `<session>` unique to this store: ids
+/// restart every launch, so a new document must never overwrite an entry an earlier launch left.
+/// A recovered document [adopts](Self::adopt) the entry it was loaded from. Its autosaves replace
+/// that entry in place (each save is atomic, so the old copy stays loadable until the new one is
+/// complete), and saving or closing it removes the entry. Nothing is deleted just because it was
+/// recovered, so a second crash before the next autosave loses nothing.
+#[cfg(not(target_arch = "wasm32"))]
+pub struct RecoveryStore {
+    dir: PathBuf,
+    session: String,
+    savers: HashMap<u64, Autosaver>,
+    adopted: HashMap<u64, String>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl RecoveryStore {
+    pub fn new(recovery_dir: impl Into<PathBuf>) -> Self {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static STORES: AtomicU64 = AtomicU64::new(0);
+        let t = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+        let session = format!("{t:x}_{:x}_{:x}", std::process::id(), STORES.fetch_add(1, Ordering::Relaxed));
+        let dir = recovery_dir.into();
+        sweep_orphans(&dir, ORPHAN_AGE);
+        RecoveryStore { dir, session, savers: HashMap::new(), adopted: HashMap::new() }
+    }
+
+    /// Load every recoverable document, newest first, with the entry it came from. Nothing is
+    /// deleted: [`adopt`](Self::adopt) each document the app opens. Entries that fail to load stay
+    /// on disk untouched.
+    pub fn recover(&self) -> Vec<(RecoveryEntry, Document)> {
+        list_recovery(&self.dir).into_iter().filter_map(|e| recover(&e).ok().map(|doc| (e, doc))).collect()
+    }
+
+    /// Document `doc_id` was opened from the recovery entry `key`: its autosaves now replace that
+    /// entry, and [`discard`](Self::discard) removes it.
+    pub fn adopt(&mut self, doc_id: u64, key: &str) {
+        self.adopted.insert(doc_id, sanitize(key));
+    }
+
+    /// Queue an autosave of `doc` (returns immediately; see [`Autosaver::request`]).
+    pub fn autosave(&mut self, doc: &Arc<Document>, revision: u64, original_path: Option<String>) {
+        let _ = self.autosave_checked(doc, revision, original_path);
+    }
+
+    /// Queue a snapshot, reporting enqueue failures to the application.
+    pub fn autosave_checked(&mut self, doc: &Arc<Document>, revision: u64, original_path: Option<String>) -> std::result::Result<(), String> {
+        let id = doc.id.0;
+        let saver = self.savers.entry(id).or_insert_with(|| {
+            let key = self.adopted.get(&id).cloned().unwrap_or_else(|| format!("doc-{}-{id}", self.session));
+            Autosaver::new(&self.dir, &key)
+        });
+        saver.request_checked(doc.clone(), revision, original_path, SaveOptions::default())
+    }
+
+    /// Return completed write outcomes as (document id, revision, outcome), without blocking.
+    pub fn take_completed(&mut self) -> Vec<(u64, u64, std::result::Result<(), String>)> {
+        self.savers.iter().flat_map(|(&id, saver)| saver.take_completed().into_iter().map(move |(revision, result)| (id, revision, result))).collect()
+    }
+
+    /// Document `doc_id` was saved or closed: remove its recovery data, both its own autosaves
+    /// and the entry it adopted.
+    pub fn discard(&mut self, doc_id: u64) -> Result<()> {
+        let own = self.savers.remove(&doc_id).map_or(Ok(()), Autosaver::discard);
+        let adopted = self.adopted.remove(&doc_id).map_or(Ok(()), |key| remove_entry(&self.dir, &key));
+        own.and(adopted)
+    }
+}
+
+/// How long recovery data must have been left untouched before [`sweep_orphans`] may remove
+/// it. Far longer than any save takes, so another running instance's in-progress first
+/// autosave (bundle written, sidecar not yet) is never mistaken for an orphan.
+#[cfg(not(target_arch = "wasm32"))]
+const ORPHAN_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+
+/// Best-effort removal of recovery data nothing can ever load or clean up:
+/// - `<key>.pcraft` bundle folders with no `<key>.json` sidecar (a crash during a document's
+///   first autosave: the sidecar is written after the bundle, and `list_recovery` skips them);
+/// - `*.pcsave.tmp` files left by an interrupted atomic write (see [`crate::atomic::temp_name`])
+///   that another process created.
+///
+/// Only entries untouched for at least `min_age` are removed. Bundles with a sidecar, symlinks,
+/// and anything outside `recovery_dir` are never touched; errors are ignored.
+#[cfg(not(target_arch = "wasm32"))]
+fn sweep_orphans(recovery_dir: &Path, min_age: std::time::Duration) {
+    let Ok(rd) = std::fs::read_dir(recovery_dir) else { return };
+    let mut bundles = Vec::new();
+    for e in rd.flatten() {
+        let Ok(ft) = e.file_type() else { continue };
+        let path = e.path();
+        if ft.is_file() {
+            sweep_temp_file(&path, min_age);
+            continue;
+        }
+        if !ft.is_dir() {
+            continue;
+        }
+        let name = e.file_name();
+        let Some(key) = name.to_str().and_then(|n| n.strip_suffix(".pcraft")) else { continue };
+        if key.is_empty() || sanitize(key) != key {
+            continue;
+        }
+        // Anything at the sidecar's path (even a broken one) keeps the bundle.
+        let has_sidecar = std::fs::symlink_metadata(recovery_dir.join(format!("{key}.json"))).is_ok();
+        let parts = [path.clone(), path.join("tiles"), path.join("blobs")];
+        if !has_sidecar && parts.iter().all(|p| untouched_for(p, min_age, true)) {
+            let _ = std::fs::remove_dir_all(&path);
+        } else {
+            bundles.extend(parts);
+        }
+    }
+    for dir in bundles {
+        let Ok(rd) = std::fs::read_dir(&dir) else { continue };
+        for e in rd.flatten() {
+            if e.file_type().is_ok_and(|ft| ft.is_file()) {
+                sweep_temp_file(&e.path(), min_age);
+            }
+        }
+    }
+}
+
+/// Remove `path` if it is an atomic-write temp file of another process, untouched for `min_age`.
+#[cfg(not(target_arch = "wasm32"))]
+fn sweep_temp_file(path: &Path, min_age: std::time::Duration) {
+    let Some(name) = path.file_name().and_then(|n| n.to_str()) else { return };
+    // `.{stem}.{pid}-{n}.pcsave.tmp`
+    let Some(rest) = name.strip_prefix('.').and_then(|n| n.strip_suffix(".pcsave.tmp")) else { return };
+    let Some((_, owner)) = rest.rsplit_once('.') else { return };
+    let Some(pid) = owner.split_once('-').and_then(|(pid, _)| pid.parse::<u32>().ok()) else { return };
+    if pid != std::process::id() && untouched_for(path, min_age, false) {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
+/// Whether `path` was last modified at least `min_age` ago. Unreadable times count as recent;
+/// a missing path counts as untouched only when `missing_ok`.
+#[cfg(not(target_arch = "wasm32"))]
+fn untouched_for(path: &Path, min_age: std::time::Duration, missing_ok: bool) -> bool {
+    match std::fs::symlink_metadata(path) {
+        Ok(m) => m.modified().ok().and_then(|t| SystemTime::now().duration_since(t).ok()).is_some_and(|age| age >= min_age),
+        Err(e) => missing_ok && e.kind() == std::io::ErrorKind::NotFound,
+    }
+}
+
 fn remove_entry(dir: &Path, key: &str) -> Result<()> {
     if !safe_key(key) {
         return Err(FormatError::corrupt("unsafe recovery key"));
@@ -739,4 +885,51 @@ fn file_fingerprint(path: &Path) -> Result<FileFingerprint> {
         #[cfg(unix)]
         inode: metadata.ino(),
     })
+}
+
+#[cfg(test)]
+mod orphan_sweep_tests {
+    use super::*;
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn sweep_removes_orphaned_bundles_and_foreign_temp_files_only() {
+        let dir = std::env::temp_dir().join(format!(
+            "pcraft-sweep-{}-{}",
+            std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0)
+        ));
+        let doc =
+            Arc::new(Document::new("Kept", photocraft_doc::Size { width: 4, height: 4 }, photocraft_color::ColorMode::Rgb, photocraft_color::SampleType::U8));
+        let saver = Autosaver::new(&dir, "kept");
+        saver.request(doc.clone(), 1, None, SaveOptions::default()).unwrap();
+        assert!(saver.flush().is_some_and(|r| r.is_ok()));
+        // A first autosave that crashed before its sidecar was written.
+        let orphan = dir.join("doc-crashed-1.pcraft");
+        std::fs::create_dir_all(orphan.join("tiles")).unwrap();
+        std::fs::write(orphan.join("tiles/abc.zst"), b"partial").unwrap();
+        // Stale temp files: another process's (swept) and this process's (kept, may be in flight).
+        let foreign = [dir.join(".kept.json.4294967294-3.pcsave.tmp"), dir.join("kept.pcraft/.manifest.json.4294967294-0.pcsave.tmp")];
+        let own = dir.join(format!(".kept.json.{}-9.pcsave.tmp", std::process::id()));
+        for p in foreign.iter().chain([&own]) {
+            std::fs::write(p, b"tmp").unwrap();
+        }
+        // Not ours to judge: unparsable temp names, unrelated files.
+        let other = dir.join("notes.txt");
+        std::fs::write(&other, b"user file").unwrap();
+
+        // Fresh data is never swept.
+        sweep_orphans(&dir, std::time::Duration::from_secs(3600));
+        assert!(orphan.is_dir() && foreign.iter().all(|p| p.is_file()));
+
+        sweep_orphans(&dir, std::time::Duration::ZERO);
+        assert!(!orphan.exists(), "a bundle without a sidecar is swept");
+        assert!(foreign.iter().all(|p| !p.exists()), "another process's temp files are swept");
+        assert!(own.is_file(), "this process's temp files are kept");
+        assert!(other.is_file());
+        let entries = list_recovery(&dir);
+        assert_eq!(entries.len(), 1, "the complete entry survives");
+        assert_eq!(recover(&entries[0]).unwrap(), *doc);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

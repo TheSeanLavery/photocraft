@@ -257,6 +257,7 @@ pub(crate) fn doc_m(d: &Document, sink: &mut dyn Sink) -> DocM {
         duotone: d.duotone.clone(),
         variables: d.variables.clone(),
         timeline: d.timeline.clone(),
+        file_encoding: d.file_encoding,
         layer_comps: d.layer_comps.iter().map(|c| comp_m(c, sink)).collect(),
         last_applied_comp: d.last_applied_comp,
         last_document_state: d.last_document_state.as_ref().map(|c| comp_m(c, sink)),
@@ -310,6 +311,10 @@ pub(crate) struct Loader<'a> {
     pub id_map: std::collections::HashMap<u64, LayerId>,
     pub contents_id_map: std::collections::HashMap<u64, SmartContentsId>,
     pub legacy_linked_contents: std::collections::HashMap<String, SmartContentsId>,
+    /// Decoded tiles by content hash and sample type. Saves store a tile once however often it
+    /// is referenced (a solid fill shares one tile), so a load decodes and charges the byte
+    /// budget once per distinct tile and hands every reference the same copy-on-write `Arc`.
+    pub tiles: std::collections::HashMap<SampleType, std::collections::HashMap<Hash, Arc<Tile>>>,
 }
 
 impl Loader<'_> {
@@ -342,7 +347,15 @@ impl Loader<'_> {
             if s.tile(c).is_some() {
                 return Err(FormatError::corrupt(format!("duplicate tile ({}, {})", t.tx, t.ty)));
             }
+            if let Some(tile) = self.tiles.get(&f.sample).and_then(|m| m.get(&t.hash)) {
+                if tile.bytes().len() != len {
+                    return Err(FormatError::corrupt(format!("tile {} is referenced with different sizes", t.hash)));
+                }
+                s.put_tiles([(c, tile.clone())]);
+                continue;
+            }
             if let Some(tile) = self.fetch.shared_tile(&t.hash, len)? {
+                self.tiles.entry(f.sample).or_default().insert(t.hash.clone(), tile.clone());
                 s.put_tiles(std::iter::once((c, tile)));
                 continue;
             }
@@ -351,6 +364,7 @@ impl Loader<'_> {
             s.tile_mut(c).bytes_mut().copy_from_slice(&bytes);
             if let Some(tile) = s.tile(c) {
                 self.fetch.cache_tile(&t.hash, tile);
+                self.tiles.entry(f.sample).or_default().insert(t.hash.clone(), tile.clone());
             }
         }
         Ok(s)
@@ -585,6 +599,15 @@ impl Loader<'_> {
         }
         let mut patterns = Vec::with_capacity(m.patterns.len());
         for p in &m.patterns {
+            // Sizes come from the file: a pattern with no tiles can claim any size, and renderers
+            // allocate per pixel.
+            let max = photocraft_doc::pattern::MAX_EDGE;
+            if p.width == 0 || p.height == 0 {
+                return Err(FormatError::corrupt(format!("pattern `{}` is {}×{} px", p.name, p.width, p.height)));
+            }
+            if p.width > max || p.height > max {
+                return Err(FormatError::LimitExceeded(format!("pattern `{}` is {}×{} px (max {max} per side)", p.name, p.width, p.height)));
+            }
             patterns.push(Pattern { id: p.id.clone(), name: p.name.clone(), width: p.width, height: p.height, surface: self.surface(&p.surface)? });
         }
         let layer_comps = m.layer_comps.iter().map(|c| self.comp(c)).collect::<Result<Vec<_>>>()?;
@@ -625,6 +648,7 @@ impl Loader<'_> {
             duotone: m.duotone.clone(),
             variables: m.variables.clone(),
             timeline: m.timeline.clone(),
+            file_encoding: m.file_encoding,
             layer_comps,
             last_applied_comp: m.last_applied_comp,
             last_document_state,

@@ -39,7 +39,16 @@ pub(super) fn encode(f: F, img: &Image, opts: &EncodeOptions) -> Result<Vec<u8>,
         }
         F::Pcx => {
             out.extend_from_slice(&[10, 5, 1, 8]);
-            for v in [0, 0, w as u16 - 1, h as u16 - 1, 72, 72] {
+            let dpi = if opts.embed_metadata { img.meta.dpi } else { None };
+            let (xdpi, ydpi) = if let Some((x, y)) = dpi {
+                if ![x, y].iter().all(|v| v.is_finite() && *v > 0.0 && *v <= f32::from(u16::MAX)) {
+                    return Err(E::encode(f, "PCX resolution must be between 1 and 65535 DPI"));
+                }
+                (x.round().max(1.0) as u16, y.round().max(1.0) as u16)
+            } else {
+                (0, 0)
+            };
+            for v in [0, 0, w as u16 - 1, h as u16 - 1, xdpi, ydpi] {
                 out.extend_from_slice(&v.to_le_bytes());
             }
             out.resize(65, 0);

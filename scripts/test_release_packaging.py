@@ -5,6 +5,7 @@ Run: python3 scripts/test_release_packaging.py
 """
 from pathlib import Path
 import os
+import hashlib
 import re
 import shutil
 import subprocess
@@ -160,6 +161,18 @@ class ReleasePackagingTests(unittest.TestCase):
                   'test ! -f "$1/usr/bin/photocraft-cli" || exit 25\n'
                   'printf "fixture appimage\\n" > "$2"')
         self.env["APPIMAGETOOL"] = str(tool)
+        # Only the disposable fixture checkout uses fixture digests. Production pins and
+        # verification remain intact; this packaging test performs no network download.
+        runtime = self.target / "type2-runtime-20251108-x86_64"
+        runtime.write_bytes(b"fixture runtime")
+        package = self.root / "packaging/linux/package.sh"
+        source = package.read_text()
+        source, tool_count = re.subn(r"(TOOL_SHA256=)[0-9a-f]{64}",
+                                    lambda m: m[1] + hashlib.sha256(tool.read_bytes()).hexdigest(), source)
+        source, runtime_count = re.subn(r"(RUNTIME_SHA256=)[0-9a-f]{64}",
+                                       lambda m: m[1] + hashlib.sha256(runtime.read_bytes()).hexdigest(), source)
+        self.assertEqual((tool_count, runtime_count), (2, 2))
+        package.write_text(source)
         result = self.run_script("linux", "--skip-build", "--formats", "tar appimage")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertTrue((self.dist / "photocraft-9.8.7-linux-x86_64.AppImage").is_file())

@@ -1054,6 +1054,219 @@ mod tests {
     }
 
     #[test]
+    fn selection_tiles_count_current_and_history_without_double_counting() {
+        use photocraft_doc::{PixelFormat, Surface};
+        for depth in SampleType::ALL {
+            let mut doc = Document::new("selection", Size::new(300, 64), ColorMode::Rgb, depth);
+            let mut selection = Surface::new(PixelFormat::new(ColorMode::Grayscale, depth, false));
+            selection.write_pixel(1, 1, &[1.0]);
+            selection.write_pixel(257, 1, &[1.0]);
+            doc.selection = Some(selection);
+            let mut cur = Arc::new(doc);
+            let tile = match depth {
+                SampleType::U8 => 65_536,
+                SampleType::U16 => 131_072,
+                SampleType::F32 => 262_144,
+            };
+            let mut h = History { max_bytes: usize::MAX, ..History::default() };
+            assert_eq!(h.pixel_bytes(&cur), 2 * tile, "current selection counts without any history");
+            assert_eq!(h.unique_bytes(&cur), 0);
+            edit(&mut h, &mut cur, "Rename", |doc| doc.name = "renamed".into());
+            assert_eq!(h.pixel_bytes(&cur), 2 * tile, "the shared selection tiles count once");
+            edit(&mut h, &mut cur, "Selection", |doc| {
+                doc.selection.as_mut().unwrap().write_pixel(1, 1, &[0.5]);
+            });
+            assert_eq!(h.pixel_bytes(&cur), 3 * tile, "only the changed selection tile is copied");
+            assert_eq!(h.unique_bytes(&cur), tile);
+            h.trim(&cur);
+            assert_counter(&h, &cur);
+            let selected_value = cur.selection.as_ref().unwrap().sample_channel(1, 1, 0);
+            edit(&mut h, &mut cur, "Deselect", |doc| doc.selection = None);
+            assert_eq!(h.pixel_bytes(&cur), 3 * tile, "deselecting leaves the previous masks in history");
+            assert_eq!(h.unique_bytes(&cur), 3 * tile);
+            assert_counter(&h, &cur);
+            cur = h.undo(cur).unwrap().0;
+            assert_eq!(cur.selection.as_ref().unwrap().sample_channel(1, 1, 0), selected_value);
+            assert_eq!(h.pixel_bytes(&cur), 3 * tile);
+            assert_eq!(h.unique_bytes(&cur), tile);
+            assert_counter(&h, &cur);
+            // Coalescing can change the current mask without recording another state.
+            Arc::make_mut(&mut cur).selection.as_mut().unwrap().write_pixel(257, 1, &[0.25]);
+            assert_eq!(h.pixel_bytes(&cur), 4 * tile);
+            assert_eq!(h.trim(&cur), 0);
+            assert_counter(&h, &cur);
+            cur = h.redo(cur).unwrap().0;
+            assert!(cur.selection.is_none());
+            assert_eq!(h.pixel_bytes(&cur), 4 * tile);
+            assert_counter(&h, &cur);
+        }
+    }
+
+    #[test]
+    fn selection_byte_budget_drops_old_masks_and_keeps_the_last_undo() {
+        use photocraft_doc::{PixelFormat, Surface};
+        for depth in SampleType::ALL {
+            let mut doc = Document::new("selection", Size::new(64, 64), ColorMode::Rgb, depth);
+            doc.selection = Some(Surface::new(PixelFormat::new(ColorMode::Grayscale, depth, false)));
+            let mut cur = Arc::new(doc);
+            let tile = 256 * 256 * depth.bytes();
+            let mut h = History::default();
+            for i in 1..=6 {
+                edit(&mut h, &mut cur, "Selection", |doc| {
+                    doc.selection.as_mut().unwrap().write_pixel(1, 1, &[i as f32 / 8.0]);
+                });
+            }
+            assert_eq!(h.pixel_bytes(&cur), 6 * tile);
+            h.max_bytes = 3 * tile;
+            assert_eq!(h.trim(&cur), 4);
+            assert_eq!(h.past_len(), 2);
+            assert_eq!(h.pixel_bytes(&cur), 3 * tile);
+            assert_eq!(h.unique_bytes(&cur), 2 * tile);
+            assert_counter(&h, &cur);
+            h.max_bytes = 1;
+            assert_eq!(h.trim(&cur), 1);
+            assert_eq!(h.past_len(), 1, "the most recent undo survives even below one mask's size");
+            assert_eq!(h.pixel_bytes(&cur), 2 * tile);
+            cur = h.undo(cur).unwrap().0;
+            assert_counter(&h, &cur);
+        }
+    }
+
+    fn assert_counter(h: &History, current: &Document) {
+        let own = document_bytes(current, &mut HashSet::new());
+        let total = own.saturating_add(h.unique_bytes(current));
+        let mut seen = HashSet::new();
+        let mut union = document_bytes(current, &mut seen);
+        for state in h.resident_states() {
+            union = union.saturating_add(document_bytes(&state, &mut seen));
+        }
+        assert_eq!(h.pixel_bytes(current), total);
+        assert_eq!(h.pixel_bytes(current), union);
+    }
+
+    fn video_document(depth: SampleType, frames: usize) -> Document {
+        let mut doc = Document::new("video", Size::new(64, 64), ColorMode::Rgb, depth);
+        let mut layer = Layer::raster("Video", doc.pixel_format());
+        let footage: Vec<_> = (0..frames)
+            .map(|i| {
+                let mut surface = photocraft_doc::Surface::new(doc.pixel_format());
+                surface.write_pixel(1, 1, &[i as f32 / frames as f32, 0.0, 0.0, 1.0]);
+                surface
+            })
+            .collect();
+        layer.content = photocraft_doc::LayerContent::Raster(footage[0].clone());
+        layer.video = Some(photocraft_doc::VideoData::new(footage, 24.0));
+        doc.layers.push(layer);
+        doc
+    }
+
+    #[test]
+    fn video_memory_counts_originals_and_deduplicates_displayed_frames() {
+        for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
+            let mut doc = video_document(depth, 3);
+            let tile = doc.layers[0].surface().unwrap().tiles().next().unwrap().1.bytes().len();
+            let video = doc.layers[0].video.as_mut().unwrap();
+            video.original_frames = Some(video.frames.clone());
+            // Original footage and the displayed frame alias the stack, except this painted frame.
+            video.frames[2].write_pixel(1, 1, &[0.0, 1.0, 0.0, 1.0]);
+            let mut cur = Arc::new(doc);
+            let mut h = History { max_bytes: usize::MAX, ..History::default() };
+            assert_eq!(h.pixel_bytes(&cur), 4 * tile);
+            for name in ["A", "B"] {
+                edit(&mut h, &mut cur, "Rename", |doc| doc.name = name.into());
+                h.trim(&cur);
+            }
+            assert_counter(&h, &cur);
+            assert_eq!(h.pixel_bytes(&cur), 4 * tile);
+            assert_eq!(h.unique_bytes(&cur), 0);
+            // Rasterizing keeps the displayed frame; the rest of the clip survives only in undo.
+            edit(&mut h, &mut cur, "Rasterize", |doc| doc.layers[0].video = None);
+            assert_eq!(h.unique_bytes(&cur), 3 * tile);
+            assert_eq!(h.pixel_bytes(&cur), 4 * tile);
+            assert_counter(&h, &cur);
+            cur = h.undo(cur).unwrap().0;
+            assert_eq!(h.unique_bytes(&cur), 0);
+            assert_counter(&h, &cur);
+            cur = h.redo(cur).unwrap().0;
+            assert_eq!(h.unique_bytes(&cur), 3 * tile);
+            assert_counter(&h, &cur);
+            h.clear();
+            assert_eq!(h.pixel_bytes(&cur), tile);
+        }
+    }
+
+    #[test]
+    fn video_memory_budget_evicts_deleted_off_playhead_frames() {
+        for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
+            let mut cur = Arc::new(video_document(depth, 6));
+            let tile = cur.layers[0].surface().unwrap().tiles().next().unwrap().1.bytes().len();
+            let mut h = History::default();
+            for _ in 0..4 {
+                edit(&mut h, &mut cur, "Delete Frame", |doc| {
+                    doc.layers[0].video.as_mut().unwrap().frames.remove(1);
+                });
+            }
+            assert_eq!(h.pixel_bytes(&cur), 6 * tile);
+            assert_eq!(h.unique_bytes(&cur), 4 * tile);
+            h.max_bytes = 3 * tile;
+            assert_eq!(h.trim(&cur), 3);
+            assert_eq!(h.past_len(), 1);
+            assert_eq!(h.pixel_bytes(&cur), 3 * tile);
+            assert_eq!(h.unique_bytes(&cur), tile);
+            assert_counter(&h, &cur);
+            cur = h.undo(cur).unwrap().0;
+            assert_eq!(cur.layers[0].video.as_ref().unwrap().frames.len(), 3);
+            assert_counter(&h, &cur);
+            cur = h.redo(cur).unwrap().0;
+            assert_eq!(cur.layers[0].video.as_ref().unwrap().frames.len(), 2);
+            assert_counter(&h, &cur);
+            // A budget below the remaining clip still keeps the latest step undoable.
+            h.max_bytes = 1;
+            assert_eq!(h.trim(&cur), 0);
+            assert!(h.can_undo());
+        }
+    }
+
+    #[test]
+    fn counter_tracks_eviction_undo_redo_branching_purge_and_clones() {
+        for depth in [SampleType::U8, SampleType::U16, SampleType::F32] {
+            let mut cur = Arc::new(Document::with_background("h", Size::new(300, 64), ColorMode::Rgb, depth, Color::WHITE));
+            Arc::make_mut(&mut cur).selection = Some(photocraft_doc::Surface::new(photocraft_doc::PixelFormat::GRAY8));
+            let mut h = History::new(4);
+            h.max_bytes = usize::MAX;
+            for i in 0..8 {
+                edit(&mut h, &mut cur, "Paint", |doc| {
+                    doc.layers[0].surface_mut().unwrap().write_pixel(1, 1, &[i as f32 / 10.0, 0.0, 0.0, 1.0]);
+                    doc.selection.as_mut().unwrap().write_pixel(1, 1, &[i as f32 / 10.0]);
+                });
+                h.trim(&cur);
+                if i >= 1 {
+                    assert_counter(&h, &cur);
+                }
+            }
+            cur = h.undo(cur).unwrap().0;
+            assert_counter(&h, &cur);
+            cur = h.undo(cur).unwrap().0;
+            assert_counter(&h, &cur);
+            cur = h.redo(cur).unwrap().0;
+            assert_counter(&h, &cur);
+            let copy = h.clone();
+            edit(&mut h, &mut cur, "Branch", |doc| doc.name = "branch".into());
+            assert!(!h.can_redo());
+            assert_counter(&h, &cur);
+            assert_counter(&copy, &cur);
+            cur = h.undo(cur).unwrap().0;
+            h.clear_redo();
+            assert_counter(&h, &cur);
+            h.purge_last();
+            assert_counter(&h, &cur);
+            h.clear();
+            assert!(h.resident_states().is_empty());
+            assert_eq!(h.pixel_bytes(&cur), document_bytes(&cur, &mut HashSet::new()));
+        }
+    }
+
+    #[test]
     fn recovery_checkpoint_preserves_cursor_labels_and_both_stack_orders() {
         let mut history = History::new(37);
         history.max_bytes = 1234;

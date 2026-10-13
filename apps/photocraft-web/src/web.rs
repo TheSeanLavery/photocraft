@@ -29,8 +29,8 @@ type Inbox = Arc<Mutex<Vec<(String, Vec<u8>)>>>;
 /// Photoshop brushes (.abr), gradients (.grd) and swatches (.aco, .ase), which go to the preset libraries.
 const OPEN_EXTS: &[&str] = &[
     "pcraft", "pdn", "ora", "psd", "psb", "psdt", "png", "jpg", "jpeg", "tif", "tiff", "webp", "gif", "bmp", "tga", "ico", "qoi", "exr", "hdr", "pbm", "pgm",
-    "ppm", "pam", "pfm", "fits", "fit", "fts", "heic", "heif", "hif", "dng", "cr2", "cr3", "nef", "nrw", "arw", "pef", "orf", "rw2", "raf", "abr", "grd",
-    "svg", "svgz", "aco", "ase", "af", "afdesign", "afphoto", "afpub",
+    "ppm", "pam", "pfm", "fits", "fit", "fts", "dpx", "heic", "heif", "hif", "dng", "cr2", "cr3", "nef", "nrw", "arw", "pef", "orf", "rw2", "raf", "abr",
+    "grd", "svg", "svgz", "aco", "ase", "af", "afdesign", "afphoto", "afpub",
 ];
 /// Include every decoder offered by this build, including fork asset/legacy codecs.
 fn open_extensions() -> Vec<&'static str> {
@@ -478,6 +478,7 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
             opts.xmp = if settings.xmp_all { photocraft_io::XmpEmbed::All } else { photocraft_io::XmpEmbed::None };
             opts.tga_bits = settings.tga_bits;
             opts.image_previews = settings.image_previews;
+            opts.psd_maximize_compatibility = settings.psd_maximize_compatibility;
             photocraft_io::export(doc, path, &opts).map(|r| (r.bytes, r.warnings)).map_err(|e| e.to_string())
         })),
         file_dialog: Some(Box::new(|request, _parent, reply| match request {
@@ -508,6 +509,8 @@ fn services(inbox: Inbox, ctx: egui::Context) -> Services {
                 };
                 reply.send(answer);
             }),
+            // Browser folder handles cannot be represented as filesystem paths for engine commands.
+            FileDialogRequest::Folder { .. } => reply.send(None),
             // No save dialog on the web: the suggested name becomes the download name.
             FileDialogRequest::Save { suggested } | FileDialogRequest::SaveFiltered { suggested, .. } => {
                 let name = std::path::Path::new(&suggested).file_name().map_or_else(|| suggested.clone(), |n| n.to_string_lossy().to_string());

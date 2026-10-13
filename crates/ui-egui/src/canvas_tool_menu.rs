@@ -123,6 +123,20 @@ const ENDS_TYPE_EDIT: [&str; 5] =
 /// The pasteboard menu's Select Custom Color… row.
 pub const PASTEBOARD_PICK: &str = "pasteboard.selectCustomColor";
 
+/// The pasteboard colours in the menu's order, which Space+F steps through.
+const CANVAS_COLORS: [CanvasColor; 6] =
+    [CanvasColor::Default, CanvasColor::Black, CanvasColor::DarkGray, CanvasColor::MediumGray, CanvasColor::LightGray, CanvasColor::Custom];
+
+/// Photoshop's Space+F (⇧Space+F backwards): the next pasteboard colour, round and round. Saved
+/// like a choice in the pasteboard menu (`interface.canvasColor`).
+pub fn cycle_canvas_color(app: &mut PhotocraftApp, backward: bool) -> Result<(), String> {
+    let n = CANVAS_COLORS.len();
+    let at = CANVAS_COLORS.iter().position(|c| *c == app.session.prefs().interface.canvas_color).unwrap_or(0);
+    let next = if backward { (at + n - 1) % n } else { (at + 1) % n };
+    let name = CANVAS_COLORS.get(next).map_or("default", |c| c.name());
+    app.run("prefs.set", json!({"values": {"interface.canvasColor": name}})).map(|_| ())
+}
+
 /// The Zoom and Hand tools' context menu: the zoom steps and fixed zooms of the View menu, plus
 /// the Hand tool's Fill Screen.
 pub const VIEW_MENU: &[Row] = &[
@@ -383,9 +397,9 @@ pub fn entry_enabled(app: &PhotocraftApp, menu: &CanvasToolMenu, command: &str) 
     if menu.pasteboard {
         return PASTEBOARD_MENU.iter().flatten().any(|(_, id)| *id == command);
     }
-    // Warp needs a layer or selection box: a lone mask, channel or path keeps the plain box.
+    // Warp needs a layer, selection or path box: a lone mask or channel keeps the plain box.
     if menu.transform && command == "edit.transform.warp" {
-        return app.ui.transform.as_ref().is_some_and(|t| t.warp.is_none() && t.target.is_none() && t.path.is_none());
+        return app.ui.transform.as_ref().is_some_and(|t| t.warp.is_none() && t.target.is_none());
     }
     if menu.anchor.is_some() && command == FILL_SCREEN {
         return app.session.active().is_some();
@@ -554,12 +568,21 @@ fn spec_dialog(app: &mut PhotocraftApp, command: &str, label: &str, spec: &str, 
     app.ui.open_dialog(crate::state::DialogKind::Command, fields);
 }
 
+/// Photoshop's Stroke Path dialog: the brush-based tool to stroke with (painting with that tool's
+/// current options) and Simulate Pressure (#2978).
+const STROKE_PATH_SPEC: &str = r##"{"tool":"brush|pencil|eraser|backgroundEraser|cloneStamp|patternStamp|healingBrush|spotHealingBrush|historyBrush|blur|sharpen|smudge|dodge|burn|sponge|colorReplacement|mixerBrush"="brush","simulatePressure":bool=false}"##;
+
+/// The Stroke Path dialog for the path `name` (Paths panel menu, Alt-click on its Stroke button).
+pub(crate) fn stroke_path_dialog(app: &mut PhotocraftApp, name: &str) {
+    pen_dialog(app, "path.stroke", "Stroke Path…", name);
+}
+
 fn pen_dialog(app: &mut PhotocraftApp, command: &str, label: &str, name: &str) {
     let spec = match command {
         "edit.defineCustomShape" => r##"{"name":text}"##,
         "path.toSelection" => r##"{"feather":0..250=0,"antiAlias":bool=true,"mode":"replace|add|subtract|intersect"="replace"}"##,
         "path.fill" => r##"{"color":text,"opacity":0..100=100,"feather":0..250=0,"antiAlias":bool=true}"##,
-        "path.stroke" => r##"{"tool":"brush|pencil|eraser"="brush","size":1..500=10,"color":text,"opacity":0..100=100}"##,
+        "path.stroke" => STROKE_PATH_SPEC,
         "path.clippingPath.set" => r##"{"flatness":0..100=0}"##,
         "path.transform" => r##"{"translateX":-30000..30000=0,"translateY":-30000..30000=0,"scaleX":0.01..100=1,"scaleY":0.01..100=1,"angle":-360..360=0}"##,
         _ => "{}",
@@ -571,7 +594,7 @@ fn pen_dialog(app: &mut PhotocraftApp, command: &str, label: &str, name: &str) {
     } else {
         fields.insert("name".into(), json!(name));
     }
-    if matches!(command, "path.fill" | "path.stroke") {
+    if command == "path.fill" {
         let fg = app.session.tools.foreground;
         let byte = |v: f32| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
         fields.insert("color".into(), json!(format!("#{:02x}{:02x}{:02x}", byte(fg[0]), byte(fg[1]), byte(fg[2]))));

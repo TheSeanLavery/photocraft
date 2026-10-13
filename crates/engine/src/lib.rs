@@ -8,12 +8,14 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod actions_cmds;
+pub mod actions_edit_cmds;
 pub mod adjust_cmds;
 pub mod adjust_params;
 pub mod align_cmds;
 mod allocation;
 pub mod analysis_cmds;
 pub mod artboard_cmds;
+pub mod atn_cmds;
 pub mod automate_cmds;
 pub mod background_cmds;
 pub mod brush_cmds;
@@ -23,6 +25,7 @@ pub mod build_info;
 mod canvas_geom;
 mod channel_clip;
 pub mod channel_cmds;
+mod clip_group;
 pub mod collab;
 pub mod collab_cmds;
 pub mod collab_resources;
@@ -76,6 +79,7 @@ pub mod mask_view_cmds;
 mod migrate_cmds;
 pub mod mode_cmds;
 pub mod multichannel_cmds;
+pub mod new_layer;
 pub mod notes_cmds;
 pub mod paint_cmds;
 mod path_edit_cmds;
@@ -118,6 +122,7 @@ pub mod type_mask_cmds;
 pub mod type_spell_cmds;
 pub mod type_styles_cmds;
 mod variables_cmds;
+pub use variables_cmds::{export_data_sets_with, import_data_sets_text};
 pub mod vector_cmds;
 mod video_cmds;
 pub use video_cmds::render_video_with;
@@ -220,6 +225,11 @@ pub struct DocState {
     /// pixel coordinates. Per-document view state: discarded when the document closes, never saved
     /// to `.pcraft` or PSD, and not a history step.
     pub color_samplers: Vec<[f64; 2]>,
+    /// History panel snapshots, oldest first (`history.newSnapshot`, #2966). Kept for the
+    /// session only, as in Photoshop: not history states, and not saved with the document.
+    pub snapshots: Vec<history_cmds::Snapshot>,
+    /// The id the next snapshot gets; ids are never reused, so deleting one keeps the others.
+    next_snapshot: u64,
 }
 
 impl DocState {
@@ -246,6 +256,8 @@ impl DocState {
             show_only: None,
             floating: None,
             color_samplers: Vec::new(),
+            snapshots: Vec::new(),
+            next_snapshot: 1,
         }
     }
     /// The selected layers in bottom-to-top document order, always including the active layer.
@@ -293,9 +305,31 @@ pub struct ToolState {
     /// The foreground/background pair of the edit target that isn't current: the layer pixels'
     /// colours while a mask is targeted, the mask's while the pixels are (#2166).
     pub other_colors: [[f32; 4]; 2],
+    /// Colours picked as CMYK, newest last: the sRGB colour that stands for them and the ink
+    /// values chosen. The tool colours are stored as sRGB, and an sRGB round trip does not give
+    /// back what was typed (100/0/0/0 cyan is outside sRGB), so a CMYK document is filled with
+    /// the inks the person picked (#4196). Matched by colour, so it follows a swap, a reset or a
+    /// mask pair without bookkeeping.
+    pub cmyk_picks: Vec<([f32; 3], [f32; 4])>,
 }
 
 impl ToolState {
+    /// How many CMYK picks are remembered.
+    const CMYK_PICKS: usize = 8;
+
+    /// Remember that sRGB colour `rgb` was picked as the inks `cmyk` (each 0..1).
+    pub fn remember_cmyk(&mut self, rgb: [f32; 3], cmyk: [f32; 4]) {
+        self.cmyk_picks.retain(|(c, _)| *c != rgb);
+        self.cmyk_picks.push((rgb, cmyk));
+        let extra = self.cmyk_picks.len().saturating_sub(Self::CMYK_PICKS);
+        self.cmyk_picks.drain(..extra);
+    }
+
+    /// The inks `rgb` was picked as, if it was picked as CMYK.
+    pub fn picked_cmyk(&self, rgb: [f32; 3]) -> Option<[f32; 4]> {
+        self.cmyk_picks.iter().rev().find(|(c, _)| *c == rgb).map(|(_, k)| *k)
+    }
+
     /// Photoshop's colour pair for a layer mask that has none yet: white foreground, black
     /// background (reveal-paint first).
     pub const MASK_COLORS: [[f32; 4]; 2] = [[1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0]];
@@ -334,6 +368,7 @@ impl Default for ToolState {
             current_preset: None,
             mask_targeted: false,
             other_colors: Self::MASK_COLORS,
+            cmyk_picks: Vec::new(),
         }
     }
 }
@@ -406,6 +441,9 @@ pub struct Session {
     pub link_scan: Option<link_watch::LinkScan>,
     /// Select Subject's last result, reused while the pixels are unchanged (#2865).
     subject_cache: smartselect_cmds::SubjectCache,
+    /// Object Selection's Object Finder results (#4087), shared by the hover preview and the
+    /// click that commits it; valid while the pixels are unchanged.
+    pub object_finder: smartselect_cmds::ObjectFinderCache,
     /// A finished live stroke offered to the `paint.stroke` / `paint.pencil` that commits it
     /// ([`Session::offer_live_stroke`]).
     pub(crate) live_commit: Option<brush_cmds::LiveCommit>,
@@ -528,6 +566,7 @@ impl Session {
             self.cancel_jobs_on(id);
             self.color.workbench.remove(&id);
             self.subject_cache.forget_doc(id);
+            self.object_finder.forget_doc(id);
         }
         let d = self.docs.remove(index);
         self.active = if self.docs.is_empty() {
@@ -566,6 +605,15 @@ impl Session {
     /// through the normal dispatch, so authorization, the journal and history are unchanged.
     pub fn offer_live_stroke(&mut self, live: brush_cmds::LiveStroke) -> Result<()> {
         self.live_commit = Some(live.into_commit()?);
+        Ok(())
+    }
+
+    /// [`Self::offer_live_stroke`] for a live Clone Stamp or History Brush stroke, taken by the
+    /// `paint.cloneStamp` / `paint.historyBrush` it was drawn for. Refused for the Healing Brush
+    /// (it blends on release) and when the brush, layer or clone source changed during the stroke.
+    pub fn offer_live_retouch(&mut self, live: retouch_cmds::LiveRetouch) -> Result<()> {
+        let commit = live.into_commit(self)?;
+        self.live_commit = Some(commit);
         Ok(())
     }
 
@@ -612,6 +660,26 @@ impl Session {
             && params.get("layer").and_then(Value::as_u64).is_some_and(|l| self.active().is_some_and(|st| st.doc.layer(LayerId(l)).is_some()))
     }
 
+    /// The precondition of a command whose params document `"layer":id` (it acts on that layer),
+    /// when `params` name an existing layer of the active document: checked on that layer rather
+    /// than on the active one, which stays active (#466). A script, action or agent can then
+    /// Replace Contents, Rasterize or Merge Down a layer without selecting it first. `None` for
+    /// other commands, or without such a layer.
+    pub(crate) fn explicit_layer_enabled(&mut self, spec: &commands::CommandSpec, params: &Value) -> Option<std::result::Result<(), String>> {
+        if !spec.params.contains("\"layer\":id") {
+            return None;
+        }
+        let target = LayerId(params.get("layer")?.as_u64()?);
+        let d = self.active_mut()?;
+        d.doc.layer(target)?;
+        let active = d.active_layer.replace(target);
+        let r = (spec.enabled)(self);
+        if let Some(d) = self.active_mut() {
+            d.active_layer = active;
+        }
+        Some(r)
+    }
+
     /// Apply an undoable edit to the active document.
     pub fn edit<R>(&mut self, label: &str, f: impl FnOnce(&mut Document, &mut Option<LayerId>) -> Result<R>) -> Result<R> {
         self.edit_with_cache(label, true, f)
@@ -656,11 +724,12 @@ impl Session {
             st.color_samplers.retain(|p| bounds.contains(p[0].floor() as i32, p[1].floor() as i32));
             samplers_removed = n - st.color_samplers.len();
         }
-        // An edit that changes no pixels (a selection, guides, a layer's name) leaves the canvas
-        // as it is; anything else recomposites the whole document unless the command reports
-        // its own damage after this. A new lasso selection on a large document used to cost a
-        // full recomposite (seconds on the CPU path, #1773).
-        let unchanged = layer_multi_cmds::same_pixels(&before, &st.doc);
+        // The pixels the edit can have changed, as its undo would report them: nothing for a
+        // selection, guides or a layer's name (a new lasso selection used to recomposite a large
+        // document, seconds on the CPU path, #1773), a new or deleted layer's bounds (a
+        // duplicate or a paste), and everything when that can't be bounded. A command may still
+        // report its own, tighter damage after this.
+        let damage = layer_multi_cmds::step_damage(&before, &st.doc);
         let key = self.coalesce_request.clone();
         let st = self.active_mut().ok_or(EngineError::NoDocument)?;
         let layers = st.layer_target();
@@ -673,11 +742,12 @@ impl Session {
         }
         st.coalesce = key;
         st.revision += 1;
-        st.last_damage = unchanged.then_some(photocraft_geom::Rect::EMPTY);
+        st.last_damage = damage;
         self.samplers_removed += samplers_removed;
-        if !unchanged {
+        if damage.is_none_or(|d| !d.is_empty()) {
             // Free the mask early; a stale entry would only miss (it is keyed by pixels).
             self.subject_cache = Default::default();
+            self.object_finder = Default::default();
         }
         self.history_cache.dirty = true;
         if poll {
