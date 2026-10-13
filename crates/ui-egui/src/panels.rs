@@ -3234,7 +3234,7 @@ pub fn properties_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
             ui.add_space(if historical { metrics.panel_gap } else { 6.0 });
             widgets::hairline(ui);
             ui.add_space(if historical { metrics.panel_gap } else { 8.0 });
-            let editor = |ui: &mut egui::Ui| properties_body(app, ui);
+            let mut editor = |ui: &mut egui::Ui| properties_body(app, ui);
             if historical {
                 let body_height = (canvas.bottom() - ui.cursor().top() - f32::from(padding) - 4.0).max(64.0);
                 ScrollArea::vertical().id_salt("floating-properties-content").max_height(body_height).auto_shrink([false, true]).show(ui, editor);

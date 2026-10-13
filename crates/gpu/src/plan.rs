@@ -1630,6 +1630,7 @@ pub fn adjustment_program(adj: &Adjustment, transfer: Transfer, depth: photocraf
             let rows = lut_rows(|r, t| if s4.is_empty() { t } else { sample_stops4(&s4, t)[r] }, 3);
             (13, p, Some(rows))
         }
+        // Match the CPU float path without sampling the bounded integer LUT.
         Adjustment::ColorBalance { shadows, midtones, highlights, preserve_luminosity } if depth == photocraft_color::SampleType::F32 => {
             p[0] = [shadows[0], shadows[1], shadows[2], 0.0];
             p[1] = [midtones[0], midtones[1], midtones[2], 0.0];

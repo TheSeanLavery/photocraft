@@ -322,6 +322,7 @@ pub fn reset(f: &mut Map<String, Value>) {
     if !owns(f) {
         return;
     }
+    // HDR pickers store the original as float RGB, including values above one.
     if f.get("__float").and_then(Value::as_bool).unwrap_or(false) {
         if let Some(orig) = f.get("__orig").and_then(float_color) {
             f.insert("color".into(), json!(orig));
