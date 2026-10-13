@@ -99,3 +99,15 @@ fn refuses_headers_that_exceed_allocation_budget() {
     b[2] = 0;
     assert_eq!(detect(&b), None, "unsupported uncompressed encoding");
 }
+
+#[test]
+fn pcx_writer_preserves_resolution_and_omits_it_when_requested() {
+    let mut image = photocraft_codecs::Image::from_u8(1, 1, ChannelLayout::Rgb, vec![12, 34, 56]).unwrap();
+    image.meta.dpi = Some((144.0, 300.0));
+    let bytes = encode(&image, Format::Pcx, &Default::default()).unwrap();
+    assert_eq!(decode_as(Format::Pcx, &bytes).unwrap().meta.dpi, image.meta.dpi);
+    let opts = photocraft_codecs::EncodeOptions { embed_metadata: false, ..Default::default() };
+    assert_eq!(decode_as(Format::Pcx, &encode(&image, Format::Pcx, &opts).unwrap()).unwrap().meta.dpi, None);
+    image.meta.dpi = Some((f32::NAN, 300.0));
+    assert!(encode(&image, Format::Pcx, &Default::default()).is_err());
+}

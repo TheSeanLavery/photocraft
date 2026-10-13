@@ -260,7 +260,7 @@ pub fn caps(format: Format) -> FormatCaps {
         lossy: false,
     };
     match format {
-        Format::Pcx => FormatCaps { layouts: &[L::Rgb], alpha: false, ..base },
+        Format::Pcx => FormatCaps { layouts: &[L::Rgb], alpha: false, dpi: true, ..base },
         Format::Sgi => FormatCaps { depths: &[S::U8, S::U16], layouts: RGB_GRAY, ..base },
         Format::SunRaster => FormatCaps { layouts: &[L::Rgb], alpha: false, ..base },
         Format::Farbfeld => FormatCaps { depths: &[S::U16], layouts: &[L::Rgba], ..base },

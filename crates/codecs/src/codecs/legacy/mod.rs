@@ -100,9 +100,6 @@ pub(crate) fn detect(b: &[u8]) -> Option<F> {
     if b.starts_with(&[0, 0, 2, 0]) && b.get(4..6) != Some(&[0, 0]) {
         return Some(F::Cur);
     }
-    if b.starts_with(&[10]) && b.get(2) == Some(&1) && b.get(3) == Some(&8) {
-        return Some(F::Pcx);
-    }
     if b.starts_with(b"/* XPM */") {
         return Some(F::Xpm);
     }
