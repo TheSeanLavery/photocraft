@@ -147,8 +147,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     // the adapter's returned offset so historical scrollbar drags count too.
     if let Some(previous) = app.history_previews.scroll
         && previous.document == document.id
-        && count > previous.rows
-        && !app.history_previews.rows.last().is_some_and(|row| snapshot_names.contains(&row.label))
+        && app.history_previews.rows.len() > previous.rows
         && previous.max - previous.offset <= 1.0
     {
         let spacing = ui.spacing().item_spacing.y;
@@ -244,7 +243,7 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     });
     app.history_previews.scroll = Some(ScrollPosition {
         document: document.id,
-        rows: count,
+        rows: app.history_previews.rows.len(),
         offset: scroll.state.offset.y,
         max: (scroll.content_size.y - scroll.inner_rect.height()).max(0.0),
         visible: scroll.inner_rect.height(),
@@ -261,11 +260,20 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     if let Some(id) = destination {
         let _ = app.run("history.jump", serde_json::json!({"state":id}));
     }
-    if let Some((command, params)) = snapshot_command.filter(|(command, _)| *command != "history.selectSnapshot" || enabled)
-        && let Err(error) = app.run(command, params)
-    {
-        app.ui.status = error;
-        app.ui.status_error = true;
+    if let Some((command, params)) = snapshot_command.filter(|(command, _)| *command != "history.selectSnapshot" || enabled) {
+        match app.run(command, params) {
+            Ok(_) => {
+                // Restoring a snapshot appends a state, but the clicked row must stay in reach.
+                // Clear only the follow hint; the scroll area's own offset remains unchanged.
+                if command == "history.selectSnapshot" {
+                    app.history_previews.scroll = None;
+                }
+            }
+            Err(error) => {
+                app.ui.status = error;
+                app.ui.status_error = true;
+            }
+        }
     }
 }
 
@@ -312,6 +320,9 @@ mod tests {
                 photocraft_doc::Document::new("Scroll demo", photocraft_doc::Size::new(2, 2), photocraft_doc::ColorMode::Rgb, photocraft_doc::SampleType::U8),
                 None,
             );
+            // A user may name a snapshot after an ordinary action. Its name must not disable
+            // following later actions with the same label.
+            session.execute("history.newSnapshot", serde_json::json!({"name": "Brush paint 15"})).unwrap();
             let app = PhotocraftApp::new(session, crate::Services::default());
             let mut h = Harness::builder().with_size(vec2(310.0, 400.0)).build_ui_state(|ui, app| show(app, ui), app);
             PhotocraftApp::setup_context(&h.ctx, crate::theme::ThemeKind::Pro);
