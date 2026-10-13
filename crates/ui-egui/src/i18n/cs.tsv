@@ -2323,6 +2323,7 @@ cameraRaw	Color	Barvy
 	Click to pick · Esc to cancel	Kliknutí vybere · Esc zruší
 	Pick a screen pixel or press Esc to cancel	Vyberte pixel obrazovky nebo stiskněte Esc pro zrušení
 	Scroll to zoom	Rolováním přibližujte
+	Drag to pan · Scroll to zoom · Double-click to fit	Tažením posouvejte · Rolováním přibližujte · Dvojklikem přizpůsobte
 	Show/Hide All Panels	Zobrazit/skrýt všechny panely
 	Show/Hide Panels	Zobrazit/skrýt panely
 	Could not open	Nelze otevřít
@@ -3491,7 +3492,6 @@ curves	Smooth	Vyhladit
 	Use trackpad pressure	Používat tlak trackpadu
 	Collaboration…	Spolupráce…
 	Collaboration View Settings	Nastavení zobrazení spolupráce
-	Continue	Pokračovat
 	This format saves a flattened image. Use Save a Copy to keep your editable document.	Tento formát uloží sloučený obrázek. Chcete-li zachovat upravitelný dokument, použijte Uložit kopii.
 	Netpbm chooses the subtype from the image depth and channels.	Netpbm vybírá podtyp podle bitové hloubky a kanálů obrázku.
 	List Themes	Seznam motivů
@@ -3516,7 +3516,6 @@ curves	Smooth	Vyhladit
 	Preview is active. Cancel restores your saved theme.	Náhled je aktivní. Zrušení obnoví uložený motiv.
 	Saved theme	Uložený motiv
 	Draft: {name}	Koncept: {name}
-	Duplicate	Duplikovat
 	Import…	Importovat…
 	Windows 98 SE Theme	Motiv Windows 98 SE
 	Mac OS 9.1 Platinum Theme	Motiv Mac OS 9.1 Platinum
@@ -3528,7 +3527,6 @@ curves	Smooth	Vyhladit
 	Scroll down	Posunout dolů
 	Caption font	Písmo titulku
 	Return to Original	Vrátit se k originálu
-	Current	Aktuální
 	Branch	Větev
 	Retry storage	Opakovat ukládání
 	Unlimited history	Neomezená historie
@@ -3724,6 +3722,8 @@ navigator	Zoom	Zvětšení
 	Light Blue	Světle modrá
 	Light Red	Světle červená
 	Medium Blue	Středně modrá
+	Object Finder	Hledání objektů
+	No object found there — drag a rectangle around it	Nebyl tam nalezen žádný objekt — přetáhněte kolem něj obdélník
 	Remove after each stroke	Odstranit po každém tahu
 	Apply the removal ({key})	Použít odstranění ({key})
 	Strokes to remove: {n} (Enter applies, Esc cancels)	Tahy k odstranění: {n} (Enter použije, Esc zruší)

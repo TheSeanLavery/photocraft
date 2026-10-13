@@ -2745,6 +2745,7 @@ cameraRaw	Blending	Fusion
 	Click to pick · Esc to cancel	Cliquer pour choisir · Échap pour annuler
 	Pick a screen pixel or press Esc to cancel	Choisissez un pixel à l’écran ou appuyez sur Échap pour annuler
 	Scroll to zoom	Défiler pour zoomer
+	Drag to pan · Scroll to zoom · Double-click to fit	Glisser pour déplacer · Défiler pour zoomer · Double-cliquer pour ajuster
 	Show/Hide All Panels	Afficher/masquer tous les panneaux
 	Show/Hide Panels	Afficher/masquer les panneaux
 	Could not open	Impossible d’ouvrir
@@ -3111,6 +3112,8 @@ curves	Smooth	Lisser
 	Light Red	Rouge clair
 	Medium Blue	Bleu moyen
 	Light Gray	Gris clair
+	Object Finder	Outil de recherche d’objets
+	No object found there — drag a rectangle around it	Aucun objet trouvé ici — tracez un rectangle autour
 	Remove after each stroke	Supprimer après chaque trait
 	Apply the removal ({key})	Appliquer la suppression ({key})
 	Strokes to remove: {n} (Enter applies, Esc cancels)	Traits à supprimer : {n} (Entrée applique, Échap annule)

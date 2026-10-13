@@ -1236,7 +1236,7 @@ percent_field(ui, tl!("Opacity"), &mut b.opacity, 0.0..=100.0, if t.pro { 62.0 }
                         ui.spacing_mut().item_spacing.x = 2.0;
                         let before = app.ui.tool_options.clone();
                         for (style, icon, tip) in [
-                            ("linear", "blend", tl!("Linear Gradient")),
+                            ("linear", "gradient", tl!("Linear Gradient")),
                             ("radial", "circle", tl!("Radial Gradient")),
                             ("angle", "rotate-cw", tl!("Angle Gradient")),
                             ("reflected", "arrow-left-right", tl!("Reflected Gradient")),
@@ -3167,7 +3167,8 @@ fn snapshot_rows(app: &mut PhotocraftApp, ui: &mut egui::Ui) -> Option<(&'static
 
 // ----------------------------------------------------------------------------- properties
 
-/// Floating Properties card anchored to the canvas' top-right corner.
+/// Floating Properties card anchored to the canvas' top-right corner. It shows the same content as
+/// the docked panel (`properties_body`): document, layer, adjustment and mask properties.
 pub fn properties_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
     if app.ui.docking.is_some() {
         return;
@@ -3176,14 +3177,7 @@ pub fn properties_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
     if !app.ui.panels.properties || Tokens::get(ctx).pro {
         return;
     }
-    let Some(st) = app.session.active() else { return };
-    let Some(id) = st.active_layer else { return };
-    let doc = st.doc.clone();
-    let Some(layer) = doc.layer(id) else { return };
-    // Mask controls (pixel or vector) also belong here when their thumbnail is targeted.
-    let mask_target = crate::mask_props_ui::targeted(app, layer);
-    let vector_target = crate::mask_props_ui::vector_targeted(app, layer);
-    if !mask_target && !vector_target && !matches!(layer.content, LayerContent::Adjustment(_) | LayerContent::Fill(_)) {
+    if app.session.active().is_none() {
         return;
     }
     let t = Tokens::get(ctx);
@@ -3238,47 +3232,9 @@ pub fn properties_window(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 drag = grip.drag_delta();
             }
             ui.add_space(if historical { metrics.panel_gap } else { 6.0 });
-            let icon = match &layer.content {
-                LayerContent::Adjustment(_) => "sliders-horizontal",
-                LayerContent::Group(_) => "folder",
-                LayerContent::Fill(_) => "paint-bucket",
-                _ => "image",
-            };
-            ui.horizontal(|ui| {
-                let icon_size = if historical { metrics.layer_thumbnail_size } else { 32.0 };
-                let (r, _) = ui.allocate_exact_size(vec2(icon_size, icon_size), Sense::hover());
-                ui.painter().rect_filled(r, t.radius_sm, t.field);
-                icons::paint(ui, r, icon, if historical { icon_size.min(16.0) } else { 17.0 }, t.icon);
-                ui.vertical(|ui| {
-                    ui.label(
-                        RichText::new(&layer.name)
-                            .font(if historical { crate::theme_fonts::control(ui.ctx(), metrics.tab_font_size, true) } else { theme::medium(13.0) })
-                            .color(t.text),
-                    );
-                    let kind = match &layer.content {
-                        LayerContent::Adjustment(a) => crate::i18n::fmt(tl!("{name} Properties"), &[("name", tl!(a.label()))]),
-                        // Whole phrases ("Type Layer"), as the Properties header translates them.
-                        other => tl!(&format!("{} Layer", other.kind_name())).to_string(),
-                    };
-                    ui.label(RichText::new(kind).small().color(t.text_faint));
-                });
-            });
-            ui.add_space(if historical { metrics.panel_gap } else { 8.0 });
             widgets::hairline(ui);
             ui.add_space(if historical { metrics.panel_gap } else { 8.0 });
-            let mut editor = |ui: &mut egui::Ui| {
-                ui.push_id((doc.id, id, mask_target), |ui| {
-                    if mask_target {
-                        crate::mask_props_ui::properties(app, ui, layer);
-                    } else if vector_target {
-                        crate::mask_props_ui::vector_properties(app, ui, layer);
-                    } else if let LayerContent::Adjustment(adj) = &layer.content {
-                        adjustment_controls(app, ui, id, adj);
-                    } else {
-                        layer_controls(app, ui, layer);
-                    }
-                });
-            };
+            let editor = |ui: &mut egui::Ui| properties_body(app, ui);
             if historical {
                 let body_height = (canvas.bottom() - ui.cursor().top() - f32::from(padding) - 4.0).max(64.0);
                 ScrollArea::vertical().id_salt("floating-properties-content").max_height(body_height).auto_shrink([false, true]).show(ui, editor);

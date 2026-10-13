@@ -2564,6 +2564,7 @@ cameraRaw	Roughness	Шорсткість
 	Click to pick · Esc to cancel	Клацніть для вибору · Esc для скасування
 	Pick a screen pixel or press Esc to cancel	Виберіть піксель екрана або натисніть Esc для скасування
 	Scroll to zoom	Прокрутіть для масштабування
+	Drag to pan · Scroll to zoom · Double-click to fit	Перетягніть для панорамування · Прокрутіть для масштабування · Двічі клацніть, щоб умістити
 	Show/Hide All Panels	Показати/приховати всі панелі
 	Show/Hide Panels	Показати/приховати панелі
 	Could not open	Не вдалося відкрити
@@ -3810,6 +3811,8 @@ curves	Smooth	Згладити
 	Light Red	Світло-червоний
 	Medium Blue	Середньо-синій
 	Light Gray	Світло-сірий
+	Object Finder	Пошук об’єктів
+	No object found there — drag a rectangle around it	Там не знайдено об’єкта — обведіть його прямокутником
 	Remove after each stroke	Видаляти після кожного штриха
 	Apply the removal ({key})	Застосувати видалення ({key})
 	Strokes to remove: {n} (Enter applies, Esc cancels)	Штрихів для видалення: {n} (Enter застосовує, Esc скасовує)

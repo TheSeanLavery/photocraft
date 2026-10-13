@@ -249,6 +249,21 @@ fn section_list(app: &mut PhotocraftApp, ui: &mut egui::Ui, b: &mut BrushSetting
     ui.vertical(|ui| {
         ui.set_width(150.0);
         ui.spacing_mut().item_spacing.y = 1.0;
+        let (br_rect, br_resp) = ui.allocate_exact_size(vec2(150.0, 23.0), Sense::click());
+        br_resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Brushes")));
+        if br_resp.hovered() {
+            ui.painter().rect_filled(br_rect, t.radius_sm, t.hover);
+        }
+        let icon_rect = egui::Rect::from_center_size(egui::pos2(br_rect.left() + 12.0, br_rect.center().y), vec2(13.0, 13.0));
+        icons::paint(ui, icon_rect, "brush", 12.0, if br_resp.hovered() { t.text } else { t.icon });
+        let galley = ui.painter().layout_no_wrap(tl!("Brushes").to_string(), theme::semibold(12.0), if br_resp.hovered() { t.text } else { t.text_dim });
+        ui.painter().galley(egui::pos2(br_rect.left() + 26.0, br_rect.center().y - galley.size().y / 2.0), galley, t.text);
+        if br_resp.clicked() {
+            let _ = crate::menus::invoke(app, ui.ctx(), "window.panel.brushes", json!({}));
+        }
+        ui.add_space(3.0);
+        widgets::hairline(ui);
+        ui.add_space(3.0);
         for (i, (name, has_box)) in SECTIONS.iter().enumerate() {
             let toggle_only = checkbox_only(i);
             // Group the switches with whitespace, not separators between individual rows.
@@ -296,7 +311,9 @@ fn section_list(app: &mut PhotocraftApp, ui: &mut egui::Ui, b: &mut BrushSetting
                     *flag = true;
                 }
                 x += 20.0;
-            } else if i > 0 {
+            } else {
+                // No box (Brush Tip Shape): the name still starts in the names' column,
+                // as in Photoshop (#4282).
                 x += 20.0;
             }
             let color = if sel { t.text } else { t.text_dim };
@@ -311,11 +328,9 @@ fn section_list(app: &mut PhotocraftApp, ui: &mut egui::Ui, b: &mut BrushSetting
             if let Some(lock) = section_lock(b, i) {
                 let lr = egui::Rect::from_center_size(egui::pos2(r.right() - 11.0, r.center().y), vec2(18.0, 18.0));
                 let lresp = ui.interact(lr, ui.id().with(("brush-sec-lock", i)), Sense::click());
-                // Like Photoshop: the lock shows only when set or hovered.
-                if *lock || resp.hovered() || lresp.hovered() {
-                    let tint = if *lock { t.text } else { t.text_faint };
-                    icons::paint(ui, lr, if *lock { "lock" } else { "lock-open" }, 12.0, tint);
-                }
+                // Like Photoshop: lock icons stay visible on every lockable section row.
+                let tint = if *lock { t.text } else { t.text_faint };
+                icons::paint(ui, lr, if *lock { "lock" } else { "lock-open" }, 12.0, tint);
                 let tip =
                     if *lock { tl!("Unlock: picking a preset replaces these settings") } else { tl!("Lock: keep these settings when picking another preset") };
                 if lresp.on_hover_text(tip).clicked() {

@@ -220,6 +220,61 @@ fn section_locks_round_trip_and_survive_preset_picks() {
     assert_eq!(b.tip, chalk.tip);
 }
 
+#[test]
+fn section_locks_are_always_visible_and_toggle_on_click() {
+    use egui_kittest::kittest::Queryable;
+
+    fn collect_icon_rects(shape: &egui::Shape, out: &mut Vec<egui::Rect>) {
+        match shape {
+            egui::Shape::Rect(r) if (r.rect.size() - vec2(12.0, 12.0)).length() < 0.5 => out.push(r.rect),
+            egui::Shape::Mesh(mesh) => out.push(mesh.calc_bounds()),
+            egui::Shape::Vec(shapes) => {
+                for s in shapes {
+                    collect_icon_rects(s, out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut h = harness(0, 0);
+    let mut icons = Vec::new();
+    for clipped in &h.output().shapes {
+        collect_icon_rects(&clipped.shape, &mut icons);
+    }
+
+    // Every lockable section (1..SECTIONS.len()) paints its lock icon even when unlocked and unhovered.
+    for (name, _) in SECTIONS.iter().skip(1) {
+        let row = h.get_by_label(name).rect();
+        let lock_center = egui::pos2(row.right() - 11.0, row.center().y);
+        assert!(icons.iter().any(|r| r.contains(lock_center)), "expected lock icon at {lock_center:?} for {name}");
+    }
+
+    // Clicking the lock toggles it on and off without changing the selected section.
+    let row = h.get_by_label("Scattering").rect();
+    let lock_pos = egui::pos2(row.right() - 11.0, row.center().y);
+    assert!(!h.state().session.tools.brush.locks.scattering);
+    assert_eq!(h.state().ui.brush_section, 0);
+
+    h.hover_at(lock_pos);
+    h.run_steps(1);
+    h.drag_at(lock_pos);
+    h.run_steps(1);
+    h.drop_at(lock_pos);
+    h.run_steps(2);
+    assert!(h.state().session.tools.brush.locks.scattering);
+    assert_eq!(h.state().ui.brush_section, 0);
+
+    h.hover_at(lock_pos);
+    h.run_steps(1);
+    h.drag_at(lock_pos);
+    h.run_steps(1);
+    h.drop_at(lock_pos);
+    h.run_steps(2);
+    assert!(!h.state().session.tools.brush.locks.scattering);
+    assert_eq!(h.state().ui.brush_section, 0);
+}
+
 /// A harness that shows the options bar with `tool` in the Studio (non-pro) theme.
 fn options_bar_harness(tool: crate::state::Tool) -> Harness<'static, PhotocraftApp> {
     let mut app = app();
@@ -597,6 +652,31 @@ fn editing_the_options_bar_amount_reenables_smoothing() {
     assert!(smoothing.enabled && smoothing.amount != 0.4);
     assert_eq!(h.state().session.journal.len(), n + 1, "one options-bar gesture");
     assert_eq!(last_journal(h.state()).unwrap().1["brush"]["smoothing"]["enabled"], true);
+}
+
+/// #4282: every name in the section list starts in the same column, Brush Tip Shape included,
+/// whether or not its row has an enable box (Photoshop indents the rows without one).
+#[test]
+fn section_names_line_up_whether_or_not_they_have_a_box() {
+    fn text_x(shape: &egui::Shape, out: &mut Vec<(String, f32)>) {
+        match shape {
+            egui::Shape::Text(text) => out.push((text.galley.job.text.clone(), text.pos.x)),
+            egui::Shape::Vec(shapes) => shapes.iter().for_each(|s| text_x(s, out)),
+            _ => {}
+        }
+    }
+    // Shape Dynamics is shown, so its heading paints too; the list's copy is the leftmost.
+    let h = harness(0, 1);
+    let mut painted = Vec::new();
+    for shape in &h.output().shapes {
+        text_x(&shape.shape, &mut painted);
+    }
+    let left = |name: &str| painted.iter().filter(|(t, _)| t == name).map(|(_, x)| *x).reduce(f32::min);
+    let columns: Vec<(&str, f32)> = SECTIONS.iter().map(|(name, _)| (*name, left(name).unwrap_or_else(|| panic!("{name} painted")))).collect();
+    let (_, boxed) = columns[1];
+    for (name, x) in &columns {
+        assert!((x - boxed).abs() < 0.5, "{name} starts at {x}, the boxed names at {boxed}: {columns:?}");
+    }
 }
 
 #[test]
@@ -1117,4 +1197,16 @@ fn pencil_options_expose_flow_and_pressure_overrides() {
     h.get_by_label("Pulled String Mode").click();
     h.run_steps(2);
     assert_ne!(h.state().session.tools.brush.smoothing.pulled_string, pulled_before);
+}
+
+#[test]
+fn brushes_button_at_top_of_brush_settings_opens_brushes_panel() {
+    use egui_kittest::kittest::Queryable;
+
+    let mut h = harness(0, 0);
+    assert_eq!(h.state().ui.brush_tab, 0);
+    h.get_by_label("Brushes").click();
+    h.run_steps(3);
+    assert!(h.state().ui.panels.brush_settings);
+    assert_eq!(h.state().ui.brush_tab, 1);
 }

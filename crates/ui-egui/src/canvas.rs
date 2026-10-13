@@ -975,6 +975,14 @@ impl ViewXform {
         let u = self.unmap_vec(d);
         [(u.x + self.center[0]) as f64, (u.y + self.center[1]) as f64]
     }
+    /// On-screen bounds of the image, including camera rotation and pixel aspect correction.
+    pub fn image_bounds(self, size: [u32; 2]) -> Rect {
+        let (c, s) = self.sincos();
+        let w = size[0] as f32 * self.sx() * self.zoom;
+        let h = size[1] as f32 * self.zoom;
+        let center = self.to_screen(size[0] as f32 / 2.0, size[1] as f32 / 2.0);
+        Rect::from_center_size(center, vec2(c.abs() * w + s.abs() * h, s.abs() * w + c.abs() * h))
+    }
     pub fn doc_rect(&self, r: DRect) -> Rect {
         let pts = [
             self.to_screen(r.x0 as f32, r.y0 as f32),
@@ -2847,7 +2855,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         fill_view(&mut view, &doc, rect.size(), ppp, aspect);
     }
     // Preferences › Tools › Overscroll off: clamp before anything is drawn (scrollbars.rs).
-    if !app.session.prefs().tools.overscroll && crate::scrollbars::clamp_view(&mut view, rect.size() / vec2(aspect, 1.0), ppp) {
+    if !app.session.prefs().tools.overscroll && crate::scrollbars::clamp_view_with_aspect(&mut view, rect.size(), ppp, aspect) {
         ctx.request_repaint();
     }
     let flip = app.ui.view.flip_horizontal;
@@ -3269,7 +3277,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
             view.center[1] -= d.y;
         }
         // Overscroll off: the glide stops at the pan limit, as the scrollbars do.
-        if !app.session.prefs().tools.overscroll && crate::scrollbars::clamp_view(&mut view, rect.size() / vec2(aspect, 1.0), ppp) {
+        if !app.session.prefs().tools.overscroll && crate::scrollbars::clamp_view_with_aspect(&mut view, rect.size(), ppp, aspect) {
             ctx.data_mut(|m| m.get_temp_mut_or_default::<crate::flick_pan::Flick>(flick_id).stop());
         }
     }
@@ -3647,6 +3655,7 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         let resizing = crate::brush_resize::draw(app, &painter, &xf);
         draw_transform_controls(app, &painter, &xf);
         crate::move_hover::draw(app, &painter, &xf, idx, response.hover_pos());
+        crate::object_finder::draw(app, &painter, &xf, idx, response.hover_pos());
         crate::layer_pick_ui::show(app, &ctx);
         let shown = app.ui.views.get(idx).cloned();
         crate::canvas_tool_menu::show(app, &ctx);
@@ -3916,6 +3925,19 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     app.tool_override = None;
     if let Some(b) = layer_edges_rect(app, idx) {
         painter.set(layer_edges, egui::Shape::rect_stroke(xf.doc_rect(b), 0, Stroke::new(1.0, LAYER_EDGES), egui::StrokeKind::Outside));
+    }
+    // A tool drag held past the canvas edge scrolls the view toward the pointer (#4183); the
+    // drag's next move then extends into what scrolled in.
+    if primary
+        && app.drag.is_some()
+        && tool != Tool::Hand
+        && !middle
+        && let Some(p) = ui.input(|i| i.pointer.primary_down().then(|| i.pointer.latest_pos()).flatten())
+    {
+        let step = crate::canvas_autoscroll::edge_step(p, rect, ui.input(|i| i.stable_dt));
+        if crate::canvas_autoscroll::scroll(&mut view, step, xf) {
+            ctx.request_repaint();
+        }
     }
     // Scrollbars (scrollbars.rs): drawn over the canvas edges, they take the pointer there.
     let t0 = crate::gpu_canvas::now_ms();
@@ -5758,7 +5780,8 @@ pub fn commit_crop(app: &mut PhotocraftApp) {
     }
 }
 
-/// "mask" when the Layers panel targets (or the canvas shows) the active layer's mask, else "pixels".
+/// "mask" when the Layers panel targets (or the canvas shows) the active layer's mask, or the layer
+/// is an adjustment layer with one (it has no pixels: #4298), else "pixels".
 pub fn paint_target(app: &PhotocraftApp) -> serde_json::Value {
     use photocraft_engine::channel_cmds::ChannelTarget;
     let Some(st) = app.session.active() else { return json!("pixels") };
@@ -5772,7 +5795,8 @@ pub fn paint_target(app: &PhotocraftApp) -> serde_json::Value {
     let has_mask = st.active_layer.and_then(|id| st.doc.layer(id)).is_some_and(|l| l.mask.is_some());
     // Viewing the mask (⌥-click its thumbnail, #196) paints the mask.
     let viewing = photocraft_engine::mask_view_cmds::current(st).is_some();
-    json!(if (app.ui.mask_target || viewing) && has_mask { "mask" } else { "pixels" })
+    let mask = app.ui.mask_target || viewing || crate::adjustment_layer_active(st);
+    json!(if mask && has_mask { "mask" } else { "pixels" })
 }
 
 #[cfg(test)]
@@ -6816,6 +6840,41 @@ mod tests {
 
         tool_event(&mut app, ToolEvent::Move { x: 30.0, y: 10.0, pressure: 1.0 }, egui::Modifiers::NONE);
         assert!(app.session.tools.foreground[1] > 0.99 && app.session.tools.foreground[0] < 0.01);
+    }
+
+    /// #4298: an adjustment layer has no pixels, so after its icon thumbnail is clicked (the
+    /// Layers panel no longer targets the mask) Fill, the fill keys and the Paint Bucket still
+    /// edit its mask, as in Photoshop, instead of failing with "not a pixel layer".
+    #[test]
+    fn fills_on_an_adjustment_layer_edit_its_mask_when_the_icon_is_targeted() {
+        let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), Default::default());
+        app.run("file.new", json!({"width": 40, "height": 20, "background": "white"})).unwrap();
+        app.run("layer.newAdjustmentLayer.curves", json!({})).unwrap();
+        // Click the Curves icon thumbnail: the panel targets the layer, not its mask.
+        app.ui.mask_target = false;
+        app.sync_mask_targets();
+        assert!(!app.ui.mask_target, "the panel's target is the icon");
+        let mask_at = |app: &PhotocraftApp| {
+            let st = app.session.active().unwrap();
+            st.doc.layer(st.active_layer.unwrap()).unwrap().mask.as_ref().unwrap().surface.sample_channel(10, 10, 0)
+        };
+        assert_eq!(paint_target(&app), json!("mask"));
+        assert!(crate::menus::is_enabled(&app, "edit.fill"), "Edit > Fill (⇧F5) is enabled");
+        assert!(crate::menus::is_enabled(&app, "edit.fillForeground"));
+        app.ui.tool = Tool::PaintBucket;
+        app.run("tools.setColors", json!({"foreground": [0.0, 0.0, 0.0, 1.0], "background": [1.0, 1.0, 1.0, 1.0]})).unwrap();
+        tool_event(&mut app, ToolEvent::Down { x: 10.0, y: 10.0, pressure: 1.0 }, egui::Modifiers::NONE);
+        tool_event(&mut app, ToolEvent::Up { x: 10.0, y: 10.0 }, egui::Modifiers::NONE);
+        assert_eq!(mask_at(&app), 0.0, "the Paint Bucket filled the mask black");
+        app.run("edit.fill", json!({"contents": "white"})).unwrap();
+        assert_eq!(mask_at(&app), 1.0, "Edit > Fill filled the mask white");
+        assert!(!app.ui.mask_target, "filling doesn't move the panel's target");
+        // A pixel layer with an untargeted mask still paints its pixels.
+        app.run("layer.new.layer", json!({})).unwrap();
+        app.run("layer.layerMask.revealAll", json!({})).unwrap();
+        app.ui.mask_target = false;
+        assert_eq!(paint_target(&app), json!("pixels"));
+        assert!(!app.layer_mask_targeted());
     }
 
     #[test]

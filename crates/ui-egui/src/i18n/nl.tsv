@@ -2331,6 +2331,7 @@
 	Click to pick · Esc to cancel	Klik om te kiezen · Esc om te annuleren
 	Pick a screen pixel or press Esc to cancel	Kies een schermpixel of druk op Esc om te annuleren
 	Scroll to zoom	Scrollen om te zoomen
+	Drag to pan · Scroll to zoom · Double-click to fit	Sleep om te pannen · Scroll om te zoomen · Dubbelklik om passend te maken
 	Show/Hide All Panels	Alle panelen tonen/verbergen
 	Show/Hide Panels	Panelen tonen/verbergen
 	Could not open	Kan niet openen
@@ -3873,6 +3874,8 @@ curves	Smooth	Vloeiend maken
 	Light Red	Lichtrood
 	Medium Blue	Middelblauw
 	Light Gray	Lichtgrijs
+	Object Finder	Objectzoeker
+	No object found there — drag a rectangle around it	Daar is geen object gevonden — sleep er een rechthoek omheen
 	Remove after each stroke	Verwijderen na elke streek
 	Apply the removal ({key})	Verwijdering toepassen ({key})
 	Strokes to remove: {n} (Enter applies, Esc cancels)	Streken om te verwijderen: {n} (Enter past toe, Esc annuleert)
