@@ -1013,9 +1013,21 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, tool: Tool) -> bo
             }
             Tool::CurvaturePen => lbl(
                 ui,
-                &crate::i18n::fmt(tl!("Click: curve point · Double-click: corner · Click first point: close · {key} finish · Esc cancel"), &[("key", &enter)]),
+                &crate::i18n::fmt(
+                    tl!("Click: smooth point · Double-click: corner · Drag a point: move · Click first point: close · {key} finish"),
+                    &[("key", &enter)],
+                ),
             ),
-            _ => lbl(ui, &crate::i18n::fmt(tl!("Click: corner · Drag: smooth · Click first point: close · {key} finish · Esc cancel"), &[("key", &enter)])),
+            _ => {
+                let alt = crate::shortcuts::pretty("Alt");
+                lbl(
+                    ui,
+                    &crate::i18n::fmt(
+                        tl!("Click: corner · Drag: smooth · {alt}-drag: break handle · Click or drag first point: close · {key} finish · Esc cancel"),
+                        &[("alt", &alt), ("key", &enter)],
+                    ),
+                );
+            }
         }
         return true;
     }

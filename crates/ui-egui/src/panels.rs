@@ -146,7 +146,7 @@ pub fn toolbar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             + 6.0;
         egui::ScrollArea::vertical()
             .id_salt("toolbar-columns")
-            .auto_shrink([false, false])
+            .auto_shrink([false, true])
             .max_height((ui.available_height() - footer).max(0.0))
             .min_scrolled_height(0.0)
             .show(ui, |ui| {
@@ -3061,13 +3061,6 @@ fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         crate::collaboration_ui::history(app, ui);
         return;
     }
-    let snap_cmd = snapshot_rows(app, ui);
-    if let Some((cmd, p)) = snap_cmd.filter(|(cmd, _)| *cmd != "history.selectSnapshot" || app.ui.transform.is_none())
-        && let Err(e) = app.run(cmd, p)
-    {
-        app.ui.status = e;
-        app.ui.status_error = true;
-    }
     crate::history_panel::show(app, ui);
     if Tokens::get(ui.ctx()).pro {
         let enabled = app.ui.transform.is_none();
@@ -3096,17 +3089,21 @@ fn history(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
 /// name: a click returns to the snapshot (a new state), a double-click or right-click › Rename…
 /// edits the name in place (Enter or a click elsewhere keeps it, Escape cancels), and
 /// right-click › Delete removes it. Returns the command a row asks for.
-fn snapshot_rows(app: &mut PhotocraftApp, ui: &mut egui::Ui) -> Option<(&'static str, Value)> {
+pub(crate) fn snapshot_row(
+    app: &mut PhotocraftApp,
+    ui: &mut egui::Ui,
+    doc_id: photocraft_doc::DocId,
+    snaps: &[photocraft_engine::history_cmds::Snapshot],
+    live: &[u64],
+    index: usize,
+) -> Option<(&'static str, Value)> {
     let t = Tokens::get(ui.ctx());
-    let st = app.session.active()?;
-    let (doc_id, snaps) = (st.doc.id, st.snapshots.clone());
-    let live: Vec<u64> = snaps.iter().map(|s| s.id).collect();
     // Per document: snapshot ids restart in each, and a tab switch must not carry the edit over.
     let rename_id = egui::Id::new(("history-snapshot-rename", doc_id));
     let mut renaming: Option<(u64, String)> = ui.data(|d| d.get_temp(rename_id)).flatten();
     let mut cmd = None;
     let ctx = ui.ctx().clone();
-    for snap in &snaps {
+    for snap in snaps.iter().skip(index).take(1) {
         let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 38.0), Sense::click());
         resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &snap.name));
         if resp.hovered() {
@@ -3114,7 +3111,7 @@ fn snapshot_rows(app: &mut PhotocraftApp, ui: &mut egui::Ui) -> Option<(&'static
         }
         let thumb = Rect::from_min_size(pos2(rect.left() + 28.0, rect.center().y - 14.0), vec2(28.0, 28.0));
         widgets::checker(ui.painter(), thumb, 4.0);
-        let tex = app.snapshot_thumb(&ctx, doc_id, snap, &live);
+        let tex = app.snapshot_thumb(&ctx, doc_id, snap, live);
         ui.painter().image(tex, thumb, Rect::from_min_max(egui::Pos2::ZERO, pos2(1.0, 1.0)), Color32::WHITE);
         ui.painter().rect_stroke(thumb, 0.0, Stroke::new(1.0, t.separator), StrokeKind::Outside);
         match renaming.as_mut().filter(|(id, _)| *id == snap.id) {
@@ -3157,7 +3154,7 @@ fn snapshot_rows(app: &mut PhotocraftApp, ui: &mut egui::Ui) -> Option<(&'static
             }
         });
     }
-    if !snaps.is_empty() {
+    if index + 1 == snaps.len() {
         let y = ui.cursor().top();
         ui.painter().hline(ui.max_rect().x_range(), y, Stroke::new(1.0, t.separator));
     }

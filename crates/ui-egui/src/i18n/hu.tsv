@@ -3996,3 +3996,60 @@ cameraRaw	Yellow	Sárga
 	Object Finder	Objektumkereső
 	No object found there — drag a rectangle around it	Ott nem található objektum – húzz köré egy téglalapot
 	Drag to pan · Scroll to zoom · Double-click to fit	Húzás: mozgatás · Görgetés: nagyítás · Dupla kattintás: igazítás
+
+# Fork features retained during upstream integration
+	Apply Theme	Téma alkalmazása
+	Branch	Ág
+	Cancel Theme Preview	Témaelőnézet megszakítása
+	Caption font	Felirat betűtípusa
+	Collaboration View Settings	Együttműködési nézet beállításai
+	Collaboration…	Együttműködés…
+	Copy JSON	JSON másolása
+	Dock Tools on the left	Eszközök rögzítése bal oldalon
+	Draft: {name}	Vázlat: {name}
+	Duplicate Theme	Téma másolása
+	Edit Theme Definition	Témaleírás szerkesztése
+	Edit the definition below. Duplicate a built-in theme before changing it.	Szerkessze az alábbi leírást. Módosítás előtt másolja le a beépített témát.
+	Export SDR Preview…	SDR-előnézet exportálása…
+	Export Theme…	Téma exportálása…
+	Font {requested} is unavailable; using {actual}.	A(z) {requested} betűtípus nem érhető el; helyette: {actual}.
+	HDR Output	HDR-kimenet
+	HDR Workbench	HDR-munkapad
+	Import Theme…	Téma importálása…
+	List Themes	Témák listázása
+	Mac OS 9.1 Platinum Theme	Mac OS 9.1 Platinum téma
+	Macintosh System 6 Theme	Macintosh System 6 téma
+	Netpbm chooses the subtype from the image depth and channels.	A Netpbm a képmélység és a csatornák alapján választ altípust.
+	Preview Theme	Téma előnézete
+	Preview is active. Cancel restores your saved theme.	Az előnézet aktív. A megszakítás visszaállítja a mentett témát.
+	Remove Theme	Téma eltávolítása
+	Reset Changes	Módosítások visszaállítása
+	Reset Theme	Téma visszaállítása
+	Retry storage	Tárolás újrapróbálása
+	Return to Original	Visszatérés az eredetihez
+	Saved theme	Mentett téma
+	Scroll down	Görgetés lefelé
+	Scroll left	Görgetés balra
+	Scroll right	Görgetés jobbra
+	Scroll up	Görgetés felfelé
+	Select Theme	Téma kiválasztása
+	Shape Operations	Alakzatműveletek
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	A memóriakereten a dokumentum képpontjai, a beágyazott adatok és a visszavonási előzmények osztoznak. Szükség szerint növekszik; az alkalmazás további memóriát is használ.
+	Theme Details	Téma részletei
+	Theme Manager	Témakezelő
+	Theme Manager…	Témakezelő…
+	Theme definition exceeds 64 KiB	A témaleírás meghaladja a 64 KiB-ot
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Ez a böngészős verzió a memóriában tárolja a visszavonási előzményeket. A munkalemez beállításai az asztali alkalmazásra vonatkoznak.
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Ez a formátum összeolvasztott képet ment. A szerkeszthető dokumentum megőrzéséhez használja a Másolat mentése parancsot.
+	Windows 98 SE Theme	Windows 98 SE téma
+	Square 1:1	Négyzet 1:1
+	Portrait 4:5	Álló 4:5
+	Story 9:16	Történet 9:16
+	Full HD Portrait	Full HD álló
+	UHD 4K Portrait	UHD 4K álló
+	QHD 1440p	QHD 1440p
+	Budget mb	Keret (MB)
+	Theme id	Témaazonosító
+	Unlimited history	Korlátlan előzmények
+	Use available disk space	Elérhető lemezterület használata
+	Use trackpad pressure	Érintőpad nyomásérzékelésének használata

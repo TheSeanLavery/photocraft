@@ -2845,7 +2845,6 @@ curves	Smooth	Leviga
 	Lens	Obiettivo
 	ISO	ISO
 	Focal Length35mm	Lunghezza focale equivalente (35 mm)
-	Aspect Ratio	Proporzioni
 	Time	Ora
 	Enter description…	Inserisci una descrizione…
 	ColorSync	ColorSync
@@ -3023,7 +3022,6 @@ curves	Smooth	Leviga
 	Create Date	Data di creazione
 	Modify Date	Data di modifica
 	Raw Data	Dati grezzi
-	Import…	Importa…
 	PDF Presentation…	Presentazione PDF…
 	Create Multiple Picture Packages	Crea più pacchetti di immagini
 	Picture Package…	Pacchetto di immagini…
@@ -3085,7 +3083,6 @@ curves	Smooth	Leviga
 	Drag to move the layer	Trascina per spostare il livello
 	Go to Layer	Vai al livello
 	After (X)	Dopo (X)
-	Current	Corrente
 	Reference point location	Posizione punto di riferimento
 	Toggle reference point	Mostra/nascondi punto di riferimento
 	Add Pins	Aggiungi pin
@@ -3102,7 +3099,6 @@ curves	Smooth	Leviga
 	Brush Size	Dimensione pennello
 	Heal Color	Colore correzione
 	Result	Risultato
-	Duplicate	Duplica
 	Fast	Veloce
 	Accurate	Preciso
 	Add to	Aggiungi a
@@ -3244,7 +3240,6 @@ layerLabel	No Color	Nessun colore
 	Warning	Avviso
 	Information	Informazioni
 	Retry	Riprova
-	Continue	Continua
 	Skip	Salta
 	Resume	Riprendi
 	Reset All	Ripristina tutto

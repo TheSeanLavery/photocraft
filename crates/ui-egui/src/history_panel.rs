@@ -110,6 +110,11 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         return;
     };
     let document = active.doc.clone();
+    let snapshots = active.snapshots.clone();
+    let snapshot_count = snapshots.len();
+    let live_snapshots: Vec<_> = snapshots.iter().map(|snapshot| snapshot.id).collect();
+    let snapshot_names: std::collections::HashSet<_> = active.snapshots.iter().map(|snapshot| snapshot.name.clone()).collect();
+    let mut snapshot_command = None;
     let stamp = (document.id, active.history.timeline_stamp());
     app.history_previews.poll(ui.ctx());
     if app.history_previews.stamp != Some(stamp) {
@@ -131,14 +136,15 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         }
     }
     // Virtualize rows: an unlimited document must not paint thousands of widgets each frame.
-    let count = app.history_previews.rows.len();
-    let max_height = (ui.available_height() - if t.pro { 30.0 + ui.spacing().item_spacing.y } else { 0.0 }).max(48.0);
+    let count = snapshot_count + app.history_previews.rows.len();
+    let max_height = (ui.available_height() - if t.pro { widgets::footer_height(ui) + ui.spacing().item_spacing.y } else { 0.0 }).max(48.0);
     let mut area = crate::scroll_area::ScrollArea::vertical().id_salt(("history-rows", document.id.0)).max_height(max_height).auto_shrink([false, false]);
     // Follow appended actions only if the previous viewport was at the end. Use
     // the adapter's returned offset so historical scrollbar drags count too.
     if let Some(previous) = app.history_previews.scroll
         && previous.document == document.id
         && count > previous.rows
+        && !app.history_previews.rows.last().is_some_and(|row| snapshot_names.contains(&row.label))
         && previous.max - previous.offset <= 1.0
     {
         let spacing = ui.spacing().item_spacing.y;
@@ -146,7 +152,13 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
         area = area.vertical_scroll_offset((total - previous.visible).max(0.0));
     }
     let scroll = area.show_rows(ui, ROW_HEIGHT, count, |ui, range| {
-        for index in range {
+        for row_index in range {
+            if row_index < snapshot_count {
+                snapshot_command = crate::panels::snapshot_row(app, ui, document.id, &snapshots, &live_snapshots, row_index).or(snapshot_command.take());
+                ui.add_space(ROW_HEIGHT - 38.0);
+                continue;
+            }
+            let index = row_index - snapshot_count;
             let Some(entry) = app.history_previews.rows.get(index).cloned() else { continue };
             let key = Key(document.id, entry.identity.id, entry.identity.revision);
             if !app.history_previews.textures.contains_key(&key)
@@ -156,7 +168,8 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 app.history_previews.request(key, state, ui.ctx());
             }
             let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_HEIGHT), Sense::click_and_drag());
-            response.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, enabled, entry.current, &entry.label));
+            let accessible_name = if snapshot_names.contains(&entry.label) { format!("{}: {}", tl!("History"), entry.label) } else { entry.label.clone() };
+            response.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, enabled, entry.current, &accessible_name));
             let color = branch_color(t.accent, entry.identity.branch);
             let rail_x = rect.left() + 9.0 + if entry.identity.branch == 0 { 0.0 } else { 5.0 };
             if let Some(parent_index) = entry.identity.parent.and_then(|id| app.history_previews.indices.get(&id)).copied()
@@ -243,6 +256,12 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     }
     if let Some(id) = destination {
         let _ = app.run("history.jump", serde_json::json!({"state":id}));
+    }
+    if let Some((command, params)) = snapshot_command.filter(|(command, _)| *command != "history.selectSnapshot" || enabled)
+        && let Err(error) = app.run(command, params)
+    {
+        app.ui.status = error;
+        app.ui.status_error = true;
     }
 }
 

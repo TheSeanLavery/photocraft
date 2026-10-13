@@ -39,7 +39,10 @@ pub fn transform_bounds(doc: &Document, layer: &Layer) -> Rect {
 /// A group moves all its descendants, so its frame must not clip raster children to the selection.
 fn whole_layer_bounds(layer: &Layer) -> Rect {
     let content = match &layer.content {
-        LayerContent::Group(g) => g.children.iter().map(whole_layer_bounds).fold(Rect::EMPTY, |a, b| a.union(&b)),
+        LayerContent::Group(g) => {
+            let bounds = g.children.iter().filter(|child| child.visible).map(whole_layer_bounds).fold(Rect::EMPTY, |a, b| a.union(&b));
+            g.artboard.as_ref().map_or(bounds, |artboard| bounds.intersect(&artboard.rect))
+        }
         _ => layer.surface().map_or(Rect::EMPTY, photocraft_compose::bounds::content_bounds),
     };
     if content.is_empty() { layer.mask.as_ref().map_or(Rect::EMPTY, |m| photocraft_compose::bounds::content_bounds(&m.surface)) } else { content }

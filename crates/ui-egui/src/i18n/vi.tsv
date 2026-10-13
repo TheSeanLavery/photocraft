@@ -3560,3 +3560,63 @@ curves	Smooth	Làm mượt
 	Action playback stopped	Đã dừng phát hành động
 	Step {step} is waiting for its dialog	Bước {step} đang chờ hộp thoại của nó
 @plural	{n} action|{n} actions	{n} hành động
+
+# Fork features retained during upstream integration
+	Apply Theme	Áp dụng giao diện
+	Branch	Nhánh
+	Cancel Theme Preview	Hủy xem trước giao diện
+	Caption font	Phông chữ chú thích
+	Collaboration View Settings	Cài đặt chế độ xem cộng tác
+	Collaboration…	Cộng tác…
+	Copy JSON	Sao chép JSON
+	Dock Tools on the left	Gắn công cụ bên trái
+	Draft: {name}	Bản nháp: {name}
+	Duplicate Theme	Nhân bản giao diện
+	Edit Theme Definition	Chỉnh sửa định nghĩa giao diện
+	Edit the definition below. Duplicate a built-in theme before changing it.	Chỉnh sửa định nghĩa bên dưới. Nhân bản giao diện tích hợp trước khi thay đổi.
+	Export SDR Preview…	Xuất bản xem trước SDR…
+	Export Theme…	Xuất giao diện…
+	Font {requested} is unavailable; using {actual}.	Phông chữ {requested} không có sẵn; đang dùng {actual}.
+	HDR Output	Đầu ra HDR
+	HDR Workbench	Không gian làm việc HDR
+	Import Theme…	Nhập giao diện…
+	List Themes	Liệt kê giao diện
+	Mac OS 9.1 Platinum Theme	Giao diện Mac OS 9.1 Platinum
+	Macintosh System 6 Theme	Giao diện Macintosh System 6
+	Netpbm chooses the subtype from the image depth and channels.	Netpbm chọn kiểu con dựa trên độ sâu và các kênh của ảnh.
+	Preview Theme	Xem trước giao diện
+	Preview is active. Cancel restores your saved theme.	Đang xem trước. Hủy sẽ khôi phục giao diện đã lưu.
+	Remove Theme	Xóa giao diện
+	Reset Changes	Đặt lại thay đổi
+	Reset Theme	Đặt lại giao diện
+	Retry storage	Thử lại lưu trữ
+	Return to Original	Trở về bản gốc
+	Saved theme	Giao diện đã lưu
+	Scroll down	Cuộn xuống
+	Scroll left	Cuộn sang trái
+	Scroll right	Cuộn sang phải
+	Scroll up	Cuộn lên
+	Select Theme	Chọn giao diện
+	Shape Operations	Thao tác hình dạng
+	The memory budget is shared by document pixels, embedded data and undo history. It grows as needed; other app memory is additional.	Ngân sách bộ nhớ được chia sẻ giữa điểm ảnh tài liệu, dữ liệu nhúng và lịch sử hoàn tác. Ngân sách tăng khi cần; bộ nhớ khác của ứng dụng được tính thêm.
+	Theme Details	Chi tiết giao diện
+	Theme Manager	Trình quản lý giao diện
+	Theme Manager…	Trình quản lý giao diện…
+	Theme definition exceeds 64 KiB	Định nghĩa giao diện vượt quá 64 KiB
+	This browser build keeps undo history in memory. Scratch disk settings apply to the desktop app.	Bản trình duyệt này giữ lịch sử hoàn tác trong bộ nhớ. Cài đặt đĩa tạm áp dụng cho ứng dụng máy tính.
+	This format saves a flattened image. Use Save a Copy to keep your editable document.	Định dạng này lưu ảnh đã gộp lớp. Dùng Lưu bản sao để giữ tài liệu có thể chỉnh sửa.
+	Windows 98 SE Theme	Giao diện Windows 98 SE
+	Aspect Ratio	Tỷ lệ khung hình
+	Continue	Tiếp tục
+	Import…	Nhập…
+	Square 1:1	Vuông 1:1
+	Portrait 4:5	Dọc 4:5
+	Story 9:16	Tin 9:16
+	Full HD Portrait	Full HD dọc
+	UHD 4K Portrait	UHD 4K dọc
+	QHD 1440p	QHD 1440p
+	Budget mb	Ngân sách (MB)
+	Theme id	Mã giao diện
+	Unlimited history	Lịch sử không giới hạn
+	Use available disk space	Dùng dung lượng đĩa còn trống
+	Use trackpad pressure	Dùng áp lực bàn di chuột
