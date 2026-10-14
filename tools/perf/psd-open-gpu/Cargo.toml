@@ -1,0 +1,38 @@
+[package]
+name = "psd-open-gpu-experiment"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[features]
+legacy-compositor = []
+
+[dependencies]
+photocraft-io = { path = "../../../crates/io" }
+photocraft-engine = { path = "../../../crates/engine" }
+photocraft-gpu = { path = "../../../crates/gpu" }
+photocraft-compose = { path = "../../../crates/compose" }
+photocraft-geom = { path = "../../../crates/geom" }
+photocraft-codecs = { path = "../../../crates/codecs" }
+wgpu = "30"
+pollster = "1"
+serde_json = "1"
+blake3 = "1.8"
+photocraft-doc = { path = "../../../crates/doc" }
+photocraft-color = { path = "../../../crates/color" }
+photocraft-raster = { path = "../../../crates/raster" }
+photocraft-psd = { path = "../../../crates/psd" }
+
+[[bin]]
+name = "psd-open-fixture"
+path = "../../../crates/io/examples/psd_open_experiment.rs"
+
+[[test]]
+name = "psd-open-equivalence"
+path = "../../../crates/io/tests/psd_open_equivalence.rs"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

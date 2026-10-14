@@ -128,11 +128,26 @@ impl Ctx<'_> {
         }
         let (w, h) = r.size().unwrap_or((0, 0));
         let s = self.fmt.sample;
-        let mut planes = Vec::with_capacity(self.cc + 1);
-        for c in 0..self.cc {
-            planes.push(self.channel_plane(rec, c as i16, name));
-        }
-        planes.push(self.channel_plane(rec, CHANNEL_TRANSPARENCY, name));
+        let channel_ids: Vec<_> = (0..self.cc as i16).chain([CHANNEL_TRANSPARENCY]).collect();
+        let planes = if w.saturating_mul(h) >= 65536 && !cfg!(target_arch = "wasm32") {
+            // A layer's channels are independent streams. Keep warnings in channel order,
+            // while decoding the small bounded set of channels concurrently on native.
+            let header = &self.file.header;
+            crate::pixels::par_map(channel_ids.clone(), |id| rec.channel(id).map(|_| rec.decode_channel(id, header.depth, header.version)))
+                .into_iter()
+                .zip(&channel_ids)
+                .map(|(plane, id)| match plane {
+                    Some(Ok(p)) => Some(p),
+                    Some(Err(e)) => {
+                        self.warn(format!("layer \"{name}\": channel {id} could not be decoded ({e}); treated as empty"));
+                        None
+                    }
+                    None => None,
+                })
+                .collect::<Vec<_>>()
+        } else {
+            channel_ids.iter().map(|&id| self.channel_plane(rec, id, name)).collect()
+        };
         // A channel that is in the file but could not be decoded leaves the layer empty, as the
         // warning says. Filling in for it would paint an opaque black layer over the document.
         let ids = (0..self.cc as i16).chain([CHANNEL_TRANSPARENCY]);
@@ -146,6 +161,11 @@ impl Ctx<'_> {
             return Surface::new(self.fmt);
         }
         let refs: Vec<Option<&[u8]>> = planes.iter().map(|p| p.as_deref()).collect();
+        if self.fmt == PixelFormat::RGBA8
+            && let Some(surface) = crate::pixels::rgba8_surface(&refs, Rect::new(r.left, r.top, r.right, r.bottom))
+        {
+            return surface;
+        }
         let mut fill: Vec<Vec<u8>> = vec![zero_sample(s); self.cc];
         fill.push(max_sample(s));
         let mut invert = vec![self.cmyk; self.cc];

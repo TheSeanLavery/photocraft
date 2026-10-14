@@ -1995,8 +1995,10 @@ fn keep_overlap(device: &wgpu::Device, queue: &wgpu::Queue, old: &Resident, new:
 
 /// Convert `tiles` of `surface` to `kind` texels and hand each distinct tile, the coordinates
 /// sharing it and its bytes to `put`. Each distinct tile is converted once (a solid fill shares
-/// one `Arc` across every coordinate it covers), in parallel batches. Converting every tile one
-/// after another on the UI thread froze a 50 MP 16-bit document for about 1.4 s after a
+/// one `Arc` across every coordinate it covers), in parallel batches when conversion is needed.
+/// Native texture formats borrow the tile bytes directly, avoiding an intermediate allocation
+/// and copy. Converting every tile one after another on the UI thread froze a 50 MP 16-bit
+/// document for about 1.4 s after a
 /// full-canvas fill (#1774). Returns how many tiles were converted.
 fn convert_tiles(surface: &Surface, tiles: Vec<(TileCoord, Arc<Tile>)>, kind: TexKind, mut put: impl FnMut(&Arc<Tile>, &[TileCoord], &[u8])) -> usize {
     let mut groups: Vec<(Arc<Tile>, Vec<TileCoord>)> = Vec::new();
@@ -2009,6 +2011,14 @@ fn convert_tiles(surface: &Surface, tiles: Vec<(TileCoord, Arc<Tile>)>, kind: Te
                 groups.push((t, vec![c]));
             }
         }
+    }
+    if matches!(kind, TexKind::Rgba8Direct | TexKind::R8Direct) {
+        // Keep the same distinct-tile order and shared-coordinate grouping as the converted
+        // path. `put` consumes these bytes synchronously, including ordered scratch uploads.
+        for (t, cs) in &groups {
+            put(t, cs, t.bytes());
+        }
+        return groups.len();
     }
     for batch in groups.chunks(CONVERT_BATCH) {
         // A tile's content is the same at every coordinate sharing it: convert it at the first.
@@ -2406,6 +2416,9 @@ mod tests {
             assert_eq!(tiles.len(), 81, "{fmt:?}");
             let mut seen = Vec::new();
             let converted = convert_tiles(&s, tiles, kind, |t, cs, bytes| {
+                if matches!(kind, TexKind::Rgba8Direct | TexKind::R8Direct) {
+                    assert_eq!(bytes.as_ptr(), t.bytes().as_ptr(), "{fmt:?}: native uploads borrow tile storage");
+                }
                 for &c in cs {
                     assert!(s.tile(c).is_some_and(|own| Arc::ptr_eq(own, t)), "{fmt:?} {c:?}");
                     assert_eq!(bytes, convert_tile(&s, Some(t), kind, c).as_slice(), "{fmt:?} {c:?}");

@@ -2,6 +2,68 @@
 //! native-endian surface bytes.
 
 use photocraft_color::SampleType;
+use photocraft_geom::{Rect, TILE_SIZE};
+use photocraft_raster::Surface;
+
+/// The common RGB8 import path: assemble planar channels in the final tiles, avoiding a
+/// full-image interleaved allocation and its subsequent tile copy. Other formats keep the
+/// general conversion path below. Coordinates may be negative or not tile-aligned.
+pub(crate) fn rgba8_surface(planes: &[Option<&[u8]>], rect: Rect) -> Option<Surface> {
+    let size = rect.size();
+    let (width, height) = (usize::try_from(size.width).ok()?, usize::try_from(size.height).ok()?);
+    let n = width.checked_mul(height)?;
+    let red = planes.first().copied().flatten()?;
+    let green = planes.get(1).copied().flatten()?;
+    let blue = planes.get(2).copied().flatten()?;
+    let alpha = planes.get(3).copied().flatten();
+    if red.len() != n || green.len() != n || blue.len() != n || alpha.is_some_and(|p| p.len() != n) {
+        return None;
+    }
+    let mut surface = Surface::new(photocraft_color::PixelFormat::RGBA8);
+    let tiles = surface.take_tiles(rect);
+    let count = tiles.len();
+    let step = bands(count).first().map_or(1, |b| b.len()).max(1);
+    let mut iter = tiles.into_iter();
+    let mut jobs = Vec::new();
+    while !iter.as_slice().is_empty() {
+        jobs.push(iter.by_ref().take(step).collect::<Vec<_>>());
+    }
+    let ready = par_map(jobs, |tiles| {
+        let mut populated = Vec::with_capacity(tiles.len());
+        for (coord, tile) in tiles {
+            let tr = coord.rect().intersect(&rect);
+            let mut tile = std::sync::Arc::unwrap_or_clone(tile);
+            let data = tile.bytes_mut();
+            for y in tr.y0..tr.y1 {
+                let src =
+                    usize::try_from(y.saturating_sub(rect.y0)).ok()?.checked_mul(width)?.checked_add(usize::try_from(tr.x0.saturating_sub(rect.x0)).ok()?)?;
+                let span = tr.width() as usize;
+                let dst = ((y - coord.rect().y0) as usize * TILE_SIZE as usize + (tr.x0 - coord.rect().x0) as usize) * 4;
+                let row = data.get_mut(dst..dst.checked_add(span.checked_mul(4)?)?)?;
+                let end = src.checked_add(span)?;
+                let (r, g, b) = (red.get(src..end)?, green.get(src..end)?, blue.get(src..end)?);
+                if let Some(a) = alpha.and_then(|a| a.get(src..src + span)) {
+                    for ((((dst, r), g), b), a) in row.chunks_exact_mut(4).zip(r).zip(g).zip(b).zip(a) {
+                        dst.copy_from_slice(&[*r, *g, *b, *a]);
+                    }
+                } else {
+                    for (((dst, r), g), b) in row.chunks_exact_mut(4).zip(r).zip(g).zip(b) {
+                        dst.copy_from_slice(&[*r, *g, *b, 255]);
+                    }
+                }
+            }
+            // Preserve nonzero RGB under zero alpha, just like Surface::prune does.
+            if tile.bytes().iter().any(|&v| v != 0) {
+                populated.push((coord, std::sync::Arc::new(tile)));
+            }
+        }
+        Some(populated)
+    })
+    .into_iter()
+    .collect::<Option<Vec<_>>>()?;
+    surface.put_tiles(ready.into_iter().flatten());
+    Some(surface)
+}
 
 /// PSD depth (bits) for a sample type.
 pub fn psd_depth(s: SampleType) -> u16 {
@@ -43,13 +105,16 @@ pub fn interleave(planes: &[Option<&[u8]>], fill: &[Vec<u8>], n: usize, s: Sampl
     let ch = planes.len();
     let row = ch * bps;
     let mut out = vec![0u8; n * row];
-    // One band of rows per core, written straight into its slice of the shared output: the
-    // per-pixel channel loop stays, but a band holds ~1/cores of a 20 MP image's iterations
-    // instead of all of them.
+    // Workers own disjoint output slices. Temporary per-worker images doubled the live
+    // interleaved storage and required another full-image copy after every import.
     let bs = bands(n);
-    let parts: Vec<Vec<u8>> = par_map(bs.clone(), |band| {
-        let mut part = vec![0u8; band.len() * row];
-        for (i, p) in band.clone().enumerate() {
+    let step = bs.first().map_or(1, |b| b.len()).max(1);
+    if row == 0 {
+        return out;
+    }
+    let chunks: Vec<_> = out.chunks_mut(step * row).enumerate().collect();
+    par_map(chunks, |(band, part)| {
+        for (i, p) in (band * step..band * step + part.len() / row).enumerate() {
             for (c, plane) in planes.iter().enumerate() {
                 let dst = &mut part[(i * ch + c) * bps..(i * ch + c + 1) * bps];
                 match plane {
@@ -69,11 +134,7 @@ pub fn interleave(planes: &[Option<&[u8]>], fill: &[Vec<u8>], n: usize, s: Sampl
                 }
             }
         }
-        part
     });
-    for (band, part) in bs.into_iter().zip(parts) {
-        out[band.start * row..band.end * row].copy_from_slice(&part);
-    }
     out
 }
 
@@ -216,6 +277,32 @@ pub fn bands(n: usize) -> Vec<std::ops::Range<usize>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rgba8_tiles_match_planar_samples_across_negative_edges() {
+        let rect = Rect::new(-3, -2, 270, 260);
+        let n = rect.width() as usize * rect.height() as usize;
+        let channels: Vec<Vec<u8>> = (0..4).map(|c| (0..n).map(|i| if c == 3 { 0 } else { (i.wrapping_mul(37) + c * 29) as u8 }).collect()).collect();
+        let planes: Vec<_> = channels.iter().map(|p| Some(p.as_slice())).collect();
+        let surface = rgba8_surface(&planes, rect).expect("valid planes");
+        let expected: Vec<_> = (0..n).flat_map(|i| channels.iter().map(move |c| c[i])).collect();
+        assert_eq!(surface.to_interleaved(rect), expected);
+        assert!(surface.tile_count() > 0, "nonzero RGB beneath zero alpha must survive");
+        let planes = [Some(channels[0].as_slice()), Some(channels[1].as_slice()), Some(channels[2].as_slice()), None];
+        let opaque = rgba8_surface(&planes, rect).expect("missing alpha is opaque");
+        assert!(opaque.to_interleaved(rect).chunks_exact(4).all(|p| p[3] == 255));
+    }
+
+    #[test]
+    fn rgba8_tiles_prune_zero_data_and_reject_short_planes() {
+        let rect = Rect::new(-1, 3, 258, 261);
+        let zeros = vec![0; rect.width() as usize * rect.height() as usize];
+        let planes = [Some(zeros.as_slice()); 4];
+        assert_eq!(rgba8_surface(&planes, rect).expect("valid zeros").tile_count(), 0);
+        let short = [Some(&zeros[..zeros.len() - 1]); 4];
+        assert!(rgba8_surface(&short, rect).is_none());
+        assert!(rgba8_surface(&[None; 4], rect).is_none());
+    }
 
     #[test]
     fn banded_shuffles_match_a_sequential_reference() {
