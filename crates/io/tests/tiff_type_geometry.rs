@@ -67,3 +67,20 @@ fn foreign_or_unsafe_type_keeps_cached_pixels_without_editable_geometry() {
         assert!(opened.layers[0].psd_blocks.iter().any(|(k, data)| k == b"TySh" && **data == raw));
     }
 }
+
+#[test]
+fn canonical_type_with_an_unreadable_descriptor_keeps_its_safe_transform_and_pixels() {
+    let doc = document();
+    let (mut psd, _) = document_to_psd_with(&doc, &PsdExportOptions::default());
+    let block = psd.layer_info.as_mut().unwrap().layers[0].blocks.iter_mut().find(|b| b.key == *b"TySh").unwrap();
+    block.data.truncate(52);
+    assert!(photocraft_text::psd::text_layer_from_tysh(&block.data, doc.resolution_dpi).is_none());
+    let raw = block.data.clone();
+    let (opened, warnings) = psd_to_document(&psd);
+    let LayerContent::Text(after) = &opened.layers[0].content else { panic!("safe legacy type must remain editable") };
+    let LayerContent::Text(before) = &doc.layers[0].content else { panic!("source type") };
+    assert_eq!(after.transform, before.transform);
+    assert_eq!(after.cache.as_ref().unwrap().content_bounds(), before.cache.as_ref().unwrap().content_bounds());
+    assert_eq!(after.psd_raw.as_deref().unwrap(), &raw);
+    assert!(!warnings.iter().any(|w| w.contains("unsafe type geometry")), "{warnings:?}");
+}
