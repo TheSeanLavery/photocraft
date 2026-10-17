@@ -212,6 +212,12 @@ fn every_mapped_command_exports_and_imports_back() {
         ("image.mode.grayscale", json!({})),
         ("image.mode.bits16", json!({})),
         ("layer.duplicate", json!({"name": "copy"})),
+        // Duplicate into a new document is a `Mk`, not a `Dplc` (the three shapes of
+        // a recorded Duplicate Layer with Destination: New, plus a named layer).
+        ("layer.duplicate", json!({"document": "new"})),
+        ("layer.duplicate", json!({"document": "new", "documentName": "test new name"})),
+        ("layer.duplicate", json!({"document": "new", "name": "Laer name change"})),
+        ("layer.duplicate", json!({"layer": "Shadow", "document": "new", "documentName": "Doc"})),
         ("image.duplicate", json!({"mergedOnly": true})),
         ("layer.new.layer", json!({"name": "Ink", "opacity": 0.5, "mode": "Multiply"})),
         ("layer.new.group", json!({"name": "G"})),
@@ -448,6 +454,17 @@ fn unsupported_shapes_become_photoshop_steps_not_errors() {
             Some(desc("null").with("null", class_ref("AdjL")).with("Usng", D::Descriptor(desc("AdjL").with("Type", D::Descriptor(desc("GdMp")))))),
         ),
         item("GsnB", "Gaussian Blur", None),
+        // Duplicate into another open document: the `T` reference means nothing at
+        // replay, so the step is kept verbatim instead of misplayed as a same-doc copy.
+        item(
+            "Dplc",
+            "Duplicate",
+            Some(
+                desc("null")
+                    .with("null", target_ref("Lyr "))
+                    .with("T   ", D::Reference(vec![ReferenceItem::Name { class: class("Dcmn"), name: UnicodeString::new_nul("Other") }])),
+            ),
+        ),
     ];
     let file = AtnFile {
         name: UnicodeString::new_nul("Odd"),
@@ -457,8 +474,8 @@ fn unsupported_shapes_become_photoshop_steps_not_errors() {
     };
     let imp = import(&atn::write(&file).unwrap()).unwrap();
     let ids: Vec<&str> = imp.actions[0].steps.iter().map(|(id, _)| id.as_str()).collect();
-    assert_eq!(ids, [PHOTOSHOP_STEP, PHOTOSHOP_STEP, PHOTOSHOP_STEP, PHOTOSHOP_STEP, "filter.blur.gaussianBlur"]);
-    assert_eq!(imp.unsupported.len(), 4);
+    assert_eq!(ids, [PHOTOSHOP_STEP, PHOTOSHOP_STEP, PHOTOSHOP_STEP, PHOTOSHOP_STEP, "filter.blur.gaussianBlur", PHOTOSHOP_STEP]);
+    assert_eq!(imp.unsupported.len(), 5);
     assert!(imp.actions[0].disabled.is_empty(), "steps with a document effect stay on so playback reports them");
 }
 
@@ -872,7 +889,9 @@ fn distressing_and_remove_white_shapes_import_and_play() {
     assert!(!d.is_background(l.id), "Layer From Background");
     let surf = l.surface().unwrap();
     assert!(surf.sample_channel(2, 2, 1) < 0.01, "white is cleared");
-    assert!((surf.sample_channel(20, 15, 1) - (1.0 - 32.0 / 255.0)).abs() < 0.02, "the ink keeps its darkness as opacity");
+    // #202020 is about 22 in the default (Dot Gain 20 %-compatible) working gray.
+    let ink = surf.sample_channel(20, 15, 1);
+    assert!((ink - (1.0 - 22.0 / 255.0)).abs() < 0.02, "the ink keeps its darkness as opacity: {ink}");
     // An image that opened as a normal layer has no Background: the step leaves it as it is.
     let mut s = Session::new();
     s.execute("file.new", json!({"width": 40, "height": 30, "background": "transparent"})).unwrap();

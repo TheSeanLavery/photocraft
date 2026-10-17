@@ -578,6 +578,9 @@ pub fn parse_tysh(data: &[u8]) -> Option<(String, Affine)> {
     for (i, v) in m.iter_mut().enumerate() {
         *v = f(2 + i * 8)?;
     }
+    if !photocraft_text::psd::usable_tysh_transform(&m) {
+        return None;
+    }
     // text version (2) at 50, descriptor version (4) at 52, descriptor at 56.
     let rest = data.get(52..)?;
     let text = parse_prefix_versioned(rest).and_then(|d| match d.get("Txt ") {
